@@ -12,7 +12,7 @@ package tool
 type Runtime interface {
     // Logging / UI
     Println(...any)
-    Ask(prompt string) (string, error)
+    PromptUser(prompt string) (string, error)
     GetLogger() interfaces.Logger
 
     // Program state
@@ -26,9 +26,9 @@ type Runtime interface {
     CallTool(name string, args []any) (any, error)
     LLM() interfaces.LLMClient
 }
-```
+````
 
----
+-----
 
 ## 1  Usage Patterns
 
@@ -50,14 +50,14 @@ if tok, ok := rt.GetVar("remaining"); ok && tok.(int64) > 0 {
 }
 
 // Chat / console I/O
-ans, _ := rt.Ask("Your name?")
+ans, _ := rt.PromptUser("Your name?")
 rt.Println("Hello,", ans)
 
 // Invoke another tool
 sum, _ := rt.CallTool("math.add", []any{int64(2), int64(3)})
 ```
 
----
+-----
 
 ## 2  Registering Tool-Sets
 
@@ -66,7 +66,7 @@ implementations:
 
 ```go
 package math
-import "github.com/aprice2704/neuroscript/pkg/tool"
+import "[github.com/aprice2704/neuroscript/pkg/tool](https://github.com/aprice2704/neuroscript/pkg/tool)"
 
 func init() {
     tool.AddToolsetRegistration(
@@ -80,7 +80,7 @@ At start-up **`neurogo.Engine`** calls `tool.RegisterExtendedTools(reg)`,
 which iterates over every registration function collected via `init()` and
 builds the live registry.
 
----
+-----
 
 ## 3  External & Dynamic Tool-Sets  *(planned roadmap)*
 
@@ -96,7 +96,7 @@ the `Runtime` surface:
 ```go
 // plugin side (future)
 package main
-import "github.com/aprice2704/neuroscript/pkg/tool"
+import "[github.com/aprice2704/neuroscript/pkg/tool](https://github.com/aprice2704/neuroscript/pkg/tool)"
 
 var Register tool.PluginRegister = func(reg tool.ToolRegistrar) error {
     return tool.CreateRegistrationFunc("acme", acmeTools)(reg)
@@ -106,18 +106,18 @@ var Register tool.PluginRegister = func(reg tool.ToolRegistrar) error {
 The same **`tool.Runtime`** contract applies regardless of how the tool-set
 arrives; only the *delivery* pathway differs.
 
----
+-----
 
 ## 4  Versioning & Compatibility
 
-1. **Adding** a method to `tool.Runtime` → minor (back-compatible).  
-2. **Removing / changing** a method → major version bump.  
-3. Tool authors may assume:
-   * `SandboxDir()` is always writable.  
-   * `Println` is line-buffered.  
-   * `GetVar/SetVar` are O(1) for < 1 k variables.  
+1.  **Adding** a method to `tool.Runtime` → minor (back-compatible).
+2.  **Removing / changing** a method → major version bump.
+3.  Tool authors may assume:
+      * `SandboxDir()` is always writable.
+      * `Println` is line-buffered.
+      * `GetVar/SetVar` are O(1) for \< 1 k variables.
 
----
+-----
 
 ## 5  Test Guidelines
 
@@ -129,7 +129,7 @@ arrives; only the *delivery* pathway differs.
 For interpreter white-box tests use the build-tagged
 `interpreter.NewTestInterpreter`.
 
----
+-----
 
 By following this contract tools remain **sandboxed, portable, and
 swap-able**, while the host **Engine** retains full control over logging,

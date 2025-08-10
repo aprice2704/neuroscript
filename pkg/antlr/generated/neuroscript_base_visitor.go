@@ -1,6 +1,6 @@
-// Code generated from /home/aprice/dev/neuroscript/pkg/parser/NeuroScript.g4 by ANTLR 4.13.2. DO NOT EDIT.
+// Code generated from /home/aprice/dev/neuroscript/pkg/antlr/NeuroScript.g4 by ANTLR 4.13.2. DO NOT EDIT.
 
-package parser // NeuroScript
+package generated // NeuroScript
 import "github.com/antlr4-go/antlr/v4"
 
 type BaseNeuroScriptVisitor struct {
@@ -156,6 +156,10 @@ func (v *BaseNeuroScriptVisitor) VisitClearErrorStmt(ctx *ClearErrorStmtContext)
 }
 
 func (v *BaseNeuroScriptVisitor) VisitAsk_stmt(ctx *Ask_stmtContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseNeuroScriptVisitor) VisitPromptuser_stmt(ctx *Promptuser_stmtContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 

@@ -1,6 +1,6 @@
-// Code generated from /home/aprice/dev/neuroscript/pkg/parser/NeuroScript.g4 by ANTLR 4.13.2. DO NOT EDIT.
+// Code generated from /home/aprice/dev/neuroscript/pkg/antlr/NeuroScript.g4 by ANTLR 4.13.2. DO NOT EDIT.
 
-package parser // NeuroScript
+package generated // NeuroScript
 import "github.com/antlr4-go/antlr/v4"
 
 // A complete Visitor for a parse tree produced by NeuroScriptParser.
@@ -120,6 +120,9 @@ type NeuroScriptVisitor interface {
 
 	// Visit a parse tree produced by NeuroScriptParser#ask_stmt.
 	VisitAsk_stmt(ctx *Ask_stmtContext) interface{}
+
+	// Visit a parse tree produced by NeuroScriptParser#promptuser_stmt.
+	VisitPromptuser_stmt(ctx *Promptuser_stmtContext) interface{}
 
 	// Visit a parse tree produced by NeuroScriptParser#break_statement.
 	VisitBreak_statement(ctx *Break_statementContext) interface{}

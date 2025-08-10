@@ -1,9 +1,10 @@
 // NeuroScript Version: 0.6.2
-// File version: 25.0
-// Purpose: FIX: Intercepts and normalizes UnaryOp "-" on a NumberLiteral 0.0 during canonicalization to ensure deterministic output.
-// filename: pkg/canon/canonicalize_part1.go
-// nlines: 170
-// risk_rating: HIGH
+// File version: 31.0
+// Purpose: FIX: Centralized CallableExpr serialization logic into the main
+//          visit() switch statement to resolve the "bad header" error. The
+//          dispatcher now correctly routes to the payload-only writer.
+// Filename: pkg/canon/canonicalize_part1.go
+// Risk rating: HIGH
 
 package canon
 
@@ -11,6 +12,7 @@ import (
 	"bytes"
 	"fmt"
 	"hash"
+	"os"
 	"sort"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
@@ -58,20 +60,17 @@ type canonVisitor struct {
 
 // visit is the dispatcher for visiting any node type.
 func (v *canonVisitor) visit(node ast.Node) error {
+	// TRACER: Log every node visited by the encoder.
+	fmt.Fprintf(os.Stderr, "ENC_TRACE: %T\n", node)
+
 	if node == nil {
 		v.writeVarint(int64(types.KindNilLiteral))
 		return nil
 	}
 
-	// FIX: This is the core logic to solve the -0.0 vs 0.0 problem.
-	// If we encounter a UnaryOp that is a minus sign applied to a number literal
-	// with a value of 0, we treat it as if it were just the number literal 0.0.
-	// This normalizes the two different AST representations into a single
-	// canonical binary representation.
 	if unode, ok := node.(*ast.UnaryOpNode); ok {
 		if nnode, ok := unode.Operand.(*ast.NumberLiteralNode); ok {
 			if unode.Operator == "-" && nnode.Value.(float64) == 0.0 {
-				// It's a "-0.0". Write it as a normal 0.0 NumberLiteralNode.
 				v.writeVarint(int64(types.KindNumberLiteral))
 				v.writeNumber(0.0)
 				return nil
@@ -80,6 +79,7 @@ func (v *canonVisitor) visit(node ast.Node) error {
 	}
 
 	var kindToWrite types.Kind
+	// Special case for MapEntryNode which doesn't have a Kind() method in the same way.
 	if _, ok := node.(*ast.MapEntryNode); ok {
 		kindToWrite = types.KindMapEntry
 	} else {
@@ -101,6 +101,9 @@ func (v *canonVisitor) visit(node ast.Node) error {
 		return v.visitOnEventDecl(n)
 
 	// Expression Nodes
+	case *ast.CallableExprNode:
+		// The Kind is written above, now write the specific payload.
+		return v.visitCallableExpr(n)
 	case *ast.LValueNode:
 		return v.visitLValue(n)
 	case *ast.StringLiteralNode:
@@ -115,8 +118,6 @@ func (v *canonVisitor) visit(node ast.Node) error {
 		return nil
 	case *ast.NilLiteralNode:
 		return nil
-	case *ast.CallableExprNode:
-		return v.visitCallableExpr(n)
 	case *ast.VariableNode:
 		v.writeString(n.Name)
 		return nil

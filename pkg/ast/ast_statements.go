@@ -1,13 +1,15 @@
 // filename: pkg/ast/ast_statements.go
-// NeuroScript Version: 0.5.2
-// File version: 22
-// Purpose: Removed redundant Position/Pos fields and GetPos methods to unify position handling via BaseNode.
-// nlines: 90+
+// NeuroScript Version: 0.6.0
+// File version: 27
+// Purpose: Adds expressionNode method to Step to satisfy the Expression interface and resolve a panic.
+// nlines: 125+
 // risk_rating: MEDIUM
 
 package ast
 
 import (
+	"fmt"
+
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 )
@@ -89,11 +91,38 @@ type Step struct {
 	Collection       Expression
 	Call             *CallableExprNode
 	OnEvent          *OnEventDecl
-	AskIntoVar       string
+	AskStmt          *AskStmt        // For 'ask' statement
+	PromptUserStmt   *PromptUserStmt // For 'promptuser' statement
 	IsFinal          bool
 	ErrorName        string
 	tool             interfaces.Tool
 	ExpressionStmt   *ExpressionStatementNode
+}
+
+func (s *Step) String() string {
+	if s == nil {
+		return "<nil step>"
+	}
+	// Provides a basic representation. Could be expanded to show more detail.
+	return fmt.Sprintf("Step(%s)", s.Type)
+}
+
+func (s *Step) expressionNode() {}
+
+// AskStmt represents the structured components of an 'ask' statement.
+type AskStmt struct {
+	BaseNode
+	AgentModelExpr Expression
+	PromptExpr     Expression
+	WithOptions    Expression
+	IntoTarget     *LValueNode
+}
+
+// PromptUserStmt represents the structured components of a 'promptuser' statement.
+type PromptUserStmt struct {
+	BaseNode
+	PromptExpr Expression
+	IntoTarget *LValueNode
 }
 
 // ExpressionStatementNode represents a statement that consists of a single expression,

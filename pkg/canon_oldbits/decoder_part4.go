@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.2
-// File version: 6
-// Purpose: FIX: Correctly deserializes the NodeKind for LValue accessors.
+// File version: 9
+// Purpose: FIX: Reverted 'call' case in readStep to use the main readNode dispatcher, ensuring consistent deserialization.
 // filename: pkg/canon/decoder_part4.go
 // nlines: 200+
 // risk_rating: HIGH
@@ -130,25 +130,22 @@ func (r *canonReader) readStep() (*ast.Step, error) {
 			}
 		}
 	case "ask":
-		step.AskIntoVar, err = r.readString()
+		step.AskStmt, err = r.readAskStmt()
 		if err != nil {
 			return nil, err
 		}
-		node, err := r.readNode()
+	case "promptuser":
+		step.PromptUserStmt, err = r.readPromptUserStmt()
 		if err != nil {
 			return nil, err
 		}
-		step.Values = []ast.Expression{node.(ast.Expression)}
-
-	case "call", "expression":
+	case "call":
 		node, err := r.readNode()
 		if err != nil {
 			return nil, err
 		}
 		if call, ok := node.(*ast.CallableExprNode); ok {
 			step.Call = call
-		} else if expr, ok := node.(*ast.ExpressionStatementNode); ok {
-			step.ExpressionStmt = expr
 		}
 	case "on_error":
 		numBody, err := r.readVarint()
@@ -168,6 +165,70 @@ func (r *canonReader) readStep() (*ast.Step, error) {
 	}
 
 	return step, nil
+}
+
+func (r *canonReader) readAskStmt() (*ast.AskStmt, error) {
+	ask := &ast.AskStmt{BaseNode: ast.BaseNode{NodeKind: types.KindAskStmt}}
+	var err error
+	var node ast.Node
+
+	node, err = r.readNode()
+	if err != nil {
+		return nil, err
+	}
+	ask.AgentModelExpr = node.(ast.Expression)
+
+	node, err = r.readNode()
+	if err != nil {
+		return nil, err
+	}
+	ask.PromptExpr = node.(ast.Expression)
+
+	hasWithOptions, err := r.readBool()
+	if err != nil {
+		return nil, err
+	}
+	if hasWithOptions {
+		node, err = r.readNode()
+		if err != nil {
+			return nil, err
+		}
+		ask.WithOptions = node.(ast.Expression)
+	}
+
+	hasIntoTarget, err := r.readBool()
+	if err != nil {
+		return nil, err
+	}
+	if hasIntoTarget {
+		node, err = r.readNode()
+		if err != nil {
+			return nil, err
+		}
+		ask.IntoTarget = node.(*ast.LValueNode)
+	}
+
+	return ask, nil
+}
+
+func (r *canonReader) readPromptUserStmt() (*ast.PromptUserStmt, error) {
+	prompt := &ast.PromptUserStmt{BaseNode: ast.BaseNode{NodeKind: types.KindPromptUserStmt}}
+	var err error
+	var node ast.Node
+
+	node, err = r.readNode()
+	if err != nil {
+		return nil, err
+	}
+	prompt.PromptExpr = node.(ast.Expression)
+
+	node, err = r.readNode()
+	if err != nil {
+		return nil, err
+	}
+	prompt.IntoTarget = node.(*ast.LValueNode)
+
+	return prompt, nil
 }
 
 func (r *canonReader) readLValue() (*ast.LValueNode, error) {

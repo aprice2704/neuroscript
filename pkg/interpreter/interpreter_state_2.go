@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.5.2
-// File version: 1
-// Purpose: Contains internal state and event management structs for the Interpreter.
-// filename: pkg/interpreter/state.go
-// nlines: 54
+// NeuroScript Version: 0.6.0
+// File version: 4
+// Purpose: Consolidated all state, including provider and agentmodel maps, into the main interpreterState struct.
+// filename: pkg/interpreter/interpreter_state_2.go
+// nlines: 65
 // risk_rating: MEDIUM
 
 package interpreter
@@ -12,9 +12,12 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/provider"
 )
 
-// interpreterState holds the non-exported state of the interpreter.
+// NOTE: The AgentModel struct is defined in interpreter_agentmodel.go
+
+// interpreterState holds all the non-exported, mutable state of the interpreter.
 type interpreterState struct {
 	variables         map[string]lang.Value
 	variablesMu       sync.RWMutex
@@ -26,6 +29,14 @@ type interpreterState struct {
 	sandboxDir        string
 	vectorIndex       map[string][]float32
 	globalVarNames    map[string]bool
+
+	// --- AgentModel State ---
+	agentModels   map[string]AgentModel
+	agentModelsMu sync.RWMutex
+
+	// --- Provider State ---
+	providers   map[string]provider.AIProvider
+	providersMu sync.RWMutex
 }
 
 // EventManager handles event subscriptions and emissions.
@@ -41,6 +52,8 @@ func newInterpreterState() *interpreterState {
 		commands:        []*ast.CommandNode{},
 		stackFrames:     []string{},
 		globalVarNames:  make(map[string]bool),
+		agentModels:     make(map[string]AgentModel),
+		providers:       make(map[string]provider.AIProvider), // Initialize providers map
 	}
 }
 

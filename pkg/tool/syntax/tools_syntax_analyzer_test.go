@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.15
-// Purpose: Implements a more robust parser error check that is less brittle to grammar changes.
+// File version: 16
+// Purpose: Fix compiler errors by removing unnecessary modification of lang.GrammarVersion.
 // filename: pkg/tool/syntax/tools_syntax_analyzer_test.go
-// nlines: 220
+// nlines: 217
 // risk_rating: LOW
 
 package syntax_test
@@ -21,10 +21,6 @@ import (
 )
 
 func TestAnalyzeNSSyntaxInternal(t *testing.T) {
-	originalGrammarVersion := lang.GrammarVersion
-	lang.GrammarVersion = "test-grammar-v0.9.9" // For predictable test output
-	defer func() { lang.GrammarVersion = originalGrammarVersion }()
-
 	testInterp, err := testutil.NewTestInterpreter(t, nil, nil)
 	if err != nil {
 		t.Fatalf("NewTestInterpreter failed: %v", err)

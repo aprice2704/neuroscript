@@ -1,9 +1,10 @@
 // NeuroScript Version: 0.6.2
-// File version: 11
-// Purpose: FIX: Use strconv.FormatFloat to correctly normalize -0.0, resolving the number literal canonicalization test failure.
-// filename: pkg/canon/canonicalize_part3.go
-// nlines: 200+
-// risk_rating: HIGH
+// File version: 25
+// Purpose: FIX: visitCallableExpr now ONLY writes the payload (starting with
+//          the CE magic header), as the main dispatcher now handles writing
+//          the node kind. This resolves the "bad header" serialization bug.
+// Filename: pkg/canon/canonicalize_part3.go
+// Risk rating: MEDIUM
 
 package canon
 
@@ -71,16 +72,16 @@ func (v *canonVisitor) visitStep(s *ast.Step) error {
 			}
 		}
 	case "ask":
-		v.writeString(s.AskIntoVar)
-		if err := v.visit(s.Values[0]); err != nil {
-			return err
+		if s.AskStmt != nil {
+			return v.visitAskStmt(s.AskStmt)
 		}
-	case "call", "expression":
+	case "promptuser":
+		if s.PromptUserStmt != nil {
+			return v.visitPromptUserStmt(s.PromptUserStmt)
+		}
+	case "call":
 		if s.Call != nil {
 			return v.visit(s.Call)
-		}
-		if s.ExpressionStmt != nil {
-			return v.visit(s.ExpressionStmt)
 		}
 	case "on_error":
 		v.writeVarint(int64(len(s.Body)))
@@ -90,7 +91,42 @@ func (v *canonVisitor) visitStep(s *ast.Step) error {
 			}
 		}
 	case "break", "continue", "clear_error":
-		// These have no fields to encode.
+		// No fields to encode.
+	}
+	return nil
+}
+
+func (v *canonVisitor) visitAskStmt(a *ast.AskStmt) error {
+	if err := v.visit(a.AgentModelExpr); err != nil {
+		return err
+	}
+	if err := v.visit(a.PromptExpr); err != nil {
+		return err
+	}
+	hasWithOptions := a.WithOptions != nil
+	v.writeBool(hasWithOptions)
+	if hasWithOptions {
+		if err := v.visit(a.WithOptions); err != nil {
+			return err
+		}
+	}
+	hasIntoTarget := a.IntoTarget != nil
+	v.writeBool(hasIntoTarget)
+	if hasIntoTarget {
+		if err := v.visit(a.IntoTarget); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (v *canonVisitor) visitPromptUserStmt(p *ast.PromptUserStmt) error {
+	if err := v.visit(p.PromptExpr); err != nil {
+		return err
+	}
+	// IntoTarget is mandatory for promptuser
+	if err := v.visit(p.IntoTarget); err != nil {
+		return err
 	}
 	return nil
 }
@@ -110,10 +146,18 @@ func (v *canonVisitor) visitOnEventDecl(e *ast.OnEventDecl) error {
 	return nil
 }
 
+// visitCallableExpr writes ONLY the payload for a CallableExpr. The node kind
+// is handled by the main visit() dispatcher.
 func (v *canonVisitor) visitCallableExpr(c *ast.CallableExprNode) error {
-	v.writeString(c.Target.Name)
+	// DO NOT write the node kind here. The main dispatcher does that.
+
+	// Header: "CE" + version + layout(header)
+	v.write([]byte{CallMagic1, CallMagic2, CallWireVersion, CallLayoutHeader})
+
+	// Payload: bool isTool, string name, argc, args...
 	v.writeBool(c.Target.IsTool)
-	v.writeVarint(int64(c.Target.Kind()))
+	v.writeString(c.Target.Name)
+
 	v.writeVarint(int64(len(c.Arguments)))
 	for _, arg := range c.Arguments {
 		if err := v.visit(arg); err != nil {
@@ -173,22 +217,15 @@ func (v *canonVisitor) writeBool(b bool) {
 }
 
 func (v *canonVisitor) writeNumber(val interface{}) {
-	// The previous implementation using `fmt.Sprintf("%v", ...)` did not correctly
-	// normalize -0.0, as the "%v" verb preserves the sign. Using `strconv.FormatFloat`
-	// with the 'g' format specifier ensures that both 0.0 and -0.0 are serialized
-	// as "0", providing a deterministic output.
-	// The parser guarantees that number literals are stored as float64.
+	// Normalize -0.0 to "0"
 	f, ok := val.(float64)
 	if !ok {
-		// This path should not be hit by the parser, but as a fallback,
-		// we handle non-float64 numbers gracefully.
 		strVal := fmt.Sprintf("%v", val)
 		v.write([]byte{0x01})
 		v.writeString(strVal)
 		return
 	}
-
 	strVal := strconv.FormatFloat(f, 'g', -1, 64)
-	v.write([]byte{0x01}) // Always write as float64
+	v.write([]byte{0x01})
 	v.writeString(strVal)
 }

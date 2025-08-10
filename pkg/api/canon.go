@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.5.2
-// File version: 7
-// Purpose: Public API wrapper for the canonicalization engine, fixing return value mismatch.
+// NeuroScript Version: 0.6.3
+// File version: 8
+// Purpose: Public API wrapper for the canonicalization engine, updated for the new registry-based functions.
 // filename: pkg/api/canon.go
 // nlines: 30
 // risk_rating: LOW
@@ -18,13 +18,13 @@ import (
 // It wraps the internal canonicalizer.
 func Canonicalise(tree *interfaces.Tree) ([]byte, [32]byte, error) {
 	internalTree := &ast.Tree{Root: tree.Root, Comments: tree.Comments}
-	return canon.Canonicalise(internalTree)
+	return canon.CanonicaliseWithRegistry(internalTree)
 }
 
 // Decode reconstructs an AST from its canonical binary representation.
 // It wraps the internal decoder and computes the hash of the input blob.
 func Decode(blob []byte) (*interfaces.Tree, [32]byte, error) {
-	internalTree, err := canon.Decode(blob)
+	internalTree, err := canon.DecodeWithRegistry(blob)
 	if err != nil {
 		return nil, [32]byte{}, err
 	}
@@ -34,5 +34,5 @@ func Decode(blob []byte) (*interfaces.Tree, [32]byte, error) {
 	sum := blake2b.Sum256(blob)
 
 	// The returned *ast.Tree satisfies the *interfaces.Tree.
-	return internalTree, sum, nil
+	return &interfaces.Tree{Root: internalTree.Root, Comments: internalTree.Comments}, sum, nil
 }

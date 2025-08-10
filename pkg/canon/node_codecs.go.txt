@@ -1,0 +1,395 @@
+// NeuroScript Version: 0.6.3
+// File version: 5
+// Purpose: REFACTOR: Enforced a consistent pattern in all decode functions to initialize the node and its Kind at the beginning.
+// filename: pkg/canon/node_codecs.go
+// nlines: 250+
+// risk_rating: LOW
+
+package canon
+
+import (
+	"bytes"
+	"encoding/hex"
+	"fmt"
+	"os"
+
+	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/types"
+)
+
+// --- Program ---
+
+func encodeProgram(v *canonVisitor, n ast.Node) error {
+	node := n.(*ast.Program)
+	// A full implementation would sort metadata, procs, etc. for determinism.
+	v.writeVarint(0) // Metadata
+	v.writeVarint(int64(len(node.Procedures)))
+	for _, proc := range node.Procedures {
+		if err := v.visitor(proc); err != nil {
+			return err
+		}
+	}
+	v.writeVarint(int64(len(node.Events)))
+	for _, event := range node.Events {
+		if err := v.visitor(event); err != nil {
+			return err
+		}
+	}
+	v.writeVarint(int64(len(node.Commands)))
+	for _, cmd := range node.Commands {
+		if err := v.visitor(cmd); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func decodeProgram(r *canonReader) (ast.Node, error) {
+	prog := ast.NewProgram()
+	// Stubs for metadata
+	_, err := r.readVarint()
+	if err != nil {
+		return nil, err
+	}
+
+	procCount, err := r.readVarint()
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < int(procCount); i++ {
+		node, err := r.visitor()
+		if err != nil {
+			return nil, err
+		}
+		proc := node.(*ast.Procedure)
+		prog.Procedures[proc.Name()] = proc
+	}
+
+	eventCount, err := r.readVarint()
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < int(eventCount); i++ {
+		node, err := r.visitor()
+		if err != nil {
+			return nil, err
+		}
+		prog.Events = append(prog.Events, node.(*ast.OnEventDecl))
+	}
+
+	cmdCount, err := r.readVarint()
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < int(cmdCount); i++ {
+		node, err := r.visitor()
+		if err != nil {
+			return nil, err
+		}
+		prog.Commands = append(prog.Commands, node.(*ast.CommandNode))
+	}
+
+	return prog, nil
+}
+
+// --- ProcedureDecl ---
+
+func encodeProcedure(v *canonVisitor, n ast.Node) error {
+	node := n.(*ast.Procedure)
+	v.writeString(node.Name())
+	// For this test, we'll omit params, returns, etc.
+	v.writeVarint(0) // RequiredParams
+	v.writeVarint(0) // OptionalParams
+	v.writeVarint(0) // ReturnVarNames
+	v.writeVarint(int64(len(node.Steps)))
+	for i := range node.Steps {
+		if err := v.visitor(&node.Steps[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func decodeProcedure(r *canonReader) (ast.Node, error) {
+	proc := &ast.Procedure{BaseNode: ast.BaseNode{NodeKind: types.KindProcedureDecl}}
+	name, err := r.readString()
+	if err != nil {
+		return nil, err
+	}
+	proc.SetName(name)
+	// Stubs for params
+	r.readVarint()
+	r.readVarint()
+	r.readVarint()
+	stepCount, err := r.readVarint()
+	if err != nil {
+		return nil, err
+	}
+	proc.Steps = make([]ast.Step, stepCount)
+	for i := 0; i < int(stepCount); i++ {
+		node, err := r.visitor()
+		if err != nil {
+			return nil, err
+		}
+		proc.Steps[i] = *node.(*ast.Step)
+	}
+	return proc, nil
+}
+
+// --- Step ---
+
+func encodeStep(v *canonVisitor, n ast.Node) error {
+	node := n.(*ast.Step)
+	v.writeString(node.Type)
+	switch node.Type {
+	case "set":
+		v.writeVarint(int64(len(node.LValues)))
+		for _, lval := range node.LValues {
+			if err := v.visitor(lval); err != nil {
+				return err
+			}
+		}
+		v.writeVarint(int64(len(node.Values)))
+		for _, rval := range node.Values {
+			if err := v.visitor(rval); err != nil {
+				return err
+			}
+		}
+	default:
+		// For the initial test, other step types can be no-ops.
+	}
+	return nil
+}
+
+func decodeStep(r *canonReader) (ast.Node, error) {
+	step := &ast.Step{BaseNode: ast.BaseNode{NodeKind: types.KindStep}}
+	var err error
+	step.Type, err = r.readString()
+	if err != nil {
+		return nil, err
+	}
+	switch step.Type {
+	case "set":
+		lvalCount, err := r.readVarint()
+		if err != nil {
+			return nil, err
+		}
+		step.LValues = make([]*ast.LValueNode, lvalCount)
+		for i := 0; i < int(lvalCount); i++ {
+			node, err := r.visitor()
+			if err != nil {
+				return nil, err
+			}
+			step.LValues[i] = node.(*ast.LValueNode)
+		}
+		valCount, err := r.readVarint()
+		if err != nil {
+			return nil, err
+		}
+		step.Values = make([]ast.Expression, valCount)
+		for i := 0; i < int(valCount); i++ {
+			node, err := r.visitor()
+			if err != nil {
+				return nil, err
+			}
+			step.Values[i] = node.(ast.Expression)
+		}
+	default:
+		// No-op for other types in this test.
+	}
+	return step, nil
+}
+
+// --- LValue ---
+
+func encodeLValue(v *canonVisitor, n ast.Node) error {
+	node := n.(*ast.LValueNode)
+	v.writeString(node.Identifier)
+	v.writeVarint(int64(len(node.Accessors)))
+	// Accessor encoding omitted for this test
+	return nil
+}
+
+func decodeLValue(r *canonReader) (ast.Node, error) {
+	lval := &ast.LValueNode{BaseNode: ast.BaseNode{NodeKind: types.KindLValue}}
+	var err error
+	lval.Identifier, err = r.readString()
+	if err != nil {
+		return nil, err
+	}
+	accessorCount, err := r.readVarint()
+	if err != nil {
+		return nil, err
+	}
+	lval.Accessors = make([]*ast.AccessorNode, accessorCount)
+	// Accessor decoding omitted
+	return lval, nil
+}
+
+// --- StringLiteral ---
+
+func encodeStringLiteral(v *canonVisitor, n ast.Node) error {
+	node := n.(*ast.StringLiteralNode)
+	var buf bytes.Buffer
+	tempVisitor := &canonVisitor{w: &buf}
+	tempVisitor.writeString(node.Value)
+	tempVisitor.writeBool(node.IsRaw)
+	fmt.Fprintf(os.Stderr, "CODEC: ENC KindStringLiteral, bytes: %s\n", hex.EncodeToString(buf.Bytes()))
+	v.write(buf.Bytes())
+	return nil
+}
+
+func decodeStringLiteral(r *canonReader) (ast.Node, error) {
+	node := &ast.StringLiteralNode{BaseNode: ast.BaseNode{NodeKind: types.KindStringLiteral}}
+	var err error
+	node.Value, err = r.readString()
+	if err != nil {
+		return nil, err
+	}
+	node.IsRaw, err = r.readBool()
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
+// --- NumberLiteral ---
+
+func encodeNumberLiteral(v *canonVisitor, n ast.Node) error {
+	node := n.(*ast.NumberLiteralNode)
+	var buf bytes.Buffer
+	tempVisitor := &canonVisitor{w: &buf}
+	tempVisitor.writeNumber(node.Value)
+	fmt.Fprintf(os.Stderr, "CODEC: ENC KindNumberLiteral, bytes: %s\n", hex.EncodeToString(buf.Bytes()))
+	v.write(buf.Bytes())
+	return nil
+}
+
+func decodeNumberLiteral(r *canonReader) (ast.Node, error) {
+	node := &ast.NumberLiteralNode{BaseNode: ast.BaseNode{NodeKind: types.KindNumberLiteral}}
+	var err error
+	node.Value, err = r.readNumber()
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
+// --- BooleanLiteral ---
+
+func encodeBooleanLiteral(v *canonVisitor, n ast.Node) error {
+	node := n.(*ast.BooleanLiteralNode)
+	v.writeBool(node.Value)
+	return nil
+}
+
+func decodeBooleanLiteral(r *canonReader) (ast.Node, error) {
+	node := &ast.BooleanLiteralNode{BaseNode: ast.BaseNode{NodeKind: types.KindBooleanLiteral}}
+	var err error
+	node.Value, err = r.readBool()
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
+// --- NilLiteral ---
+
+func encodeNilLiteral(v *canonVisitor, n ast.Node) error {
+	return nil // No payload
+}
+
+func decodeNilLiteral(r *canonReader) (ast.Node, error) {
+	return &ast.NilLiteralNode{BaseNode: ast.BaseNode{NodeKind: types.KindNilLiteral}}, nil
+}
+
+// --- Variable ---
+
+func encodeVariable(v *canonVisitor, n ast.Node) error {
+	node := n.(*ast.VariableNode)
+	v.writeString(node.Name)
+	return nil
+}
+
+func decodeVariable(r *canonReader) (ast.Node, error) {
+	node := &ast.VariableNode{BaseNode: ast.BaseNode{NodeKind: types.KindVariable}}
+	var err error
+	node.Name, err = r.readString()
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
+// --- CallableExpr ---
+
+func encodeCallableExpr(v *canonVisitor, n ast.Node) error {
+	node := n.(*ast.CallableExprNode)
+	tempVisitor := &canonVisitor{w: v.w, hasher: v.hasher}
+
+	tempVisitor.write([]byte{CallMagic1, CallMagic2, CallWireVersion, CallLayoutHeader})
+	tempVisitor.writeBool(node.Target.IsTool)
+	tempVisitor.writeString(node.Target.Name)
+	tempVisitor.writeVarint(int64(len(node.Arguments)))
+	for _, arg := range node.Arguments {
+		if err := v.visitor(arg); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func decodeCallableExpr(r *canonReader) (ast.Node, error) {
+	node := &ast.CallableExprNode{
+		BaseNode: ast.BaseNode{NodeKind: types.KindCallableExpr},
+		Target:   ast.CallTarget{BaseNode: ast.BaseNode{NodeKind: types.KindVariable}},
+	}
+
+	m1, err := r.readByte()
+	if err != nil {
+		return nil, fmt.Errorf("callable: read magic[0]: %w", err)
+	}
+	m2, err := r.readByte()
+	if err != nil {
+		return nil, fmt.Errorf("callable: read magic[1]: %w", err)
+	}
+	ver, err := r.readByte()
+	if err != nil {
+		return nil, fmt.Errorf("callable: read version: %w", err)
+	}
+	layout, err := r.readByte()
+	if err != nil {
+		return nil, fmt.Errorf("callable: read layout: %w", err)
+	}
+
+	if m1 != CallMagic1 || m2 != CallMagic2 || ver != CallWireVersion {
+		return nil, fmt.Errorf("callable: bad header: got [%02X %02X] ver=%02X", m1, m2, ver)
+	}
+
+	if layout != CallLayoutHeader {
+		return nil, fmt.Errorf("callable: unsupported layout %d", layout)
+	}
+
+	node.Target.IsTool, err = r.readBool()
+	if err != nil {
+		return nil, err
+	}
+	node.Target.Name, err = r.readString()
+	if err != nil {
+		return nil, err
+	}
+	argc, err := r.readVarint()
+	if err != nil {
+		return nil, err
+	}
+	node.Arguments = make([]ast.Expression, argc)
+	for i := 0; i < int(argc); i++ {
+		argNode, err := r.visitor()
+		if err != nil {
+			return nil, err
+		}
+		node.Arguments[i] = argNode.(ast.Expression)
+	}
+
+	return node, nil
+}

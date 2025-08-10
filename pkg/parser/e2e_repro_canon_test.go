@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.6.0
-// File version: 4
-// Purpose: WIDENED SCOPE. This test now decodes the AST and asserts its structure, reproducing the data loss bug that occurs during canonicalization.
+// NeuroScript Version: 0.6.3
+// File version: 5
+// Purpose: WIDENED SCOPE. This test now decodes the AST and asserts its structure, reproducing the data loss bug that occurs during canonicalization. Updated to use new registry-based canon functions.
 // filename: pkg/parser/e2e_repro_canon_test.go
 // nlines: 80
 // risk_rating: HIGH
@@ -29,7 +29,7 @@ endfunc
 `
 	logger := logging.NewTestLogger(t)
 	parserAPI := parser.NewParserAPI(logger)
-	antlrTree, err := parserAPI.Parse(src)
+	antlrTree, _, err := parserAPI.ParseAndGetStream("source.ns", src)
 	if err != nil {
 		t.Fatalf("Parse() failed unexpectedly: %v", err)
 	}
@@ -43,20 +43,20 @@ endfunc
 
 	// 1. Canonicalize the AST into a binary blob.
 	t.Log("Attempting to canonicalize the AST...")
-	encoded, _, err := canon.Canonicalise(tree)
+	encoded, _, err := canon.CanonicaliseWithRegistry(tree)
 	if err != nil {
-		t.Fatalf("canon.Canonicalise failed: %v", err)
+		t.Fatalf("canon.CanonicaliseWithRegistry failed: %v", err)
 	}
 	t.Log("Canonicalize successful.")
 
 	// 2. Decode the blob back into a new AST structure.
 	t.Log("Attempting to decode the blob...")
-	decodedTree, err := canon.Decode(encoded)
+	decodedTree, err := canon.DecodeWithRegistry(encoded)
 	if err != nil {
-		t.Fatalf("canon.Decode returned an error: %v", err)
+		t.Fatalf("canon.DecodeWithRegistry returned an error: %v", err)
 	}
 	if decodedTree == nil {
-		t.Fatal("canon.Decode returned a nil tree without error.")
+		t.Fatal("canon.DecodeWithRegistry returned a nil tree without error.")
 	}
 	t.Log("Decode successful. Now inspecting the decoded AST.")
 

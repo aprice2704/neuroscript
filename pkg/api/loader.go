@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.6.0
-// File version: 11
-// Purpose: Corrects a critical signature verification bug by separating cryptographic checks from AST decoding.
+// NeuroScript Version: 0.6.3
+// File version: 12
+// Purpose: Corrects a critical signature verification bug and updates to use the new registry-based decoder.
 // filename: pkg/api/loader.go
 // nlines: 65
 // risk_rating: HIGH
@@ -59,20 +59,20 @@ func Load(ctx context.Context, s *SignedAST, cfg LoaderConfig, pubKey ed25519.Pu
 	}
 
 	// 3. Now that all crypto is verified, decode the blob into an AST.
-	verifiedTree, err := canon.Decode(s.Blob)
+	verifiedTree, err := canon.DecodeWithRegistry(s.Blob)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode verified blob: %w", err)
 	}
 
 	// 4. Run static analysis passes.
-	if err := analysis.RunAll(verifiedTree); err != nil {
+	if err := analysis.RunAll(&interfaces.Tree{Root: verifiedTree.Root}); err != nil {
 		return nil, fmt.Errorf("analysis pass failed: %w", err)
 	}
 
 	lu := &LoadedUnit{
-		Tree:     verifiedTree,
+		Tree:     &interfaces.Tree{Root: verifiedTree.Root},
 		Hash:     s.Sum,
-		Mode:     DetectRunMode(verifiedTree),
+		Mode:     DetectRunMode(&interfaces.Tree{Root: verifiedTree.Root}),
 		RawBytes: s.Blob,
 	}
 

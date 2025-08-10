@@ -1,6 +1,7 @@
-// Grammar: NeuroScript Version: 0.4.6
-// File version: 78
-// Purpose: Fixes 'must' statement ambiguity by re-introducing a dedicated 'must_statement' rule and removing 'must' from the general expression rules.
+// NeuroScript Version: 0.4.6
+// File version: 81
+// Purpose: Renamed the user input command to 'promptuser' to distinguish it from the 'ask' statement for AI.
+// filename: NeuroScript.g4
 grammar NeuroScript;
 
 // --- LEXER RULES ---
@@ -58,6 +59,7 @@ KW_NOT: 'not';
 KW_ON: 'on';
 KW_OPTIONAL: 'optional';
 KW_OR: 'or';
+KW_PROMPTUSER: 'promptuser'; // Added keyword
 KW_RETURN: 'return';
 KW_RETURNS: 'returns';
 KW_SET: 'set';
@@ -69,6 +71,7 @@ KW_TOOL: 'tool';
 KW_TRUE: 'true';
 KW_TYPEOF: 'typeof';
 KW_WHILE: 'while';
+KW_WITH: 'with';
 
 // --- Other Tokens ---
 fragment CONTINUED_LINE: '\\' ('\r'? '\n' | '\r');
@@ -130,7 +133,6 @@ fragment UNICODE_ESC:
 fragment HEX_ESC: 'x' HEX_DIGIT HEX_DIGIT;
 fragment OCTAL_ESC: [0-3]? [0-7] [0-7];
 fragment HEX_DIGIT: [0-9a-fA-F];
-
 // --- PARSER RULES ---
 
 program: file_header (library_script | command_script)? EOF;
@@ -139,7 +141,6 @@ file_header: (METADATA_LINE | NEWLINE)*;
 
 library_script: library_block+;
 command_script: command_block+;
-
 library_block: (procedure_definition | KW_ON event_handler) NEWLINE*;
 
 command_block:
@@ -162,10 +163,11 @@ simple_command_statement:
 	set_statement
 	| call_statement
 	| emit_statement
-	| must_statement // FIX: Added 'must_statement' back
+	| must_statement
 	| fail_statement
 	| clearEventStmt
 	| ask_stmt
+	| promptuser_stmt
 	| break_statement
 	| continue_statement;
 
@@ -197,15 +199,17 @@ simple_statement:
 	| call_statement
 	| return_statement
 	| emit_statement
-	| must_statement // FIX: Added 'must_statement' back
+	| must_statement
 	| fail_statement
 	| clearErrorStmt
 	| clearEventStmt
 	| ask_stmt
+	| promptuser_stmt
 	| break_statement
 	| continue_statement;
 
-// FIX: 'expression_statement' is removed. Statements must be explicit keywords.
+// FIX: 'expression_statement' is removed.
+// Statements must be explicit keywords.
 // expression_statement: expression;
 
 block_statement:
@@ -226,11 +230,14 @@ set_statement: KW_SET lvalue_list ASSIGN expression;
 call_statement: KW_CALL callable_expr;
 return_statement: KW_RETURN expression_list?;
 emit_statement: KW_EMIT expression;
-must_statement:
-	KW_MUST expression; // FIX: Re-introduced dedicated must_statement rule
+must_statement: KW_MUST expression;
 fail_statement: KW_FAIL expression?;
 clearErrorStmt: KW_CLEAR_ERROR;
-ask_stmt: KW_ASK expression (KW_INTO IDENTIFIER)?;
+ask_stmt:
+	KW_ASK expression COMMA expression (KW_WITH expression)? (
+		KW_INTO lvalue
+	)?;
+promptuser_stmt: KW_PROMPTUSER expression KW_INTO lvalue;
 break_statement: KW_BREAK;
 continue_statement: KW_CONTINUE;
 
@@ -242,7 +249,6 @@ while_statement:
 	KW_WHILE expression NEWLINE non_empty_statement_list KW_ENDWHILE;
 for_each_statement:
 	KW_FOR KW_EACH IDENTIFIER KW_IN expression NEWLINE non_empty_statement_list KW_ENDFOR;
-
 // --- Expression Rules ---
 qualified_identifier: IDENTIFIER (DOT IDENTIFIER)*;
 call_target: IDENTIFIER | KW_TOOL DOT qualified_identifier;

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.0
-// File version: 69
-// Purpose: Fixed compilation errors by replacing direct access to the removed 'Position' field with the 'GetPos()' method.
+// File version: 70
+// Purpose: Added dispatch cases for the 'ask' and 'promptuser' statements in the main execution loop.
 // filename: pkg/interpreter/interpreter_exec.go
 // nlines: 300
 // risk_rating: HIGH
@@ -38,14 +38,15 @@ func getStepSubjectForLogging(step ast.Step) string {
 			return step.Call.Target.String()
 		}
 	case "ask":
-		var promptStr string
-		if len(step.Values) > 0 && step.Values[0] != nil {
-			promptStr = step.Values[0].String()
+		if step.AskStmt != nil && step.AskStmt.PromptExpr != nil {
+			return step.AskStmt.PromptExpr.String()
 		}
-		if step.AskIntoVar != "" {
-			return fmt.Sprintf("into %s (prompt: %s)", step.AskIntoVar, promptStr)
+		return "<ask>"
+	case "promptuser":
+		if step.PromptUserStmt != nil && step.PromptUserStmt.PromptExpr != nil {
+			return step.PromptUserStmt.PromptExpr.String()
 		}
-		return fmt.Sprintf("prompt: %s", promptStr)
+		return "<promptuser>"
 
 	case "for_each", "for":
 		return fmt.Sprintf("loopVar: %s, collection: %s", step.LoopVarName, step.Collection.String())
@@ -102,10 +103,7 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 			} else {
 				var returnValue lang.Value
 				returnValue, wasReturn, stepErr = i.executeReturn(step)
-				fmt.Printf("back from executeReturn 105--------> %v\n", returnValue)
 				if stepErr == nil && wasReturn {
-					// THIS IS THE FIX: A return statement must update the finalResult
-					// and then exit the execution loop immediately.
 					finalResult = returnValue
 					i.lastCallResult = finalResult
 					return finalResult, true, false, nil
@@ -172,6 +170,8 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 			}
 		case "ask":
 			stepResult, stepErr = i.executeAsk(step)
+		case "promptuser":
+			stepResult, stepErr = i.executePromptUser(step)
 		case "break":
 			stepErr = i.executeBreak(step)
 		case "continue":
@@ -242,7 +242,7 @@ func (i *Interpreter) executeBlock(blockValue interface{}, parentPos *types.Posi
 
 func shouldUpdateLastResult(stepTypeLower string) bool {
 	switch stepTypeLower {
-	case "set", "assign", "emit", "ask", "call", "expression_statement":
+	case "set", "assign", "emit", "ask", "promptuser", "call", "expression_statement":
 		return true
 	default:
 		return false

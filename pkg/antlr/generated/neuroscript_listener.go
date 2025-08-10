@@ -1,6 +1,6 @@
-// Code generated from /home/aprice/dev/neuroscript/pkg/parser/NeuroScript.g4 by ANTLR 4.13.2. DO NOT EDIT.
+// Code generated from /home/aprice/dev/neuroscript/pkg/antlr/NeuroScript.g4 by ANTLR 4.13.2. DO NOT EDIT.
 
-package parser // NeuroScript
+package generated // NeuroScript
 import "github.com/antlr4-go/antlr/v4"
 
 // NeuroScriptListener is a complete listener for a parse tree produced by NeuroScriptParser.
@@ -120,6 +120,9 @@ type NeuroScriptListener interface {
 
 	// EnterAsk_stmt is called when entering the ask_stmt production.
 	EnterAsk_stmt(c *Ask_stmtContext)
+
+	// EnterPromptuser_stmt is called when entering the promptuser_stmt production.
+	EnterPromptuser_stmt(c *Promptuser_stmtContext)
 
 	// EnterBreak_statement is called when entering the break_statement production.
 	EnterBreak_statement(c *Break_statementContext)
@@ -333,6 +336,9 @@ type NeuroScriptListener interface {
 
 	// ExitAsk_stmt is called when exiting the ask_stmt production.
 	ExitAsk_stmt(c *Ask_stmtContext)
+
+	// ExitPromptuser_stmt is called when exiting the promptuser_stmt production.
+	ExitPromptuser_stmt(c *Promptuser_stmtContext)
 
 	// ExitBreak_statement is called when exiting the break_statement production.
 	ExitBreak_statement(c *Break_statementContext)

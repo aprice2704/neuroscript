@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.6.0
-// File version: 7
-// Purpose: Corrects the expected error in the 'tampered hash' test to match the actual, correct behavior of the Verify function.
+// NeuroScript Version: 0.6.3
+// File version: 8
+// Purpose: Corrects the test to use the new registry-based canonicalization function.
 // filename: pkg/sign/signer_test.go
 // nlines: 122
 // risk_rating: HIGH
@@ -29,13 +29,13 @@ func TestSignAndVerify(t *testing.T) {
 	// 2. Create a sample AST to sign.
 	script := "func main() means\n  return\nendfunc"
 	parserAPI := parser.NewParserAPI(logging.NewNoOpLogger())
-	antlrTree, _ := parserAPI.Parse(script)
+	antlrTree, _, _ := parserAPI.ParseAndGetStream("source.ns", script)
 	builder := parser.NewASTBuilder(logging.NewNoOpLogger())
 	program, _, _ := builder.Build(antlrTree)
 	tree := &ast.Tree{Root: program}
 
 	// 3. Canonicalize the AST to get the data to sign.
-	blob, sum, err := canon.Canonicalise(tree)
+	blob, sum, err := canon.CanonicaliseWithRegistry(tree)
 	if err != nil {
 		t.Fatalf("Failed to canonicalize AST: %v", err)
 	}
@@ -106,8 +106,6 @@ func TestSignAndVerify(t *testing.T) {
 		}
 
 		_, err := Verify(publicKey, tamperedSignedAST)
-		// **FIX:** The first check in Verify is the hash check. Since the hash is
-		// tampered, we should expect ErrHashMismatch.
 		if !errors.Is(err, ErrHashMismatch) {
 			t.Errorf("Expected ErrHashMismatch, but got: %v", err)
 		}

@@ -1,0 +1,372 @@
+package canon
+
+import (
+	"fmt"
+
+	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/types"
+)
+
+// NOTE: This file contains readers that accompany the core dispatcher in part 1.
+// The only substantive change here is readCallableExpr(), which now peeks the next
+// varint to choose a layout deterministically and avoid stream drift (Kind 198).
+
+func (r *canonReader) readListLiteral() (*ast.ListLiteralNode, error) {
+	numElements, err := r.readVarint()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read list element count: %w", err)
+	}
+	l := &ast.ListLiteralNode{
+		BaseNode: ast.BaseNode{NodeKind: types.KindListLiteral},
+	}
+	if numElements > 0 {
+		l.Elements = make([]ast.Expression, numElements)
+		for i := 0; i < int(numElements); i++ {
+			elem, err := r.readNode()
+			if err != nil {
+				return nil, fmt.Errorf("failed to read list element %d: %w", i, err)
+			}
+			e, ok := elem.(ast.Expression)
+			if !ok {
+				return nil, fmt.Errorf("expected ast.Expression for list element %d, got %T", i, elem)
+			}
+			l.Elements[i] = e
+		}
+	} else {
+		l.Elements = []ast.Expression{}
+	}
+	return l, nil
+}
+
+func (r *canonReader) readElementAccess() (*ast.ElementAccessNode, error) {
+	collection, err := r.readNode()
+	if err != nil {
+		return nil, err
+	}
+	accessor, err := r.readNode()
+	if err != nil {
+		return nil, err
+	}
+	c, ok := collection.(ast.Expression)
+	if !ok {
+		return nil, fmt.Errorf("element access collection must be Expression, got %T", collection)
+	}
+	a, ok := accessor.(ast.Expression)
+	if !ok {
+		return nil, fmt.Errorf("element access key must be Expression, got %T", accessor)
+	}
+	return &ast.ElementAccessNode{
+		BaseNode:   ast.BaseNode{NodeKind: types.KindElementAccess},
+		Collection: c,
+		Accessor:   a,
+	}, nil
+}
+
+func (r *canonReader) readSecretRef() (*ast.SecretRef, error) {
+	path, err := r.readString()
+	if err != nil {
+		return nil, err
+	}
+	return &ast.SecretRef{
+		BaseNode: ast.BaseNode{NodeKind: types.KindSecretRef},
+		Path:     path,
+	}, nil
+}
+
+func (r *canonReader) readProgram() (*ast.Program, error) {
+	prog := ast.NewProgram()
+
+	// Metadata
+	numMeta, err := r.readVarint()
+	if err != nil {
+		return nil, err
+	}
+	if numMeta > 0 {
+		prog.Metadata = make(map[string]string, numMeta)
+		for i := 0; i < int(numMeta); i++ {
+			key, err := r.readString()
+			if err != nil {
+				return nil, err
+			}
+			val, err := r.readString()
+			if err != nil {
+				return nil, err
+			}
+			prog.Metadata[key] = val
+		}
+	}
+
+	// Procedures (values; keyed by proc.Name())
+	numProcs, err := r.readVarint()
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < int(numProcs); i++ {
+		node, err := r.readNode()
+		if err != nil {
+			return nil, err
+		}
+		proc, ok := node.(*ast.Procedure)
+		if !ok {
+			return nil, fmt.Errorf("expected *ast.Procedure, got %T", node)
+		}
+		prog.Procedures[proc.Name()] = proc
+	}
+
+	// Events
+	numEvents, err := r.readVarint()
+	if err != nil {
+		return nil, err
+	}
+	if numEvents > 0 {
+		prog.Events = make([]*ast.OnEventDecl, numEvents)
+		for i := 0; i < int(numEvents); i++ {
+			node, err := r.readNode()
+			if err != nil {
+				return nil, fmt.Errorf("failed to decode event %d: %w", i, err)
+			}
+			ev, ok := node.(*ast.OnEventDecl)
+			if !ok {
+				return nil, fmt.Errorf("expected *ast.OnEventDecl, got %T", node)
+			}
+			prog.Events[i] = ev
+		}
+	} else {
+		prog.Events = []*ast.OnEventDecl{}
+	}
+
+	// Commands
+	numCommands, err := r.readVarint()
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < int(numCommands); i++ {
+		node, err := r.readNode()
+		if err != nil {
+			return nil, err
+		}
+		cmd, ok := node.(*ast.CommandNode)
+		if !ok {
+			return nil, fmt.Errorf("expected *ast.CommandNode, got %T", node)
+		}
+		prog.Commands = append(prog.Commands, cmd)
+	}
+
+	return prog, nil
+}
+
+func (r *canonReader) readOnEventDecl() (*ast.OnEventDecl, error) {
+	event := &ast.OnEventDecl{BaseNode: ast.BaseNode{NodeKind: types.KindOnEventDecl}}
+
+	// Event name expression
+	node, err := r.readNode()
+	if err != nil {
+		return nil, err
+	}
+	expr, ok := node.(ast.Expression)
+	if !ok {
+		return nil, fmt.Errorf("event name must be Expression, got %T", node)
+	}
+	event.EventNameExpr = expr
+
+	// Handler name
+	event.HandlerName, err = r.readString()
+	if err != nil {
+		return nil, err
+	}
+	// Optional event var name (empty string allowed)
+	event.EventVarName, err = r.readString()
+	if err != nil {
+		return nil, err
+	}
+
+	// Body
+	numSteps, err := r.readVarint()
+	if err != nil {
+		return nil, err
+	}
+	if numSteps > 0 {
+		event.Body = make([]ast.Step, numSteps)
+		for i := 0; i < int(numSteps); i++ {
+			sNode, err := r.readNode()
+			if err != nil {
+				return nil, err
+			}
+			step, ok := sNode.(*ast.Step)
+			if !ok {
+				return nil, fmt.Errorf("expected *ast.Step, got %T", sNode)
+			}
+			event.Body[i] = *step
+		}
+	}
+
+	return event, nil
+}
+
+// readCallableExpr — robust disambiguation via varint peek
+// We historically had two layouts on the wire:
+//
+// Layout A (header):
+//
+//	bool    isTool
+//	string  name
+//	varint  argc
+//	node[]  args
+//
+// Layout B (node-target):
+//
+//	node    target (Variable)
+//	varint  argc
+//	node[]  args
+//
+// Heuristic: peek the next varint without consuming it.
+// If it equals types.KindVariable, we use Layout B; otherwise, Layout A.
+func (r *canonReader) readCallableExpr() (*ast.CallableExprNode, error) {
+	// Remember offset
+	start := r.r.Size() - int64(r.r.Len())
+
+	// Peek the next varint
+	v, nbytes, err := r.peekVarint()
+	if err != nil {
+		return nil, fmt.Errorf("callable: peek failed: %w", err)
+	}
+
+	if types.Kind(v) == types.KindVariable {
+		// Layout B: target as node (Variable)
+		// Consume the peeked bytes by advancing the reader.
+		if _, err := r.r.Seek(start+int64(nbytes), 0); err != nil {
+			return nil, fmt.Errorf("callable: seek after peek: %w", err)
+		}
+		// Read the target node (we already know it's a Variable)
+		n, err := r.readNode()
+		if err != nil {
+			return nil, fmt.Errorf("callable(node-target): target node: %w", err)
+		}
+		vn, ok := n.(*ast.VariableNode)
+		if !ok {
+			return nil, fmt.Errorf("callable(node-target): expected *ast.VariableNode, got %T", n)
+		}
+
+		argc, err := r.readVarint()
+		if err != nil {
+			return nil, fmt.Errorf("callable(node-target): argc: %w", err)
+		}
+		args := make([]ast.Expression, argc)
+		for i := 0; i < int(argc); i++ {
+			a, err := r.readNode()
+			if err != nil {
+				return nil, fmt.Errorf("callable(node-target): arg[%d]: %w", i, err)
+			}
+			e, ok := a.(ast.Expression)
+			if !ok {
+				return nil, fmt.Errorf("callable(node-target): arg[%d]: expected ast.Expression, got %T", i, a)
+			}
+			args[i] = e
+		}
+
+		return &ast.CallableExprNode{
+			BaseNode: ast.BaseNode{NodeKind: types.KindCallableExpr},
+			Target: ast.CallTarget{
+				BaseNode: ast.BaseNode{NodeKind: types.KindVariable}, // normalized by anneal
+				IsTool:   false,
+				Name:     vn.Name,
+			},
+			Arguments: args,
+		}, nil
+	}
+
+	// Layout A: header
+	isTool, err := r.readBool()
+	if err != nil {
+		return nil, fmt.Errorf("callable(header): isTool: %w", err)
+	}
+	name, err := r.readString()
+	if err != nil {
+		return nil, fmt.Errorf("callable(header): name: %w", err)
+	}
+	argc, err := r.readVarint()
+	if err != nil {
+		return nil, fmt.Errorf("callable(header): argc: %w", err)
+	}
+	args := make([]ast.Expression, argc)
+	for i := 0; i < int(argc); i++ {
+		n, err := r.readNode()
+		if err != nil {
+			return nil, fmt.Errorf("callable(header): arg[%d]: %w", i, err)
+		}
+		e, ok := n.(ast.Expression)
+		if !ok {
+			return nil, fmt.Errorf("callable(header): arg[%d]: expected ast.Expression, got %T", i, n)
+		}
+		args[i] = e
+	}
+
+	return &ast.CallableExprNode{
+		BaseNode: ast.BaseNode{NodeKind: types.KindCallableExpr},
+		Target: ast.CallTarget{
+			BaseNode: ast.BaseNode{NodeKind: types.KindVariable}, // normalized by anneal
+			IsTool:   isTool,
+			Name:     name,
+		},
+		Arguments: args,
+	}, nil
+}
+
+// peekVarint reads a varint then rewinds, returning (value, bytesConsumed, error).
+func (r *canonReader) peekVarint() (int64, int, error) {
+	// Read varint while counting bytes
+	var x uint64
+	var s uint
+	var n int
+	for {
+		b, err := r.r.ReadByte()
+		if err != nil {
+			return 0, n, err
+		}
+		n++
+		if b < 0x80 {
+			if n > 10 || (n == 10 && b > 1) {
+				// overflow protection (like encoding/binary varint)
+				// We'll still rewind below.
+				if _, se := r.r.Seek(int64(-n), 1); se == nil {
+					// best effort
+				}
+				return 0, n, fmt.Errorf("varint overflow in peek")
+			}
+			val := int64(x | uint64(b)<<s)
+			// Rewind
+			if _, err := r.r.Seek(int64(-n), 1); err != nil {
+				return 0, n, err
+			}
+			return val, n, nil
+		}
+		x |= uint64(b&0x7F) << s
+		s += 7
+	}
+}
+
+func (r *canonReader) readMapEntry() (*ast.MapEntryNode, error) {
+	keyNode, err := r.readNode()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read map key: %w", err)
+	}
+	key, ok := keyNode.(*ast.StringLiteralNode)
+	if !ok {
+		return nil, fmt.Errorf("expected map key to be a string literal, but got %T", keyNode)
+	}
+
+	valueNode, err := r.readNode()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read map value: %w", err)
+	}
+	value, ok := valueNode.(ast.Expression)
+	if !ok {
+		return nil, fmt.Errorf("expected map value to be an expression, but got %T", valueNode)
+	}
+
+	return &ast.MapEntryNode{
+		BaseNode: ast.BaseNode{NodeKind: types.KindMapEntry},
+		Key:      key,
+		Value:    value,
+	}, nil
+}

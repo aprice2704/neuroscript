@@ -51,7 +51,7 @@ type mockRuntime struct {
 }
 
 func (m *mockRuntime) Println(...any)                                        {}
-func (m *mockRuntime) Ask(prompt string) string                              { return "" }
+func (m *mockRuntime) PromptUser(prompt string) (string, error)              { return "", nil }
 func (m *mockRuntime) GetVar(name string) (any, bool)                        { return nil, false }
 func (m *mockRuntime) SetVar(name string, val any)                           {}
 func (m *mockRuntime) CallTool(name types.FullName, args []any) (any, error) { return nil, nil }
@@ -238,11 +238,11 @@ func TestMakeArgMap(t *testing.T) {
 	})
 
 	t.Run("non-string key", func(t *testing.T) {
-		_, err := makeArgMap("key1", "value1", 2, "value2")
+		_, err := makeArgMap(2, "value2")
 		if err == nil {
 			t.Fatal("Expected an error for non-string key, but got nil")
 		}
-		expected := "makeArgMap requires string keys, got int at index 2"
+		expected := "makeArgMap requires string keys, got int at index 0"
 		if err.Error() != expected {
 			t.Errorf("Expected error '%s', got '%s'", expected, err.Error())
 		}

@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.5.2
-// File version: 2.3.0
-// Purpose: Corrected a panic in the 'ask ai' test by properly initializing the BaseNode of the manually constructed ast.Step.
+// NeuroScript Version: 0.6.0
+// File version: 4.0.0
+// Purpose: Corrected test to use the new 'executeAsk' function and build a valid ast.Step with an AskStmt.
 // filename: pkg/interpreter/interpreter_steps_ask_test.go
-// nlines: 160
+// nlines: 120
 // risk_rating: MEDIUM
 
 package interpreter
@@ -13,79 +13,57 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
-	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/tool"
-	"github.com/aprice2704/neuroscript/pkg/types"
-	"github.com/google/generative-ai-go/genai"
+	"github.com/aprice2704/neuroscript/pkg/provider"
 )
 
-// --- Mock LLM Client for Testing ---
+// --- Mock AI Provider for Testing ---
 
-type mockLLMClient struct {
-	LastPrompt         string
-	ResponseToReturn   string
-	ToolCallToReturn   *interfaces.ToolCall
-	ErrorToReturn      error
-	ToolsPresentedWith []interfaces.ToolDefinition
+type mockProvider struct {
+	LastRequest      provider.AIRequest
+	ResponseToReturn *provider.AIResponse
+	ErrorToReturn    error
 }
 
-func (m *mockLLMClient) Ask(ctx context.Context, turns []*interfaces.ConversationTurn) (*interfaces.ConversationTurn, error) {
+func (m *mockProvider) Chat(ctx context.Context, req provider.AIRequest) (*provider.AIResponse, error) {
+	m.LastRequest = req
 	if m.ErrorToReturn != nil {
 		return nil, m.ErrorToReturn
 	}
-	if len(turns) > 0 {
-		m.LastPrompt = turns[len(turns)-1].Content
-	}
-	return &interfaces.ConversationTurn{Role: "model", Content: m.ResponseToReturn}, nil
-}
-
-func (m *mockLLMClient) AskWithTools(ctx context.Context, turns []*interfaces.ConversationTurn, tools []interfaces.ToolDefinition) (*interfaces.ConversationTurn, []*interfaces.ToolCall, error) {
-	if m.ErrorToReturn != nil {
-		return nil, nil, m.ErrorToReturn
-	}
-	if len(turns) > 0 {
-		m.LastPrompt = turns[len(turns)-1].Content
-	}
-	m.ToolsPresentedWith = tools
-
-	var toolCalls []*interfaces.ToolCall
-	if m.ToolCallToReturn != nil {
-		toolCalls = append(toolCalls, m.ToolCallToReturn)
-	}
-	return &interfaces.ConversationTurn{Role: "model", Content: m.ResponseToReturn}, toolCalls, nil
-}
-
-func (m *mockLLMClient) Client() *genai.Client { return nil }
-
-func (m *mockLLMClient) Embed(ctx context.Context, text string) ([]float32, error) {
-	if m.ErrorToReturn != nil {
-		return nil, m.ErrorToReturn
-	}
-	return make([]float32, 16), nil
+	return m.ResponseToReturn, nil
 }
 
 // --- Tests ---
 
-func TestAskStatement(t *testing.T) {
+func TestAskStatementExecution(t *testing.T) {
 	t.Run("Simple ask into variable", func(t *testing.T) {
-		mockLLM := &mockLLMClient{
-			ResponseToReturn: "The capital of Canada is Ottawa.",
+		mockProv := &mockProvider{
+			ResponseToReturn: &provider.AIResponse{TextContent: "The capital of Canada is Ottawa."},
 		}
 		interp, _ := newLocalTestInterpreter(t, nil, nil)
-		interp.aiWorker = mockLLM
+		interp.RegisterProvider("mock_provider", mockProv)
+		_ = interp.RegisterAgentModel("test_agent", map[string]lang.Value{
+			"provider": lang.StringValue{Value: "mock_provider"},
+			"model":    lang.StringValue{Value: "mock_model"},
+		})
 
-		script := `func ask_test() means
-			ask "What is the capital of Canada?" into result
-		endfunc`
-		_, err := interp.ExecuteScriptString("ask_test", script, nil)
+		step := ast.Step{
+			Type: "ask",
+			AskStmt: &ast.AskStmt{
+				AgentModelExpr: &ast.StringLiteralNode{Value: "test_agent"},
+				PromptExpr:     &ast.StringLiteralNode{Value: "What is the capital of Canada?"},
+				IntoTarget:     &ast.LValueNode{Identifier: "result"},
+			},
+		}
+
+		_, err := interp.executeAsk(step)
 		if err != nil {
-			t.Fatalf("ExecuteScriptString failed: %v", err)
+			t.Fatalf("executeAsk failed: %v", err)
 		}
 
 		expectedPrompt := "What is the capital of Canada?"
-		if mockLLM.LastPrompt != expectedPrompt {
-			t.Errorf("Expected prompt '%s', got '%s'", expectedPrompt, mockLLM.LastPrompt)
+		if mockProv.LastRequest.Prompt != expectedPrompt {
+			t.Errorf("Expected prompt '%s', got '%s'", expectedPrompt, mockProv.LastRequest.Prompt)
 		}
 
 		resultVar, exists := interp.GetVariable("result")
@@ -93,79 +71,41 @@ func TestAskStatement(t *testing.T) {
 			t.Fatal("Variable 'result' was not set by the ask statement")
 		}
 		resultStr, _ := lang.ToString(resultVar)
-		if resultStr != mockLLM.ResponseToReturn {
-			t.Errorf("Expected result variable to be '%s', got '%s'", mockLLM.ResponseToReturn, resultStr)
+		if resultStr != mockProv.ResponseToReturn.TextContent {
+			t.Errorf("Expected result variable to be '%s', got '%s'", mockProv.ResponseToReturn.TextContent, resultStr)
 		}
 	})
 
-	t.Run("Ask AI with tool calling", func(t *testing.T) {
-		mockLLM := &mockLLMClient{
-			ToolCallToReturn: &interfaces.ToolCall{
-				ID:   "call_123",
-				Name: types.FullName("tool.Weather.GetWeather"),
-				Arguments: map[string]interface{}{
-					"location": "Ottawa, ON",
-				},
-			},
-		}
-
-		interp, _ := newLocalTestInterpreter(t, nil, nil)
-		interp.aiWorker = mockLLM
-
-		var toolWasCalledWith string
-		weatherTool := tool.ToolImplementation{
-			Spec: tool.ToolSpec{Name: "GetWeather", Group: "Weather", Args: []tool.ArgSpec{{Name: "location", Type: "string"}}},
-			Func: func(rt tool.Runtime, args []interface{}) (interface{}, error) {
-				if len(args) > 0 {
-					if val, ok := args[0].(string); ok {
-						toolWasCalledWith = val
-					}
-				}
-				return lang.StringValue{Value: "Sunny, 19C"}, nil
-			},
-		}
-		interp.ToolRegistry().RegisterTool(weatherTool)
-
-		step := ast.Step{
-			// FIX: Added the BaseNode with a position to prevent nil pointer dereference.
-			BaseNode: ast.BaseNode{StartPos: &types.Position{Line: 1, Column: 1, File: "ask_test"}},
-			Type:     "ask ai",
-			Values: []ast.Expression{
-				&ast.StringLiteralNode{Value: "What is the weather in Ottawa?"},
-			},
-		}
-
-		err := interp.executeAskAI(step)
-		if err != nil {
-			t.Fatalf("executeAskAI failed: %v", err)
-		}
-
-		if toolWasCalledWith != "Ottawa, ON" {
-			t.Errorf("Expected mock tool to be called with 'Ottawa, ON', got '%s'", toolWasCalledWith)
-		}
-	})
-
-	t.Run("Ask with LLM returning an error", func(t *testing.T) {
-		mockLLM := &mockLLMClient{
+	t.Run("Ask with provider returning an error", func(t *testing.T) {
+		mockProv := &mockProvider{
 			ErrorToReturn: errors.New("API limit reached"),
 		}
 		interp, _ := newLocalTestInterpreter(t, nil, nil)
-		interp.aiWorker = mockLLM
+		interp.RegisterProvider("mock_provider", mockProv)
+		_ = interp.RegisterAgentModel("test_agent", map[string]lang.Value{
+			"provider": lang.StringValue{Value: "mock_provider"},
+			"model":    lang.StringValue{Value: "mock_model"},
+		})
 
-		script := `func ask_fail_test() means
-			ask "This will fail" into result
-		endfunc`
-		_, err := interp.ExecuteScriptString("ask_fail_test", script, nil)
+		step := ast.Step{
+			Type: "ask",
+			AskStmt: &ast.AskStmt{
+				AgentModelExpr: &ast.StringLiteralNode{Value: "test_agent"},
+				PromptExpr:     &ast.StringLiteralNode{Value: "This will fail"},
+			},
+		}
+
+		_, err := interp.executeAsk(step)
 
 		if err == nil {
-			t.Fatal("Expected an error from the LLM, but got nil")
+			t.Fatal("Expected an error from the provider, but got nil")
 		}
 		var rtErr *lang.RuntimeError
 		if !errors.As(err, &rtErr) {
 			t.Fatalf("Expected a RuntimeError, but got %T", err)
 		}
-		if rtErr.Code != lang.ErrorCodeLLMError {
-			t.Errorf("Expected error code %v, got %v", lang.ErrorCodeLLMError, rtErr.Code)
+		if rtErr.Code != lang.ErrorCodeExternal {
+			t.Errorf("Expected error code %v, got %v", lang.ErrorCodeExternal, rtErr.Code)
 		}
 	})
 }

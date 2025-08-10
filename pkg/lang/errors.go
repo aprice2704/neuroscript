@@ -169,6 +169,7 @@ var (
 	ErrValidationTypeMismatch       = errors.New("argument type mismatch")
 	ErrValidationArgCount           = errors.New("incorrect argument count")
 	ErrValidationArgValue           = errors.New("invalid argument value")
+	ErrValidationFailed             = errors.New("validation failed")
 	ErrMissingArgument              = errors.New("required argument missing")
 	ErrInvalidArgument              = errors.New("invalid argument")
 	ErrInvalidInput                 = errors.New("invalid input")

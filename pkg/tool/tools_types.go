@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.5.2
-// File version: 11
-// Purpose: Changed RegisterTool signature to return the modified ToolImplementation, making it the authority on canonical tool naming.
-// filename: pkg/tool/tools_types.go
-// nlines: 110
+// File version: 12
+// Purpose: Renamed Runtime.Ask to PromptUser for clarity.
+// filename: pkg/tool/tool_types.go
+// nlines: 112
 // risk_rating: HIGH
 
 package tool
@@ -16,7 +16,8 @@ import (
 // Runtime is the minimal surface a tool needs to interact with the VM.
 type Runtime interface {
 	Println(...any)
-	Ask(prompt string) string
+	// PromptUser prompts the human user for a line of text input.
+	PromptUser(prompt string) (string, error)
 	GetVar(name string) (any, bool)
 	SetVar(name string, val any)
 	CallTool(name types.FullName, args []any) (any, error)

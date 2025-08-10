@@ -1,22 +1,25 @@
-// NeuroScript Version: 0.5.2
-// File version: 25
-// Purpose: Added a skipStdTools flag to allow for isolated interpreter testing without the standard library.
+// NeuroScript Version: 0.6.0
+// File version: 31
+// Purpose: Renamed the Ask method to PromptUser to conform to the updated tool.Runtime interface.
 // filename: pkg/interpreter/interpreter.go
-// nlines: 192
+// nlines: 210
 // risk_rating: HIGH
 
 package interpreter
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/provider"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
@@ -24,7 +27,7 @@ import (
 type Interpreter struct {
 	logger             interfaces.Logger
 	fileAPI            interfaces.FileAPI
-	state              *interpreterState
+	state              *interpreterState // ALL mutable state now lives here
 	tools              tool.ToolRegistry
 	eventManager       *EventManager
 	evaluate           *evaluation
@@ -49,7 +52,7 @@ type Interpreter struct {
 
 func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	i := &Interpreter{
-		state:             newInterpreterState(),
+		state:             newInterpreterState(), // This now initializes everything
 		eventManager:      newEventManager(),
 		maxLoopIterations: 1000,
 		logger:            logging.NewNoOpLogger(),
@@ -65,7 +68,6 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 		opt(i)
 	}
 
-	// Only register standard tools if the flag is not set.
 	if !i.skipStdTools {
 		if err := tool.RegisterExtendedTools(i.tools); err != nil {
 			panic(fmt.Sprintf("FATAL: Failed to register extended tools: %v", err))
@@ -75,10 +77,32 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	return i
 }
 
+// PromptUser satisfies the tool.Runtime interface, providing a way for tools to request user input.
+func (i *Interpreter) PromptUser(prompt string) (string, error) {
+	if _, err := fmt.Fprint(i.Stdout(), prompt+" "); err != nil {
+		return "", fmt.Errorf("failed to write prompt to stdout: %w", err)
+	}
+	reader := bufio.NewReader(i.Stdin())
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		return "", fmt.Errorf("failed to read from stdin: %w", err)
+	}
+	return strings.TrimSpace(response), nil
+}
+
+// RegisterProvider allows the host application to register a concrete AIProvider implementation.
+func (i *Interpreter) RegisterProvider(name string, p provider.AIProvider) {
+	i.state.providersMu.Lock()
+	defer i.state.providersMu.Unlock()
+	i.state.providers[name] = p
+}
+
+// NTools returns the number of registered tools.
 func (i *Interpreter) NTools() (ntools int) {
 	return i.tools.NTools()
 }
 
+// LLM returns the configured LLM client.
 func (i *Interpreter) LLM() interfaces.LLMClient {
 	return i.llmclient
 }

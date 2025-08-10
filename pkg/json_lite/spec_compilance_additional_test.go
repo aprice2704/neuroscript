@@ -1,0 +1,287 @@
+// NeuroScript Version: 0.5.2
+// File version: 7
+// Purpose: Additional spec-compliance tests for path-lite and shape-lite (v0.2) — updated with valid test data.
+// filename: pkg/json-lite/spec_compliance_additional_test.go
+// nlines: 188
+// risk_rating: LOW
+
+package json_lite
+
+import (
+	"errors"
+	"strings"
+	"testing"
+
+	"github.com/aprice2704/neuroscript/pkg/lang"
+)
+
+func TestParsePath_InvalidNegativeIndex(t *testing.T) {
+	_, err := ParsePath("a[-1]")
+	if !errors.Is(err, lang.ErrInvalidPath) {
+		t.Fatalf("expected ErrInvalidPath for negative index, got: %v", err)
+	}
+}
+
+func TestParsePath_InvalidAlphaNumIndex(t *testing.T) {
+	_, err := ParsePath("a[1a]")
+	if !errors.Is(err, lang.ErrInvalidPath) {
+		t.Fatalf("expected ErrInvalidPath for alphanumeric index, got: %v", err)
+	}
+}
+
+func TestParsePath_IndexOverflow(t *testing.T) {
+	huge := strings.Repeat("9", 40)
+	_, err := ParsePath("a[" + huge + "]")
+	if !errors.Is(err, lang.ErrListInvalidIndexType) {
+		t.Fatalf("expected ErrListInvalidIndexType on overflow index, got: %v", err)
+	}
+}
+
+func TestParsePath_IndexSegmentTooLong(t *testing.T) {
+	longIdx := strings.Repeat("1", maxPathSegmentLen+1)
+	_, err := ParsePath("a[" + longIdx + "]")
+	if !errors.Is(err, lang.ErrInvalidArgument) {
+		t.Fatalf("expected ErrInvalidArgument for overlong index segment, got: %v", err)
+	}
+}
+
+func TestSelect_IndexZeroOnEmptyList(t *testing.T) {
+	p, err := ParsePath("items[0]")
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+	data := map[string]any{"items": []any{}}
+	_, err = Select(data, p)
+	if !errors.Is(err, lang.ErrListIndexOutOfBounds) {
+		t.Fatalf("expected ErrListIndexOutOfBounds on empty list, got: %v", err)
+	}
+}
+
+func TestParseShape_SuffixOrderVariants(t *testing.T) {
+	cases := []struct {
+		name      string
+		key       string
+		wantField string
+	}{
+		{"list_then_optional", "items[]?", "items"},
+		{"optional_then_list", "maybe?[]", "maybe"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			s, err := ParseShape(map[string]any{tc.key: "string"})
+			if err != nil {
+				t.Fatalf("parse failed: %v", err)
+			}
+			spec, ok := s.Fields[tc.wantField]
+			if !ok {
+				t.Fatalf("expected field %q present; got keys: %v", tc.wantField, func() []string {
+					keys := make([]string, 0, len(s.Fields))
+					for k := range s.Fields {
+						keys = append(keys, k)
+					}
+					return keys
+				}())
+			}
+			if !spec.IsList {
+				t.Fatalf("expected IsList=true for key %q", tc.key)
+			}
+			if !spec.IsOptional {
+				t.Fatalf("expected IsOptional=true for key %q", tc.key)
+			}
+			if spec.PrimitiveType != "string" {
+				t.Fatalf("expected primitive string for key %q, got %q", tc.key, spec.PrimitiveType)
+			}
+		})
+	}
+}
+
+func TestShapeValidate_ListOfPrimitives(t *testing.T) {
+	shapeDef := map[string]any{
+		"tags[]": "string",
+	}
+	s, err := ParseShape(shapeDef)
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+
+	data := map[string]any{"tags": []any{"a", "b", "c"}}
+	if err := s.Validate(data, false); err != nil {
+		t.Fatalf("validation should pass, got: %v", err)
+	}
+
+	bad := map[string]any{"tags": []any{"a", 42}}
+	if err := s.Validate(bad, false); !errors.Is(err, lang.ErrValidationTypeMismatch) {
+		t.Fatalf("expected type mismatch for list element, got: %v", err)
+	}
+}
+
+func TestShapeValidate_ListOfMaps(t *testing.T) {
+	shapeDef := map[string]any{
+		"items[]": map[string]any{
+			"sku": "string",
+			"qty": "int",
+		},
+	}
+	s, err := ParseShape(shapeDef)
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+
+	ok := map[string]any{
+		"items": []any{
+			map[string]any{"sku": "A", "qty": 1},
+			map[string]any{"sku": "B", "qty": 2},
+		},
+	}
+	if err := s.Validate(ok, false); err != nil {
+		t.Fatalf("validation should pass, got: %v", err)
+	}
+
+	miss := map[string]any{
+		"items": []any{
+			map[string]any{"sku": "A", "qty": 1},
+			map[string]any{"sku": "B"},
+		},
+	}
+	if err := s.Validate(miss, false); !errors.Is(err, lang.ErrValidationRequiredArgMissing) {
+		t.Fatalf("expected required-missing error, got: %v", err)
+	}
+}
+
+func TestShapeValidate_AllowExtraToggle(t *testing.T) {
+	shapeDef := map[string]any{
+		"name": "string",
+	}
+	s, err := ParseShape(shapeDef)
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+
+	data := map[string]any{"name": "ok", "extra": true}
+
+	if err := s.Validate(data, false); !errors.Is(err, lang.ErrInvalidArgument) {
+		t.Fatalf("expected invalid-argument for extra key, got: %v", err)
+	}
+
+	if err := s.Validate(data, true); err != nil {
+		t.Fatalf("validation should pass with allow_extra=true, got: %v", err)
+	}
+}
+
+func TestShapeValidate_SpecialTypesAcceptance(t *testing.T) {
+	shapeDef := map[string]any{
+		"e": "email",
+		"u": "url",
+		"d": "isoDatetime",
+	}
+	s, err := ParseShape(shapeDef)
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+
+	ok := map[string]any{"e": "a@b.com", "u": "http://example.com", "d": "2025-01-01T00:00:00Z"}
+	if err := s.Validate(ok, false); err != nil {
+		t.Fatalf("validation should pass for special-string types, got: %v", err)
+	}
+
+	bad := map[string]any{"e": 123, "u": "http://example.com", "d": "2025-01-01T00:00:00Z"}
+	if err := s.Validate(bad, false); !errors.Is(err, lang.ErrValidationTypeMismatch) {
+		t.Fatalf("expected type mismatch for non-string special type, got: %v", err)
+	}
+}
+
+func TestShapeValidate_MissingRequiredNested(t *testing.T) {
+	shapeDef := map[string]any{
+		"user": map[string]any{
+			"name":  "string",
+			"email": "string",
+		},
+	}
+	s, err := ParseShape(shapeDef)
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+
+	data := map[string]any{
+		"user": map[string]any{
+			"name": "A",
+		},
+	}
+	err = s.Validate(data, false)
+	if !errors.Is(err, lang.ErrValidationRequiredArgMissing) {
+		t.Fatalf("expected required missing error, got: %v", err)
+	}
+}
+
+func TestParseShape_ExactDepthLimitOK(t *testing.T) {
+	shape := make(map[string]any)
+	cur := shape
+	for i := 0; i < maxShapeDepth; i++ {
+		next := make(map[string]any)
+		cur["next"] = next
+		cur = next
+	}
+	cur["name"] = "string"
+
+	if _, err := ParseShape(shape); err != nil {
+		t.Fatalf("shape at exact depth limit should parse, got: %v", err)
+	}
+}
+
+func TestSelect_IndexOutOfBoundsLarge(t *testing.T) {
+	p, err := ParsePath("items[" + strings.Repeat("9", 5) + "]")
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+	data := map[string]any{"items": []any{1, 2}}
+	_, err = Select(data, p)
+	if !errors.Is(err, lang.ErrListIndexOutOfBounds) {
+		t.Fatalf("expected ErrListIndexOutOfBounds, got: %v", err)
+	}
+}
+
+func TestParsePath_MaxSegmentsBoundary(t *testing.T) {
+	ok := strings.Repeat("a.", maxPathSegments-1) + "a"
+	if _, err := ParsePath(ok); err != nil {
+		t.Fatalf("path with exactly max segments should pass, got: %v", err)
+	}
+	bad := ok + ".b"
+	_, err := ParsePath(bad)
+	if !errors.Is(err, lang.ErrNestingDepthExceeded) {
+		t.Fatalf("expected ErrNestingDepthExceeded, got: %v", err)
+	}
+}
+
+func TestParsePath_MaxSegmentLenBoundary(t *testing.T) {
+	seg := strings.Repeat("x", maxPathSegmentLen)
+	if _, err := ParsePath(seg); err != nil {
+		t.Fatalf("segment at limit should pass, got: %v", err)
+	}
+	over := seg + "x"
+	_, err := ParsePath(over)
+	if !errors.Is(err, lang.ErrInvalidArgument) {
+		t.Fatalf("expected ErrInvalidArgument for overlong key segment, got: %v", err)
+	}
+}
+
+func TestShapeValidate_ListNestingDepthLimit(t *testing.T) {
+	// Build a self-referential shape so validation can exceed max depth
+	shape := &Shape{Fields: make(map[string]*FieldSpec)}
+	fieldSpec := &FieldSpec{Name: "items", IsList: true}
+	fieldSpec.NestedShape = shape // self-reference
+	shape.Fields["items"] = fieldSpec
+
+	// Data deeper than max depth
+	data := make(map[string]any)
+	cur := data
+	for i := 0; i < maxShapeDepth+1; i++ {
+		next := map[string]any{}
+		cur["items"] = []any{next}
+		cur = next
+	}
+
+	err := shape.Validate(data, false)
+	if !errors.Is(err, lang.ErrNestingDepthExceeded) {
+		t.Fatalf("expected ErrNestingDepthExceeded for deep list/map nesting, got: %v", err)
+	}
+}

@@ -14,7 +14,6 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
-	"github.com/aprice2704/neuroscript/pkg/tool/ai"
 	"github.com/aprice2704/neuroscript/pkg/types"
 	"github.com/google/generative-ai-go/genai"
 )
@@ -83,65 +82,65 @@ func NewSecurityLayer(allowlistTools ADlist, denylistSet ADlist, sandboxRoot str
 func (sl *SecurityLayer) SandboxRoot() string { return sl.sandboxRoot }
 
 // GetToolDeclarations generates the list of genai.Tool objects for allowlisted tools.
-func (sl *SecurityLayer) GetToolDeclarations() ([]*genai.Tool, error) {
-	if sl.toolRegistry == nil {
-		sl.logger.Error("[SEC] Cannot get tool declarations: ToolRegistry is nil.")
-		return nil, fmt.Errorf("%w: security layer tool registry is not initialized", lang.ErrConfiguration)
-	}
-	declarations := []*genai.Tool{}
-	// Calls on sl.toolRegistry (which is now ToolRegistry interface type) should work correctly.
-	allToolSpecs := sl.toolRegistry.ListTools()
-	sl.logger.Debug("[SEC] Generating declarations from registered tool specs", "count", len(allToolSpecs))
+// func (sl *SecurityLayer) GetToolDeclarations() ([]*genai.Tool, error) {
+// 	if sl.toolRegistry == nil {
+// 		sl.logger.Error("[SEC] Cannot get tool declarations: ToolRegistry is nil.")
+// 		return nil, fmt.Errorf("%w: security layer tool registry is not initialized", lang.ErrConfiguration)
+// 	}
+// 	declarations := []*genai.Tool{}
+// 	// Calls on sl.toolRegistry (which is now ToolRegistry interface type) should work correctly.
+// 	allToolSpecs := sl.toolRegistry.ListTools()
+// 	sl.logger.Debug("[SEC] Generating declarations from registered tool specs", "count", len(allToolSpecs))
 
-	for _, spec := range allToolSpecs {
-		// Check allowlist and denylist using the qualified name
-		isAllowed := sl.allowlist[spec.FullName]
-		isDenied := sl.denylist[spec.FullName]
+// 	for _, spec := range allToolSpecs {
+// 		// Check allowlist and denylist using the qualified name
+// 		isAllowed := sl.allowlist[spec.FullName]
+// 		isDenied := sl.denylist[spec.FullName]
 
-		if isAllowed && !isDenied {
-			sl.logger.Debug("[SEC] Generating declaration for allowlisted/not-denied tool", "qualified_name", spec.FullName)
-			schema := &genai.Schema{
-				Type:        genai.TypeObject,
-				Properties:  map[string]*genai.Schema{},
-				Required:    []string{},
-				Description: spec.Description,
-			}
-			validSchema := true
-			for _, argSpec := range spec.Args {
-				// FIXED: Replaced direct method call with a call to the new utility function
-				genaiType, typeErr := ai.ToGenaiType(argSpec.Type)
-				if typeErr != nil {
-					sl.logger.Error("[SEC] Failed to convert arg type for tool declaration", "arg_name", argSpec.Name, "arg_type", argSpec.Type, "tool_name", spec.FullName, "error", typeErr)
-					validSchema = false
-					break // Stop processing args for this tool if one is bad
-				}
-				schema.Properties[argSpec.Name] = &genai.Schema{Type: genaiType, Description: argSpec.Description}
-				if argSpec.Required {
-					schema.Required = append(schema.Required, argSpec.Name)
-				}
-			}
+// 		if isAllowed && !isDenied {
+// 			sl.logger.Debug("[SEC] Generating declaration for allowlisted/not-denied tool", "qualified_name", spec.FullName)
+// 			schema := &genai.Schema{
+// 				Type:        genai.TypeObject,
+// 				Properties:  map[string]*genai.Schema{},
+// 				Required:    []string{},
+// 				Description: spec.Description,
+// 			}
+// 			validSchema := true
+// 			for _, argSpec := range spec.Args {
+// 				// FIXED: Replaced direct method call with a call to the new utility function
+// 				genaiType, typeErr := ai.ToGenaiType(argSpec.Type)
+// 				if typeErr != nil {
+// 					sl.logger.Error("[SEC] Failed to convert arg type for tool declaration", "arg_name", argSpec.Name, "arg_type", argSpec.Type, "tool_name", spec.FullName, "error", typeErr)
+// 					validSchema = false
+// 					break // Stop processing args for this tool if one is bad
+// 				}
+// 				schema.Properties[argSpec.Name] = &genai.Schema{Type: genaiType, Description: argSpec.Description}
+// 				if argSpec.Required {
+// 					schema.Required = append(schema.Required, argSpec.Name)
+// 				}
+// 			}
 
-			if validSchema {
-				declarations = append(declarations, &genai.Tool{
-					FunctionDeclarations: []*genai.FunctionDeclaration{
-						{
-							Name:        string(spec.FullName),
-							Description: spec.Description,
-							Parameters:  schema,
-						},
-					},
-				})
-				sl.logger.Debug("[SEC] Added declaration", "qualified_name", spec.FullName)
-			} else {
-				sl.logger.Warn("[SEC] Skipping declaration due to invalid schema", "qualified_name", spec.FullName)
-			}
-		} else {
-			sl.logger.Debug("[SEC] Tool not included in declarations (not allowed or explicitly denied)", "full_name", spec.FullName, "is_allowed", isAllowed, "is_denied", isDenied)
-		}
-	}
-	sl.logger.Debug("[SEC] Generated tool declarations.", "count", len(declarations))
-	return declarations, nil
-}
+// 			if validSchema {
+// 				declarations = append(declarations, &genai.Tool{
+// 					FunctionDeclarations: []*genai.FunctionDeclaration{
+// 						{
+// 							Name:        string(spec.FullName),
+// 							Description: spec.Description,
+// 							Parameters:  schema,
+// 						},
+// 					},
+// 				})
+// 				sl.logger.Debug("[SEC] Added declaration", "qualified_name", spec.FullName)
+// 			} else {
+// 				sl.logger.Warn("[SEC] Skipping declaration due to invalid schema", "qualified_name", spec.FullName)
+// 			}
+// 		} else {
+// 			sl.logger.Debug("[SEC] Tool not included in declarations (not allowed or explicitly denied)", "full_name", spec.FullName, "is_allowed", isAllowed, "is_denied", isDenied)
+// 		}
+// 	}
+// 	sl.logger.Debug("[SEC] Generated tool declarations.", "count", len(declarations))
+// 	return declarations, nil
+// }
 
 // ExecuteToolCall validates and executes a requested tool call.
 func (sl *SecurityLayer) ExecuteToolCall(interpreter tool.Runtime, fc genai.FunctionCall) (genai.Part, error) {

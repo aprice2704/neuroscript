@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.6.0
-// File version: 2
-// Purpose: Implements signing and verification, adding hash validation and sentinel errors.
+// NeuroScript Version: 0.6.3
+// File version: 3
+// Purpose: Implements signing and verification, updated to use the new registry-based decoder.
 // filename: pkg/sign/signer.go
 // nlines: 45
 // risk_rating: HIGH
@@ -56,15 +56,14 @@ func Verify(pubKey ed25519.PublicKey, s *SignedAST) (*interfaces.Tree, error) {
 
 	// 2. Verify the signature against the (now trusted) hash.
 	if !ed25519.Verify(pubKey, s.Sum[:], s.Sig) {
-		// **FIX**: Return the actual sentinel error instance.
 		return nil, ErrInvalidSignature
 	}
 
-	// 3. Decode the blob. canon.Decode returns (*ast.Tree, error)
-	tree, err := canon.Decode(s.Blob)
+	// 3. Decode the blob.
+	tree, err := canon.DecodeWithRegistry(s.Blob)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode blob after verification: %w", err)
 	}
 	// The *ast.Tree is compatible with the *interfaces.Tree return type.
-	return tree, nil
+	return &interfaces.Tree{Root: tree.Root}, nil
 }

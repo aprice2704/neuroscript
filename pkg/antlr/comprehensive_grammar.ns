@@ -1,4 +1,4 @@
-// filename: pkg/canon/testdata/comprehensive_grammar.ns
+// filename: pkg/antlr/comprehensive_grammar.ns
 // purpose: A single script exercising every feature in the NeuroScript.g4 grammar.
 // used_by: pkg/canon/testdata/comprehensive_e2e_test.go
 // howto_update: You **must** update this whenever you add new features to ns
@@ -20,6 +20,7 @@ func full_grammar_test(needs required_param optional opt_param returns ret_val) 
     set b = true and false
     set l = [1, s, b, nil, [], {}]
     set m = {"key": "value", "nested": l}
+
 
     // Expressions & Operators
     set x = (1 + 2) * 3 / 4 % 5
@@ -57,7 +58,8 @@ func full_grammar_test(needs required_param optional opt_param returns ret_val) 
     endfor
 
     must z == true
-    ask "Is this a test?" into user_response
+    promptuser "Is this a test?" into user_response
+    ask "default", "What is the capital of Canada?" into capital_city
 
     on error do
         emit "An error was caught!"

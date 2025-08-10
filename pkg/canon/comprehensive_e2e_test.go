@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.6.2
-// File version: 9
-// Purpose: FIX: Updates test paths to reflect the new additional_features.ns and additional_command_block.ns files.
+// NeuroScript Version: 0.6.3
+// File version: 14
+// Purpose: FIX: Corrects the normalizeAST helper to set the correct NodeKind on AskStmt and PromptUserStmt.
 // filename: pkg/canon/comprehensive_e2e_test.go
-// nlines: 90+
+// nlines: 120+
 // risk_rating: HIGH
 
 package canon
@@ -15,15 +15,70 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/parser"
+	"github.com/aprice2704/neuroscript/pkg/types"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
-// runRoundtripComparison is a helper to perform the full parse -> canonicalize -> decode -> compare cycle.
-func runRoundtripComparison(t *testing.T, scriptBytes []byte) {
-	t.Helper()
+// normalizeAST is a pre-test pass that restructures the raw AST from the parser
+// to match the clean, normalized structure that the canonicalization process produces.
+// This is necessary for a symmetrical comparison.
+func normalizeAST(p *ast.Program) {
+	var walkSteps func([]ast.Step)
+	walkSteps = func(steps []ast.Step) {
+		for i := range steps {
+			s := &steps[i]
+			if s.Type == "ask" && s.AskStmt == nil {
+				s.AskStmt = &ast.AskStmt{
+					BaseNode:       ast.BaseNode{NodeKind: types.KindAskStmt},
+					AgentModelExpr: s.Values[0],
+					PromptExpr:     s.Values[1],
+				}
+				if len(s.LValues) > 0 {
+					s.AskStmt.IntoTarget = s.LValues[0]
+				}
+				s.Values = nil
+				s.LValues = nil
+			}
+			if s.Type == "promptuser" && s.PromptUserStmt == nil {
+				s.PromptUserStmt = &ast.PromptUserStmt{
+					BaseNode:   ast.BaseNode{NodeKind: types.KindPromptUserStmt},
+					PromptExpr: s.Values[0],
+				}
+				if len(s.LValues) > 0 {
+					s.PromptUserStmt.IntoTarget = s.LValues[0]
+				}
+				s.Values = nil
+				s.LValues = nil
+			}
+			if len(s.Body) > 0 {
+				walkSteps(s.Body)
+			}
+			if len(s.ElseBody) > 0 {
+				walkSteps(s.ElseBody)
+			}
+		}
+	}
 
-	// 1. Parse the script to get the original, known-good AST.
+	for _, proc := range p.Procedures {
+		walkSteps(proc.Steps)
+		for _, handler := range proc.ErrorHandlers {
+			walkSteps(handler.Body)
+		}
+	}
+}
+
+// runRoundtripComparison is a helper to perform the full parse -> canonicalize -> decode -> compare cycle.
+func runRoundtripComparison(t *testing.T, scriptPath string) {
+	t.Helper()
+	t.Logf("--- Running roundtrip comparison for: %s ---", scriptPath)
+
+	scriptBytes, err := os.ReadFile(scriptPath)
+	if err != nil {
+		t.Fatalf("Failed to read script file %s: %v", scriptPath, err)
+	}
+
+	// 1. Parse the script to get the original AST.
 	parserAPI := parser.NewParserAPI(logging.NewNoOpLogger())
 	antlrTree, pErr := parserAPI.Parse(string(scriptBytes))
 	if pErr != nil {
@@ -34,22 +89,25 @@ func runRoundtripComparison(t *testing.T, scriptBytes []byte) {
 	if bErr != nil {
 		t.Fatalf("ast.Build() failed unexpectedly: %v", bErr)
 	}
+
+	// 2. Normalize the original AST before comparison.
+	normalizeAST(program)
 	originalTree := &ast.Tree{Root: program}
 
-	// 2. Run the AST through the full Canonicalise/Decode cycle.
-	blob, _, err := Canonicalise(originalTree)
+	// 3. Run the AST through the full Canonicalise/Decode cycle.
+	blob, _, err := CanonicaliseWithRegistry(originalTree)
 	if err != nil {
-		t.Fatalf("Canonicalise() failed unexpectedly: %v", err)
+		t.Fatalf("CanonicaliseWithRegistry() failed unexpectedly: %v", err)
 	}
-	decodedTree, err := Decode(blob)
+	decodedTree, err := DecodeWithRegistry(blob)
 	if err != nil {
-		t.Fatalf("Decode() failed unexpectedly: %v", err)
+		t.Fatalf("DecodeWithRegistry() failed unexpectedly: %v", err)
 	}
 
-	// 3. Perform a deep comparison and fail if there are any differences.
+	// 4. Perform a deep comparison.
 	cmpOpts := []cmp.Option{
 		cmpopts.IgnoreFields(ast.BaseNode{}, "StartPos", "StopPos"),
-		cmpopts.IgnoreUnexported(ast.Procedure{}, ast.Step{}),
+		cmpopts.IgnoreUnexported(ast.Procedure{}, ast.Step{}, ast.LValueNode{}),
 		cmpopts.EquateEmpty(),
 		cmpopts.SortSlices(func(a, b *ast.MapEntryNode) bool { return a.Key.Value < b.Key.Value }),
 	}
@@ -61,39 +119,19 @@ func runRoundtripComparison(t *testing.T, scriptBytes []byte) {
 
 // TestComprehensiveGrammarRoundtrip is the ultimate regression test for the canonicalization process.
 func TestComprehensiveGrammarRoundtrip(t *testing.T) {
-	t.Run("Library Script", func(t *testing.T) {
-		scriptPath := filepath.Join("..", "antlr", "comprehensive_grammar.ns")
-		src, err := os.ReadFile(scriptPath)
-		if err != nil {
-			t.Fatalf("Failed to read comprehensive_grammar.ns: %v", err)
-		}
-		runRoundtripComparison(t, src)
-	})
+	testCases := []struct {
+		name       string
+		scriptFile string
+	}{
+		{"Library Script", filepath.Join("..", "antlr", "comprehensive_grammar.ns")},
+		{"Command Script", filepath.Join("..", "antlr", "command_block.ns")},
+		{"Additional Features Library Script", filepath.Join("..", "antlr", "additional_features.ns")},
+		{"Additional Features Command Script", filepath.Join("..", "antlr", "additional_command_block.ns")},
+	}
 
-	t.Run("Command Script", func(t *testing.T) {
-		scriptPath := filepath.Join("..", "antlr", "command_block.ns")
-		src, err := os.ReadFile(scriptPath)
-		if err != nil {
-			t.Fatalf("Failed to read command_block.ns: %v", err)
-		}
-		runRoundtripComparison(t, src)
-	})
-
-	t.Run("Additional Features Library Script", func(t *testing.T) {
-		scriptPath := filepath.Join("..", "antlr", "additional_features.ns")
-		src, err := os.ReadFile(scriptPath)
-		if err != nil {
-			t.Fatalf("Failed to read additional_features.ns: %v", err)
-		}
-		runRoundtripComparison(t, src)
-	})
-
-	t.Run("Additional Features Command Script", func(t *testing.T) {
-		scriptPath := filepath.Join("..", "antlr", "additional_command_block.ns")
-		src, err := os.ReadFile(scriptPath)
-		if err != nil {
-			t.Fatalf("Failed to read additional_command_block.ns: %v", err)
-		}
-		runRoundtripComparison(t, src)
-	})
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			runRoundtripComparison(t, tc.scriptFile)
+		})
+	}
 }

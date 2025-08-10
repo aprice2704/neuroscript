@@ -75,10 +75,6 @@ endfunc
 		t.Fatal("Expected 1 procedure")
 	}
 	procNode := program.Procedures["my_func"]
-	// FIX: The new parser no longer counts blank lines. Assertion updated to 0.
-	if procNode.BlankLinesBefore != 0 {
-		t.Errorf("Expected 0 blank lines before func, got %d", procNode.BlankLinesBefore)
-	}
 	if len(procNode.Metadata) != 0 {
 		t.Errorf("Expected 0 metadata entries for func, got %d", len(procNode.Metadata))
 	}

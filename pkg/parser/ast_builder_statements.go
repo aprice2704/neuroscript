@@ -1,9 +1,9 @@
 // filename: pkg/parser/ast_builder_statements.go
 // NeuroScript Version: 0.6.0
-// File version: 22
-// Purpose: Removed obsolete blank line counting logic. Association is now handled by the LineInfo algorithm.
-// nlines: 130
-// risk_rating: LOW
+// File version: 24
+// Purpose: Corrected logic for the 'promptuser' statement to resolve a compiler error and fixed a typo in a method name.
+// nlines: 160
+// risk_rating: MEDIUM
 
 package parser
 
@@ -163,23 +163,110 @@ func (l *neuroScriptListenerImpl) ExitFail_statement(c *gen.Fail_statementContex
 	l.addStep(step)
 }
 
+// ExitAsk_stmt handles the new AI 'ask' statement: ask <agent_model_expr>, <prompt_expr> [with <options>] [into <lvalue>]
 func (l *neuroScriptListenerImpl) ExitAsk_stmt(c *gen.Ask_stmtContext) {
-	val, ok := l.pop()
+	l.logDebugAST("ExitAsk_stmt: Building AI ask step.")
+
+	var intoLValue *ast.LValueNode
+	if c.Lvalue() != nil {
+		val, ok := l.pop()
+		if !ok {
+			l.addError(c, "internal error in ask_statement: could not pop 'into' lvalue")
+			return
+		}
+		lval, ok := val.(*ast.LValueNode)
+		if !ok {
+			l.addError(c, "internal error in ask_statement: 'into' clause value is not an *ast.LValueNode, but %T", val)
+			return
+		}
+		intoLValue = lval
+	}
+
+	var withExpr ast.Expression
+	if c.KW_WITH() != nil {
+		val, ok := l.pop()
+		if !ok {
+			l.addError(c, "internal error in ask_statement: could not pop 'with' expression")
+			return
+		}
+		expr, ok := val.(ast.Expression)
+		if !ok {
+			l.addError(c, "internal error in ask_statement: 'with' expression is not an ast.Expression, but %T", val)
+			return
+		}
+		withExpr = expr
+	}
+
+	// Pop the two mandatory expressions (prompt and agent model). They are pushed on the stack
+	// in source order (agent model, then prompt), so the popped slice will contain them in that order.
+	values, ok := l.popN(2)
 	if !ok {
-		l.addError(c, "internal error in ask_statement: could not pop value")
+		l.addError(c, "internal error in ask_statement: stack underflow popping agent model and prompt expressions")
 		return
 	}
-	expr, ok := val.(ast.Expression)
+
+	agentModelExpr, ok := values[0].(ast.Expression)
 	if !ok {
-		l.addError(c, "internal error in ask_statement: value is not an ast.Expression, but %T", val)
+		l.addError(c, "internal error in ask_statement: agent model expression is not an ast.Expression, but %T", values[0])
 		return
 	}
+
+	promptExpr, ok := values[1].(ast.Expression)
+	if !ok {
+		l.addError(c, "internal error in ask_statement: prompt expression is not an ast.Expression, but %T", values[1])
+		return
+	}
+
 	pos := tokenToPosition(c.GetStart())
 	step := ast.Step{
-		BaseNode:   ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Type:       "ask",
-		Values:     []ast.Expression{expr},
-		AskIntoVar: c.IDENTIFIER().GetText(),
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:     "ask",
+		Values:   []ast.Expression{agentModelExpr, promptExpr},
+	}
+	if withExpr != nil {
+		step.Values = append(step.Values, withExpr)
+	}
+	if intoLValue != nil {
+		step.LValues = []*ast.LValueNode{intoLValue}
+	}
+
+	step.Comments = l.associateCommentsToNode(&step)
+	SetEndPos(&step, c.GetStop())
+	l.addStep(step)
+}
+
+// ExitPromptuser_stmt handles the deprecated keyboard input statement, now named 'promptuser'.
+func (l *neuroScriptListenerImpl) ExitPromptuser_stmt(c *gen.Promptuser_stmtContext) {
+	// Pop the target variable (LValue)
+	intoVal, ok := l.pop()
+	if !ok {
+		l.addError(c, "internal error in promptuser_statement: could not pop 'into' lvalue")
+		return
+	}
+	intoLVal, ok := intoVal.(*ast.LValueNode)
+	if !ok {
+		l.addError(c, "internal error in promptuser_statement: value is not *ast.LValueNode, but %T", intoVal)
+		return
+	}
+
+	// Pop the prompt expression
+	promptVal, ok := l.pop()
+	if !ok {
+		l.addError(c, "internal error in promptuser_statement: could not pop prompt expression")
+		return
+	}
+	promptExpr, ok := promptVal.(ast.Expression)
+	if !ok {
+		l.addError(c, "internal error in promptuser_statement: prompt is not an ast.Expression, but %T", promptVal)
+		return
+	}
+
+	pos := tokenToPosition(c.GetStart())
+	step := ast.Step{
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:     "promptuser",
+		Values:   []ast.Expression{promptExpr},
+		LValues:  []*ast.LValueNode{intoLVal},
 	}
 	step.Comments = l.associateCommentsToNode(&step)
 	SetEndPos(&step, c.GetStop())
