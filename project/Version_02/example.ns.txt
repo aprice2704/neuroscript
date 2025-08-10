@@ -1,0 +1,138 @@
+ func updateProjectDocs needs change_summary returns status_message means
+     :: purpose: Updates key project documentation files (README, checklist, prompts) AND checks for Go files needing refactoring based on a summary of recent code/spec changes. Uses AI calls extensively.
+     :: inputs:
+     ::   - change_summary: A string describing the recent changes made to the NeuroScript codebase or specifications.
+     :: output:
+     ::   - status_message: A string indicating success or failure.
+     :: algorithm:
+     ::     1. Define doc files list and context files list.
+     ::     2. For each documentation file:
+     ::        a. Read doc file and relevant context files.
+     ::        b. Ask AI to generate updated doc content based on changes and context.
+     ::        c. Write updated content back to doc file.
+     ::        d. Add updated file to Git staging.
+     ::     3. Define Go source directory and line count threshold.
+     ::     4. Ask AI to list Go files in the directory (or use tool.listDirectory).
+     ::     5. For each Go file:
+     ::        a. Read Go file content.
+     ::        b. Ask AI to get the line count (or use tool.lineCount).
+     ::        c. Ask AI to compare line count to threshold (or use direct comparison when arithmetic is available).
+     ::        d. If threshold exceeded:
+     ::           i. Ask AI to analyze the file and suggest refactoring.
+     ::           ii. Emit refactoring suggestions.
+     ::     6. Create a final commit message.
+     ::     7. Call the commitChanges function.
+     ::     8. Return a success message.
+     :: caveats:
+     ::   - Major reliance on AI for doc generation, file listing, line counting, comparison, and refactoring analysis.
+     ::   - Assumes AI output can be reliably parsed/used.
+     ::   - Error handling is minimal (needs try/catch).
+     ::   - Requires specific tools (splitString, readFile, writeFile, gitAdd, listDirectory, lineCount) and a commitChanges function.
+     :: lang_version: 0.2.0
+     :: examples:
+     ::   call updateProjectDocs("Refactored interpreter.go into smaller files.") => "Documentation updated, refactoring checked, changes committed."
+ 
+     # --- Step 1: Define Files ---
+     set doc_files_str = "README.md,development checklist.md,definition/develop prompt.txt,definition/execute prompt.txt"
+     call tool.splitString(doc_files_str, ",")
+     set doc_file_list = last
+     # Note: Context files not explicitly used in simplified loop below, but defined here
+     set context_files_str = "pkg/core/interpreter.go,pkg/core/tools_register.go,definition/neuroscript spec.md,definition/formal spec.md"
+     call tool.splitString(context_files_str, ",")
+     set context_file_list = last # Variable is set but not used in this simplified version
+     set staged_files_csv = ""
+ 
+     # --- Step 2: Update Documentation ---
+     emit "--- Updating Documentation Files ---"
+     for each current_doc_file in doc_file_list means
+         emit "Processing doc file: " + current_doc_file
+         call tool.readFile(current_doc_file)
+         set current_doc_content = last
+         # TODO: Add logic to read relevant context files based on current_doc_file
+ 
+         # Simplified prompt assuming relevant context is somehow known or less critical for this example
+         set llm_prompt_docs = triple-backtickGiven the following changes: '{{change_summary}}'
+ 
+ Update the following documentation content from '{{current_doc_file}}'.
+ Maintain original format/style. Output ONLY the complete, updated file content.
+ 
+ Current content of '{{current_doc_file}}':
+ triple-backtick # Note: Removed context injection for simplicity in refactoring
+         set llm_prompt_docs = llm_prompt_docs + "\n```\n" + current_doc_content + "\n```" # Append current content
+ 
+         :: reason: Ask AI to rewrite documentation based on changes.
+         askAI("default", llm_prompt_docs)
+         set final_updated_content = last
+ 
+         call tool.writeFile(current_doc_file, final_updated_content)
+         # TODO: Add error handling for writeFile
+         call tool.gitAdd(current_doc_file)
+         # TODO: Add error handling for gitAdd
+         set staged_files_csv = staged_files_csv + current_doc_file + ","
+     end for
+ 
+     # --- Step 3-5: Check Go Files for Refactoring ---
+     emit "--- Checking Go Files for Refactoring ---"
+     set go_src_dir = "pkg/core"
+     set line_threshold = 200 # Assuming numeric types eventually, use directly
+ 
+     # Step 4: Get Go file list (using hypothetical tool)
+     emit "Listing Go files in: " + go_src_dir
+     call tool.listDirectory(go_src_dir) # Assumes this tool exists and returns a list
+     set go_file_list = last
+     # TODO: Add error handling and filtering for .go files if listDirectory returns all files
+ 
+     # Step 5: Check each Go file
+     for each current_go_file in go_file_list means
+         # Basic check to only process .go files if listDirectory didn't filter
+         call tool.hasSuffix(current_go_file, ".go") # Assumes tool exists
+         if last == false then
+              # TODO: Add proper continue keyword when available
+              emit "Skipping non-Go file: " + current_go_file # Placeholder action
+         else
+             emit "Processing Go file: " + current_go_file
+             call tool.readFile(current_go_file)
+             set go_file_content = last
+             # TODO: Add error handling for readFile
+ 
+             # Step 5b: Get line count (using hypothetical tool)
+             call tool.lineCount(go_file_content) # Assumes tool exists
+             set line_count = last
+             # TODO: Add error handling for lineCount
+ 
+             # Step 5c: Check threshold (Direct comparison assumed for future)
+             # Original used LLM for comparison, retaining that pattern for now:
+             set compare_prompt = triple-backtickIs the number {{line_count}} greater than the number {{line_threshold}}? Respond ONLY with 'true' or 'false'.triple-backtick
+             :: reason: Using AI for comparison as direct numeric comparison isn't implemented yet.
+             askAI("default", compare_prompt)
+             set comparison_result = last
+ 
+             if comparison_result == "true" then
+                 :: reason: File exceeds complexity threshold, request refactoring suggestions.
+                 emit "File " + current_go_file + " ({{line_count}} lines) exceeds threshold ({{line_threshold}}), analyzing..."
+                 set llm_prompt_refactor = triple-backtickThe Go file '{{current_go_file}}' has {{line_count}} lines, exceeding the threshold of {{line_threshold}}.
+ Analyze the following code and suggest how it could be split into smaller, more focused files or functions. Provide specific suggestions.
+ 
+ ```go
+ {{go_file_content}}
+ ```triple-backtick
+                 askAI("default", llm_prompt_refactor)
+                 set refactor_suggestion = last
+                 emit "Refactoring suggestion for " + current_go_file + ":\n" + refactor_suggestion
+                 # In a real scenario, might save this to a file or structured log
+             end if
+         end if # end of 'else' block for processing .go file
+     end for
+ 
+     # --- Step 6 & 7: Commit Changes ---
+     emit "--- Committing Changes ---"
+     set final_commit_message = "Docs: Update based on '{{change_summary}}'. Code: Refactoring check complete."
+     # Assuming commitChanges is another NeuroScript function or a specific tool
+     call commitChanges(final_commit_message, staged_files_csv)
+     # TODO: Add error handling for commitChanges
+ 
+     # --- Step 8: Return Status ---
+     set status_message = "Documentation updated, refactoring checked, changes committed."
+     return status_message
+ 
+ endfunc

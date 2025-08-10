@@ -1,0 +1,2953 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://aprice2704.github.io/neuroscript/api_disc/">
+      
+      
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.16">
+    
+    
+      
+        <title>Api disc - NeuroScript</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.7e37652d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#where-the-nsapi-package-stands-my-stitched-together-memory" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="NeuroScript" class="md-header__button md-logo" aria-label="NeuroScript" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            NeuroScript
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Api disc
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/aprice2704/neuroscript" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="NeuroScript" class="md-nav__button md-logo" aria-label="NeuroScript" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    NeuroScript
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/aprice2704/neuroscript" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../RoadMap.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Road Map
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/why-ns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Why NeuroScript
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Architecture
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Core Concepts
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    FAQ
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Contributing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Specifications
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Specifications
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../script_spec.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Quick Spec
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../formal script spec.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Formal Spec
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../metadata/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Metadata
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../neurodata_and_composite_file_spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    NeuroData & Composite
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../llm_agent_facilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    LLM Agent Facilities
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../restricted_mode/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Restricted Mode
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../specification_structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Spec Structure Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    NeuroData Types
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            NeuroData Types
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/cryptographic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Cryptographic
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/decision_table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Decision Table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/enum/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Enum
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/form/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Form
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/geometry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Geometry
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/graph/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Graph
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/list/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    List
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/map_literal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Map Literal
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/map_schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Map Schema
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/patch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Patch
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/references/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    References
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/symbolic_math/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Symbolic Math
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/templates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Templates
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/tree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tree
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Tools
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Tools
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Index
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/delete_api_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    delete_api_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_deletefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_deletefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_filehash/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_filehash
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_linecountfile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_linecountfile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_mkdir/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_mkdir
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_movefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_movefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_readfile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_readfile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_sanitizefilename/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_sanitizefilename
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_walkdir/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_walkdir
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_writefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_writefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_add/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_add
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_checkout/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_checkout
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_commit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_commit
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_diff/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_diff
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_gitstatus/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_gitstatus
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_merge
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_newbranch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_newbranch
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_pull/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_pull
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_push/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_push
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_rm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_rm
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_status/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_status
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/go_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    go_build
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/go_update_imports_for_moved_package/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    go_update_imports_for_moved_package
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/list_api_files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    list_api_files
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/maths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    maths
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/move_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    move_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/query_table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    query_table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/strings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    strings
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/sync_files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    sync_files
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/tool_spec_structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    tool_spec_structure
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/upload_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    upload_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/vector_searchskills/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    vector_searchskills
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/vector_update/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    vector_update
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Status & Build
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Status & Build
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Build Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../completed.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Completed Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release_checklist.ndcl/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Release Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#where-the-nsapi-package-stands-my-stitched-together-memory" class="md-nav__link">
+    <span class="md-ellipsis">
+      Where the ns/api package stands (my stitched-together memory)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Where the ns/api package stands (my stitched-together memory)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#immediate-next-shippable-chunk" class="md-nav__link">
+    <span class="md-ellipsis">
+      Immediate next shippable chunk
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-ast-fundamentals-apiastgo" class="md-nav__link">
+    <span class="md-ellipsis">
+      1 AST fundamentals (api/ast.go)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-script-ast-doorways" class="md-nav__link">
+    <span class="md-ellipsis">
+      2 Script ⇆ AST doorways
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-canonicalise-hash-sign" class="md-nav__link">
+    <span class="md-ellipsis">
+      3 Canonicalise, hash &amp; sign
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-run-time-loader" class="md-nav__link">
+    <span class="md-ellipsis">
+      4 Run-time loader
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-static-analysis-plug-ins" class="md-nav__link">
+    <span class="md-ellipsis">
+      5 Static-analysis plug-ins
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-secret-helper-plain-age-sealedbox" class="md-nav__link">
+    <span class="md-ellipsis">
+      6 Secret helper (plain, age, sealedbox)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-error-catalogue-excerpt" class="md-nav__link">
+    <span class="md-ellipsis">
+      7 Error catalogue (excerpt)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-minimal-integration-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      8 Minimal integration example
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8 Minimal integration example">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ready-to-ratify" class="md-nav__link">
+    <span class="md-ellipsis">
+      Ready to ratify?
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1-make-the-no-surprises-wall-compile-time-hard" class="md-nav__link">
+    <span class="md-ellipsis">
+      1 Make the “no-surprises” wall compile-time hard
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-loader-exec-pipeline-in-one-glance" class="md-nav__link">
+    <span class="md-ellipsis">
+      2 Loader / Exec pipeline in one glance
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-api-wide-re-export-of-shared-structs" class="md-nav__link">
+    <span class="md-ellipsis">
+      3 API-wide re-export of shared structs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-minimal-integration-snippet-after-the-refactor" class="md-nav__link">
+    <span class="md-ellipsis">
+      4 Minimal integration snippet (after the refactor)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-next-steps-id-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      5 Next steps I’d code
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#integration-readiness-checklist-for-the-nsapi-lang-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      “Integration-readiness” checklist for the ns/api ↔ lang/* pipeline
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="“Integration-readiness” checklist for the ns/api ↔ lang/* pipeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-ast-contract-single-source-of-truth" class="md-nav__link">
+    <span class="md-ellipsis">
+      1 AST contract (single source of truth)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-parser-guarantees-langparser" class="md-nav__link">
+    <span class="md-ellipsis">
+      2 Parser guarantees (lang/parser)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-canonicaliser-langcanon" class="md-nav__link">
+    <span class="md-ellipsis">
+      3 Canonicaliser (lang/canon)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-signature-helpers-langsign" class="md-nav__link">
+    <span class="md-ellipsis">
+      4 Signature helpers (lang/sign)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-interpreter-shim-langinterp" class="md-nav__link">
+    <span class="md-ellipsis">
+      5 Interpreter shim (lang/interp)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-static-analysis-pass-hooks-langanalysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      6 Static-analysis pass hooks (lang/analysis)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-error-codes-langerrors" class="md-nav__link">
+    <span class="md-ellipsis">
+      7 Error codes (lang/errors)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-secrets-decoding-stub-langsecretdecodergo" class="md-nav__link">
+    <span class="md-ellipsis">
+      8 Secrets decoding stub (lang/secret/decoder.go)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#9-package-hygiene" class="md-nav__link">
+    <span class="md-ellipsis">
+      9 Package hygiene
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#10-smoke-test-to-keep-green" class="md-nav__link">
+    <span class="md-ellipsis">
+      10 Smoke test to keep green
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tldr-for-gemini" class="md-nav__link">
+    <span class="md-ellipsis">
+      TL;DR for Gemini
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+  <h1>Api disc</h1>
+
+<h3 id="where-the-nsapi-package-stands-my-stitched-together-memory">Where the <strong><code>ns/api</code></strong> package stands (my stitched-together memory)<a class="headerlink" href="#where-the-nsapi-package-stands-my-stitched-together-memory" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>What we already specced (or partly coded)</th>
+<th>Open threads / TODO</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1. Canonical-AST handling</strong></td>
+<td><em><code>Canonicalise()</code></em> → varint-packed blob + BLAKE3 hash.<br><em><code>SignedAST{ Blob, Sum, Sig }</code></em> verified with ED25519.</td>
+<td>• Benchmark vs FlatBuffers.<br>• Plug into gateway signing micro-service.</td>
+</tr>
+<tr>
+<td><strong>2. Run-mode detection</strong></td>
+<td><em><code>DetectRunMode(tree) RunMode</code></em> returns <strong>Library</strong>, <strong>Command</strong>, or <strong>EventSink</strong> based on top-level constructs (no mixing rule).</td>
+<td>• Add fast path for “no executable nodes” to skip loader work.</td>
+</tr>
+<tr>
+<td><strong>3. Loader / Runner API</strong></td>
+<td><code>go\nfunc LoadAndMaybeExec(ctx, blob) error\n</code><br> • Verifies sig → decodes tree.<br> • If <strong>Command</strong>, runs unnamed block immediately.<br> • Otherwise caches AST for later calls/dispatch.</td>
+<td>• Transparent result cache (hash → outputs).<br>• Gas/timeout hooks when interpreter lands.</td>
+</tr>
+<tr>
+<td><strong>4. Static-analysis registry</strong></td>
+<td><code>type Pass interface { Name(); Analyse(*Tree) []Diag }</code><br> Built-in passes drafted:<br> ‣ Schema/shape validator<br> ‣ Basic type checker<br> ‣ Capability audit<br> ‣ SecretRef whitelist<br> ‣ “no-set-after-command”</td>
+<td>• Wire severity gating into Gateway (<code>reject on err</code>, <code>warn on warn</code>).<br>• Provide CLI: <code>ns vet file.ast</code>.</td>
+</tr>
+<tr>
+<td><strong>5. Secrets support</strong></td>
+<td>Literal syntax <code>secret("scope/key", enc="age")</code> → AST node <code>SecretRef</code>.<br>Go helper <code>secret.Decode()</code> handles <code>"none"</code>, <code>"age"</code>, <code>"sealedbox"</code>.</td>
+<td>• Trusted <em>Preparer</em> service to fetch from vault, encrypt payload, and emit SignedAST.<br>• New error code <code>ErrorCodeSecretDecryption</code> (99909).</td>
+</tr>
+<tr>
+<td><strong>6. Error catalogue</strong></td>
+<td>Shared <code>errors.go</code> with iota-based security block (99901-99908).<br><code>ErrorDetails</code> map + <code>FormatWithRemediation(err)</code> helper.</td>
+<td>• Add code 99909 for secret decode failure.<br>• Expand remediation texts.</td>
+</tr>
+<tr>
+<td><strong>7. External execution hooks</strong></td>
+<td>Draft interfaces: <br><code>go\n type CommandRunner interface { Run(ctx, cmd string, args ...any) error }\n type EventDispatcher interface { Emit(ev string, payload ...any) error; Register(EventHandler) }\n</code></td>
+<td>• Flesh out arg encoding (JSON? ND-binary?).<br>• Provide default runner that spawns <code>ns</code> CLI for legacy tools.</td>
+</tr>
+<tr>
+<td><strong>8. Package layout (agreed but not pushed)</strong></td>
+<td>```</td>
+<td></td>
+</tr>
+<tr>
+<td>/api</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>/loader      (LoadAndMaybeExec, DetectRunMode)</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>/types       (AST, SignedAST, RunMode, SecretRef)</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>/analysis    (Pass registry + built-ins)</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>/secret      (Decode helpers)</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>/errors      (shared catalogue)</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>```</td>
+<td>• Write go\:generate directives for mock AST fixtures.<br>• Decide whether /analysis gets separate <code>go.mod</code> for plugin loading.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4 id="immediate-next-shippable-chunk">Immediate next shippable chunk<a class="headerlink" href="#immediate-next-shippable-chunk" title="Permanent link">&para;</a></h4>
+<ol>
+<li><strong>Push <code>/api/loader</code> with stub interpreter call</strong> (returns “not implemented” for now).</li>
+<li><strong>Bundle the first three analyser passes</strong> so gateway can start vetting blobs.</li>
+<li><strong>Ship <code>secret.Decode</code> with <code>enc="none"</code> only</strong> to prove the flow; add <code>age</code> after.</li>
+</ol>
+<p>That would let FDM:</p>
+<blockquote>
+<p><em>“Upload SignedAST → gateway verifies → static vet passes → if type=Command run once.”</em></p>
+</blockquote>
+<p>From there we iterate on interpreter integration, caching and richer secret handling.</p>
+<p>Let me know which slice you want carved out first (code skeleton, tests, or docs), and I’ll draft it.</p>
+<p>AJP: I'd like to nail down the form and fit of the API before we trouble with encoding or the more advanced things. I want to make sure ns is easy to integrate first; and the api should have both script and ast doorways, so we need things to parse script to ast and fmt to get back (this may mean adding comments etc. to the ast). Could you lay out a nice usable API grammar for us? Including the things you mentioned above?</p>
+<p>o3: 
+Below is a <strong>single-screen blueprint</strong> for an <strong>“easy-to-integrate”</strong> NeuroScript API.
+Everything is expressed as Go types + interfaces; import paths are indicative.</p>
+<div class="highlight"><pre><span></span><code>yourrepo/
+├── api                 ← public façade (no deps on interpreter internals)
+│   ├── parse.go        (Script ⇆ AST doorway)
+│   ├── fmt.go          (AST ⇆ Script doorway)
+│   ├── ast.go          (common tree types; comment + source-span support)
+│   ├── canon.go        (canonicalise + hash helpers)
+│   ├── sign.go         (Sign/Verify SignedAST blobs)
+│   ├── loader.go       (LoadAndMaybeExec + run-mode detection)
+│   ├── analysis/
+│   │   ├── pass.go     (Pass registry + Diag types)
+│   │   └── builtin.go  (shape, typecheck, capability, secret passes)
+│   ├── secret/         (Decode helpers; no vault coupling)
+│   └── errors.go       (error catalogue + remediation map)
+└── internal/…          (interpreter, vault client, etc.)
+</code></pre></div>
+<hr />
+<h2 id="1-ast-fundamentals-apiastgo">1 AST fundamentals (<code>api/ast.go</code>)<a class="headerlink" href="#1-ast-fundamentals-apiastgo" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="kn">package</span><span class="w"> </span><span class="nx">api</span>
+
+<span class="c1">// Position = 1-based line/col in original source.</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">Position</span><span class="w"> </span><span class="kd">struct</span><span class="p">{</span><span class="w"> </span><span class="nx">Line</span><span class="p">,</span><span class="w"> </span><span class="nx">Col</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="p">}</span>
+
+<span class="c1">// Node is the root interface for all AST nodes.</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">Node</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">Pos</span><span class="p">()</span><span class="w"> </span><span class="nx">Position</span>
+<span class="w">    </span><span class="nx">End</span><span class="p">()</span><span class="w"> </span><span class="nx">Position</span>
+<span class="w">    </span><span class="nx">Kind</span><span class="p">()</span><span class="w"> </span><span class="nx">Kind</span>
+<span class="p">}</span>
+
+<span class="c1">// Kind is a stable enum; NEVER reorder (hash depends on it).</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">Kind</span><span class="w"> </span><span class="kt">uint8</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="nx">KindFile</span><span class="w"> </span><span class="nx">Kind</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">iota</span>
+<span class="w">    </span><span class="nx">KindCommandBlock</span>
+<span class="w">    </span><span class="nx">KindFuncDecl</span>
+<span class="w">    </span><span class="nx">KindEventHandler</span>
+<span class="w">    </span><span class="nx">KindSetStmt</span>
+<span class="w">    </span><span class="nx">KindExpr</span>
+<span class="w">    </span><span class="nx">KindComment</span><span class="w">             </span><span class="c1">// preserved round-trip</span>
+<span class="w">    </span><span class="nx">KindSecretRef</span><span class="w">           </span><span class="c1">// literal secret(&quot;scope/key&quot;, enc=&quot;age&quot;)</span>
+<span class="w">    </span><span class="c1">// … more …</span>
+<span class="p">)</span>
+
+<span class="c1">// Tree wraps the root node and a comment table for fmt round-trip.</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">Tree</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">Root</span><span class="w">     </span><span class="nx">Node</span>
+<span class="w">    </span><span class="nx">Comments</span><span class="w"> </span><span class="p">[]</span><span class="nx">Comment</span>
+<span class="p">}</span>
+
+<span class="kd">type</span><span class="w"> </span><span class="nx">Comment</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">Pos</span><span class="w">  </span><span class="nx">Position</span>
+<span class="w">    </span><span class="nx">Text</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="c1">// original // or /* */ text</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><em>Why keep comments?</em> <code>api/fmt.go</code> can perfectly reproduce the original file (or a prettified one) — crucial for human diff reviews.</p>
+<hr />
+<h2 id="2-script-ast-doorways">2 Script ⇆ AST doorways<a class="headerlink" href="#2-script-ast-doorways" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="c1">// parse.go</span>
+<span class="kn">package</span><span class="w"> </span><span class="nx">api</span>
+
+<span class="kd">type</span><span class="w"> </span><span class="nx">ParseMode</span><span class="w"> </span><span class="kt">uint8</span>
+<span class="kd">const</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="nx">ParsePreserveComments</span><span class="w"> </span><span class="nx">ParseMode</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="kc">iota</span>
+<span class="w">    </span><span class="nx">ParseSkipComments</span>
+<span class="p">)</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">Parse</span><span class="p">(</span><span class="nx">src</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="nx">mode</span><span class="w"> </span><span class="nx">ParseMode</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Tree</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1">// fmt.go</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">Format</span><span class="p">(</span><span class="nx">tree</span><span class="w"> </span><span class="o">*</span><span class="nx">Tree</span><span class="p">,</span><span class="w"> </span><span class="nx">pretty</span><span class="w"> </span><span class="kt">bool</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</code></pre></div>
+<p><em>Round-trip guarantee:</em> <code>Format(Parse(x)) == x</code> when <code>pretty==false</code>.</p>
+<hr />
+<h2 id="3-canonicalise-hash-sign">3 Canonicalise, hash &amp; sign<a class="headerlink" href="#3-canonicalise-hash-sign" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="c1">// canon.go</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">Canonicalise</span><span class="p">(</span><span class="nx">tree</span><span class="w"> </span><span class="o">*</span><span class="nx">Tree</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">blob</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="nx">sum</span><span class="w"> </span><span class="p">[</span><span class="mi">32</span><span class="p">]</span><span class="kt">byte</span><span class="p">)</span><span class="w">        </span><span class="c1">// varint-packed</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">Decode</span><span class="p">(</span><span class="nx">blob</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Tree</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="mi">32</span><span class="p">]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w">                </span><span class="c1">// verify shape only</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1">// sign.go</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">SignedAST</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">Blob</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="w">    </span><span class="c1">// canonical bytes</span>
+<span class="w">    </span><span class="nx">Sum</span><span class="w">  </span><span class="p">[</span><span class="mi">32</span><span class="p">]</span><span class="kt">byte</span><span class="w">  </span><span class="c1">// BLAKE3 of Blob</span>
+<span class="w">    </span><span class="nx">Sig</span><span class="w">  </span><span class="p">[]</span><span class="kt">byte</span><span class="w">    </span><span class="c1">// Ed25519</span>
+<span class="p">}</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">Sign</span><span class="p">(</span><span class="nx">priv</span><span class="w"> </span><span class="nx">ed25519</span><span class="p">.</span><span class="nx">PrivateKey</span><span class="p">,</span><span class="w"> </span><span class="nx">blob</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="nx">sum</span><span class="w"> </span><span class="p">[</span><span class="mi">32</span><span class="p">]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">SignedAST</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">Verify</span><span class="p">(</span><span class="nx">pub</span><span class="w"> </span><span class="nx">ed25519</span><span class="p">.</span><span class="nx">PublicKey</span><span class="p">,</span><span class="w"> </span><span class="nx">ast</span><span class="w"> </span><span class="o">*</span><span class="nx">SignedAST</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Tree</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="4-run-time-loader">4 Run-time loader<a class="headerlink" href="#4-run-time-loader" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="c1">// loader.go</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">RunMode</span><span class="w"> </span><span class="kt">uint8</span>
+<span class="kd">const</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="nx">RunModeLibrary</span><span class="w"> </span><span class="nx">RunMode</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">iota</span><span class="w"> </span><span class="c1">// funcs only</span>
+<span class="w">    </span><span class="nx">RunModeCommand</span><span class="w">                </span><span class="c1">// unnamed command block, run-once</span>
+<span class="w">    </span><span class="nx">RunModeEventSink</span><span class="w">              </span><span class="c1">// one or more on-event handlers</span>
+<span class="p">)</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">DetectRunMode</span><span class="p">(</span><span class="nx">tree</span><span class="w"> </span><span class="o">*</span><span class="nx">Tree</span><span class="p">)</span><span class="w"> </span><span class="nx">RunMode</span>
+
+<span class="c1">// LoaderConfig toggles caching, gas limits, secret decode key, etc.</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">LoaderConfig</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">Cache</span><span class="w">         </span><span class="nx">Cache</span><span class="w">            </span><span class="c1">// optional content-addressed cache</span>
+<span class="w">    </span><span class="nx">MaxGas</span><span class="w">        </span><span class="kt">uint64</span><span class="w">           </span><span class="c1">// 0 = no limit</span>
+<span class="w">    </span><span class="nx">SecretPrivKey</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="w">           </span><span class="c1">// for secret(&quot;…&quot;, enc=&quot;age&quot;)</span>
+<span class="p">}</span>
+
+<span class="kd">type</span><span class="w"> </span><span class="nx">ExecResult</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">Outputs</span><span class="w"> </span><span class="kt">any</span><span class="w">            </span><span class="c1">// optional run value</span>
+<span class="w">    </span><span class="nx">Logs</span><span class="w">    </span><span class="p">[]</span><span class="kt">string</span><span class="w">       </span><span class="c1">// or richer slog handler</span>
+<span class="p">}</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">LoadAndMaybeExec</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">ast</span><span class="w"> </span><span class="o">*</span><span class="nx">SignedAST</span><span class="p">,</span>
+<span class="w">                      </span><span class="nx">cfg</span><span class="w"> </span><span class="nx">LoaderConfig</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">ExecResult</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</code></pre></div>
+<p><code>LoadAndMaybeExec</code> workflow:</p>
+<ol>
+<li><strong>Verify</strong> signature → decode → static-vet.</li>
+<li><strong>DetectRunMode</strong>; if <code>RunModeCommand</code>, run immediately.</li>
+<li>For non-command blobs just cache the tree (future <code>func</code> calls / event dispatch).</li>
+</ol>
+<hr />
+<h2 id="5-static-analysis-plug-ins">5 Static-analysis plug-ins<a class="headerlink" href="#5-static-analysis-plug-ins" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="c1">// analysis/pass.go</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">Severity</span><span class="w"> </span><span class="kt">uint8</span>
+<span class="kd">const</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="nx">SevInfo</span><span class="w"> </span><span class="nx">Severity</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">iota</span>
+<span class="w">    </span><span class="nx">SevWarn</span>
+<span class="w">    </span><span class="nx">SevError</span>
+<span class="p">)</span>
+
+<span class="kd">type</span><span class="w"> </span><span class="nx">Diag</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">Pos</span><span class="w">      </span><span class="nx">Position</span>
+<span class="w">    </span><span class="nx">Severity</span><span class="w"> </span><span class="nx">Severity</span>
+<span class="w">    </span><span class="nx">Pass</span><span class="w">     </span><span class="kt">string</span>
+<span class="w">    </span><span class="nx">Message</span><span class="w">  </span><span class="kt">string</span>
+<span class="p">}</span>
+
+<span class="kd">type</span><span class="w"> </span><span class="nx">Pass</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">Name</span><span class="p">()</span><span class="w"> </span><span class="kt">string</span>
+<span class="w">    </span><span class="nx">Analyse</span><span class="p">(</span><span class="nx">tree</span><span class="w"> </span><span class="o">*</span><span class="nx">Tree</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="nx">Diag</span>
+<span class="p">}</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">RegisterPass</span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="nx">Pass</span><span class="p">)</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">Vet</span><span class="p">(</span><span class="nx">tree</span><span class="w"> </span><span class="o">*</span><span class="nx">Tree</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="nx">Diag</span><span class="w">  </span><span class="c1">// runs all registered passes</span>
+</code></pre></div>
+<p>Built-ins (in <code>analysis/builtin.go</code>):</p>
+<ul>
+<li><code>shapeValidator</code>   (schema / Kind sanity)</li>
+<li><code>basicTypeCheck</code></li>
+<li><code>capabilityAudit</code>   (tool usage)</li>
+<li><code>secretWhitelist</code>   (no secret outside command)</li>
+<li><code>setOrder</code>   (“no set after command{”)</li>
+</ul>
+<hr />
+<h2 id="6-secret-helper-plain-age-sealedbox">6 Secret helper (plain, age, sealedbox)<a class="headerlink" href="#6-secret-helper-plain-age-sealedbox" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="c1">// secret/secret.go</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">Ref</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">Path</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="c1">// &quot;prod/db/main&quot;</span>
+<span class="w">    </span><span class="nx">Enc</span><span class="w">  </span><span class="kt">string</span><span class="w"> </span><span class="c1">// &quot;none&quot;|&quot;age&quot;|&quot;sealedbox&quot;</span>
+<span class="w">    </span><span class="nx">Raw</span><span class="w">  </span><span class="p">[]</span><span class="kt">byte</span><span class="w"> </span><span class="c1">// encoded payload</span>
+<span class="p">}</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">Decode</span><span class="p">(</span><span class="nx">ref</span><span class="w"> </span><span class="nx">Ref</span><span class="p">,</span><span class="w"> </span><span class="nx">privKey</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</code></pre></div>
+<p>The parser turns <code>secret("prod/db/main", enc="age")</code>
+into <code>*ast.SecretRef</code> with nil <code>Raw</code>.
+The <strong>Preparer</strong> service populates <code>Raw</code> before signing.</p>
+<hr />
+<h2 id="7-error-catalogue-excerpt">7 Error catalogue (excerpt)<a class="headerlink" href="#7-error-catalogue-excerpt" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="kd">type</span><span class="w"> </span><span class="nx">ErrorCode</span><span class="w"> </span><span class="kt">int</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="nx">ErrorCodeGeneric</span><span class="w"> </span><span class="nx">ErrorCode</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">    </span><span class="c1">// … normal errors …</span>
+<span class="w">    </span><span class="c1">// --- security block (iota from 99901) ---</span>
+<span class="w">    </span><span class="nx">ErrorCodeAttackPossible</span><span class="w"> </span><span class="nx">ErrorCode</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">99901</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="kc">iota</span>
+<span class="w">    </span><span class="nx">ErrorCodeAttackProbable</span>
+<span class="w">    </span><span class="nx">ErrorCodeAttackCertain</span>
+<span class="w">    </span><span class="nx">ErrorCodeSubsystemCompromised</span>
+<span class="w">    </span><span class="nx">ErrorCodeSubsystemQuarantined</span>
+<span class="w">    </span><span class="nx">ErrorCodeEscapePossible</span>
+<span class="w">    </span><span class="nx">ErrorCodeEscapeProbable</span>
+<span class="w">    </span><span class="nx">ErrorCodeEscapeCertain</span>
+<span class="w">    </span><span class="nx">ErrorCodeSecretDecryption</span><span class="w"> </span><span class="c1">// 99909</span>
+<span class="p">)</span>
+
+<span class="kd">type</span><span class="w"> </span><span class="nx">ErrorDetails</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">Code</span><span class="w">        </span><span class="nx">ErrorCode</span>
+<span class="w">    </span><span class="nx">Summary</span><span class="w">     </span><span class="kt">string</span>
+<span class="w">    </span><span class="nx">Remediation</span><span class="w"> </span><span class="kt">string</span>
+<span class="w">    </span><span class="nx">Severity</span><span class="w">    </span><span class="nx">Severity</span>
+<span class="p">}</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">Lookup</span><span class="p">(</span><span class="nx">code</span><span class="w"> </span><span class="nx">ErrorCode</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">ErrorDetails</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="p">)</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">FormatWithRemediation</span><span class="p">(</span><span class="nx">err</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span>
+</code></pre></div>
+<hr />
+<h2 id="8-minimal-integration-example">8 Minimal integration example<a class="headerlink" href="#8-minimal-integration-example" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="c1">// app/main.go</span>
+<span class="nx">blob</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">fetchFromGateway</span><span class="p">()</span><span class="w">                </span><span class="c1">// SignedAST</span>
+<span class="nx">tree</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">api</span><span class="p">.</span><span class="nx">Verify</span><span class="p">(</span><span class="nx">pubKey</span><span class="p">,</span><span class="w"> </span><span class="nx">blob</span><span class="p">)</span>
+<span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">log</span><span class="p">.</span><span class="nx">Fatalf</span><span class="p">(</span><span class="s">&quot;sig fail: %v&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+
+<span class="k">if</span><span class="w"> </span><span class="nx">diags</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">api</span><span class="p">.</span><span class="nx">Vet</span><span class="p">(</span><span class="nx">tree</span><span class="p">);</span><span class="w"> </span><span class="nx">hasSevError</span><span class="p">(</span><span class="nx">diags</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">log</span><span class="p">.</span><span class="nx">Fatalf</span><span class="p">(</span><span class="s">&quot;static-vet failed:\n%v&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">diags</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="nx">res</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">api</span><span class="p">.</span><span class="nx">LoadAndMaybeExec</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">blob</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">api</span><span class="p">.</span><span class="nx">LoaderConfig</span><span class="p">{</span><span class="nx">SecretPrivKey</span><span class="p">:</span><span class="w"> </span><span class="nx">hostKey</span><span class="p">})</span>
+<span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">log</span><span class="p">.</span><span class="nx">Fatalf</span><span class="p">(</span><span class="s">&quot;run failed: %v&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+<span class="nx">fmt</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">&quot;outputs:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">res</span><span class="p">.</span><span class="nx">Outputs</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h3 id="ready-to-ratify">Ready to ratify?<a class="headerlink" href="#ready-to-ratify" title="Permanent link">&para;</a></h3>
+<p>If this grammar looks right, the next step is to push <strong><code>api/ast.go</code></strong> + <strong><code>parse.go</code></strong> skeletons so Gemini can start wiring the lexer/parser while you and I draft the first analyser passes.  Just say the word.</p>
+<hr />
+<p>AJP: Just to keep the distinction blindingly obvious, I split the load and exec calls thus:</p>
+<p>func Load(ctx context.Context, ast <em>SignedAST,
+    cfg LoaderConfig) (</em>ExecResult, error)</p>
+<p>func Exec(ctx context.Context, ast <em>SignedAST,
+    cfg LoaderConfig) (</em>ExecResult, error)</p>
+<p>Each should only accept the appropriate types or error out immediately.</p>
+<p>Things like Position we have in AST I think, should they have their own aliased types in API so externals only have to import the API package?</p>
+<hr />
+<h3 id="1-make-the-no-surprises-wall-compile-time-hard">1 Make the “no-surprises” wall compile-time hard<a class="headerlink" href="#1-make-the-no-surprises-wall-compile-time-hard" title="Permanent link">&para;</a></h3>
+<p>Instead of letting <strong>both</strong> entry points accept <code>*SignedAST</code>, give each one a <em>distinct</em> parameter type.
+That way the compiler, not a runtime <code>if</code>, bars the wrong call sequence.</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// api/sign.go  (unchanged)</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">SignedAST</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">Blob</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span>
+<span class="w">    </span><span class="nx">Sum</span><span class="w">  </span><span class="p">[</span><span class="mi">32</span><span class="p">]</span><span class="kt">byte</span>
+<span class="w">    </span><span class="nx">Sig</span><span class="w">  </span><span class="p">[]</span><span class="kt">byte</span>
+<span class="p">}</span>
+
+<span class="c1">// api/load.go</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">LoadedUnit</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">            </span><span class="c1">// ← result of Load</span>
+<span class="w">    </span><span class="nx">Tree</span><span class="w">     </span><span class="o">*</span><span class="nx">Tree</span><span class="w">                  </span><span class="c1">// verified &amp; vetted</span>
+<span class="w">    </span><span class="nx">Hash</span><span class="w">     </span><span class="p">[</span><span class="mi">32</span><span class="p">]</span><span class="kt">byte</span><span class="w">               </span><span class="c1">// same as SignedAST.Sum</span>
+<span class="w">    </span><span class="nx">Mode</span><span class="w">     </span><span class="nx">RunMode</span><span class="w">                </span><span class="c1">// Library | Command | EventSink</span>
+<span class="w">    </span><span class="nx">RawBytes</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="w">                 </span><span class="c1">// canonical bytes (for cache)</span>
+<span class="p">}</span>
+
+<span class="c1">// Only transforms/validates – it **never runs** the code.</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">Load</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">SignedAST</span><span class="p">,</span>
+<span class="w">          </span><span class="nx">cfg</span><span class="w"> </span><span class="nx">LoaderConfig</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">LoadedUnit</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1">// api/exec.go</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">ExecConfig</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">Cache</span><span class="w">         </span><span class="nx">Cache</span><span class="w">      </span><span class="c1">// may be nil</span>
+<span class="w">    </span><span class="nx">SecretPrivKey</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="w">     </span><span class="c1">// for secret(&quot;…&quot;)</span>
+<span class="w">    </span><span class="nx">MaxGas</span><span class="w">        </span><span class="kt">uint64</span>
+<span class="p">}</span>
+
+<span class="c1">// Exec refuses anything except a **LoadedUnit**</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">Exec</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">lu</span><span class="w"> </span><span class="o">*</span><span class="nx">LoadedUnit</span><span class="p">,</span>
+<span class="w">         </span><span class="nx">cfg</span><span class="w"> </span><span class="nx">ExecConfig</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">ExecResult</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</code></pre></div>
+<p><em>Compile-time guard:</em> if a caller tries <code>Exec(ctx, signedAST, …)</code> it simply won’t build.</p>
+<hr />
+<h3 id="2-loader-exec-pipeline-in-one-glance">2 Loader / Exec pipeline in one glance<a class="headerlink" href="#2-loader-exec-pipeline-in-one-glance" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>flowchart LR
+    blob[&quot;*SignedAST&quot;] --Load--&gt; lu[&quot;*LoadedUnit&quot;] --Exec--&gt; res[&quot;*ExecResult&quot;]
+</code></pre></div>
+<ol>
+<li>
+<p><strong>Load</strong></p>
+</li>
+<li>
+<p>Verify signature → parse/canonical compare</p>
+</li>
+<li>Run static-vet passes</li>
+<li>Return <code>LoadedUnit</code> (cacheable, immutable)</li>
+<li>
+<p><strong>Exec</strong></p>
+</li>
+<li>
+<p>Optionally short-circuit via cache</p>
+</li>
+<li>If <code>lu.Mode == RunModeCommand</code> run immediately</li>
+<li>Else register funcs / event handlers for later use</li>
+</ol>
+<hr />
+<h3 id="3-api-wide-re-export-of-shared-structs">3 API-wide re-export of shared structs<a class="headerlink" href="#3-api-wide-re-export-of-shared-structs" title="Permanent link">&para;</a></h3>
+<blockquote>
+<p><em>“Should externals only import <code>api</code>, not <code>api/ast</code>?”</em>
+Yes—re-export the common lightweights so downstream code needs just one <code>import</code>.</p>
+</blockquote>
+<div class="highlight"><pre><span></span><code><span class="c1">// api/reexport.go</span>
+<span class="kn">package</span><span class="w"> </span><span class="nx">api</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="s">&quot;yourrepo/api/ast&quot;</span>
+
+<span class="kd">type</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="nx">Position</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">ast</span><span class="p">.</span><span class="nx">Position</span><span class="w">   </span><span class="c1">// type alias, zero overhead</span>
+<span class="w">    </span><span class="nx">Kind</span><span class="w">     </span><span class="p">=</span><span class="w"> </span><span class="nx">ast</span><span class="p">.</span><span class="nx">Kind</span>
+<span class="w">    </span><span class="nx">Node</span><span class="w">     </span><span class="p">=</span><span class="w"> </span><span class="nx">ast</span><span class="p">.</span><span class="nx">Node</span>
+<span class="w">    </span><span class="nx">Tree</span><span class="w">     </span><span class="p">=</span><span class="w"> </span><span class="nx">ast</span><span class="p">.</span><span class="nx">Tree</span>
+<span class="p">)</span>
+</code></pre></div>
+<p><em>Benefits</em>:</p>
+<ul>
+<li>callers write <code>api.Position{Line:1,Col:5}</code>;</li>
+<li>the AST package remains factored;</li>
+<li>no extra dependencies leak out.</li>
+</ul>
+<hr />
+<h3 id="4-minimal-integration-snippet-after-the-refactor">4 Minimal integration snippet (after the refactor)<a class="headerlink" href="#4-minimal-integration-snippet-after-the-refactor" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nx">sa</span><span class="w">   </span><span class="o">:=</span><span class="w"> </span><span class="nx">fetchBlob</span><span class="p">()</span><span class="w">                      </span><span class="c1">// *SignedAST</span>
+<span class="nx">lu</span><span class="p">,</span><span class="w"> </span><span class="nx">_</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">api</span><span class="p">.</span><span class="nx">Load</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">sa</span><span class="p">,</span><span class="w"> </span><span class="nx">api</span><span class="p">.</span><span class="nx">LoaderConfig</span><span class="p">{</span><span class="w"> </span><span class="cm">/* vet opts */</span><span class="w"> </span><span class="p">})</span>
+
+<span class="nx">res</span><span class="p">,</span><span class="w"> </span><span class="nx">_</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">api</span><span class="p">.</span><span class="nx">Exec</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">lu</span><span class="p">,</span><span class="w"> </span><span class="nx">api</span><span class="p">.</span><span class="nx">ExecConfig</span><span class="p">{</span>
+<span class="w">    </span><span class="nx">SecretPrivKey</span><span class="p">:</span><span class="w"> </span><span class="nx">hostKey</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">MaxGas</span><span class="p">:</span><span class="w">        </span><span class="mi">10</span><span class="nx">_000</span><span class="p">,</span>
+<span class="p">})</span>
+
+<span class="nx">log</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;command outputs: %+v&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">res</span><span class="p">.</span><span class="nx">Outputs</span><span class="p">)</span>
+</code></pre></div>
+<p>The <strong>loader</strong> guarantees the artefact is sane; the <strong>executor</strong> deals only with code that’s already been vetted, so its trust assumptions are smaller.</p>
+<hr />
+<h3 id="5-next-steps-id-code">5 Next steps I’d code<a class="headerlink" href="#5-next-steps-id-code" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong><code>api/load.go</code></strong>: implement hash-check, signature verify, and the three built-in analysis passes (shape, type-check, “no-set-after-command”).</li>
+<li><strong><code>api/exec.go</code></strong>: stub that rejects <code>lu.Mode != RunModeCommand</code> until the interpreter is wired.</li>
+<li><strong><code>api/reexport.go</code></strong>: add the type aliases shown above.</li>
+</ol>
+<p>Let me know if this shape looks good; I can whip up the <code>LoadedUnit</code> and loader skeleton next.</p>
+<p>AJP: Actually, I need to make sure our internal ducks are in a row first. Could you write a quick description for Gemini on what they need to make sure is in place for the API package to talk to the lang/ast/parser/interpreter pipeline properly. Gemini will have to pull this together across 406 files. I'm thinking comments, what the tree type should look like etc. We'll likely have to make some tweaks.</p>
+<h2 id="integration-readiness-checklist-for-the-nsapi-lang-pipeline">“Integration-readiness” checklist for the <strong><code>ns/api</code> ↔ <code>lang/*</code></strong> pipeline<a class="headerlink" href="#integration-readiness-checklist-for-the-nsapi-lang-pipeline" title="Permanent link">&para;</a></h2>
+<p><em>(One page for Gemini to pin to the monitor while stitching 400-odd files together)</em></p>
+<hr />
+<h3 id="1-ast-contract-single-source-of-truth">1 AST contract (single source of truth)<a class="headerlink" href="#1-ast-contract-single-source-of-truth" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Must-have</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>type Position struct{ Line, Col int }</code></strong></td>
+<td>1-based, immutable. <code>String()</code> → <code>"file.ns:12:7"</code> (needed by <code>api.FormatWithRemediation</code>).</td>
+</tr>
+<tr>
+<td><strong><code>type Kind uint8</code></strong> stable enum</td>
+<td>Do <strong>not</strong> reorder once published. Add new kinds at the end only.</td>
+</tr>
+<tr>
+<td><strong><code>type Node interface { Pos() Position; End() Position; Kind() Kind }</code></strong></td>
+<td>Every concrete node lives in <code>lang/ast/*</code>.</td>
+</tr>
+<tr>
+<td><strong><code>type Tree struct { Root Node; Comments []Comment }</code></strong></td>
+<td>Comments captured as their own nodes <strong>or</strong> in the slice; round-trippable.</td>
+</tr>
+<tr>
+<td><strong>Unnamed <code>command</code> block</strong> maps to <strong><code>*ast.CommandBlock</code></strong></td>
+<td>One per file; detector logic relies on <code>KindCommandBlock</code>.</td>
+</tr>
+<tr>
+<td><strong><code>*ast.SecretRef</code> node</strong></td>
+<td>Fields: <code>Path string</code>, <code>Enc string</code>, <code>Raw []byte</code> (may be nil pre-prepare).</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><em>Public location:</em> <code>lang/ast/ast.go</code>.
+<em>The <code>api</code> package </em><em>aliases</em><em> these types; keep packages import-cycle-free.</em></p>
+</blockquote>
+<hr />
+<h3 id="2-parser-guarantees-langparser">2 Parser guarantees (<code>lang/parser</code>)<a class="headerlink" href="#2-parser-guarantees-langparser" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p><code>Parse(src []byte, preserveComments bool) (*ast.Tree, error)</code></p>
+</li>
+<li>
+<p><code>preserveComments=false</code> may drop comments for speed.</p>
+</li>
+<li>
+<p>On success the tree <strong>obeys</strong> invariants:</p>
+</li>
+<li>
+<p>Single <code>CommandBlock</code> <strong>xor</strong> ≥0 <code>FuncDecl</code> <strong>xor</strong> ≥0 <code>EventHandler</code>.</p>
+</li>
+<li>All child pointers non-nil, positions increasing.</li>
+<li>Returns <code>ErrSyntax</code> on first violation; caller wraps into <code>RuntimeError</code>.</li>
+</ul>
+<h3 id="3-canonicaliser-langcanon">3 Canonicaliser (<code>lang/canon</code>)<a class="headerlink" href="#3-canonicaliser-langcanon" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Contract</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Canonicalise(tree *ast.Tree) ([]byte, [32]byte)</code></td>
+<td>Deterministic varint encoding; same input → same bytes on any platform.</td>
+</tr>
+<tr>
+<td><code>Decode(blob []byte) (*ast.Tree, [32]byte, error)</code></td>
+<td>Shape validation only (no signature check).</td>
+</tr>
+</tbody>
+</table>
+<p><em>Hash = </em><em>BLAKE3_256</em><em> of canonical bytes. 32 bytes in <code>[32]byte</code>.</em></p>
+<h3 id="4-signature-helpers-langsign">4 Signature helpers (<code>lang/sign</code>)<a class="headerlink" href="#4-signature-helpers-langsign" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="kd">type</span><span class="w"> </span><span class="nx">SignedAST</span><span class="w"> </span><span class="kd">struct</span><span class="p">{</span><span class="w"> </span><span class="nx">Blob</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">;</span><span class="w"> </span><span class="nx">Sum</span><span class="w"> </span><span class="p">[</span><span class="mi">32</span><span class="p">]</span><span class="kt">byte</span><span class="p">;</span><span class="w"> </span><span class="nx">Sig</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="w"> </span><span class="p">}</span>
+
+<span class="nx">Sign</span><span class="p">(</span><span class="nx">priv</span><span class="w"> </span><span class="nx">ed25519</span><span class="p">.</span><span class="nx">PrivateKey</span><span class="p">,</span><span class="w"> </span><span class="nx">blob</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="nx">sum</span><span class="w"> </span><span class="p">[</span><span class="mi">32</span><span class="p">]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">SignedAST</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<span class="nx">Verify</span><span class="p">(</span><span class="nx">pub</span><span class="w"> </span><span class="nx">ed25519</span><span class="p">.</span><span class="nx">PublicKey</span><span class="p">,</span><span class="w"> </span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">SignedAST</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">ast</span><span class="p">.</span><span class="nx">Tree</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</code></pre></div>
+<p><em><code>Verify</code> must re-canonicalise → compare <code>Sum</code> → verify <code>Sig</code>.</em></p>
+<h3 id="5-interpreter-shim-langinterp">5 Interpreter shim (<code>lang/interp</code>)<a class="headerlink" href="#5-interpreter-shim-langinterp" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="nx">ExecCommand</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">tree</span><span class="w"> </span><span class="o">*</span><span class="nx">ast</span><span class="p">.</span><span class="nx">Tree</span><span class="p">,</span>
+<span class="w">                 </span><span class="nx">cfg</span><span class="w"> </span><span class="nx">interp</span><span class="p">.</span><span class="nx">Config</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">api</span><span class="p">.</span><span class="nx">ExecResult</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+</code></pre></div>
+<p>*Assumes tree has been vetted &amp; is <code>RunModeCommand</code>.
+<em><code>interp.Config</code> includes <code>SecretResolver func(ref *ast.SecretRef) (string, error)</code>.</em></p>
+<h3 id="6-static-analysis-pass-hooks-langanalysis">6 Static-analysis pass hooks (<code>lang/analysis</code>)<a class="headerlink" href="#6-static-analysis-pass-hooks-langanalysis" title="Permanent link">&para;</a></h3>
+<p>Expose registry:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">type</span><span class="w"> </span><span class="nx">Pass</span><span class="w"> </span><span class="kd">interface</span><span class="p">{</span><span class="w"> </span><span class="nx">Name</span><span class="p">()</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w"> </span><span class="nx">Analyse</span><span class="p">(</span><span class="o">*</span><span class="nx">ast</span><span class="p">.</span><span class="nx">Tree</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="nx">api</span><span class="p">.</span><span class="nx">Diag</span><span class="w"> </span><span class="p">}</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">RegisterPass</span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="nx">Pass</span><span class="p">)</span>
+</code></pre></div>
+<p>Built-ins already drafted (shape, typecheck, capability, secret, set-order).</p>
+<h3 id="7-error-codes-langerrors">7 Error codes (<code>lang/errors</code>)<a class="headerlink" href="#7-error-codes-langerrors" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Ensure the <strong>99901-99909</strong> block exactly matches the catalogue given last (add <code>ErrorCodeSecretDecryption</code>).</li>
+<li><code>FormatWithRemediation</code> remains in <code>api</code>, but needs <code>errors.Lookup</code> underneath.</li>
+</ul>
+<h3 id="8-secrets-decoding-stub-langsecretdecodergo">8 Secrets decoding stub (<code>lang/secret/decoder.go</code>)<a class="headerlink" href="#8-secrets-decoding-stub-langsecretdecodergo" title="Permanent link">&para;</a></h3>
+<p>Provide:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="nx">Decode</span><span class="p">(</span><span class="nx">ref</span><span class="w"> </span><span class="o">*</span><span class="nx">ast</span><span class="p">.</span><span class="nx">SecretRef</span><span class="p">,</span><span class="w"> </span><span class="nx">priv</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="c1">// enc = &quot;none&quot;|&quot;age&quot;|&quot;sealedbox&quot;</span>
+</code></pre></div>
+<p>Return <code>ErrSecretUnsupported</code> if <code>Enc</code> unknown; interpreter lifts to 99909.</p>
+<h3 id="9-package-hygiene">9 Package hygiene<a class="headerlink" href="#9-package-hygiene" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>lang/*</code> <strong>must not</strong> import <code>api</code> (avoid cycles).</li>
+<li><code>api/reexport.go</code> should say:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="kd">type</span><span class="w"> </span><span class="nx">Position</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">ast</span><span class="p">.</span><span class="nx">Position</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">Kind</span><span class="w">     </span><span class="p">=</span><span class="w"> </span><span class="nx">ast</span><span class="p">.</span><span class="nx">Kind</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">Node</span><span class="w">     </span><span class="p">=</span><span class="w"> </span><span class="nx">ast</span><span class="p">.</span><span class="nx">Node</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">Tree</span><span class="w">     </span><span class="p">=</span><span class="w"> </span><span class="nx">ast</span><span class="p">.</span><span class="nx">Tree</span>
+</code></pre></div>
+<p><em>That way external consumers do <code>import "yourrepo/api"</code> only.</em></p>
+<h3 id="10-smoke-test-to-keep-green">10 Smoke test to keep green<a class="headerlink" href="#10-smoke-test-to-keep-green" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>go test ./api -run TestEndToEnd
+</code></pre></div>
+<p>Flow:</p>
+<ol>
+<li>Read <code>testdata/template.ns</code></li>
+<li>Parser → Tree</li>
+<li>Canonicalise → Sign (dummy key)</li>
+<li>Load → Vet passes</li>
+<li>Exec → get <code>"hello world"</code> output</li>
+</ol>
+<hr />
+<h3 id="tldr-for-gemini">TL;DR for Gemini<a class="headerlink" href="#tldr-for-gemini" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Stabilise AST structs &amp; kinds</strong> — parser, canoniser, interpreter all speak that.</li>
+<li><strong>Wire canonicaliser + signer</strong> — deterministic bytes, BLAKE3, Ed25519.</li>
+<li><strong>Expose ExecCommand(tree)</strong> — run only verified, vetted command trees.</li>
+<li><strong>Keep comments &amp; Position in AST</strong> — for <code>api.Format</code> and diagnostics.</li>
+</ol>
+<p>Once those surfaces compile, <code>api</code> can lock onto them and external integrators need nothing beyond <code>import "yourrepo/api"</code>.</p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.50899def.min.js"></script>
+      
+    
+  </body>
+</html>

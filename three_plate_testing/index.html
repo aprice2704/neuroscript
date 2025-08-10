@@ -1,0 +1,2675 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://aprice2704.github.io/neuroscript/three_plate_testing/">
+      
+      
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.16">
+    
+    
+      
+        <title>"Three Plate" testing in software -- taking tests to the next level - NeuroScript</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.7e37652d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#three-plate-testing-in-software-taking-tests-to-the-next-level" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="NeuroScript" class="md-header__button md-logo" aria-label="NeuroScript" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            NeuroScript
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              "Three Plate" testing in software -- taking tests to the next level
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/aprice2704/neuroscript" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="NeuroScript" class="md-nav__button md-logo" aria-label="NeuroScript" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    NeuroScript
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/aprice2704/neuroscript" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../RoadMap.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Road Map
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/why-ns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Why NeuroScript
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Architecture
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Core Concepts
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    FAQ
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../front/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Contributing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Specifications
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Specifications
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../script_spec.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Quick Spec
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../formal script spec.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Formal Spec
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../metadata/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Metadata
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../neurodata_and_composite_file_spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    NeuroData & Composite
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../llm_agent_facilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    LLM Agent Facilities
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../restricted_mode/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Restricted Mode
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../specification_structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Spec Structure Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    NeuroData Types
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            NeuroData Types
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/cryptographic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Cryptographic
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/decision_table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Decision Table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/enum/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Enum
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/form/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Form
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/geometry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Geometry
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/graph/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Graph
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/list/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    List
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/map_literal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Map Literal
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/map_schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Map Schema
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/patch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Patch
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/references/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    References
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/symbolic_math/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Symbolic Math
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/templates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Templates
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../NeuroData/tree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tree
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Tools
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Tools
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Index
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/delete_api_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    delete_api_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_deletefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_deletefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_filehash/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_filehash
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_linecountfile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_linecountfile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_mkdir/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_mkdir
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_movefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_movefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_readfile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_readfile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_sanitizefilename/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_sanitizefilename
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_walkdir/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_walkdir
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/fs_writefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_writefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_add/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_add
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_checkout/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_checkout
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_commit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_commit
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_diff/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_diff
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_gitstatus/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_gitstatus
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_merge
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_newbranch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_newbranch
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_pull/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_pull
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_push/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_push
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_rm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_rm
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/git_status/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_status
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/go_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    go_build
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/go_update_imports_for_moved_package/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    go_update_imports_for_moved_package
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/list_api_files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    list_api_files
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/maths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    maths
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/move_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    move_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/query_table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    query_table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/strings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    strings
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/sync_files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    sync_files
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/tool_spec_structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    tool_spec_structure
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/upload_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    upload_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/vector_searchskills/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    vector_searchskills
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ns/tools/vector_update/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    vector_update
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Status & Build
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Status & Build
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Build Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../completed.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Completed Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release_checklist.ndcl/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Release Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-choose-your-third-plate-wisely" class="md-nav__link">
+    <span class="md-ellipsis">
+      1 Choose your “third plate” wisely
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-practical-three-plate-workflows" class="md-nav__link">
+    <span class="md-ellipsis">
+      2 Practical “three-plate” workflows
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-design-hints-for-go-projects" class="md-nav__link">
+    <span class="md-ellipsis">
+      3 Design hints for Go projects
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-caveats-failure-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      4 Caveats &amp; failure modes
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-could-you-try-this-first" class="md-nav__link">
+    <span class="md-ellipsis">
+      Where could you try this first?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#three-plate-grinding-for-software-in-plain-english" class="md-nav__link">
+    <span class="md-ellipsis">
+      “Three-plate grinding” for software, in plain English
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="“Three-plate grinding” for software, in plain English">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#translate-the-idea-to-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      Translate the idea to code
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-can-the-independent-check-be" class="md-nav__link">
+    <span class="md-ellipsis">
+      What can the “independent check” be?
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a-tiny-concrete-example-go-ish-pseudocode" class="md-nav__link">
+    <span class="md-ellipsis">
+      A tiny concrete example (Go-ish pseudocode)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-bother" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why bother?
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#automating-the-third-plate-oracle-with-ai" class="md-nav__link">
+    <span class="md-ellipsis">
+      Automating the “third-plate” oracle with AI
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Automating the “third-plate” oracle with AI">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-what-we-already-have" class="md-nav__link">
+    <span class="md-ellipsis">
+      1 What we already have
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-what-the-ai-driven-oracle-must-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      2 What the AI-driven oracle must do
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-build-the-oracle-as-a-pipeline-of-ai-agents" class="md-nav__link">
+    <span class="md-ellipsis">
+      3 Build the oracle as a pipeline of AI agents
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-key-tricks-that-make-it-actually-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      4 Key tricks that make it actually work
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-minimal-starter-kit-in-go-pseudo-outline" class="md-nav__link">
+    <span class="md-ellipsis">
+      5 Minimal starter kit in Go (pseudo-outline)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-where-ai-adds-the-most-value-first" class="md-nav__link">
+    <span class="md-ellipsis">
+      6 Where AI adds the most value first
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-rough-roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      7 Rough roadmap
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="three-plate-testing-in-software-taking-tests-to-the-next-level">"Three Plate" testing in software -- taking tests to the next level<a class="headerlink" href="#three-plate-testing-in-software-taking-tests-to-the-next-level" title="Permanent link">&para;</a></h1>
+<p>AJP: A little thought: when testing code, one writes tests. If there are errors, either the test is wrong or the code is wrong; it is very unlikely both are correct -- we are comparing expectations. This reminds me of grinding two plates against each other -- you can be sure the plates match; but if you add a third plate to the mix and swap the grinding pairs properly one may achieve an optically flat surface with NO other tools or references. Can you think of how '3 plate grinding' could be extended to software testing?</p>
+<p>o3:</p>
+<p><strong>Analogising “three-plate lapping” to software quality</strong></p>
+<table>
+<thead>
+<tr>
+<th>Grinding plates</th>
+<th>Software equivalent</th>
+<th>How the pair-wise “grind” exposes error</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Plate A &amp; B<br>Plate B &amp; C<br>Plate C &amp; A</td>
+<td>Implementation (I)<br>Executable Tests (T)<br>Independent Oracle/Model (O)</td>
+<td>• <code>I ↔ T</code> – failing tests mean <em>source or tests</em> wrong.<br>• <code>I ↔ O</code> – differential run against the oracle; divergence spots fault in <em>code or model</em>.<br>• <code>T ↔ O</code> – generate test vectors from the oracle and replay; mismatch means <em>tests or model</em> wrong.<br>By rotating pairings, systemic bias in any one artefact is slowly “ground flat”.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="1-choose-your-third-plate-wisely">1  Choose your “third plate” wisely<a class="headerlink" href="#1-choose-your-third-plate-wisely" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Option for the Oracle (O)</th>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Reference implementation</strong> (slow but simple)</td>
+<td>Concrete, easy to diff outputs</td>
+<td>Must keep in lock-step feature-wise</td>
+</tr>
+<tr>
+<td><strong>Property-based spec</strong> (QuickCheck/Gopter)</td>
+<td>Captures broad invariants, generates mass cases</td>
+<td>Abstract – doesn’t catch value-specific bugs</td>
+</tr>
+<tr>
+<td><strong>Metamorphic relations</strong></td>
+<td>Detects bugs where absolute oracle is unknown</td>
+<td>Needs deep domain insight</td>
+</tr>
+<tr>
+<td><strong>Formal model / theorem prover</strong></td>
+<td>Mathematical certainty about key properties</td>
+<td>Costly; doesn’t cover all behavioural beer-keg corners</td>
+</tr>
+<tr>
+<td><strong>N-version programming</strong> (2nd independent team/codebase)</td>
+<td>Very powerful for safety-critical work</td>
+<td>Expensive, risk of correlated blind spots</td>
+</tr>
+</tbody>
+</table>
+<p>Pick whichever gives you <em>independent thinking</em>—independence is the whole point of the third plate.</p>
+<hr />
+<h3 id="2-practical-three-plate-workflows">2  Practical “three-plate” workflows<a class="headerlink" href="#2-practical-three-plate-workflows" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p><strong>Differential–fuzz loop</strong></p>
+</li>
+<li>
+<p>Generate random inputs.</p>
+</li>
+<li>Run through <em>I</em> and <em>O</em>; if outputs differ, auto-generate a minimal failing reproducible.</li>
+<li>Tests (<em>T</em>) are auto-extended with that new case.</li>
+<li>
+<p>Result: your test suite continually “laps” itself flatter.</p>
+</li>
+<li>
+<p><strong>Spec ⇄ Code ⇄ Fixtures rotation</strong></p>
+</li>
+<li>
+<p>Start from a literate spec (Markdown + embedded examples).</p>
+</li>
+<li>Extract examples as executable tests (<em>T</em>).</li>
+<li>Implement (<em>I</em>).</li>
+<li>
+<p>Feed real-world traces into a lightweight <strong>behaviour recorder</strong>; this becomes an empirical oracle (<em>O</em>) for regression.</p>
+</li>
+<li>
+<p><strong>Tri-agent review (fits nicely with FDM’s “Interesting Times Gang”)</strong></p>
+</li>
+<li>
+<p><em>Coder agent</em> proposes change.</p>
+</li>
+<li><em>Reviewer/test-author agent</em> writes/updates corresponding tests.</li>
+<li><em>Model-checker agent</em> (or separate slow impl) signs off by comparing its output.</li>
+<li>FDM tracks disagreements as graph edges; the voting system decides which plate is warped.</li>
+</ol>
+<hr />
+<h3 id="3-design-hints-for-go-projects">3  Design hints for Go projects<a class="headerlink" href="#3-design-hints-for-go-projects" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Keep the reference implementation in a <code>_ref</code> package so you can import it without cyclic deps.</li>
+<li>Use Go 1.22’s <code>go test -shuffle</code> to randomise order—helps show hidden coupling between plates.</li>
+<li>For property tests, <code>github.com/leanovate/gopter</code> or <code>github.com/frankban/quicktest</code> integrate cleanly.</li>
+<li>Add a CI job that <em>only</em> runs <code>I ↔ O</code> comparison on a giant fuzz corpus—slow but catches deep warps.</li>
+<li>Store every discovered counter-example as a <strong>NeuroData</strong> node so future agents can mine patterns (the “optical flat” keeps improving).</li>
+</ul>
+<hr />
+<h3 id="4-caveats-failure-modes">4  Caveats &amp; failure modes<a class="headerlink" href="#4-caveats-failure-modes" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Shared misconceptions</strong> – if the oracle encodes the same bug as the code, pair-wise checks pass. Independence (different algorithm, different author, property not example, etc.) is your defense.</li>
+<li><strong>Over-fitting tests</strong> – when <em>T</em> merely petrifies today’s behaviour. Rotate: generate <em>T</em> from <em>O</em>, then occasionally delete some tests and let property checks refill gaps.</li>
+<li><strong>Cost</strong> – triple work isn’t free. Target it at <em>high-risk/high-impact</em> modules (parsers, consensus, financial calcs) rather than every handler.</li>
+</ul>
+<hr />
+<h3 id="where-could-you-try-this-first">Where could <em>you</em> try this first?<a class="headerlink" href="#where-could-you-try-this-first" title="Permanent link">&para;</a></h3>
+<p>Your <strong>FDM indexing layer</strong> is a prime candidate:
+<em>I</em> = current fast indexer,
+<em>O</em> = slow but simple reference walker,
+<em>T</em> = curated query/result fixtures.</p>
+<p>Run the triad in CI until mismatches drop to \~0 ppm—then you’ll have an “optically flat” indexer without needing an external benchmark.</p>
+<hr />
+<p>Let me know which module you’re tempted to lap first, and we can sketch a concrete harness in Go.</p>
+<p>AJP: That sounds awesome but I don't understand much of it. Could you explain for a Bear of Little Brain(tm) please?</p>
+<p>o3:</p>
+<h3 id="three-plate-grinding-for-software-in-plain-english">“Three-plate grinding” for software, in plain English<a class="headerlink" href="#three-plate-grinding-for-software-in-plain-english" title="Permanent link">&para;</a></h3>
+<p>Imagine you’re trying to make a perfectly flat <strong>wooden board</strong>.
+If you rub Board A against Board B, you know <strong>one of them must still have bumps</strong>, but you can’t tell which.
+Bring in Board C and keep swapping pairs (A↔B, B↔C, C↔A).
+Whenever two boards touch, the higher spots get sanded off.
+Because every board meets every other board, <strong>no single board can keep its own hidden bump for long</strong>.
+Soon all three are very, very flat.</p>
+<hr />
+<h4 id="translate-the-idea-to-code">Translate the idea to code<a class="headerlink" href="#translate-the-idea-to-code" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Real wood</th>
+<th>In software</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Board A</td>
+<td><strong>Your program</strong> (the thing you’re building)</td>
+</tr>
+<tr>
+<td>Board B</td>
+<td><strong>Your tests</strong> (little scripts that say “this should happen”)</td>
+</tr>
+<tr>
+<td>Board C</td>
+<td><strong>An independent check</strong>—something that <em>isn’t</em> your program <em>or</em> your tests but can still say “right” or “wrong”.</td>
+</tr>
+</tbody>
+</table>
+<p>Why three?
+With only two (program ↔ tests), a failure tells you <strong>“one of them is wrong”</strong>—but not which.
+Add the third piece and compare all pairs.  Patterns show who’s guilty:</p>
+<table>
+<thead>
+<tr>
+<th>Pair that disagrees</th>
+<th>Likely culprit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Program vs Tests <strong>and</strong> Program vs Check disagree</td>
+<td>Program has the bug</td>
+</tr>
+<tr>
+<td>Program vs Tests <strong>and</strong> Tests vs Check disagree</td>
+<td>Tests are wrong</td>
+</tr>
+<tr>
+<td>Program vs Check <strong>and</strong> Tests vs Check disagree</td>
+<td>Independent check is wrong</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4 id="what-can-the-independent-check-be">What can the “independent check” be?<a class="headerlink" href="#what-can-the-independent-check-be" title="Permanent link">&para;</a></h4>
+<ol>
+<li><strong>A simple, slow version</strong> of the program written in the clearest way you can (easy to read, hard to get wrong).</li>
+<li><strong>Rules/invariants</strong> (“total can never go negative”, “list stays sorted”) checked automatically.</li>
+<li><strong>A second team’s implementation</strong> if the stakes justify the cost.</li>
+<li><strong>Recorded real-world behaviour</strong>: run yesterday’s proven-good outputs against today’s build.</li>
+</ol>
+<p>Pick something that <strong>thinks differently</strong> from both your fast code and your hand-written tests.</p>
+<hr />
+<h4 id="a-tiny-concrete-example-go-ish-pseudocode">A tiny concrete example (Go-ish pseudocode)<a class="headerlink" href="#a-tiny-concrete-example-go-ish-pseudocode" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code># Board A: Fast code
+func Sum(xs []int) int { /* clever bit-twiddling */ }
+
+# Board B: Tests
+assert Sum([1,2,3]) == 6
+assert Sum([])      == 0
+# etc.
+
+# Board C: Simple reference
+func SlowSum(xs []int) int {
+    total := 0
+    for x in xs { total += x }
+    return total
+}
+</code></pre></div>
+<p>In CI you run three comparisons:</p>
+<ol>
+<li><strong>Program vs Tests</strong> – do the tests pass?</li>
+<li><strong>Program vs SlowSum</strong> – for 10 000 random lists, are the answers equal?</li>
+<li><strong>Tests vs SlowSum</strong> – do the expected values in the tests match SlowSum?</li>
+</ol>
+<p>Any mismatch points to the faulty board.</p>
+<hr />
+<h4 id="why-bother">Why bother?<a class="headerlink" href="#why-bother" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Catches sneaky mistakes</strong> the tests missed.</li>
+<li><strong>Cleans the tests themselves</strong>—bad expectations stand out.</li>
+<li>Gives you a deeper feeling of “this really works”.</li>
+</ul>
+<p>You don’t have to do it for every feature.  Aim it at <strong>critical parts</strong> (money calculations, security checks, indexers).  Start small: write a dumb but crystal-clear version as your third plate, fuzz both implementations against it, and watch the cracks appear.</p>
+<p>That’s all “three-plate grinding” is:
+<strong>two comparisons are good; three make the truth obvious.</strong></p>
+<h3 id="automating-the-third-plate-oracle-with-ai">Automating the <strong>“third-plate” oracle</strong> with AI<a class="headerlink" href="#automating-the-third-plate-oracle-with-ai" title="Permanent link">&para;</a></h3>
+<p><em>(Turning lapping into a lights-out CI job)</em></p>
+<hr />
+<h4 id="1-what-we-already-have">1 What we already have<a class="headerlink" href="#1-what-we-already-have" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>“Plate”</th>
+<th>You’re covering it with…</th>
+<th>Goal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Implementation (I)</strong></td>
+<td>Production Go code</td>
+<td>Be fast &amp; feature-rich</td>
+</tr>
+<tr>
+<td><strong>Contract/Test harness (T)</strong></td>
+<td>Pre-generated contracts → compile-time &amp; runtime assertions</td>
+<td>Catch obvious mis-behaviour</td>
+</tr>
+<tr>
+<td><strong>Independent Oracle (O)</strong></td>
+<td><strong>⬜ (we’ll fill this in)</strong></td>
+<td>Decide who’s wrong when I ≠ T</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4 id="2-what-the-ai-driven-oracle-must-do">2 What the AI-driven oracle must do<a class="headerlink" href="#2-what-the-ai-driven-oracle-must-do" title="Permanent link">&para;</a></h4>
+<ol>
+<li><strong>Read</strong> the same contracts/specs that generated your tests.</li>
+<li><strong>Think differently</strong> from the production algorithm (avoid share-the-same-bug).</li>
+<li><strong>Emit opinions automatically</strong> – no human in the loop except when plates disagree.</li>
+<li><strong>Stay cheap</strong> enough to run on every PR, but deep enough to reveal subtle warps.</li>
+</ol>
+<hr />
+<h4 id="3-build-the-oracle-as-a-pipeline-of-ai-agents">3 Build the oracle as a <em>pipeline</em> of AI agents<a class="headerlink" href="#3-build-the-oracle-as-a-pipeline-of-ai-agents" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>“Job description”</th>
+<th>Suitable AI technique</th>
+<th>Why it’s independent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Spec-to-Property converter</strong></td>
+<td>Turn English-ish contract text into machine-checkable invariants</td>
+<td>GPT-4o / Claude-3 with chain-of-thought prompts</td>
+<td>Model never sees production source; only the spec</td>
+</tr>
+<tr>
+<td><strong>Reference code synthesiser</strong></td>
+<td>Generate a <em>simple, obviously correct</em> version (O<sub>impl</sub>) in Go or Python</td>
+<td>LLM guided by <em>clarity &gt; speed</em> rubric</td>
+<td>Uses different algorithmic path; think “bubble sort vs quicksort”</td>
+</tr>
+<tr>
+<td><strong>Fuzz &amp; metamorphic generator</strong></td>
+<td>Invent loads of inputs + transforms that <em>shouldn’t</em> change output</td>
+<td>Property-based engines (e.g. Gopter) steered by LLM to hit edge cases</td>
+<td>Input space chosen without peeking at I’s internals</td>
+</tr>
+<tr>
+<td><strong>Critic agent</strong></td>
+<td>When I, T, O disagree, write a natural-language diff explaining <em>who is wrong and why</em></td>
+<td>Critic-style LLM (OpenAI <strong>CriticGPT</strong>-like models)</td>
+<td>Trained to <em>dissect</em> code/tests, not to generate production logic (<a href="https://www.wired.com/story/openai-rlhf-ai-training?utm_source=chatgpt.com" title="OpenAI Wants AI to Help Humans Train AI">wired.com</a>)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>CI flow</strong></p>
+<ol>
+<li>Generate/refresh O<sub>impl</sub> &amp; invariants.</li>
+<li>Run <strong>I ↔ O</strong> on fuzz corpus.</li>
+<li>Run <strong>T ↔ O</strong> to validate test expectations.</li>
+<li>If <em>any</em> pair fails, Critic agent files an FDM ticket tagged <code>warped_plate</code>.</li>
+<li>Developer (or repair-bot) fixes the guilty artefact.</li>
+</ol>
+</blockquote>
+<hr />
+<h4 id="4-key-tricks-that-make-it-actually-work">4 Key tricks that make it <em>actually</em> work<a class="headerlink" href="#4-key-tricks-that-make-it-actually-work" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Counter-measure</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Shared hallucination</strong> – LLM writes buggy oracle mirroring I</td>
+<td>Use <em>ensemble diversity</em>: ask two very different models (e.g. GPT-4o vs Gemma-2B local) to craft O<sub>impl</sub>; require consensus before accepting it.</td>
+</tr>
+<tr>
+<td><strong>Cost explosion</strong></td>
+<td>Run the full fuzz only on nightly build; PRs get a 1-second “smoke lap”.</td>
+</tr>
+<tr>
+<td><strong>Oracle drift</strong> when spec evolves</td>
+<td>Contracts stored as versioned NeuroData nodes. A change automatically re-generates O<sub>impl</sub> and invalidates stale fuzz seeds.</td>
+</tr>
+<tr>
+<td><strong>Opaque critiques</strong></td>
+<td>Force Critic agent to cite contract clauses/invariant IDs; easy human follow-up.</td>
+</tr>
+<tr>
+<td><strong>Security</strong> (don’t run arbitrary LLM output)</td>
+<td>Sandbox O<sub>impl</sub> in Wasm or <code>--race -t 30s</code> Docker caps, same as any unk-trusted plugin.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4 id="5-minimal-starter-kit-in-go-pseudo-outline">5 Minimal starter kit in Go (pseudo-outline)<a class="headerlink" href="#5-minimal-starter-kit-in-go-pseudo-outline" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="c1">// contracts.nd → invariants.go (generated)</span>
+<span class="kd">type</span><span class="w"> </span><span class="nx">Invariant</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">input</span><span class="w"> </span><span class="nx">Any</span><span class="p">,</span><span class="w"> </span><span class="nx">output</span><span class="w"> </span><span class="nx">Any</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span>
+
+<span class="c1">// oracle_ref.go (LLM-written, checked-in)</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">SlowButSure</span><span class="p">(</span><span class="nx">input</span><span class="w"> </span><span class="nx">Any</span><span class="p">)</span><span class="w"> </span><span class="nx">Any</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="err">…</span><span class="w"> </span><span class="p">}</span>
+
+<span class="c1">// harness.go</span>
+<span class="kd">func</span><span class="w"> </span><span class="nx">Lap</span><span class="p">(</span><span class="nx">input</span><span class="w"> </span><span class="nx">Any</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">err</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">prod</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">FastAlgo</span><span class="p">(</span><span class="nx">input</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">ref</span><span class="w">  </span><span class="o">:=</span><span class="w"> </span><span class="nx">SlowButSure</span><span class="p">(</span><span class="nx">input</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">!</span><span class="nx">reflect</span><span class="p">.</span><span class="nx">DeepEqual</span><span class="p">(</span><span class="nx">prod</span><span class="p">,</span><span class="w"> </span><span class="nx">ref</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">&quot;I≠O&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">inv</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">invariants</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nx">e</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">inv</span><span class="p">(</span><span class="nx">input</span><span class="p">,</span><span class="w"> </span><span class="nx">ref</span><span class="p">);</span><span class="w"> </span><span class="nx">e</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">&quot;O violates spec: %v&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">e</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Wire that into <code>go test ./...</code> plus a nightly <code>go test -fuzz 50x</code>.</p>
+<hr />
+<h4 id="6-where-ai-adds-the-most-value-first">6 Where AI adds the most value first<a class="headerlink" href="#6-where-ai-adds-the-most-value-first" title="Permanent link">&para;</a></h4>
+<ol>
+<li><strong>Numeric kernels</strong> (e.g., FDM similarity scorers) – easy to specify mathematically, painful to hand-test exhaustively.</li>
+<li><strong>Parsing / serialization layers</strong> – metamorphic relations like <em>encode ∘ decode = identity</em>.</li>
+<li><strong>Security-sensitive transforms</strong> (ACL squeezers, capability derivation) – formal-ish invariants + slow recomputation catch privilege-escalation edge cases.</li>
+</ol>
+<hr />
+<h4 id="7-rough-roadmap">7 Rough roadmap<a class="headerlink" href="#7-rough-roadmap" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Sprint</th>
+<th>Deliverable</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>0</strong></td>
+<td>Manual “SlowButSure” for one hot module; run diff-fuzz in CI.</td>
+</tr>
+<tr>
+<td><strong>1</strong></td>
+<td>LLM prompts that regenerate the slow impl + invariants from contract markup.</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td>Critic agent integrated; outputs stored in FDM graph, routed to Interesting Times Gang for vote.</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>Ensemble model swap; nightly 100 k-case fuzz; auto-PR to patch warped tests/code.</td>
+</tr>
+</tbody>
+</table>
+<p>Once that’s humming, your code, tests <em>and</em> AI oracle will keep grinding each other flatter—24/7, no extra human sandpaper required.</p>
+<hr />
+<p><strong>Bottom line:</strong> use <strong>synthetic but independent minds</strong> (LLMs + fuzz engines) to play the role of the third plate.  They derive their authority from the <em>contracts</em>, not from your production code, and their constant pair-wise fights surface whoever slipped.  The latest “critic” models show this is practical today (<a href="https://arstechnica.com/information-technology/2024/06/openais-criticgpt-outperforms-humans-in-catching-ai-generated-code-bugs/?utm_source=chatgpt.com" title="OpenAI's new “CriticGPT” model is trained to scrutinize GPT-4 outputs">arstechnica.com</a>, <a href="https://arxiv.org/pdf/2502.13820?utm_source=chatgpt.com" title="[PDF] arXiv:2502.13820v2 [cs.AI] 1 Apr 2025">arxiv.org</a>).</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.50899def.min.js"></script>
+      
+    
+  </body>
+</html>

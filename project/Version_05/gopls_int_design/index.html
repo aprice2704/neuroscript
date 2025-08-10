@@ -1,0 +1,2302 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://aprice2704.github.io/neuroscript/project/Version_05/gopls_int_design/">
+      
+      
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.16">
+    
+    
+      
+        <title>Gopls int design - NeuroScript</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.7e37652d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="NeuroScript" class="md-header__button md-logo" aria-label="NeuroScript" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            NeuroScript
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Gopls int design
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/aprice2704/neuroscript" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="NeuroScript" class="md-nav__button md-logo" aria-label="NeuroScript" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    NeuroScript
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/aprice2704/neuroscript" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../RoadMap.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Road Map
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../front/why-ns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Why NeuroScript
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../front/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Architecture
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../front/concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Core Concepts
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../front/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../front/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    FAQ
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../front/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Contributing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Specifications
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Specifications
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../script_spec.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Quick Spec
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../formal script spec.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Formal Spec
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../metadata/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Metadata
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../neurodata_and_composite_file_spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    NeuroData & Composite
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../llm_agent_facilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    LLM Agent Facilities
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../restricted_mode/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Restricted Mode
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../specification_structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Spec Structure Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    NeuroData Types
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            NeuroData Types
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/cryptographic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Cryptographic
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/decision_table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Decision Table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/enum/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Enum
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/form/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Form
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/geometry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Geometry
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/graph/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Graph
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/list/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    List
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/map_literal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Map Literal
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/map_schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Map Schema
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/patch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Patch
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/references/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    References
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/symbolic_math/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Symbolic Math
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/templates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Templates
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/tree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tree
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Tools
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Tools
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Index
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/delete_api_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    delete_api_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/fs_deletefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_deletefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/fs_filehash/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_filehash
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/fs_linecountfile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_linecountfile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/fs_mkdir/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_mkdir
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/fs_movefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_movefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/fs_readfile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_readfile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/fs_sanitizefilename/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_sanitizefilename
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/fs_walkdir/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_walkdir
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/fs_writefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_writefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/git_add/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_add
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/git_checkout/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_checkout
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/git_commit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_commit
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/git_diff/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_diff
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/git_gitstatus/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_gitstatus
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/git_merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_merge
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/git_newbranch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_newbranch
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/git_pull/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_pull
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/git_push/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_push
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/git_rm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_rm
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/git_status/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_status
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/go_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    go_build
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/go_update_imports_for_moved_package/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    go_update_imports_for_moved_package
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/list_api_files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    list_api_files
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/maths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    maths
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/move_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    move_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/query_table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    query_table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/strings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    strings
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/sync_files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    sync_files
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/tool_spec_structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    tool_spec_structure
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/upload_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    upload_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/vector_searchskills/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    vector_searchskills
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/vector_update/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    vector_update
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Status & Build
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Status & Build
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Build Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../completed.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Completed Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../release_checklist.ndcl/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Release Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+  <h1>Gopls int design</h1>
+
+<p># NeuroScript Gopls Integration Design (gopls_integration_design.md)</p>
+<p>## 1. Overview</p>
+<p>This document outlines the design for integrating <code>gopls</code>, the official Go Language Server, into the NeuroScript ecosystem. The primary objective is to provide NeuroScript (and thereby AI agents using NeuroScript) with robust, real-time diagnostics and rich semantic understanding of Go code. This integration is pivotal for enabling an AI to write, analyze, and modify Go code that compiles reliably and efficiently, moving beyond brittle line/column addressing towards more stable semantic references.</p>
+<p>The focus for the initial v0.5.0 implementation will be on:
+ - Accurate diagnostic reporting (<code>textDocument/publishDiagnostics</code>).
+ - Workspace and document synchronization with <code>gopls</code> (<code>didOpen</code>, <code>didChange</code>, <code>didSave</code>, <code>didClose</code>).
+ - Tools to retrieve semantic context for diagnostics and code elements (e.g., <code>textDocument/hover</code>, <code>textDocument/definition</code>, <code>textDocument/documentSymbol</code>).
+ - Establishing a stable <code>GoplsClient</code> for managing communication.</p>
+<p>This system will complement existing static analysis tools in <code>pkg/core/tools/gosemantic</code> and <code>pkg/core/tools/goast</code> by providing a live, incremental view of the codebase as understood by the Go compiler and associated tooling.</p>
+<p>## 2. Core Components</p>
+<p>### 2.1. <code>GoplsClient</code> (<code>pkg/core/tools/gopls_client.go</code> - new)
+ <strong>Role</strong>: Manages the lifecycle of a <code>gopls</code> server subprocess and handles all Language Server Protocol (LSP) JSON-RPC 2.0 communication.
+ <strong>Responsibilities</strong>:
+ -   <strong>Process Management</strong>: Starting, monitoring, and stopping the <code>gopls</code> server executable.
+ -   <strong>LSP Communication</strong>:
+     -   Establishing and managing the JSON-RPC 2.0 stream over stdio with the <code>gopls</code> subprocess.
+     -   Sending LSP requests (e.g., <code>initialize</code>, <code>textDocument/hover</code>) and notifications (e.g., <code>initialized</code>, <code>textDocument/didOpen</code>).
+     -   Receiving and dispatching LSP responses and notifications (e.g., <code>textDocument/publishDiagnostics</code>).
+ -   <strong>State Management</strong>: Tracking client/server capabilities, open documents, and pending requests.
+ -   <strong>Interface</strong>: Provides methods for higher-level services (like DiagnosticManager, SemanticInfoProvider) to interact with <code>gopls</code>.
+ <strong>Implementation Notes</strong>:
+ -   Consider using <code>golang.org/x/tools/gopls/internal/protocol</code> for LSP type definitions and potentially <code>golang.org/x/tools/internal/jsonrpc2</code> for the RPC mechanism if its license and stability are suitable. Otherwise, a minimal custom implementation for JSON-RPC message framing and dispatch will be needed.</p>
+<p>### 2.2. Workspace/Document Synchronizer (Part of <code>GoplsClient</code>)
+ <strong>Role</strong>: Keeps <code>gopls</code> informed about the state of the workspace and relevant Go files.
+ <strong>Responsibilities</strong>:
+ -   Handling <code>textDocument/didOpen</code> notifications when a file is first accessed or made relevant.
+ -   Handling <code>textDocument/didChange</code> notifications when a file's content is modified by NeuroScript or an AI. Initially, full content sync is acceptable; incremental sync can be a future optimization.
+ -   Handling <code>textDocument/didSave</code> notifications if specific save actions need to be signaled.
+ -   Handling <code>textDocument/didClose</code> notifications when a file is no longer actively managed.
+ -   Managing the concept of a "workspace root" (<code>rootUri</code> in LSP <code>initialize</code> parameters).</p>
+<p>### 2.3. Diagnostic Manager (Conceptually part of <code>GoplsClient</code> or a close collaborator)
+ <strong>Role</strong>: Receives, stores, and provides access to diagnostics published by <code>gopls</code>.
+ <strong>Responsibilities</strong>:
+ -   Processing incoming <code>textDocument/publishDiagnostics</code> notifications from <code>gopls</code>.
+ -   Storing diagnostics per file URI, replacing previous diagnostics for that file.
+ -   Making these stored diagnostics queryable by NeuroScript tools.</p>
+<p>### 2.4. Semantic Information Provider (Methods on <code>GoplsClient</code>)
+ <strong>Role</strong>: Fetches and provides semantic information about code elements.
+ <strong>Responsibilities</strong>:
+ -   Sending <code>textDocument/hover</code> requests and parsing responses.
+ -   Sending <code>textDocument/definition</code> requests and parsing responses.
+ -   Sending <code>textDocument/documentSymbol</code> requests and parsing responses.
+ -   Sending <code>workspace/symbol</code> requests and parsing responses.
+ -   Translating LSP responses into NeuroScript's <code>SemanticReference</code> and other relevant data structures.</p>
+<p>## 3. Data Structures (for NeuroScript internal representation &amp; tool outputs)</p>
+<p>These will reside likely in a new <code>pkg/core/tools/gopls_types.go</code> or similar.</p>
+<ul>
+<li><strong><code>LSPPosition</code></strong>:<ul>
+<li><code>Line</code> (int): 0-indexed line number.</li>
+<li><code>Character</code> (int): 0-indexed UTF-16 code unit offset (gopls typically uses UTF-8 byte offsets, which needs careful handling or negotiation; for Go, byte offsets are often more natural). <strong>Decision: Prioritize byte offsets for internal consistency if possible, map to/from LSP's character definition as needed.</strong></li>
+</ul>
+</li>
+<li><strong><code>LSPRange</code></strong>:<ul>
+<li><code>Start</code> (<code>LSPPosition</code>)</li>
+<li><code>End</code> (<code>LSPPosition</code>)</li>
+</ul>
+</li>
+<li><strong><code>LSPLocation</code></strong>:<ul>
+<li><code>URI</code> (string): Document URI.</li>
+<li><code>Range</code> (<code>LSPRange</code>)</li>
+</ul>
+</li>
+<li><strong><code>DiagnosticInfo</code></strong>:<ul>
+<li><code>SourceFileURI</code> (string)</li>
+<li><code>Range</code> (<code>LSPRange</code>): Precise byte-offset range of the diagnostic.</li>
+<li><code>Severity</code> (int): e.g., Error, Warning, Info, Hint (maps to LSP <code>DiagnosticSeverity</code>).</li>
+<li><code>Code</code> (string | int, optional): Diagnostic code, if any.</li>
+<li><code>Source</code> (string, optional): Source of the diagnostic (e.g., "compiler", "vet", "staticcheck").</li>
+<li><code>Message</code> (string): The diagnostic message.</li>
+<li><code>SemanticReferenceGuess</code> (<code>SemanticReference</code>, optional): A best-effort attempt to identify the primary symbol related to the diagnostic.</li>
+</ul>
+</li>
+<li><strong><code>SemanticReference</code> (AI-Focused Identifier)</strong>:<ul>
+<li><code>ResourceURI</code> (string): The URI of the file containing the element.</li>
+<li><code>FullyQualifiedName</code> (string, optional): The fully qualified Go symbol name (e.g., <code>github.com/aprice2704/neuroscript/pkg/core.Interpreter.ExecuteTool</code>). Key for stable referencing.</li>
+<li><code>SymbolKind</code> (string, optional): Type of symbol (e.g., "function", "method", "variable", "type", "field", "interface", maps from LSP <code>SymbolKind</code> or <code>go/ast</code> node types).</li>
+<li><code>DeclarationLocation</code> (<code>LSPLocation</code>, optional): Location of the symbol's declaration.</li>
+<li><code>ByteOffsetRange</code> (<code>LSPRange</code>, optional): Precise byte-offset range of the symbol's identifier or relevant span in the <code>ResourceURI</code>.</li>
+<li><code>Signature</code> (string, optional): For functions/methods.</li>
+<li><code>PackagePath</code> (string, optional): Go package import path.</li>
+</ul>
+</li>
+<li><strong><code>HoverInfo</code></strong>:<ul>
+<li><code>Contents</code> (string): Markdown content from <code>gopls</code> hover.</li>
+<li><code>Range</code> (<code>LSPRange</code>, optional): The range of the symbol hovered over.</li>
+</ul>
+</li>
+</ul>
+<p>## 4. Workflow for AI-Driven Code Editing &amp; Diagnostics</p>
+<ol>
+<li><strong>Initialization</strong>:
+     a.  NeuroScript (via <code>ng</code> or <code>Interpreter</code>) ensures <code>GoplsClient</code> is running and initialized for the target Go workspace/module.
+     b.  Relevant project files are signaled to <code>gopls</code> via <code>textDocument/didOpen</code>.</li>
+<li><strong>AI Code Generation/Modification</strong>:
+     a.  AI generates or modifies Go code for a specific file.</li>
+<li><strong>Synchronization</strong>:
+     a.  NeuroScript tool (<code>Gopls.NotifyDidChange</code>) sends the updated file content to <code>GoplsClient</code>, which forwards it to <code>gopls</code>.</li>
+<li><strong>Diagnostic Retrieval</strong>:
+     a.  <code>GoplsClient</code> receives <code>textDocument/publishDiagnostics</code> from <code>gopls</code>.
+     b.  AI uses NeuroScript tool <code>Gopls.GetDiagnostics(filePath)</code> or <code>Gopls.GetAllProjectDiagnostics()</code>.</li>
+<li><strong>AI Error Analysis &amp; Correction</strong>:
+     a.  For each diagnostic, the AI examines the <code>DiagnosticInfo</code> (message, severity, range).
+     b.  To understand the context of an error or a symbol, AI uses:
+         i.  <code>Gopls.GetSymbolInfoAt(filePath, diagnostic.Range.Start.ByteOffset)</code>: Retrieves <code>SemanticReference</code> (including FQN if possible), hover information, and definition location for the symbol at/near the diagnostic.
+         ii. <code>Gopls.GetSymbolInfoByName(fullyQualifiedName)</code>: If a symbol's FQN is known or inferred.
+     c.  AI may also use <code>Gopls.ListSymbolsInFile</code> or <code>Gopls.FindWorkspaceSymbols</code> to explore available symbols.
+     d.  The AI uses this combined diagnostic and semantic information to formulate a correction.
+     e.  This information can also feed into tools from <code>pkg/core/tools/gosemantic</code> (e.g., using an FQN to find all usages before a rename).</li>
+<li><strong>Iteration</strong>: Loop back to step 2.</li>
+</ol>
+<p>## 5. NeuroScript Tool Integration (<code>pkg/core/tools_gopls.go</code> - new)</p>
+<p>The following tools will be exposed to NeuroScript:</p>
+<ul>
+<li><strong>Workspace/Initialization</strong>:<ul>
+<li><code>Gopls.SetWorkspaceRoot(workspacePath string) (success bool, error string)</code>: Initializes or re-initializes <code>gopls</code> for a given workspace. This would typically be called once per session or project. The <code>GoplsClient</code> should handle the <code>initialize</code> handshake.</li>
+</ul>
+</li>
+<li><strong>Document Synchronization</strong>:<ul>
+<li><code>Gopls.NotifyDidOpen(filePath string, content string) (error string)</code></li>
+<li><code>Gopls.NotifyDidChange(filePath string, newContent string) (error string)</code></li>
+<li><code>Gopls.NotifyDidSave(filePath string) (error string)</code></li>
+<li><code>Gopls.NotifyDidClose(filePath string) (error string)</code></li>
+</ul>
+</li>
+<li><strong>Diagnostics</strong>:<ul>
+<li><code>Gopls.GetDiagnostics(filePath string) (diagnostics []DiagnosticInfo, error string)</code></li>
+<li><code>Gopls.GetAllProjectDiagnostics() (diagnosticsByFile map[string][]DiagnosticInfo, error string)</code></li>
+</ul>
+</li>
+<li><strong>Semantic Information &amp; Context (AI-Focused)</strong>:<ul>
+<li><code>Gopls.GetSymbolInfoAt(filePath string, byteOffset int) (symbolInfo map[string]interface{}, error string)</code>: Returns a map containing fields like <code>semanticReference</code> (map), <code>hoverContent</code> (string), <code>definitionLocation</code> (map, representing a <code>SemanticReference</code>).</li>
+<li><code>Gopls.GetSymbolInfoByName(fullyQualifiedName string) (symbolInfo map[string]interface{}, error string)</code>: Similar return to <code>GetSymbolInfoAt</code>.</li>
+<li><code>Gopls.ListSymbolsInFile(filePath string) (symbols []map[string]interface{}, error string)</code>: Returns a list of symbol maps (each representing a <code>SemanticReference</code>).</li>
+<li><code>Gopls.FindWorkspaceSymbols(queryString string) (symbols []map[string]interface{}, error string)</code>: Returns a list of symbol maps.</li>
+</ul>
+</li>
+</ul>
+<p>All tools should return structured error information if the underlying LSP call fails or <code>gopls</code> is not responsive.</p>
+<p>## 6. LSP Communication Details</p>
+<ul>
+<li><strong>Protocol</strong>: JSON-RPC 2.0 over stdio with the <code>gopls</code> server.</li>
+<li><strong>Key LSP Methods for v0.5.0</strong>:<ul>
+<li>Lifecycle: <code>initialize</code>, <code>initialized</code>, <code>shutdown</code>, <code>exit</code>.</li>
+<li>Synchronization: <code>textDocument/didOpen</code>, <code>textDocument/didChange</code>, <code>textDocument/didSave</code>, <code>textDocument/didClose</code>.</li>
+<li>Diagnostics: <code>textDocument/publishDiagnostics</code> (Notification from server).</li>
+<li>Semantic Info: <code>textDocument/hover</code>, <code>textDocument/definition</code>, <code>textDocument/documentSymbol</code>, <code>workspace/symbol</code>.</li>
+</ul>
+</li>
+<li><strong>Content Format</strong>: <code>gopls</code> expects UTF-8 for Go files. Position/Range information from LSP can be character-based or UTF-16 offset-based. NeuroScript's <code>GoplsClient</code> must handle this:<ul>
+<li>Negotiate UTF-8 if possible during <code>initialize</code>.</li>
+<li>If character offsets are used by LSP, convert to/from byte offsets carefully when interacting with NeuroScript tools or file contents, as Go strings and file I/O are typically byte-oriented. For Go source, assuming UTF-8 allows byte offsets to be a reliable internal representation.</li>
+</ul>
+</li>
+</ul>
+<p>## 7. Semantic Addressing Strategy (AI-Centric)</p>
+<p>The goal is to provide AI with stable and meaningful ways to refer to code elements, beyond simple line/column numbers which are highly volatile during code modification.</p>
+<ul>
+<li><strong>Primary Identifiers for AI</strong>:<ul>
+<li><strong>Fully Qualified Names (FQN)</strong>: Where available (e.g., for package-level functions, types, methods, global variables). This is the most robust identifier. Example: <code>github.com/project/pkg.MyType.MyMethod</code>.</li>
+<li><strong>File URI + Precise Byte Offset Range</strong>: For local variables, literals, expressions, or any element where an FQN is not applicable or easily determined. This range is sourced directly from <code>gopls</code> responses (e.g., diagnostic ranges, hover ranges, symbol ranges).</li>
+</ul>
+</li>
+<li><strong><code>SemanticReference</code> Struct</strong>: This struct (defined in Section 3) will be the standard way NeuroScript tools return information about code symbols/elements. It will prioritize FQN and precise byte ranges.</li>
+<li><strong>Tool Inputs</strong>: NeuroScript tools that require a location (e.g., <code>Gopls.GetSymbolInfoAt</code>) will accept <code>filePath</code> and <code>byteOffset</code>. Tools querying by name will accept an FQN (e.g., <code>Gopls.GetSymbolInfoByName</code>).</li>
+<li><strong>Interaction with <code>pkg/core/tools/gosemantic</code></strong>:<ul>
+<li>The FQNs or precise location info obtained from <code>gopls</code> tools can be used as reliable inputs for the more advanced static analysis and refactoring tools in <code>pkg/core/tools/gosemantic</code>. For example, after <code>gopls</code> identifies a symbol at an offset, its FQN (if available from hover/definition) can be passed to <code>toolGoFindUsages</code>.</li>
+</ul>
+</li>
+</ul>
+<p>## 8. Error Handling</p>
+<ul>
+<li>The <code>GoplsClient</code> must handle errors related to:<ul>
+<li><code>gopls</code> server process management (e.g., failing to start).</li>
+<li>JSON-RPC communication (e.g., malformed messages, timeouts).</li>
+<li>LSP-specific errors returned in responses.</li>
+</ul>
+</li>
+<li>NeuroScript tools wrapping <code>GoplsClient</code> methods must translate these errors into standard NeuroScript <code>RuntimeError</code>s with appropriate error codes and messages.</li>
+<li>Graceful degradation: If <code>gopls</code> is unavailable, the tools should fail clearly, allowing the AI to potentially fall back to other analysis methods (e.g., <code>pkg/core/tools/gosemantic</code> for non-live analysis, or simpler regex-based checks as a last resort).</li>
+</ul>
+<p>## 9. Configuration</p>
+<ul>
+<li><strong><code>gopls</code> Executable Path</strong>: NeuroScript will need to know the path to the <code>gopls</code> executable. This could be configurable, or it could assume <code>gopls</code> is in the system PATH.</li>
+<li><strong>Workspace Root</strong>: The <code>Gopls.SetWorkspaceRoot</code> tool will manage this dynamically per session/project. The <code>Interpreter</code> or <code>ng</code> application context might store the current gopls workspace root.</li>
+</ul>
+<p>## 10. Future Considerations (Beyond v0.5.0)</p>
+<ul>
+<li>Support for <code>textDocument/codeAction</code> to get suggested fixes from <code>gopls</code>.</li>
+<li>Support for <code>textDocument/rename</code> and other refactoring capabilities.</li>
+<li>Advanced incremental <code>textDocument/didChange</code> notifications.</li>
+<li>More sophisticated mapping between LSP ranges and NeuroScript's internal AST nodes if deeper AST-LSP correlation is needed.</li>
+<li>Support for <code>gopls</code> settings/configuration via <code>workspace/didChangeConfiguration</code>.</li>
+</ul>
+<hr />
+<p>## 11. Document Metadata</p>
+<p>:: version: 0.1.0
+ :: type: NSproject
+ :: subtype: design_document
+ :: project: NeuroScript
+ :: purpose: Design for integrating gopls into NeuroScript for advanced Go code diagnostics and semantic understanding, primarily for AI-driven development.
+ :: status: draft
+ :: author: Gemini (Contributor), AJP (Lead)
+ :: created: 2025-05-10
+ :: modified: 2025-05-10
+ :: dependsOn: docs/gopls_integration.md (feasibility study), pkg/core/tools/gosemantic/*, pkg/core/ai_rules.md
+ :: reviewCycle: 1
+ :: nextReviewDate: 2025-05-17</p>
+<hr />
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "../../..", "features": [], "search": "../../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.50899def.min.js"></script>
+      
+    
+  </body>
+</html>

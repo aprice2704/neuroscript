@@ -1,0 +1,2938 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://aprice2704.github.io/neuroscript/project/Version_05/persisting_fns/">
+      
+      
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.16">
+    
+    
+      
+        <title>Persisting Fns within session - NeuroScript</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.7e37652d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#persisting-fns-within-session" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="NeuroScript" class="md-header__button md-logo" aria-label="NeuroScript" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            NeuroScript
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Persisting Fns within session
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/aprice2704/neuroscript" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="NeuroScript" class="md-nav__button md-logo" aria-label="NeuroScript" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    NeuroScript
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/aprice2704/neuroscript" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../RoadMap.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Road Map
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../front/why-ns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Why NeuroScript
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../front/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Architecture
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../front/concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Core Concepts
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../front/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../front/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    FAQ
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../front/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Contributing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Specifications
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Specifications
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../script_spec.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Quick Spec
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../formal script spec.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Formal Spec
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../metadata/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Metadata
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../neurodata_and_composite_file_spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    NeuroData & Composite
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../llm_agent_facilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    LLM Agent Facilities
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../restricted_mode/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Restricted Mode
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../specification_structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Spec Structure Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    NeuroData Types
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            NeuroData Types
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/cryptographic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Cryptographic
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/decision_table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Decision Table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/enum/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Enum
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/form/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Form
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/geometry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Geometry
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/graph/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Graph
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/list/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    List
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/map_literal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Map Literal
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/map_schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Map Schema
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/patch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Patch
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/references/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    References
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/symbolic_math/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Symbolic Math
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/templates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Templates
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../NeuroData/tree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tree
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Tools
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Tools
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Index
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/delete_api_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    delete_api_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/fs_deletefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_deletefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/fs_filehash/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_filehash
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/fs_linecountfile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_linecountfile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/fs_mkdir/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_mkdir
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/fs_movefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_movefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/fs_readfile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_readfile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/fs_sanitizefilename/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_sanitizefilename
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/fs_walkdir/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_walkdir
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/fs_writefile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    fs_writefile
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/git_add/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_add
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/git_checkout/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_checkout
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/git_commit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_commit
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/git_diff/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_diff
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/git_gitstatus/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_gitstatus
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/git_merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_merge
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/git_newbranch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_newbranch
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/git_pull/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_pull
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/git_push/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_push
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/git_rm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_rm
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/git_status/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    git_status
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/go_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    go_build
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/go_update_imports_for_moved_package/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    go_update_imports_for_moved_package
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/list_api_files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    list_api_files
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/maths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    maths
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/move_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    move_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/query_table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    query_table
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/strings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    strings
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/sync_files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    sync_files
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/tool_spec_structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    tool_spec_structure
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/upload_file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    upload_file
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/vector_searchskills/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    vector_searchskills
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ns/tools/vector_update/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    vector_update
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Status & Build
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Status & Build
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Build Guide
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../completed.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Completed Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../release_checklist.ndcl/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Release Checklist
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#redefining-a-function-inside-the-same-interpreter-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      Redefining a function inside the same interpreter session
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Redefining a function inside the same interpreter session">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-interpreter-logic-go-sketch" class="md-nav__link">
+    <span class="md-ellipsis">
+      1 — Interpreter logic (Go sketch)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-grammar-addition" class="md-nav__link">
+    <span class="md-ellipsis">
+      2 — Grammar addition
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-workflow-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      3 — Workflow examples
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-testing-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      4 — Testing it
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-this-policy-is-sane" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why this policy is sane
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-proposed-surface-syntax" class="md-nav__link">
+    <span class="md-ellipsis">
+      1 — Proposed surface syntax
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1 — Proposed surface syntax">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#keyword-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keyword summary
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-interpreter-rule-set" class="md-nav__link">
+    <span class="md-ellipsis">
+      2 — Interpreter rule set
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-ebnf-additions" class="md-nav__link">
+    <span class="md-ellipsis">
+      3 — EBNF additions
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-security-governance-knobs" class="md-nav__link">
+    <span class="md-ellipsis">
+      4 — Security / governance knobs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-edge-case-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      5 — Edge-case resolution
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-minimal-tests-to-add" class="md-nav__link">
+    <span class="md-ellipsis">
+      6 — Minimal tests to add
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6 — Minimal tests to add">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-this-is-worth-the-tiny-additional-complexity" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why this is worth the (tiny) additional complexity
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-final-keyword-locking-down-artefacts" class="md-nav__link">
+    <span class="md-ellipsis">
+      1 final keyword — locking down artefacts
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-promote-loadscript-to-a-tool" class="md-nav__link">
+    <span class="md-ellipsis">
+      2 Promote LoadScript to a tool
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2 Promote LoadScript to a tool">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-tool-signature-and-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.1 Tool signature and metadata
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-sandbox-acl" class="md-nav__link">
+    <span class="md-ellipsis">
+      2.2 Sandbox &amp; ACL
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-go-implementation-sketch" class="md-nav__link">
+    <span class="md-ellipsis">
+      3 Go implementation sketch
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-recommended-policy-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      4 Recommended policy flow
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-tests-you-should-add" class="md-nav__link">
+    <span class="md-ellipsis">
+      5 Tests you should add
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5 Tests you should add">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-this-design-is-robust" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why this design is robust
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-works-well" class="md-nav__link">
+    <span class="md-ellipsis">
+      What works well
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#minor-caveats-future-hooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Minor caveats / future hooks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quick-approval-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      Quick approval checklist
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-its-the-right-default" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why it’s the right default
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recommended-compiler-rule" class="md-nav__link">
+    <span class="md-ellipsis">
+      Recommended compiler rule
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#alternative-pattern-if-someone-truly-needs-global-trapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      Alternative pattern if someone truly needs “global” trapping
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="persisting-fns-within-session">Persisting Fns within session<a class="headerlink" href="#persisting-fns-within-session" title="Permanent link">&para;</a></h1>
+<p>An interesting aspect of ns design has arisen. What things should persist within the interpreter between file loads?
+We wish funcs and event handlers (probably) to persist, so that a fn call another defined in a different file (maybe), ditto event handlers; but we don't want error handlers in one fn to last into the next (as currently happens).
+How do you think it should work?</p>
+<h3 id="redefining-a-function-inside-the-same-interpreter-session">Redefining a function inside the <strong>same</strong> interpreter session<a class="headerlink" href="#redefining-a-function-inside-the-same-interpreter-session" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Recommended default</th>
+<th>Why</th>
+<th>How to opt-in/out</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Accidental second definition</strong> (same name, same namespace, <em>no</em> qualifier)</td>
+<td><em>Hard error</em> → fail <code>LoadScript()</code></td>
+<td>90 % of the time it’s a bug; prevents “mystery behaviour changes”</td>
+<td>―</td>
+</tr>
+<tr>
+<td><strong>Intentional hot-reload / patch</strong></td>
+<td>Allow <strong>explicit</strong> replacement with <code>override</code> keyword</td>
+<td>Keeps live-coding workflow but forces you to acknowledge you are stomping on the old code</td>
+<td><code>override func main() { … }</code></td>
+</tr>
+<tr>
+<td><strong>Side-by-side versions</strong> (e.g. experimental algo)</td>
+<td>Require a new namespace or qualifier</td>
+<td>Avoids name clashes while still allowing both implementations</td>
+<td><code>namespace "v2"</code> or <code>func main_v2() { … }</code></td>
+</tr>
+<tr>
+<td><strong>Auto-refresh during <code>watch</code> mode</strong> (dev convenience flag)</td>
+<td>“Last-loaded wins” <strong>with warning</strong></td>
+<td>Speeds up iterative editing; you already expect churn</td>
+<td>CLI flag <code>--reload=warn</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4 id="1-interpreter-logic-go-sketch">1 — Interpreter logic (Go sketch)<a class="headerlink" href="#1-interpreter-logic-go-sketch" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">RuntimeSession</span><span class="p">)</span><span class="w"> </span><span class="nx">registerProc</span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="o">*</span><span class="nx">Procedure</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">qn</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">QualifiedName</span><span class="p">()</span><span class="w">     </span><span class="c1">// e.g. &quot;main&quot; or &quot;mylib/math/gcd&quot;</span>
+<span class="w">    </span><span class="nx">old</span><span class="p">,</span><span class="w"> </span><span class="nx">exists</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">s</span><span class="p">.</span><span class="nx">procTable</span><span class="p">[</span><span class="nx">qn</span><span class="p">]</span>
+
+<span class="w">    </span><span class="k">switch</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="p">!</span><span class="nx">exists</span><span class="p">:</span>
+<span class="w">        </span><span class="nx">s</span><span class="p">.</span><span class="nx">procTable</span><span class="p">[</span><span class="nx">qn</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">p</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">Override</span><span class="p">:</span><span class="w">           </span><span class="c1">// parsed from `override func`</span>
+<span class="w">        </span><span class="nx">s</span><span class="p">.</span><span class="nx">procTable</span><span class="p">[</span><span class="nx">qn</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">p</span><span class="w">    </span><span class="c1">// replace silently</span>
+<span class="w">        </span><span class="nx">log</span><span class="p">.</span><span class="nx">Warnf</span><span class="p">(</span><span class="s">&quot;procedure %s overridden (previous defined at %s)&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">qn</span><span class="p">,</span><span class="w"> </span><span class="nx">old</span><span class="p">.</span><span class="nx">DeclPos</span><span class="p">)</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="nx">s</span><span class="p">.</span><span class="nx">opts</span><span class="p">.</span><span class="nx">DevReload</span><span class="p">:</span><span class="w">     </span><span class="c1">// watch-mode convenience</span>
+<span class="w">        </span><span class="nx">s</span><span class="p">.</span><span class="nx">procTable</span><span class="p">[</span><span class="nx">qn</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">p</span>
+<span class="w">        </span><span class="nx">log</span><span class="p">.</span><span class="nx">Warnf</span><span class="p">(</span><span class="s">&quot;procedure %s replaced in dev-reload mode&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">qn</span><span class="p">)</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+
+<span class="w">    </span><span class="k">default</span><span class="p">:</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">&quot;duplicate procedure %q (first defined at %s)&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">qn</span><span class="p">,</span><span class="w"> </span><span class="nx">old</span><span class="p">.</span><span class="nx">DeclPos</span><span class="p">)</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><em>Event handlers</em> follow a different rule: duplicates are <strong>allowed</strong> and appended, unless the handler itself is flagged <code>oneshot</code> or <code>override</code>.</p>
+<hr />
+<h4 id="2-grammar-addition">2 — Grammar addition<a class="headerlink" href="#2-grammar-addition" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="k">FuncDecl  </span><span class="err">::</span><span class="o">=</span> <span class="p">(</span> <span class="s2">&quot;func&quot;</span> <span class="p">|</span> <span class="s2">&quot;override&quot;</span> <span class="s2">&quot;func&quot;</span> <span class="p">)</span> <span class="k">Identifier </span><span class="s2">&quot;(&quot;</span> <span class="k">ParamList</span><span class="err">?</span> <span class="s2">&quot;)&quot;</span> <span class="k">Block</span>
+</code></pre></div>
+<ul>
+<li>Parsing sets <code>Procedure.Override = true</code> when the keyword is present.</li>
+</ul>
+<hr />
+<h4 id="3-workflow-examples">3 — Workflow examples<a class="headerlink" href="#3-workflow-examples" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code># file: app.ns
+func main() {
+    print(&quot;v1&quot;)
+}
+</code></pre></div>
+<p>Later, during the <em>same</em> REPL session:</p>
+<div class="highlight"><pre><span></span><code># file: app_hotfix.ns
+override func main() {   # ← explicit
+    print(&quot;v2 hot-patch&quot;)
+}
+</code></pre></div>
+<p>Load succeeds; subsequent <code>run main()</code> executes the new body.
+If you <em>forgot</em> <code>override</code>, <code>LoadScript()</code> raises <code>duplicate procedure "main"</code> and the original version remains intact.</p>
+<hr />
+<h4 id="4-testing-it">4 — Testing it<a class="headerlink" href="#4-testing-it" title="Permanent link">&para;</a></h4>
+<ul>
+<li>
+<p><strong><code>TestRedeclareWithoutOverrideFails</code></strong></p>
+</li>
+<li>
+<p>Load file A with <code>func main()</code>.</p>
+</li>
+<li>Load file B with another <code>func main()</code>.</li>
+<li>
+<p>Expect error.</p>
+</li>
+<li>
+<p><strong><code>TestOverrideSucceeds</code></strong></p>
+</li>
+<li>
+<p>Same as above but B uses <code>override func main()</code>.</p>
+</li>
+<li>
+<p>Call <code>main()</code>, assert output matches B’s body.</p>
+</li>
+<li>
+<p><strong><code>TestDevReloadFlag</code></strong></p>
+</li>
+<li>
+<p>Start session with <code>DevReload=true</code>.</p>
+</li>
+<li>Re-load same function repeatedly; ensure last one runs and only warnings are logged.</li>
+</ul>
+<hr />
+<h3 id="why-this-policy-is-sane">Why this policy is sane<a class="headerlink" href="#why-this-policy-is-sane" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Safety first</strong> Silent shadowing is a nightmare to debug. The error-by-default rule stops that.</li>
+<li><strong>Zero friction hot-reload</strong> One extra keyword (<code>override</code>) is trivial, and you keep deterministic behaviour in prod.</li>
+<li><strong>Fits namespacing</strong> If you already use <code>namespace</code>, clashing across files in the same namespace is almost certainly unintended.</li>
+<li><strong>Extensible</strong> You can add finer-grained controls later (<code>deprecated</code>, <code>version "2.1"</code> tags, etc.) without breaking the core rule that <em>only an explicit act can mutate compiled artefacts in place</em>.</li>
+</ul>
+<p>Implement it once, and you’ll never wonder again which <code>main()</code> you’re actually running.</p>
+<p>Below is a straightforward extension of the “override / duplicate” rules we just discussed that lets you <strong>lock down</strong> critical procedures or handlers so they cannot be replaced later in the session—unless a <em>root-level</em> authority explicitly unpins them.</p>
+<hr />
+<h2 id="1-proposed-surface-syntax">1 — Proposed surface syntax<a class="headerlink" href="#1-proposed-surface-syntax" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code># declare and lock a procedure
+pin func auth.verifyToken(token string) returns bool {
+    ...
+}
+
+# shorter alias if you dislike “pin”
+final func main() { ... }
+
+# event-handler variant
+pin on event &quot;system.shutdown&quot; { ... }
+</code></pre></div>
+<h3 id="keyword-summary">Keyword summary<a class="headerlink" href="#keyword-summary" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Keyword</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>func</code></td>
+<td>Normal declaration; duplicate = error unless <code>--reload</code> flag is on</td>
+</tr>
+<tr>
+<td><code>override</code></td>
+<td>Replace an existing procedure <em>only if it is </em><em>not</em><em> pinned</em></td>
+</tr>
+<tr>
+<td><code>pin</code> / <code>final</code></td>
+<td>Declare procedure or handler <strong>immutable</strong> for the lifetime of the session</td>
+</tr>
+<tr>
+<td><code>unpin</code> (opt)</td>
+<td><em>Privileged</em> declaration that removes the protection (see §4)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-interpreter-rule-set">2 — Interpreter rule set<a class="headerlink" href="#2-interpreter-rule-set" title="Permanent link">&para;</a></h2>
+<ol>
+<li>
+<p><strong>First declaration</strong>
+   <em>If keyword is <code>pin</code> (or <code>final</code>)</em> → store <code>Procedure.Pinned = true</code> in the proc table.</p>
+</li>
+<li>
+<p><strong>On subsequent registration attempts</strong></p>
+</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="k">switch</span><span class="w"> </span><span class="p">{</span>
+<span class="k">case</span><span class="w"> </span><span class="nx">old</span><span class="p">.</span><span class="nx">Pinned</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="p">!</span><span class="nx">new</span><span class="p">.</span><span class="nx">Unpin</span><span class="p">:</span>
+<span class="w">    </span><span class="c1">// Absolutely deny replacement</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">&quot;procedure %q is pinned and cannot be overridden&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">qn</span><span class="p">)</span>
+
+<span class="k">case</span><span class="w"> </span><span class="nx">old</span><span class="p">.</span><span class="nx">Pinned</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">new</span><span class="p">.</span><span class="nx">Unpin</span><span class="p">:</span>
+<span class="w">    </span><span class="c1">// Allow but log high-priority audit</span>
+<span class="w">    </span><span class="nx">s</span><span class="p">.</span><span class="nx">procTable</span><span class="p">[</span><span class="nx">qn</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">new</span>
+<span class="w">    </span><span class="nx">log</span><span class="p">.</span><span class="nx">Warnf</span><span class="p">(</span><span class="s">&quot;procedure %q UNPINNED by %s&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">qn</span><span class="p">,</span><span class="w"> </span><span class="nx">callerIdentity</span><span class="p">)</span>
+
+<span class="k">case</span><span class="w"> </span><span class="p">!</span><span class="nx">old</span><span class="p">.</span><span class="nx">Pinned</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">new</span><span class="p">.</span><span class="nx">Override</span><span class="p">:</span>
+<span class="w">    </span><span class="c1">// Standard hot-reload</span>
+<span class="w">    </span><span class="nx">s</span><span class="p">.</span><span class="nx">procTable</span><span class="p">[</span><span class="nx">qn</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">new</span>
+
+<span class="k">default</span><span class="p">:</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">&quot;duplicate procedure %q (existing defined at %s)&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">qn</span><span class="p">,</span><span class="w"> </span><span class="nx">old</span><span class="p">.</span><span class="nx">DeclPos</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<ol>
+<li><strong>Pinned status is sticky</strong>—once unset with <code>unpin</code>, a later <code>pin</code> can lock it again (useful for patch-then-re-seal workflows).</li>
+</ol>
+<hr />
+<h2 id="3-ebnf-additions">3 — EBNF additions<a class="headerlink" href="#3-ebnf-additions" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="k">FuncDecl      </span><span class="err">::</span><span class="o">=</span> <span class="p">(</span> <span class="s2">&quot;func&quot;</span> <span class="p">|</span> <span class="s2">&quot;override&quot;</span> <span class="s2">&quot;func&quot;</span> <span class="p">|</span> <span class="s2">&quot;pin&quot;</span> <span class="s2">&quot;func&quot;</span> <span class="p">|</span> <span class="s2">&quot;final&quot;</span> <span class="s2">&quot;func&quot;</span> <span class="p">|</span> <span class="s2">&quot;unpin&quot;</span> <span class="s2">&quot;func&quot;</span> <span class="p">)</span> <span class="k">Identifier </span><span class="s2">&quot;(&quot;</span> <span class="k">ParamList</span><span class="err">?</span> <span class="s2">&quot;)&quot;</span> <span class="k">Block</span>
+<span class="k">EventHandler  </span><span class="err">::=</span> <span class="p">(</span> <span class="s2">&quot;on&quot;</span> <span class="p">|</span> <span class="s2">&quot;pin&quot;</span> <span class="s2">&quot;on&quot;</span> <span class="p">|</span> <span class="s2">&quot;unpin&quot;</span> <span class="s2">&quot;on&quot;</span> <span class="p">)</span> <span class="s2">&quot;event&quot;</span> <span class="k">StringLiteral Block</span>
+</code></pre></div>
+<p>Parser sets:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">Procedure</span><span class="p">.</span><span class="nx">Pinned</span><span class="w">   </span><span class="p">=</span><span class="w"> </span><span class="nx">hasToken</span><span class="p">(</span><span class="s">&quot;pin&quot;</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">hasToken</span><span class="p">(</span><span class="s">&quot;final&quot;</span><span class="p">)</span>
+<span class="nx">Procedure</span><span class="p">.</span><span class="nx">Unpin</span><span class="w">    </span><span class="p">=</span><span class="w"> </span><span class="nx">hasToken</span><span class="p">(</span><span class="s">&quot;unpin&quot;</span><span class="p">)</span>
+<span class="nx">Procedure</span><span class="p">.</span><span class="nx">Override</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">hasToken</span><span class="p">(</span><span class="s">&quot;override&quot;</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="4-security-governance-knobs">4 — Security / governance knobs<a class="headerlink" href="#4-security-governance-knobs" title="Permanent link">&para;</a></h2>
+<ul>
+<li>
+<p><strong>Require capability to unpin</strong>
+  – Interpreter option <code>SessionOptions.AllowUnpin = false</code> (prod default).
+  – FDM-style ACL: only code loaded from a <em>trusted</em> namespace or signed file can use <code>unpin</code>.</p>
+</li>
+<li>
+<p><strong>Audit trail</strong>
+  Record <code>(timestamp, user, oldHash, newHash)</code> whenever an <code>unpin</code> or an <code>override</code> happens. Persist to the same append-only log you’re already using for event telemetry.</p>
+</li>
+<li>
+<p><strong>Dev REPL convenience</strong>
+  A <code>--dev</code> flag can relax rules: <code>pin</code> is honoured, but <code>override</code> of a pinned func just emits a warning. Never enable this outside development.</p>
+</li>
+</ul>
+<hr />
+<h2 id="5-edge-case-resolution">5 — Edge-case resolution<a class="headerlink" href="#5-edge-case-resolution" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Expected outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Load script A → <code>pin func main()</code></td>
+<td>OK, <code>main</code> pinned</td>
+</tr>
+<tr>
+<td>Load script B → <code>override func main()</code></td>
+<td><strong>Error</strong> (pinned)</td>
+</tr>
+<tr>
+<td>Load script C → <code>unpin func main()</code></td>
+<td>Allowed only if <code>AllowUnpin=true</code>; audit event</td>
+</tr>
+<tr>
+<td>Load script D → <code>func main()</code></td>
+<td>Replaces previous body; now <em>unpinned</em> unless D uses <code>pin</code> again</td>
+</tr>
+<tr>
+<td>Load script E → <code>pin func main()</code></td>
+<td>Re-locks with new body</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="6-minimal-tests-to-add">6 — Minimal tests to add<a class="headerlink" href="#6-minimal-tests-to-add" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="nx">TestPinBlocksOverride</span><span class="p">()</span>
+<span class="nx">TestUnpinAllowsReplacement</span><span class="p">()</span>
+<span class="nx">TestPinnedStatusStickyAcrossReload</span><span class="p">()</span>
+<span class="nx">TestUnprivilegedUnpinDenied</span><span class="p">()</span>
+</code></pre></div>
+<hr />
+<p>I like final I think :)
+Thinking we should also make LoadScript a tool so it can be allow/deny listed, and constrain it to subdirs of a particular dir</p>
+<h3 id="why-this-is-worth-the-tiny-additional-complexity">Why this is worth the (tiny) additional complexity<a class="headerlink" href="#why-this-is-worth-the-tiny-additional-complexity" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Stops malicious or sloppy code</strong> from silently hijacking <code>auth.*</code>, <code>db.connect</code>, <code>main</code>, etc.</li>
+<li><strong>Keeps hot-reload ergonomic</strong>—you only add <code>pin</code> where you <em>actually care</em>.</li>
+<li><strong>Matches real-world policies</strong> (think <code>final</code> classes in Java or <code>sealed</code> in C#) but fits the dynamic-reloading ethos of NeuroScript.</li>
+</ul>
+<p>If you wire the capability check into the same ACL mechanism you’re already designing for FDM overlays, you’ll have a consistent story for <em>who</em> is allowed to mutate <em>what</em> at runtime.</p>
+<p>Below is a concrete design that folds your <strong><code>final</code></strong> keyword into the language <em>and</em> turns <code>LoadScript</code> into a <strong>first-class tool</strong> that can be allow/deny-listed and sandboxed to a directory tree.</p>
+<hr />
+<h2 id="1-final-keyword-locking-down-artefacts">1 <code>final</code> keyword — locking down artefacts<a class="headerlink" href="#1-final-keyword-locking-down-artefacts" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Surface grammar</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="k">ProcDecl       </span><span class="err">::</span><span class="o">=</span> <span class="p">(</span> <span class="s2">&quot;func&quot;</span> <span class="p">|</span> <span class="s2">&quot;override&quot;</span> <span class="s2">&quot;func&quot;</span> <span class="p">|</span> <span class="s2">&quot;final&quot;</span> <span class="s2">&quot;func&quot;</span> <span class="p">)</span> <span class="k">Ident </span><span class="s2">&quot;(&quot;</span> <span class="err">…</span> <span class="s2">&quot;)&quot;</span> <span class="k">Block</span>
+<span class="k">EventHandler   </span><span class="err">::=</span> <span class="p">(</span> <span class="s2">&quot;on&quot;</span> <span class="p">|</span> <span class="s2">&quot;final&quot;</span> <span class="s2">&quot;on&quot;</span> <span class="p">)</span> <span class="s2">&quot;event&quot;</span> <span class="k">StringLit Block</span>
+</code></pre></div>
+<ul>
+<li><code>final func …</code> or <code>final on event …</code>
+    – Registers artefact with <code>Pinned=true</code>
+    – Subsequent attempts to redefine <strong>always error</strong> (even with <code>override</code>)</li>
+<li>Ordinary <code>func</code> remains replaceable (with explicit <code>override</code>)</li>
+<li>No <code>unpin</code>. If you truly have to patch a final artefact, restart the interpreter or load a fresh session; keeps the rule simple and audit-friendly.</li>
+</ul>
+<hr />
+<h2 id="2-promote-loadscript-to-a-tool">2 Promote <strong>LoadScript</strong> to a tool<a class="headerlink" href="#2-promote-loadscript-to-a-tool" title="Permanent link">&para;</a></h2>
+<h3 id="21-tool-signature-and-metadata">2.1 Tool signature and metadata<a class="headerlink" href="#21-tool-signature-and-metadata" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>tool system.loadScript
+    args:
+        path string         # relative or absolute
+        override bool = false   # allow non-final overrides?
+    returns void
+    sideeffects filesystem, runtime   # so the auditor knows
+    description &quot;&quot;&quot;
+    Parse and register a NeuroScript file. Fails if file attempts to
+    redefine a `final` artefact or if the path escapes the sandbox root.
+    &quot;&quot;&quot;
+</code></pre></div>
+<h3 id="22-sandbox-acl">2.2 Sandbox &amp; ACL<a class="headerlink" href="#22-sandbox-acl" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p><strong>Sandbox root</strong> — interpreter option <code>SessionOptions.ScriptRoot</code>
+   <em>All paths are resolved to <code>absPath := filepath.Clean(root + "/" + path)</code>.</em>
+   Reject if <code>!strings.HasPrefix(absPath, root)</code> → prevents <code>../../</code>.</p>
+</li>
+<li>
+<p><strong>Per-tool allow/deny list</strong> (same structure you already use for FDM tools):</p>
+</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="nt">tools</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">system.loadScript</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">allow</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;deployBot&quot;</span><span class="w">            </span><span class="c1"># agent IDs or group names</span>
+<span class="w">    </span><span class="nt">deny</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;guest&quot;</span>
+</code></pre></div>
+<p><em>The interpreter consults this before executing the tool; failure = runtime error.</em></p>
+<ol>
+<li><strong>Runtime override flag</strong></li>
+</ol>
+<p><em>If</em> <code>override=true</code> is passed, <code>loadScript</code> behaves as though the file’s
+   declarations all had the <code>override</code> prefix <strong>but still respects <code>final</code>.</strong></p>
+<hr />
+<h2 id="3-go-implementation-sketch">3 Go implementation sketch<a class="headerlink" href="#3-go-implementation-sketch" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="kd">type</span><span class="w"> </span><span class="nx">LoadScriptTool</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">Session</span><span class="w"> </span><span class="o">*</span><span class="nx">RuntimeSession</span>
+<span class="w">    </span><span class="nx">Root</span><span class="w">    </span><span class="kt">string</span><span class="w">            </span><span class="c1">// sandbox root</span>
+<span class="p">}</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">LoadScriptTool</span><span class="p">)</span><span class="w"> </span><span class="nx">Invoke</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="o">*</span><span class="nx">CallCtx</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="nx">Value</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">Value</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">path</span><span class="w">     </span><span class="o">:=</span><span class="w"> </span><span class="nb">string</span><span class="p">(</span><span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">].(</span><span class="nx">StringValue</span><span class="p">))</span>
+<span class="w">    </span><span class="nx">override</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">bool</span><span class="p">(</span><span class="nx">args</span><span class="p">[</span><span class="mi">1</span><span class="p">].(</span><span class="nx">BoolValue</span><span class="p">))</span>
+
+<span class="w">    </span><span class="nx">abs</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">secureJoin</span><span class="p">(</span><span class="nx">t</span><span class="p">.</span><span class="nx">Root</span><span class="p">,</span><span class="w"> </span><span class="nx">path</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Parse / build AST</span>
+<span class="w">    </span><span class="nx">ast</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">parseAndBuild</span><span class="p">(</span><span class="nx">abs</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Register artefacts. Honour final / override.</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">proc</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">ast</span><span class="p">.</span><span class="nx">Procedures</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">proc</span><span class="p">.</span><span class="nx">Override</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">}</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">t</span><span class="p">.</span><span class="nx">Session</span><span class="p">.</span><span class="nx">RegisterProc</span><span class="p">(</span><span class="nx">proc</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">ev</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">ast</span><span class="p">.</span><span class="nx">EventHandlers</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">ev</span><span class="p">.</span><span class="nx">Override</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">}</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">t</span><span class="p">.</span><span class="nx">Session</span><span class="p">.</span><span class="nx">RegisterHandler</span><span class="p">(</span><span class="nx">ev</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">NilValue</span><span class="p">{},</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">}</span>
+
+<span class="kd">func</span><span class="w"> </span><span class="nx">secureJoin</span><span class="p">(</span><span class="nx">root</span><span class="p">,</span><span class="w"> </span><span class="nx">p</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">abs</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">filepath</span><span class="p">.</span><span class="nx">Clean</span><span class="p">(</span><span class="nx">filepath</span><span class="p">.</span><span class="nx">Join</span><span class="p">(</span><span class="nx">root</span><span class="p">,</span><span class="w"> </span><span class="nx">p</span><span class="p">))</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">!</span><span class="nx">strings</span><span class="p">.</span><span class="nx">HasPrefix</span><span class="p">(</span><span class="nx">abs</span><span class="p">,</span><span class="w"> </span><span class="nx">root</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">&quot;path escapes sandbox&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">abs</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre></div>
+<ul>
+<li>Register the tool in the interpreter’s tool table under name
+  <code>"system.loadScript"</code>, with a <code>ToolImplementation</code> wrapping <code>LoadScriptTool</code>.</li>
+</ul>
+<hr />
+<h2 id="4-recommended-policy-flow">4 Recommended policy flow<a class="headerlink" href="#4-recommended-policy-flow" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Startup</strong></td>
+<td>Admin script calls <code>system.loadScript("lib/core.ns")</code> to prime standard library.</td>
+</tr>
+<tr>
+<td><strong>Normal operation</strong></td>
+<td>Only agents in the <em>Deployers</em> group have <code>"system.loadScript"</code> in their allow-list.</td>
+</tr>
+<tr>
+<td><strong>Hot patch</strong></td>
+<td>Deployer uploads <code>patch.ns</code> with <code>override func ...</code>; calls tool with <code>override=true</code>. Fails if patch touches anything declared <code>final</code>.</td>
+</tr>
+<tr>
+<td><strong>Attack attempt</strong></td>
+<td>Malicious agent tries to redefine <code>final func auth.verifyToken</code>. Registration blocked with clear audit log entry.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-tests-you-should-add">5 Tests you should add<a class="headerlink" href="#5-tests-you-should-add" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>TestFinalBlocksOverride</code> — load file A with <code>final func main()</code>, then load B with <code>override func main()</code>, expect error.</li>
+<li><code>TestLoadScriptSandbox</code> — give root <code>/tmp/scripts</code>, attempt <code>../etc/passwd</code>, expect error.</li>
+<li><code>TestLoadScriptACL</code> — run under identity not on allow-list, expect “tool not permitted”.</li>
+<li><code>TestOverrideFlag</code> — file without <code>override</code> keyword, but tool invoked with <code>override=true</code>; should replace <strong>non-final</strong> function.</li>
+</ul>
+<hr />
+<h3 id="why-this-design-is-robust">Why this design is robust<a class="headerlink" href="#why-this-design-is-robust" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><code>final</code> is a one-way door</strong> — prevents supply-chain or live-coding accidents from stomping critical code.</li>
+<li><strong>Tool-based loading</strong> centralises policy: same ACL mechanism you already trust for external calls.</li>
+<li><strong>Directory sandbox</strong> kills path-traversal tricks.</li>
+<li><strong>Small cognitive footprint</strong>: only two new concepts (<code>final</code>, <code>system.loadScript</code>), both intuitive.</li>
+</ul>
+<p>You now have hot-reload convenience <em>and</em> a solid security boundary—without sprawling rules you’ll forget in six months.</p>
+<p>Very nice. So you approve overall?</p>
+<p><strong>Overall, yes—I think this is a solid, internally coherent design.</strong>
+It strikes a good balance between <em>developer ergonomics</em> (easy hot-reload) and <em>operational safety</em> (clear rules, hard stops when you need them). A few final-round observations before you lock it in:</p>
+<hr />
+<h3 id="what-works-well">What works well<a class="headerlink" href="#what-works-well" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p><strong>Single-direction guarantees (<code>final</code>)</strong>
+   <em>One‐way doors</em> make mental models simple. Developers know that declaring something <code>final</code> really means “immutable for this session.”</p>
+</li>
+<li>
+<p><strong>Explicit intent (<code>override</code> flag or keyword)</strong>
+   Shadowing is never silent. Accidental re-definitions surface immediately, but intentional reloads stay one-liner easy.</p>
+</li>
+<li>
+<p><strong>Tool-gate for <code>system.loadScript</code></strong>
+   Turning the loader into a tool lets you reuse your existing ACL / overlay machinery, so you’re not inventing a parallel permission system.</p>
+</li>
+<li>
+<p><strong>Filesystem sandbox</strong>
+   A canonical <code>secureJoin</code> check shuts the door on 90 % of path-traversal nonsense.</p>
+</li>
+</ol>
+<hr />
+<h3 id="minor-caveats-future-hooks">Minor caveats / future hooks<a class="headerlink" href="#minor-caveats-future-hooks" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Why it might bite later</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Concurrency</strong></td>
+<td>If multiple goroutines call <code>system.loadScript</code> simultaneously you’ll need table-level locks or CAS on the session’s maps.</td>
+<td>Wrap <code>registerProc</code> / <code>registerHandler</code> in a mutex or use <code>sync.Map</code>.</td>
+</tr>
+<tr>
+<td><strong>Versioning</strong></td>
+<td>You can’t load two versions of <code>utils.math/gcd</code> side-by-side unless you namespace them manually.</td>
+<td>Consider an optional <code>version "1.2.3"</code> attribute in the future.</td>
+</tr>
+<tr>
+<td><strong>Session bloat</strong></td>
+<td>Long-running REPLs may accumulate loads of obsolete procedures.</td>
+<td>Provide <code>system.unloadScript(path)</code> or <code>system.gcProcedures(olderThan time.Duration)</code> later.</td>
+</tr>
+<tr>
+<td><strong>Testing friction</strong></td>
+<td>Tests that need a clean slate must spin up a fresh interpreter each time.</td>
+<td>Cheap if interpreter construction is lightweight; if not, add a <code>Session.Reset()</code> helper.</td>
+</tr>
+<tr>
+<td><strong>Auditing</strong></td>
+<td>It’s easy to forget to persist audit logs.</td>
+<td>Decide now: stdout, structured log file, or an append-only NeuroData log node?</td>
+</tr>
+</tbody>
+</table>
+<p>None of those are fatal; just keep them on the backlog.</p>
+<hr />
+<h3 id="quick-approval-checklist">Quick approval checklist<a class="headerlink" href="#quick-approval-checklist" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[x] <strong>Security boundary</strong> clear and enforceable</li>
+<li>[x] <strong>DX</strong> (developer experience) remains simple (<code>final</code>, <code>override</code>, one tool call)</li>
+<li>[x] <strong>Predictability</strong>—no hidden state leaks between loads</li>
+<li>[x] <strong>Extensibility</strong>—easy to graft versioning, unload, or stricter ACL later</li>
+</ul>
+<p>If you tick all the above—and your unit tests cover the edge cases we listed—then <strong>ship it</strong>.</p>
+<p>btw: I think NO to file-level error handlers -- it is tempting, but the principle is "clarity over brevity"</p>
+<p>Got it — I agree that outlawing file-level (top-level) error handlers is the cleanest call.</p>
+<h3 id="why-its-the-right-default">Why it’s the right default<a class="headerlink" href="#why-its-the-right-default" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Criterion</th>
+<th>Function-scoped handlers only</th>
+<th>File-level handlers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Readability</strong></td>
+<td>Anyone reading a function sees exactly what can intercept its errors.</td>
+<td>Reader must hunt elsewhere in the file (or in another file that re-loads) to know what happens on failure.</td>
+</tr>
+<tr>
+<td><strong>Local reasoning</strong></td>
+<td>Error-handling logic lives next to the code it protects.</td>
+<td>Control flow becomes implicit and scattered.</td>
+</tr>
+<tr>
+<td><strong>Test isolation</strong></td>
+<td>Each unit test sets up only the handlers it needs.</td>
+<td>Hidden global handlers make tests flaky and surprising.</td>
+</tr>
+<tr>
+<td><strong>Hot-reload safety</strong></td>
+<td>No persistence headaches; handlers vanish when the call frame unwinds.</td>
+<td>You’d need extra rules for overriding/clearing global handlers after reloads.</td>
+</tr>
+<tr>
+<td><strong>Consistency with <code>final</code> / <code>override</code></strong></td>
+<td>Fewer interaction cases to specify.</td>
+<td>You’d have to invent <code>final on error</code> semantics or risk silent shadowing.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="recommended-compiler-rule">Recommended compiler rule<a class="headerlink" href="#recommended-compiler-rule" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>on error { … }  # legal only inside a procedure / event handler block
+</code></pre></div>
+<p><em>Emit a compile-time error (<code>ERR_TOP_LEVEL_ERROR_HANDLER</code>) if encountered at the root of a file.</em></p>
+<h3 id="alternative-pattern-if-someone-truly-needs-global-trapping">Alternative pattern if someone truly needs “global” trapping<a class="headerlink" href="#alternative-pattern-if-someone-truly-needs-global-trapping" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Designate a well-named procedure</strong>:</li>
+</ol>
+<div class="highlight"><pre><span></span><code>final func system.globalError(err error) {
+    log.error(&quot;Fatal: &quot; + err.message)
+    system.exit(1)
+}
+</code></pre></div>
+<ol>
+<li><strong>Runtime option</strong>: <code>SessionOptions.GlobalErrorHook = "system.globalError"</code></li>
+</ol>
+<p>The interpreter calls that hook only when an uncaught error bubbles to the top.
+   <em>Still explicit, still discoverable, still guarded by <code>final</code>.</em></p>
+<hr />
+<p><strong>Bottom line:</strong> keep error handling local and explicit; document the “hook” mechanism for the rare case where you truly need a final catch-all. That preserves clarity without sacrificing capability.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "../../..", "features": [], "search": "../../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.50899def.min.js"></script>
+      
+    
+  </body>
+</html>
