@@ -9,7 +9,7 @@ This guide provides a comprehensive overview of how to embed and interact with t
 You can access both the overall program version and the specific grammar version directly from the API. This is useful for logging, debugging, and ensuring compatibility.
 
 ```go
-import "[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
+import "github.com/aprice2704/neuroscript/pkg/api"
 import "fmt"
 
 func main() {
@@ -38,7 +38,7 @@ import (
 	"fmt"
 	"os"
 
-	"[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
+	"github.com/aprice2704/neuroscript/pkg/api"
 )
 
 func main() {
@@ -160,7 +160,7 @@ import (
 	"context"
 	"fmt"
 
-	"[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
+	"github.com/aprice2704/neuroscript/pkg/api"
 )
 
 // 1. Define the tool's function. It must match the api.ToolFunc signature.
@@ -205,7 +205,13 @@ func main() {
 endfunc`
 
 	tree, _ := api.Parse([]byte(src), api.ParseSkipComments)
-	api.ExecWithInterpreter(context.Background(), interp, tree) // This loads the function
+
+	// ExecWithInterpreter loads definitions and can execute top-level commands.
+	// It returns a result and an error, which we are ignoring here
+	// as we only need to load the 'do_math' function into the interpreter.
+	if _, err := api.ExecWithInterpreter(context.Background(), interp, tree); err != nil {
+		panic(err) // Or handle error appropriately
+	}
 
 	// 5. Run the procedure and check the result.
 	val, _ := api.RunProcedure(context.Background(), interp, "do_math")
@@ -227,7 +233,7 @@ import (
 	"log"
 	"os"
 
-	"[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
+	"github.com/aprice2704/neuroscript/pkg/api"
 )
 
 func init() {

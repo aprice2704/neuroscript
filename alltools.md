@@ -1,108 +1,104 @@
+Interpreter created using the 'api' package.
+Executing script: ./library/list_tools.ns.txt
+Running procedure 'main'...
 Compact Tool List:
-AIWorker.ExecuteStatelessTask(name:string, prompt:string, config_overrides:map?) -> map
-AIWorker.GetPerformanceRecords(definition_id:string, filters:map?) -> slice
-AIWorker.LoadPerformanceData() -> string
-AIWorker.LogPerformance(task_id:string, instance_id:string, definition_id:string, timestamp_start:string, timestamp_end:string, duration_ms:int, success:bool, input_context:map?, llm_metrics:map?, cost_incurred:float?, output_summary:string?, error_details:string?) -> string
-AIWorkerDefinition.Get(definition_id:string) -> map
-AIWorkerDefinition.List(filters:map?) -> slice
-AIWorkerDefinition.LoadAll() -> string
-AIWorkerInstance.Get(instance_id:string) -> map
-AIWorkerInstance.ListActive(filters:map?) -> slice
-AIWorkerInstance.Retire(instance_id:string, conversation_manager_handle:string, reason:string, final_status:string, final_session_token_usage:map, performance_records:slice_map?) -> nil
-AIWorkerInstance.Spawn(definition_id:string, config_overrides:map?, file_contexts:slice_string?) -> map
-AIWorkerInstance.UpdateStatus(instance_id:string, status:string, last_error:string?) -> nil
-AIWorkerInstance.UpdateTokenUsage(instance_id:string, input_tokens:int, output_tokens:int) -> nil
-Add(num1:float, num2:float) -> float
-Concat(strings_list:slice_string) -> string
-Contains(input_string:string, substring:string) -> bool
-DeleteAPIFile(api_file_id:string) -> string
-Divide(num1:float, num2:float) -> float
-Error.New(code:any, message:string) -> error
-FS.Append(filepath:string, content:string) -> string
-FS.Delete(path:string) -> string
-FS.Hash(filepath:string) -> string
-FS.LineCount(filepath:string) -> int
-FS.List(path:string, recursive:bool?) -> slice_any
-FS.Mkdir(path:string) -> map
-FS.Move(source_path:string, destination_path:string) -> map
-FS.Read(filepath:string) -> string
-FS.SanitizeFilename(name:string) -> string
-FS.Stat(path:string) -> map
-FS.Walk(path:string) -> slice_any
-FS.Write(filepath:string, content:string) -> string
-Git.Branch(relative_path:string, name:string?, checkout:bool?, list_remote:bool?, list_all:bool?) -> string
-Git.Checkout(relative_path:string, branch:string, create:bool?) -> string
-Git.Clone(repository_url:string, relative_path:string) -> string
-Git.Commit(relative_path:string, commit_message:string, allow_empty:bool?) -> string
-Git.Diff(relative_path:string, cached:bool?, commit1:string?, commit2:string?, path:string?) -> string
-Git.Merge(relative_path:string, branch:string) -> string
-Git.Pull(relative_path:string, remote_name:string?, branch_name:string?) -> string
-Git.Push(relative_path:string, remote_name:string?, branch_name:string?) -> string
-Git.Rm(relative_path:string, paths:any) -> string
-Git.Status(repo_path:string?) -> map
-Go.Build(target:string?) -> map
-Go.Check(target:string) -> map
-Go.Fmt(content:string) -> string
-Go.GetModuleInfo(directory:string?) -> map
-Go.Imports(content:string) -> string
-Go.ListPackages(target_directory:string?, patterns:slice_string?) -> slice_map
-Go.ModTidy() -> map
-Go.Test(target:string?) -> map
-Go.Vet(target:string?) -> map
-HasPrefix(input_string:string, prefix:string) -> bool
-HasSuffix(input_string:string, suffix:string) -> bool
-Input(message:string?) -> string
-Join(string_list:slice_string, separator:string) -> string
-Length(input_string:string) -> int
-LineCount(content_string:string) -> int
-List.Append(list:slice_any, element:any?) -> slice_any
-List.Contains(list:slice_any, element:any?) -> bool
-List.Get(list:slice_any, index:int, default:any?) -> any
-List.Head(list:slice_any) -> any
-List.IsEmpty(list:slice_any) -> bool
-List.Length(list:slice_any) -> int
-List.Prepend(list:slice_any, element:any?) -> slice_any
-List.Rest(list:slice_any) -> slice_any
-List.Reverse(list:slice_any) -> slice_any
-List.Slice(list:slice_any, start:int, end:int) -> slice_any
-List.Sort(list:slice_any) -> slice_any
-List.Tail(list:slice_any, count:int) -> slice_any
-ListAPIFiles() -> slice_any
-Meta.GetToolSpecificationsJSON() -> string
-Meta.ListTools() -> string
-Meta.ToolsHelp(filter:string?) -> string
-Modulo(num1:int, num2:int) -> int
-Multiply(num1:float, num2:float) -> float
-Print(values:any) -> nil
-Replace(input_string:string, old_substring:string, new_substring:string, count:int) -> string
-Shell.Execute(command:string, args_list:slice_string?, directory:string?) -> map
-Split(input_string:string, delimiter:string) -> slice_string
-SplitWords(input_string:string) -> slice_string
-Staticcheck(target:string?) -> map
-Substring(input_string:string, start_index:int, length:int) -> string
-Subtract(num1:float, num2:float) -> float
-SyncFiles(direction:string, local_dir:string, filter_pattern:string?, ignore_gitignore:bool?) -> map
-Time.Now() -> timedate
-Time.Sleep(duration_seconds:number?) -> boolean
-ToLower(input_string:string) -> string
-ToUpper(input_string:string) -> string
-Tree.AddChildNode(tree_handle:string, parent_node_id:string, new_node_id_suggestion:string?, node_type:string, value:any?, key_for_object_parent:string?) -> string
-Tree.FindNodes(tree_handle:string, start_node_id:string, query_map:map, max_depth:int?, max_results:int?) -> slice_string
-Tree.GetChildren(tree_handle:string, node_id:string) -> slice_string
-Tree.GetNode(tree_handle:string, node_id:string) -> map
-Tree.GetParent(tree_handle:string, node_id:string) -> string
-Tree.LoadJSON(json_string:string) -> string
-Tree.RemoveNode(tree_handle:string, node_id:string) -> nil
-Tree.RemoveNodeMetadata(tree_handle:string, node_id:string, metadata_key:string) -> nil
-Tree.RemoveObjectAttribute(tree_handle:string, object_node_id:string, attribute_key:string) -> nil
-Tree.RenderText(tree_handle:string) -> string
-Tree.SetNodeMetadata(tree_handle:string, node_id:string, metadata_key:string, metadata_value:string) -> nil
-Tree.SetObjectAttribute(tree_handle:string, object_node_id:string, attribute_key:string, child_node_id:string) -> nil
-Tree.SetValue(tree_handle:string, node_id:string, value:any) -> nil
-Tree.ToJSON(tree_handle:string) -> string
-TrimSpace(input_string:string) -> string
-UploadFile(local_filepath:string, api_display_name:string?) -> map
-analyzeNSSyntax(nsScriptContent:string) -> slice_map
+tool.Meta.GetToolSpecificationsJSON() -> string
+tool.Meta.ListTools() -> string
+tool.Meta.ToolsHelp(filter:string?) -> string
+tool.ai.Select(value:any, path:any, missing_ok:bool?) -> any
+tool.ai.SelectMany(value:any, extracts:map, missing_ok:bool?) -> map
+tool.ai.Validate(value:map, shape:map, allow_extra:bool?) -> bool
+tool.error.New(code:any, message:string) -> error
+tool.fs.Append(filepath:string, content:string) -> string
+tool.fs.Delete(path:string) -> string
+tool.fs.Hash(filepath:string) -> string
+tool.fs.LineCount(filepath:string) -> int
+tool.fs.List(path:string, recursive:bool?) -> slice_any
+tool.fs.Mkdir(path:string) -> map
+tool.fs.Move(source_path:string, destination_path:string) -> map
+tool.fs.Read(filepath:string) -> string
+tool.fs.SanitizeFilename(name:string) -> string
+tool.fs.Stat(path:string) -> map
+tool.fs.Walk(path:string) -> slice_any
+tool.fs.Write(filepath:string, content:string) -> string
+tool.git.Add(relative_path:string, paths:slice_any) -> string
+tool.git.Branch(relative_path:string, name:string?, checkout:bool?, list_remote:bool?, list_all:bool?) -> string
+tool.git.Checkout(relative_path:string, branch:string, create:bool?) -> string
+tool.git.Clone(repository_url:string, relative_path:string) -> string
+tool.git.Commit(relative_path:string, commit_message:string, allow_empty:bool?) -> string
+tool.git.Diff(relative_path:string, cached:bool?, commit1:string?, commit2:string?, path:string?) -> string
+tool.git.Merge(relative_path:string, branch:string) -> string
+tool.git.Pull(relative_path:string, remote_name:string?, branch_name:string?) -> string
+tool.git.Push(relative_path:string, remote_name:string?, branch_name:string?) -> string
+tool.git.Reset(relative_path:string, mode:string?, commit:string?) -> string
+tool.git.Rm(relative_path:string, paths:any) -> string
+tool.git.Status(repo_path:string?) -> map
+tool.gotools.Build(target:string?) -> map
+tool.gotools.Check(target:string) -> map
+tool.gotools.Fmt(content:string) -> string
+tool.gotools.GetModuleInfo(directory:string?) -> map
+tool.gotools.Imports(content:string) -> string
+tool.gotools.ListPackages(target_directory:string?, patterns:slice_string?) -> slice_map
+tool.gotools.ModTidy() -> map
+tool.gotools.Staticcheck(target:string?) -> map
+tool.gotools.Test(target:string?) -> map
+tool.gotools.Vet(target:string?) -> map
+tool.io.Input(message:string?) -> string
+tool.io.Print(values:any) -> nil
+tool.list.Append(list:slice_any, element:any?) -> slice_any
+tool.list.Contains(list:slice_any, element:any?) -> bool
+tool.list.Get(list:slice_any, index:int, default:any?) -> any
+tool.list.Head(list:slice_any) -> any
+tool.list.IsEmpty(list:slice_any) -> bool
+tool.list.Length(list:slice_any) -> int
+tool.list.Prepend(list:slice_any, element:any?) -> slice_any
+tool.list.Rest(list:slice_any) -> slice_any
+tool.list.Reverse(list:slice_any) -> slice_any
+tool.list.Slice(list:slice_any, start:int, end:int) -> slice_any
+tool.list.Sort(list:slice_any) -> slice_any
+tool.list.Tail(list:slice_any, count:int) -> slice_any
+tool.math.Add(num1:float, num2:float) -> float
+tool.math.Divide(num1:float, num2:float) -> float
+tool.math.Modulo(num1:int, num2:int) -> int
+tool.math.Multiply(num1:float, num2:float) -> float
+tool.math.Subtract(num1:float, num2:float) -> float
+tool.script.ListFunctions() -> map
+tool.script.LoadScript(script_content:string) -> map
+tool.shell.Execute(command:string, args_list:slice_string?, directory:string?) -> map
+tool.str.Concat(strings_list:slice_string) -> string
+tool.str.Contains(input_string:string, substring:string) -> bool
+tool.str.HasPrefix(input_string:string, prefix:string) -> bool
+tool.str.HasSuffix(input_string:string, suffix:string) -> bool
+tool.str.Join(string_list:slice_string, separator:string) -> string
+tool.str.Length(input_string:string) -> int
+tool.str.LineCount(content_string:string) -> int
+tool.str.Replace(input_string:string, old_substring:string, new_substring:string, count:int) -> string
+tool.str.Split(input_string:string, delimiter:string) -> slice_string
+tool.str.SplitWords(input_string:string) -> slice_string
+tool.str.Substring(input_string:string, start_index:int, length:int) -> string
+tool.str.ToLower(input_string:string) -> string
+tool.str.ToUpper(input_string:string) -> string
+tool.str.TrimSpace(input_string:string) -> string
+tool.syntax.analyzeNSSyntax(nsScriptContent:string) -> slice_map
+tool.time.Now() -> timedate
+tool.time.Sleep(duration_seconds:number?) -> boolean
+tool.tree.AddChildNode(tree_handle:string, parent_node_id:string, new_node_id_suggestion:string?, node_type:string, value:any?, key_for_object_parent:string?) -> string
+tool.tree.FindNodes(tree_handle:string, start_node_id:string, query_map:map, max_depth:int?, max_results:int?) -> slice_string
+tool.tree.GetChildren(tree_handle:string, node_id:string) -> slice_string
+tool.tree.GetNode(tree_handle:string, node_id:string) -> map
+tool.tree.GetNodeByPath(tree_handle:string, path:string) -> map
+tool.tree.GetNodeMetadata(tree_handle:string, node_id:string) -> map
+tool.tree.GetParent(tree_handle:string, node_id:string) -> map
+tool.tree.GetRoot(tree_handle:string) -> map
+tool.tree.LoadJSON(json_string:string) -> string
+tool.tree.RemoveNode(tree_handle:string, node_id:string) -> nil
+tool.tree.RemoveNodeMetadata(tree_handle:string, node_id:string, metadata_key:string) -> nil
+tool.tree.RemoveObjectAttribute(tree_handle:string, object_node_id:string, attribute_key:string) -> nil
+tool.tree.RenderText(tree_handle:string) -> string
+tool.tree.SetNodeMetadata(tree_handle:string, node_id:string, metadata_key:string, metadata_value:string) -> nil
+tool.tree.SetObjectAttribute(tree_handle:string, object_node_id:string, attribute_key:string, child_node_id:string) -> nil
+tool.tree.SetValue(tree_handle:string, node_id:string, value:any) -> nil
+tool.tree.ToJSON(tree_handle:string) -> string
 
 
     --------------------
@@ -110,287 +106,110 @@ analyzeNSSyntax(nsScriptContent:string) -> slice_map
 Detailed Tool Help (Markdown):
 # NeuroScript Tools Help
 
-## `tool.AIWorker.ExecuteStatelessTask`
-**Description:** 
+## `tool.Meta.GetToolSpecificationsJSON`
+**Description:** Provides a JSON string containing an array of all currently available tool specifications. Each object in the array represents a tool and includes its name, description, category, arguments (with their details), return type, return help, variadic status, example usage, and error conditions.
 
-**Category:** AI Worker Management
-
-**Parameters:**
-* `name` (`string`): 
-* `prompt` (`string`): 
-* `config_overrides` (`map`): (optional) 
-
-**Returns:** (`map`) 
----
-
-## `tool.AIWorker.GetPerformanceRecords`
-**Description:** Retrieves performance records for an AI Worker Definition.
-
-**Category:** AI Worker Management
-
-**Parameters:**
-* `definition_id` (`string`): 
-* `filters` (`map`): (optional) 
-
-**Returns:** (`slice`) 
----
-
-## `tool.AIWorker.LoadPerformanceData`
-**Description:** Reloads all worker definitions, which implicitly re-processes performance summaries from persisted data.
-
-**Category:** AI Worker Management
+**Category:** Introspection
 
 **Parameters:**
 _None_
 
-**Returns:** (`string`) Returns a string message: 'Worker definitions and associated performance summaries reloaded.'.
+**Returns:** (`string`) A JSON string representing an array of ToolSpec objects. This is intended for programmatic use or detailed inspection of all tool capabilities.
 
 **Example:**
 ```neuroscript
-TOOL.AIWorker.LoadPerformanceData()
+GetToolSpecificationsJSON()
 ```
-
-**Error Conditions:** ErrAIWorkerManagerMissing; Errors from AIWorkerManager.LoadWorkerDefinitionsFromFile (e.g., file I/O, JSON parsing).
 ---
 
-## `tool.AIWorker.LogPerformance`
-**Description:** Logs a performance record for an AI Worker task.
+## `tool.Meta.ListTools`
+**Description:** Provides a compact text list (sorted alphabetically) of all currently available tools, including basic parameter information. Each tool is listed on a new line, showing its name, parameters (name:type), and return type. Example: FS.Read(filepath:string) -> string
 
-**Category:** AI Worker Management
-
-**Parameters:**
-* `task_id` (`string`): 
-* `instance_id` (`string`): 
-* `definition_id` (`string`): 
-* `timestamp_start` (`string`): 
-* `timestamp_end` (`string`): 
-* `duration_ms` (`int`): 
-* `success` (`bool`): 
-* `input_context` (`map`): (optional) 
-* `llm_metrics` (`map`): (optional) 
-* `cost_incurred` (`float`): (optional) 
-* `output_summary` (`string`): (optional) 
-* `error_details` (`string`): (optional) 
-
-**Returns:** (`string`) 
----
-
-## `tool.AIWorkerDefinition.Get`
-**Description:** Retrieves an AI Worker Definition by its ID.
-
-**Category:** AI Worker Management
-
-**Parameters:**
-* `definition_id` (`string`): The unique ID of the definition to retrieve.
-
-**Returns:** (`map`) Returns a map representing the AIWorkerDefinition struct. Returns nil if not found or on error.
-
-**Example:**
-```neuroscript
-TOOL.AIWorkerDefinition.Get(definition_id: "google-gemini-1.5-pro")
-```
-
-**Error Conditions:** ErrAIWorkerManagerMissing; ErrInvalidArgument if definition_id is not provided or not a string; ErrDefinitionNotFound if definition with ID does not exist.
----
-
-## `tool.AIWorkerDefinition.List`
-**Description:** Lists all AI Worker Definitions, optionally filtered.
-
-**Category:** AI Worker Management
-
-**Parameters:**
-* `filters` (`map`): (optional) Optional map of filters (e.g., {'provider':'google', 'status':'active'}).
-
-**Returns:** (`slice`) Returns a slice of maps, where each map represents an AIWorkerDefinition. Returns an empty slice if no definitions match or exist.
-
-**Example:**
-```neuroscript
-TOOL.AIWorkerDefinition.List(filters: {"provider":"google"})
-```
-
-**Error Conditions:** ErrAIWorkerManagerMissing; ErrInvalidArgument if filters is not a map.
----
-
-## `tool.AIWorkerDefinition.LoadAll`
-**Description:** Reloads all worker definitions from the configured JSON file.
-
-**Category:** AI Worker Management
+**Category:** Introspection
 
 **Parameters:**
 _None_
 
-**Returns:** (`string`) Returns a string message indicating the number of definitions reloaded, e.g., 'Reloaded X worker definitions.'.
+**Returns:** (`string`) A string containing a newline-separated list of tool names, their parameters (name:type), and return types.
 
 **Example:**
 ```neuroscript
-TOOL.AIWorkerDefinition.LoadAll()
+ListTools()
 ```
-
-**Error Conditions:** ErrAIWorkerManagerMissing; Errors from AIWorkerManager.LoadWorkerDefinitionsFromFile (e.g., related to file I/O, JSON parsing, or validation of loaded definitions).
 ---
 
-## `tool.AIWorkerInstance.Get`
-**Description:** Retrieves an active AI Worker Instance's details by its ID.
+## `tool.Meta.ToolsHelp`
+**Description:** Provides a more extensive, Markdown-formatted list of available tools, including descriptions, parameters, and return types. Can be filtered by providing a partial tool name. Details include parameter names, types, descriptions, and return type with its description.
 
-**Category:** AI Worker Management
-
-**Parameters:**
-* `instance_id` (`string`): The unique ID of the active instance to retrieve.
-
-**Returns:** (`map`) 
----
-
-## `tool.AIWorkerInstance.ListActive`
-**Description:** Lists currently active AI Worker Instances, optionally filtered.
-
-**Category:** AI Worker Management
+**Category:** Introspection
 
 **Parameters:**
-* `filters` (`map`): (optional) Optional map of filters.
+* `filter` (`string`): (optional) An optional string to filter tool names. Only tools whose names contain this substring will be listed. If empty or omitted, all tools are listed.
 
-**Returns:** (`slice`) 
----
-
-## `tool.AIWorkerInstance.Retire`
-**Description:** Retires an active AI Worker Instance.
-
-**Category:** AI Worker Management
-
-**Parameters:**
-* `instance_id` (`string`): 
-* `conversation_manager_handle` (`string`): 
-* `reason` (`string`): 
-* `final_status` (`string`): 
-* `final_session_token_usage` (`map`): 
-* `performance_records` (`slice_map`): (optional) 
-
-**Returns:** (`nil`) 
----
-
-## `tool.AIWorkerInstance.Spawn`
-**Description:** Spawns a new AI Worker Instance and returns its details including a ConversationManager handle.
-
-**Category:** AI Worker Management
-
-**Parameters:**
-* `definition_id` (`string`): ID of the AIWorkerDefinition to use for spawning.
-* `config_overrides` (`map`): (optional) Optional map of configuration overrides for this instance.
-* `file_contexts` (`slice_string`): (optional) Optional list of file context URIs for this instance.
-
-**Returns:** (`map`) 
----
-
-## `tool.AIWorkerInstance.UpdateStatus`
-**Description:** Updates the status of an active AI Worker Instance.
-
-**Category:** AI Worker Management
-
-**Parameters:**
-* `instance_id` (`string`): 
-* `status` (`string`): 
-* `last_error` (`string`): (optional) 
-
-**Returns:** (`nil`) 
----
-
-## `tool.AIWorkerInstance.UpdateTokenUsage`
-**Description:** Updates the session token usage for an active AI Worker Instance.
-
-**Category:** AI Worker Management
-
-**Parameters:**
-* `instance_id` (`string`): 
-* `input_tokens` (`int`): 
-* `output_tokens` (`int`): 
-
-**Returns:** (`nil`) 
----
-
-## `tool.Add`
-**Description:** Calculates the sum of two numbers (integers or decimals). Strings convertible to numbers are accepted.
-
-**Category:** Math Operations
-
-**Parameters:**
-* `num1` (`float`): The first number (or numeric string) to add.
-* `num2` (`float`): The second number (or numeric string) to add.
-
-**Returns:** (`float`) Returns the sum of num1 and num2 as a float64. Both inputs are expected to be (or be coercible to) numbers.
+**Returns:** (`string`) A string in Markdown format detailing available tools, their descriptions, parameters, and return types. Output can be filtered by the optional 'filter' argument.
 
 **Example:**
 ```neuroscript
-tool.Add(5, 3.5) // returns 8.5
+ToolsHelp(filter: "FS")
+Meta.ToolsHelp()
 ```
-
-**Error Conditions:** Returns an 'ErrInternalTool' if arguments cannot be processed as float64 (this scenario should ideally be caught by input validation before the tool function is called).
 ---
 
-## `tool.Concat`
-**Description:** Concatenates a list of strings without a separator.
+## `tool.ai.Select`
+**Description:** Selects a single value from a map or list using a path, according to Path-Lite spec.
 
-**Category:** String Operations
+**Category:** Data Selection
 
 **Parameters:**
-* `strings_list` (`slice_string`): List of strings to concatenate.
+* `value` (`any`): The map or list to select from.
+* `path` (`any`): The string or list path to the desired value.
+* `missing_ok` (`bool`): (optional) If true, returns nil if the path does not exist instead of failing.
 
-**Returns:** (`string`) Returns a single string by concatenating all strings in the strings_list.
+**Returns:** (`any`) Returns the value found at the specified path.
 
 **Example:**
 ```neuroscript
-tool.Concat(["hello", " ", "world"]) // Returns "hello world"
+tool.ai.Select(my_data, "user.name")
 ```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `strings_list` is not a list of strings. May return `ErrTypeAssertionFailed` (with `ErrorCodeInternal`) if type validation fails unexpectedly.
 ---
 
-## `tool.Contains`
-**Description:** Checks if a string contains a substring.
+## `tool.ai.SelectMany`
+**Description:** Selects multiple values from a map or list using a map of target keys to paths.
 
-**Category:** String Operations
+**Category:** Data Selection
 
 **Parameters:**
-* `input_string` (`string`): The string to check.
-* `substring` (`string`): The substring to search for.
+* `value` (`any`): The map or list to select from.
+* `extracts` (`map`): A map where keys are new names and values are the paths to extract.
+* `missing_ok` (`bool`): (optional) If true, keys for missing paths will be omitted from the result instead of failing.
 
-**Returns:** (`bool`) Returns true if the input_string contains the substring, false otherwise.
+**Returns:** (`map`) Returns a new map containing the extracted key-value pairs.
 
 **Example:**
 ```neuroscript
-tool.Contains("hello world", "world") // Returns true
+tool.ai.SelectMany(my_data, {"name": "user.name", "city": "user.address.city"})
 ```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `input_string` or `substring` are not strings.
 ---
 
-## `tool.DeleteAPIFile`
-**Description:** Deletes a specific file from the platform's File API using its ID/URI.
+## `tool.ai.Validate`
+**Description:** Validates a map against a shape definition, according to Shape-Lite spec.
+
+**Category:** Data Validation
 
 **Parameters:**
-* `api_file_id` (`string`): The unique ID or URI of the file on the API (e.g., 'files/abcde123').
+* `value` (`map`): The data map to validate.
+* `shape` (`map`): The shape map to validate against.
+* `allow_extra` (`bool`): (optional) If true, allows extra keys in the value not present in the shape.
 
-**Returns:** (`string`) 
----
-
-## `tool.Divide`
-**Description:** Calculates the division of two numbers (num1 / num2). Returns float. Handles division by zero.
-
-**Category:** Math Operations
-
-**Parameters:**
-* `num1` (`float`): The dividend.
-* `num2` (`float`): The divisor.
-
-**Returns:** (`float`) Returns the result of num1 / num2 as a float64. Both inputs are expected to be (or be coercible to) numbers.
+**Returns:** (`bool`) Returns true on success, otherwise returns a validation error.
 
 **Example:**
 ```neuroscript
-tool.Divide(10, 4) // returns 2.5
+tool.ai.Validate(my_data, my_shape, false)
 ```
-
-**Error Conditions:** Returns 'ErrDivisionByZero' if num2 is 0. Returns an 'ErrInternalTool' if arguments cannot be processed as float64 (should be caught by validation).
 ---
 
-## `tool.Error.New`
+## `tool.error.New`
 **Description:** Constructs a standard NeuroScript error value map.
 
 **Category:** Error Handling
@@ -405,11 +224,9 @@ tool.Divide(10, 4) // returns 2.5
 ```neuroscript
 set file_err = tool.Error.New("ERR_NOT_FOUND", "The specified file does not exist.")
 ```
-
-**Error Conditions:** Returns an error if the argument count is wrong or if arguments have invalid types.
 ---
 
-## `tool.FS.Append`
+## `tool.fs.Append`
 **Description:** Appends content to a specific file. Creates the file and parent directories if needed. Returns 'OK' on success.
 
 **Category:** Filesystem
@@ -424,11 +241,9 @@ set file_err = tool.Error.New("ERR_NOT_FOUND", "The specified file does not exis
 ```neuroscript
 TOOL.FS.Append(filepath: "logs/activity.log", content: "User logged in.\n")
 ```
-
-**Error Conditions:** ErrArgumentMismatch if arguments are invalid; ErrConfiguration if sandbox is not set; ErrSecurityPath for invalid paths; ErrCannotCreateDir if parent directories cannot be created; ErrPermissionDenied if writing is not allowed; ErrPathNotFile if path exists and is a directory; ErrIOFailed for other I/O errors.
 ---
 
-## `tool.FS.Delete`
+## `tool.fs.Delete`
 **Description:** Deletes a file or an empty directory. Returns 'OK' on success or if path doesn't exist.
 
 **Category:** Filesystem
@@ -442,11 +257,9 @@ TOOL.FS.Append(filepath: "logs/activity.log", content: "User logged in.\n")
 ```neuroscript
 TOOL.FS.Delete(path: "temp/old_file.txt") // Returns "OK"
 ```
-
-**Error Conditions:** ErrArgumentMismatch if path is empty or not a string; ErrConfiguration if sandbox is not set; ErrSecurityPath (from SecureFilePath) for invalid path; ErrPreconditionFailed if directory is not empty; ErrPermissionDenied; ErrIOFailed for other I/O errors. Path not found is treated as success.
 ---
 
-## `tool.FS.Hash`
+## `tool.fs.Hash`
 **Description:** Calculates the SHA256 hash of a specified file. Returns the hex-encoded hash string.
 
 **Category:** Filesystem
@@ -460,11 +273,9 @@ TOOL.FS.Delete(path: "temp/old_file.txt") // Returns "OK"
 ```neuroscript
 TOOL.FS.Hash(filepath: "data/my_document.txt") // Returns "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" (example for an empty file)
 ```
-
-**Error Conditions:** ErrArgumentMismatch if filepath is empty; ErrConfiguration if sandbox is not set; ErrSecurityPath (from SecureFilePath) for invalid paths; ErrFileNotFound if file does not exist; ErrPermissionDenied if file cannot be opened; ErrPathNotFile if path is a directory; ErrIOFailed for other I/O errors during open or read.
 ---
 
-## `tool.FS.LineCount`
+## `tool.fs.LineCount`
 **Description:** Counts lines in a specified file. Returns line count as an integer.
 
 **Category:** Filesystem
@@ -478,11 +289,9 @@ TOOL.FS.Hash(filepath: "data/my_document.txt") // Returns "e3b0c44298fc1c149afbf
 ```neuroscript
 TOOL.FS.LineCount(filepath: "logs/app.log") // Returns 150 (example)
 ```
-
-**Error Conditions:** ErrArgumentMismatch if filepath is empty; ErrConfiguration if sandbox is not set; ErrSecurityPath for invalid paths; ErrFileNotFound; ErrPermissionDenied; ErrPathNotFile if path is a directory; ErrIOFailed for read errors. (Based on typical file tool error handling, actual implementation for toolLineCountFile in tools_fs_utils.go needed for exact errors).
 ---
 
-## `tool.FS.List`
+## `tool.fs.List`
 **Description:** Lists files and subdirectories at a given path. Returns a list of maps, each describing an entry (keys: name, path, isDir, size, modTime).
 
 **Category:** Filesystem
@@ -497,11 +306,9 @@ TOOL.FS.LineCount(filepath: "logs/app.log") // Returns 150 (example)
 ```neuroscript
 TOOL.FS.List(path: "mydir", recursive: true)
 ```
-
-**Error Conditions:** ErrArgumentMismatch if path is not a string or recursive is not bool/nil; ErrConfiguration if sandbox is not set; ErrSecurityPath (from ResolveAndSecurePath) for invalid path; ErrFileNotFound if path does not exist; ErrPermissionDenied; ErrPathNotDirectory if path is not a directory; ErrIOFailed for other I/O errors during listing or walking.
 ---
 
-## `tool.FS.Mkdir`
+## `tool.fs.Mkdir`
 **Description:** Creates a directory. Parent directories are created if they do not exist (like mkdir -p). Returns a success message.
 
 **Category:** Filesystem
@@ -515,11 +322,9 @@ TOOL.FS.List(path: "mydir", recursive: true)
 ```neuroscript
 TOOL.FS.Mkdir(path: "new/subdir") // Returns {"status":"success", "message":"Successfully created directory: new/subdir", "path":"new/subdir"}
 ```
-
-**Error Conditions:** ErrArgumentMismatch if path is empty, '.', or not a string; ErrConfiguration if sandbox is not set; ErrSecurityPath (from ResolveAndSecurePath) for invalid path; ErrPathNotDirectory if path exists and is a file; ErrPathExists if directory already exists; ErrPermissionDenied; ErrIOFailed for other I/O errors or failure to stat; ErrCannotCreateDir if MkdirAll fails.
 ---
 
-## `tool.FS.Move`
+## `tool.fs.Move`
 **Description:** Moves or renames a file or directory within the sandbox. Returns a map: {'message': 'success message', 'error': nil} on success.
 
 **Category:** Filesystem
@@ -534,11 +339,9 @@ TOOL.FS.Mkdir(path: "new/subdir") // Returns {"status":"success", "message":"Suc
 ```neuroscript
 TOOL.FS.Move(source_path: "old_name.txt", destination_path: "new_name.txt")
 ```
-
-**Error Conditions:** ErrArgumentMismatch if paths are empty, not strings, or are the same; ErrConfiguration if sandbox is not set; ErrSecurityPath (from SecureFilePath) for invalid source or destination paths; ErrFileNotFound if source path does not exist; ErrPathExists if destination path already exists; ErrPermissionDenied for source or destination; ErrIOFailed for other I/O errors during stat or rename.
 ---
 
-## `tool.FS.Read`
+## `tool.fs.Read`
 **Description:** Reads the entire content of a specific file. Returns the content as a string.
 
 **Category:** Filesystem
@@ -552,11 +355,9 @@ TOOL.FS.Move(source_path: "old_name.txt", destination_path: "new_name.txt")
 ```neuroscript
 TOOL.FS.Read(filepath: "config.txt") // Returns "setting=value\n..."
 ```
-
-**Error Conditions:** ErrArgumentMismatch if filepath is empty; ErrConfiguration if sandbox is not set; ErrSecurityPath (from ResolveAndSecurePath) for invalid paths; ErrFileNotFound if file does not exist; ErrPermissionDenied; ErrPathNotFile if path is a directory; ErrIOFailed for other I/O errors.
 ---
 
-## `tool.FS.SanitizeFilename`
+## `tool.fs.SanitizeFilename`
 **Description:** Cleans a string to make it suitable for use as part of a filename.
 
 **Category:** Filesystem Utilities
@@ -570,11 +371,9 @@ TOOL.FS.Read(filepath: "config.txt") // Returns "setting=value\n..."
 ```neuroscript
 TOOL.FS.SanitizeFilename(name: "My Report Final?.docx") // Returns "My_Report_Final_.docx" (example)
 ```
-
-**Error Conditions:** ErrArgumentMismatch if name is not provided or not a string. (Based on typical utility tool error handling, actual implementation for toolSanitizeFilename in tools_fs_utils.go needed for exact errors).
 ---
 
-## `tool.FS.Stat`
+## `tool.fs.Stat`
 **Description:** Gets information about a file or directory. Returns a map containing: name(string), path(string), size_bytes(int), is_dir(bool), modified_unix(int), modified_rfc3339(string - format 2006-01-02T15:04:05.999999999Z07:00), mode_string(string), mode_perm(string).
 
 **Category:** Filesystem
@@ -588,11 +387,9 @@ TOOL.FS.SanitizeFilename(name: "My Report Final?.docx") // Returns "My_Report_Fi
 ```neuroscript
 TOOL.FS.Stat(path: "my_file.go")
 ```
-
-**Error Conditions:** ErrArgumentMismatch if path is empty or not a string; ErrConfiguration if sandbox is not set; ErrSecurityPath (from ResolveAndSecurePath) for invalid path; ErrFileNotFound if path does not exist; ErrPermissionDenied; ErrIOFailed for other I/O errors.
 ---
 
-## `tool.FS.Walk`
+## `tool.fs.Walk`
 **Description:** Recursively walks a directory, returning a list of maps describing files/subdirectories found (keys: name, path_relative, is_dir, size_bytes, modified_unix, modified_rfc3339 (format 2006-01-02T15:04:05.999999999Z07:00), mode_string). Skips the root directory itself.
 
 **Category:** Filesystem
@@ -606,11 +403,9 @@ TOOL.FS.Stat(path: "my_file.go")
 ```neuroscript
 TOOL.FS.Walk(path: "src")
 ```
-
-**Error Conditions:** ErrArgumentMismatch if path is empty or not a string; ErrConfiguration if sandbox is not set; ErrSecurityPath (from ResolveAndSecurePath) for invalid path; ErrFileNotFound if start path not found; ErrPathNotDirectory if start path is not a directory; ErrPermissionDenied for start path; ErrIOFailed for stat errors or errors during walk; ErrInternal if relative path calculation fails during walk.
 ---
 
-## `tool.FS.Write`
+## `tool.fs.Write`
 **Description:** Writes content to a specific file, overwriting it if it exists. Creates parent directories if needed. Returns 'OK' on success.
 
 **Category:** Filesystem
@@ -625,53 +420,64 @@ TOOL.FS.Walk(path: "src")
 ```neuroscript
 TOOL.FS.Write(filepath: "output/data.json", content: "{\"key\":\"value\"}")
 ```
-
-**Error Conditions:** ErrArgumentMismatch if arguments are invalid; ErrConfiguration if sandbox is not set; ErrSecurityPath for invalid paths; ErrCannotCreateDir if parent directories cannot be created; ErrPermissionDenied if writing is not allowed; ErrPathNotFile if path exists and is a directory; ErrIOFailed for other I/O errors.
 ---
 
-## `tool.Git.Branch`
-**Description:** Manages branches: lists, creates, or creates and checks out branches in a Git repository.
+## `tool.git.Add`
+**Description:** Adds file contents to the index.
 
 **Category:** Git
 
 **Parameters:**
-* `relative_path` (`string`): Relative path to the repository within the sandbox.
-* `name` (`string`): (optional) Optional. The name of the branch to create. If omitted, and other list flags are false, lists local branches.
-* `checkout` (`bool`): (optional) Optional. If true and 'name' is provided, checks out the new branch after creation. Defaults to false.
-* `list_remote` (`bool`): (optional) Optional. If true, lists remote-tracking branches. Defaults to false.
-* `list_all` (`bool`): (optional) Optional. If true, lists all local and remote-tracking branches. Defaults to false.
+* `relative_path` (`string`): The relative path within the sandbox to the Git repository.
+* `paths` (`slice_any`): A list of file paths to add to the index.
 
-**Returns:** (`string`) Returns a success message (e.g., on creation) or a string listing branches. Behavior depends on arguments.
+**Returns:** (`string`) Returns a success message upon completion.
 
 **Example:**
 ```neuroscript
-TOOL.Git.Branch(relative_path: "my_repo", name: "new-feature", checkout: true)\nTOOL.Git.Branch(relative_path: "my_repo", list_all: true)
+TOOL.Git.Add(relative_path: "my_repo", paths: ["file1.txt", "docs/"])
 ```
-
-**Error Conditions:** ErrConfiguration if sandbox not set; ErrInvalidArgument for bad args; ErrGitRepositoryNotFound; ErrGitOperationFailed for git command errors; ErrSecurityPath for invalid relative_path.
 ---
 
-## `tool.Git.Checkout`
-**Description:** Switches branches or restores working tree files in a Git repository.
+## `tool.git.Branch`
+**Description:** Manages branches.
 
 **Category:** Git
 
 **Parameters:**
-* `relative_path` (`string`): Relative path to the repository within the sandbox.
-* `branch` (`string`): The name of the branch to checkout or the commit/pathspec to restore.
-* `create` (`bool`): (optional) Optional. If true, creates a new branch named by 'branch' and checks it out. Defaults to false.
+* `relative_path` (`string`): Path to the repository.
+* `name` (`string`): (optional) The name of the branch to create. If omitted, lists branches.
+* `checkout` (`bool`): (optional) If true, checks out the new branch after creation.
+* `list_remote` (`bool`): (optional) If true, lists remote-tracking branches.
+* `list_all` (`bool`): (optional) If true, lists all branches.
 
-**Returns:** (`string`) Returns a success message on successful checkout.
+**Returns:** (`string`) Returns a success message or a list of branches.
 
 **Example:**
 ```neuroscript
-TOOL.Git.Checkout(relative_path: "my_repo", branch: "main")\nTOOL.Git.Checkout(relative_path: "my_repo", branch: "new-feature", create: true)
+TOOL.Git.Branch(relative_path: "my_repo", name: "new-feature")
 ```
-
-**Error Conditions:** ErrConfiguration if sandbox not set; ErrInvalidArgument for bad args; ErrGitRepositoryNotFound; ErrGitOperationFailed for git command errors (e.g. branch not found, uncommitted changes); ErrSecurityPath for invalid relative_path.
 ---
 
-## `tool.Git.Clone`
+## `tool.git.Checkout`
+**Description:** Switches branches or restores working tree files.
+
+**Category:** Git
+
+**Parameters:**
+* `relative_path` (`string`): Path to the repository.
+* `branch` (`string`): The branch to checkout.
+* `create` (`bool`): (optional) If true, creates and checks out the branch.
+
+**Returns:** (`string`) Returns a success message.
+
+**Example:**
+```neuroscript
+TOOL.Git.Checkout(relative_path: "my_repo", branch: "main")
+```
+---
+
+## `tool.git.Clone`
 **Description:** Clones a Git repository into the specified relative path within the sandbox.
 
 **Category:** Git
@@ -680,137 +486,141 @@ TOOL.Git.Checkout(relative_path: "my_repo", branch: "main")\nTOOL.Git.Checkout(r
 * `repository_url` (`string`): The URL of the Git repository to clone.
 * `relative_path` (`string`): The relative path within the sandbox where the repository should be cloned.
 
-**Returns:** (`string`) Returns a success message string like 'Successfully cloned <URL> to <path>.' on successful clone. Returns nil on error.
+**Returns:** (`string`) Returns a success message.
 
 **Example:**
 ```neuroscript
 TOOL.Git.Clone(repository_url: "https://github.com/example/repo.git", relative_path: "cloned_repos/my_repo")
 ```
-
-**Error Conditions:** ErrConfiguration if sandbox directory is not set; ErrInvalidArgument if repository_url or relative_path are missing or not strings; ErrPathExists if the target relative_path already exists; ErrGitOperationFailed for errors during the 'git clone' command execution (e.g., authentication failure, repository not found, network issues); ErrSecurityPath for invalid relative_path.
 ---
 
-## `tool.Git.Commit`
-**Description:** Commits staged changes in the specified Git repository within the sandbox.
+## `tool.git.Commit`
+**Description:** Commits staged changes.
 
 **Category:** Git
 
 **Parameters:**
-* `relative_path` (`string`): The relative path within the sandbox to the Git repository.
+* `relative_path` (`string`): Path to the repository.
 * `commit_message` (`string`): The commit message.
-* `allow_empty` (`bool`): (optional) Optional. Allow an empty commit (no changes). Defaults to false.
+* `allow_empty` (`bool`): (optional) Allow an empty commit. Defaults to false.
 
-**Returns:** (`string`) Returns a success message string like 'Successfully committed to repository <path>.' or the commit hash. Returns nil on error.
+**Returns:** (`string`) Returns a success message.
 
 **Example:**
 ```neuroscript
-TOOL.Git.Commit(relative_path: "my_repo", commit_message: "Fix: addressed critical bug #123")
+TOOL.Git.Commit(relative_path: "my_repo", commit_message: "Fix: bug #123")
 ```
-
-**Error Conditions:** ErrConfiguration if sandbox directory is not set; ErrInvalidArgument if relative_path or commit_message are missing/invalid types; ErrGitRepositoryNotFound if the specified relative_path is not a Git repository; ErrGitOperationFailed for errors during the 'git commit' command (e.g., nothing to commit and allow_empty is false, pre-commit hooks failure); ErrSecurityPath for invalid relative_path.
 ---
 
-## `tool.Git.Diff`
-**Description:** Shows changes between commits, commit and working tree, etc., in a Git repository.
+## `tool.git.Diff`
+**Description:** Shows changes between commits, commit and working tree, etc.
 
 **Category:** Git
 
 **Parameters:**
-* `relative_path` (`string`): Relative path to the repository within the sandbox.
-* `cached` (`bool`): (optional) Optional. Show staged changes (diff against HEAD). Defaults to false.
-* `commit1` (`string`): (optional) Optional. First commit or tree object for diff. Defaults to index if 'cached' is true, or HEAD otherwise.
-* `commit2` (`string`): (optional) Optional. Second commit or tree object for diff. Defaults to the working tree.
-* `path` (`string`): (optional) Optional. Limit the diff to the specified file or directory path within the repository.
+* `relative_path` (`string`): Path to the repository.
+* `cached` (`bool`): (optional) Show staged changes.
+* `commit1` (`string`): (optional) First commit for diff.
+* `commit2` (`string`): (optional) Second commit for diff.
+* `path` (`string`): (optional) Limit the diff to a specific path.
 
 **Returns:** (`string`) Returns a string containing the diff output.
 
 **Example:**
 ```neuroscript
-TOOL.Git.Diff(relative_path: "my_repo", cached: true)\nTOOL.Git.Diff(relative_path: "my_repo", commit1: "HEAD~1", commit2: "HEAD", path: "src/")
+TOOL.Git.Diff(relative_path: "my_repo", cached: true)
 ```
-
-**Error Conditions:** ErrConfiguration if sandbox not set; ErrInvalidArgument for bad args; ErrGitRepositoryNotFound; ErrGitOperationFailed for git command errors; ErrSecurityPath for invalid relative_path.
 ---
 
-## `tool.Git.Merge`
-**Description:** Joins two or more development histories together in a Git repository.
+## `tool.git.Merge`
+**Description:** Joins two or more development histories together.
 
 **Category:** Git
 
 **Parameters:**
-* `relative_path` (`string`): Relative path to the repository within the sandbox.
-* `branch` (`string`): The name of the branch to merge into the current branch.
+* `relative_path` (`string`): Path to the repository.
+* `branch` (`string`): The branch to merge into the current branch.
 
-**Returns:** (`string`) Returns a success message or merge details on successful merge.
+**Returns:** (`string`) Returns a success message.
 
 **Example:**
 ```neuroscript
 TOOL.Git.Merge(relative_path: "my_repo", branch: "feature-branch")
 ```
-
-**Error Conditions:** ErrConfiguration if sandbox not set; ErrInvalidArgument for bad args; ErrGitRepositoryNotFound; ErrGitOperationFailed for git command errors (e.g. merge conflicts); ErrSecurityPath for invalid relative_path.
 ---
 
-## `tool.Git.Pull`
-**Description:** Pulls the latest changes from the remote repository for the specified Git repository within the sandbox.
+## `tool.git.Pull`
+**Description:** Pulls the latest changes from the remote repository.
 
 **Category:** Git
 
 **Parameters:**
-* `relative_path` (`string`): The relative path within the sandbox to the Git repository.
-* `remote_name` (`string`): (optional) Optional. The name of the remote to pull from (e.g., 'origin'). Defaults to 'origin'.
-* `branch_name` (`string`): (optional) Optional. The name of the branch to pull. Defaults to the current branch.
+* `relative_path` (`string`): Path to the repository.
+* `remote_name` (`string`): (optional) Optional. The remote to pull from. Defaults to 'origin'.
+* `branch_name` (`string`): (optional) Optional. The branch to pull. Defaults to the current branch.
 
-**Returns:** (`string`) Returns a success message string like 'Successfully pulled from <remote>/<branch> for repository <path>.' or details of the pull. Returns nil on error.
+**Returns:** (`string`) Returns a success message.
 
 **Example:**
 ```neuroscript
-TOOL.Git.Pull(relative_path: "my_repo")\nTOOL.Git.Pull(relative_path: "my_repo", remote_name: "upstream", branch_name: "main")
+TOOL.Git.Pull(relative_path: "my_repo")
 ```
-
-**Error Conditions:** ErrConfiguration if sandbox directory is not set; ErrInvalidArgument if relative_path is missing or not a string, or other args are invalid types; ErrGitRepositoryNotFound if the specified relative_path is not a Git repository; ErrGitOperationFailed for errors during the 'git pull' command execution (e.g., merge conflicts, authentication failure, network issues); ErrSecurityPath for invalid relative_path.
 ---
 
-## `tool.Git.Push`
+## `tool.git.Push`
 **Description:** Pushes committed changes to a remote repository.
 
 **Category:** Git
 
 **Parameters:**
-* `relative_path` (`string`): The relative path within the sandbox to the Git repository.
-* `remote_name` (`string`): (optional) Optional. The name of the remote to push to (e.g., 'origin'). Defaults to 'origin'.
-* `branch_name` (`string`): (optional) Optional. The name of the local branch to push. Defaults to the current branch.
+* `relative_path` (`string`): Path to the repository.
+* `remote_name` (`string`): (optional) Optional. The remote to push to. Defaults to 'origin'.
+* `branch_name` (`string`): (optional) Optional. The branch to push. Defaults to the current branch.
 
-**Returns:** (`string`) Returns a success message string like 'Successfully pushed to <remote>/<branch> for repository <path>.' Returns nil on error.
+**Returns:** (`string`) Returns a success message.
 
 **Example:**
 ```neuroscript
-TOOL.Git.Push(relative_path: "my_repo")\nTOOL.Git.Push(relative_path: "my_repo", remote_name: "origin", branch_name: "feature/new-thing")
+TOOL.Git.Push(relative_path: "my_repo")
 ```
-
-**Error Conditions:** ErrConfiguration if sandbox directory is not set; ErrInvalidArgument if relative_path is missing/invalid type; ErrGitRepositoryNotFound if the specified relative_path is not a Git repository; ErrGitOperationFailed for errors during the 'git push' command (e.g., authentication failure, non-fast-forward, network issues); ErrSecurityPath for invalid relative_path.
 ---
 
-## `tool.Git.Rm`
-**Description:** Removes files from the working tree and from the index in a Git repository.
+## `tool.git.Reset`
+**Description:** Resets the current HEAD to the specified state.
 
 **Category:** Git
 
 **Parameters:**
-* `relative_path` (`string`): Relative path to the repository within the sandbox.
-* `paths` (`any`): A single file path (string) or a list of file paths ([]string) to remove relative to the repository root.
+* `relative_path` (`string`): Path to the repository.
+* `mode` (`string`): (optional) Reset mode: 'soft', 'mixed' (default), 'hard', 'merge', or 'keep'.
+* `commit` (`string`): (optional) Commit to reset to. Defaults to HEAD.
 
-**Returns:** (`string`) Returns a success message on successful removal.
+**Returns:** (`string`) Returns a success message.
 
 **Example:**
 ```neuroscript
-TOOL.Git.Rm(relative_path: "my_repo", paths: "old_file.txt")\nTOOL.Git.Rm(relative_path: "my_repo", paths: ["file1.txt", "dir/file2.txt"])
+TOOL.Git.Reset(relative_path: "my_repo", mode: "hard", commit: "HEAD~1")
 ```
-
-**Error Conditions:** ErrConfiguration if sandbox not set; ErrInvalidArgument for bad args; ErrGitRepositoryNotFound; ErrGitOperationFailed for git command errors; ErrSecurityPath for invalid relative_path.
 ---
 
-## `tool.Git.Status`
+## `tool.git.Rm`
+**Description:** Removes files from the working tree and from the index.
+
+**Category:** Git
+
+**Parameters:**
+* `relative_path` (`string`): Path to the repository.
+* `paths` (`any`): A single path or a list of paths to remove.
+
+**Returns:** (`string`) Returns a success message.
+
+**Example:**
+```neuroscript
+TOOL.Git.Rm(relative_path: "my_repo", paths: "old_file.txt")
+```
+---
+
+## `tool.git.Status`
 **Description:** Gets the status of the Git repository in the configured sandbox directory.
 
 **Category:** Git
@@ -818,17 +628,15 @@ TOOL.Git.Rm(relative_path: "my_repo", paths: "old_file.txt")\nTOOL.Git.Rm(relati
 **Parameters:**
 * `repo_path` (`string`): (optional) Optional. Relative path to the repository within the sandbox. Defaults to the sandbox root.
 
-**Returns:** (`map`) Returns a map containing Git status information: 'current_branch' (string), 'is_clean' (bool), 'uncommitted_changes' ([]string of changed file paths), 'untracked_files' ([]string of untracked file paths), and 'error' (string, if any occurred internally). See tools_git_status.go for exact structure.
+**Returns:** (`map`) Returns a map containing Git status information.
 
 **Example:**
 ```neuroscript
-TOOL.Git.Status() // For sandbox root\nTOOL.Git.Status(repo_path: "my_sub_repo")
+TOOL.Git.Status()
 ```
-
-**Error Conditions:** ErrConfiguration if sandbox directory is not set; ErrGitRepositoryNotFound if the specified path is not a Git repository; ErrIOFailed for underlying Git command execution errors or issues reading Git output; ErrInvalidArgument if repo_path is not a string.
 ---
 
-## `tool.Go.Build`
+## `tool.gotools.Build`
 **Description:** Runs 'go build' for a specified target in the sandbox. Defaults to './...'.
 
 **Category:** Go Build Tools
@@ -840,16 +648,14 @@ TOOL.Git.Status() // For sandbox root\nTOOL.Git.Status(repo_path: "my_sub_repo")
 
 **Example:**
 ```neuroscript
-TOOL.Go.Build(target: "./cmd/mytool")
+tool.gotools.Build(target: "./cmd/mytool")
 ```
-
-**Error Conditions:** ErrInvalidArgument if optional target is not a string; ErrConfiguration if sandbox is not set; ErrInternalSecurity for path validation issues. Command execution failures are reported within the returned map.
 ---
 
-## `tool.Go.Check`
+## `tool.gotools.Check`
 **Description:** Checks Go code validity using 'go list -e -json <target>' within the sandbox. Returns a map indicating success and error details.
 
-**Category:** Go Diagnostics
+**Category:** Go types.Diagnostics
 
 **Parameters:**
 * `target` (`string`): Target Go package path or file path relative to sandbox (e.g., './pkg/core', 'main.go').
@@ -858,13 +664,11 @@ TOOL.Go.Build(target: "./cmd/mytool")
 
 **Example:**
 ```neuroscript
-TOOL.Go.Check(target: "./pkg/core")
+tool.gotools.Check(target: "./pkg/core")
 ```
-
-**Error Conditions:** ErrConfiguration if sandbox is not set; ErrInternalSecurity for path validation issues. Command execution issues or JSON parsing errors result in 'check_success':false and details in 'error_details'.
 ---
 
-## `tool.Go.Fmt`
+## `tool.gotools.Fmt`
 **Description:** Formats Go source code using 'go/format.Source'. Returns the formatted code or an error map.
 
 **Category:** Go Formatting
@@ -876,13 +680,11 @@ TOOL.Go.Check(target: "./pkg/core")
 
 **Example:**
 ```neuroscript
-TOOL.Go.Fmt(content: "package main\nfunc main(){}")
+tool.gotools.Fmt(content: "package main\nfunc main(){}")
 ```
-
-**Error Conditions:** ErrInternalTool if formatting fails internally, wrapping the original Go error from format.Source. The specific formatting error (e.g. syntax error) is in the 'error' field of the returned map if applicable.
 ---
 
-## `tool.Go.GetModuleInfo`
+## `tool.gotools.GetModuleInfo`
 **Description:** Finds and parses the go.mod file relevant to a directory by searching upwards. Returns a map with module path, go version, root directory, requires, and replaces, or nil if not found.
 
 **Category:** Go Build Tools
@@ -894,13 +696,11 @@ TOOL.Go.Fmt(content: "package main\nfunc main(){}")
 
 **Example:**
 ```neuroscript
-TOOL.Go.GetModuleInfo(directory: "cmd/mytool")
+tool.gotools.GetModuleInfo(directory: "cmd/mytool")
 ```
-
-**Error Conditions:** ErrValidationTypeMismatch if directory arg is not a string; ErrInternalSecurity if sandbox is not set or for path validation errors; ErrInternalTool if FindAndParseGoMod fails for reasons other than os.ErrNotExist (e.g., parsing error, file read error). If go.mod is not found, returns nil result and nil error (not a Go-level tool error).
 ---
 
-## `tool.Go.Imports`
+## `tool.gotools.Imports`
 **Description:** Formats Go source code and adjusts imports using 'golang.org/x/tools/imports'. Returns the processed code or an error map.
 
 **Category:** Go Formatting
@@ -912,13 +712,11 @@ TOOL.Go.GetModuleInfo(directory: "cmd/mytool")
 
 **Example:**
 ```neuroscript
-TOOL.Go.Imports(content: "package main\nimport \"fmt\"\nfunc main(){fmt.Println(\"hello\")}")
+tool.gotools.Imports(content: "package main\nimport \"fmt\"\nfunc main(){fmt.Println(\"hello\")}")
 ```
-
-**Error Conditions:** ErrInternalTool if goimports processing fails, wrapping the original error from imports.Process. The specific processing error is in the 'error' field of the returned map if applicable.
 ---
 
-## `tool.Go.ListPackages`
+## `tool.gotools.ListPackages`
 **Description:** Runs 'go list -json' for specified patterns in a target directory. Returns a list of maps, each describing a package.
 
 **Category:** Go Build Tools
@@ -931,13 +729,11 @@ TOOL.Go.Imports(content: "package main\nimport \"fmt\"\nfunc main(){fmt.Println(
 
 **Example:**
 ```neuroscript
-TOOL.Go.ListPackages(target_directory: "pkg/core", patterns: ["./..."])
+tool.gotools.ListPackages(target_directory: "pkg/core", patterns: ["./..."])
 ```
-
-**Error Conditions:** ErrValidationTypeMismatch if patterns arg contains non-string elements; ErrInternalTool if execution helper fails internally or JSON decoding fails; ErrConfiguration if sandbox is not set; ErrInternalSecurity for path validation issues. 'go list' command failures are reported in its output map rather than a Go error from the tool.
 ---
 
-## `tool.Go.ModTidy`
+## `tool.gotools.ModTidy`
 **Description:** Runs 'go mod tidy' in the sandbox to add missing and remove unused modules. Operates in the sandbox root.
 
 **Category:** Go Build Tools
@@ -949,13 +745,27 @@ _None_
 
 **Example:**
 ```neuroscript
-TOOL.Go.ModTidy()
+tool.gotools.ModTidy()
 ```
-
-**Error Conditions:** ErrConfiguration if sandbox is not set; ErrInternalSecurity for path validation issues. Command execution failures are reported within the returned map's 'success', 'stderr', and 'exit_code' fields.
 ---
 
-## `tool.Go.Test`
+## `tool.gotools.Staticcheck`
+**Description:** Runs 'staticcheck' on the specified target(s) in the sandbox. Reports bugs, stylistic errors, and performance issues. Defaults to './...'. Assumes 'staticcheck' is in PATH.
+
+**Category:** Go types.Diagnostics
+
+**Parameters:**
+* `target` (`string`): (optional) Optional. The target for 'staticcheck' (e.g., a package path or './...'). Defaults to './...'.
+
+**Returns:** (`map`) Returns a map with 'stdout', 'stderr', 'exit_code' (int64), and 'success' (bool) from the 'staticcheck <target>' command. 'stdout' usually contains the diagnostics.
+
+**Example:**
+```neuroscript
+tool.gotools.Staticcheck(target: "./...")
+```
+---
+
+## `tool.gotools.Test`
 **Description:** Runs 'go test' for a specified target in the sandbox. Defaults to './...'.
 
 **Category:** Go Build Tools
@@ -967,16 +777,14 @@ TOOL.Go.ModTidy()
 
 **Example:**
 ```neuroscript
-TOOL.Go.Test(target: "./pkg/feature")
+tool.gotools.Test(target: "./pkg/feature")
 ```
-
-**Error Conditions:** ErrInvalidArgument if optional target is not a string; ErrConfiguration if sandbox is not set; ErrInternalSecurity for path validation issues. Command execution failures are reported within the returned map.
 ---
 
-## `tool.Go.Vet`
+## `tool.gotools.Vet`
 **Description:** Runs 'go vet' on the specified target(s) in the sandbox to report likely mistakes in Go source code. Defaults to './...'.
 
-**Category:** Go Diagnostics
+**Category:** Go types.Diagnostics
 
 **Parameters:**
 * `target` (`string`): (optional) Optional. The target for 'go vet' (e.g., a package path or './...'). Defaults to './...'.
@@ -985,51 +793,11 @@ TOOL.Go.Test(target: "./pkg/feature")
 
 **Example:**
 ```neuroscript
-TOOL.Go.Vet(target: "./pkg/core")
+tool.gotools.Vet(target: "./pkg/core")
 ```
-
-**Error Conditions:** ErrInvalidArgument if optional target is not a string; ErrConfiguration if sandbox is not set; ErrInternalSecurity for path validation issues. Command execution failures are reported within the returned map.
 ---
 
-## `tool.HasPrefix`
-**Description:** Checks if a string starts with a prefix.
-
-**Category:** String Operations
-
-**Parameters:**
-* `input_string` (`string`): The string to check.
-* `prefix` (`string`): The prefix to check for.
-
-**Returns:** (`bool`) Returns true if the input_string starts with the prefix, false otherwise.
-
-**Example:**
-```neuroscript
-tool.HasPrefix("filename.txt", "filename") // Returns true
-```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `input_string` or `prefix` are not strings.
----
-
-## `tool.HasSuffix`
-**Description:** Checks if a string ends with a suffix.
-
-**Category:** String Operations
-
-**Parameters:**
-* `input_string` (`string`): The string to check.
-* `suffix` (`string`): The suffix to check for.
-
-**Returns:** (`bool`) Returns true if the input_string ends with the suffix, false otherwise.
-
-**Example:**
-```neuroscript
-tool.HasSuffix("document.doc", ".doc") // Returns true
-```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `input_string` or `suffix` are not strings.
----
-
-## `tool.Input`
+## `tool.io.Input`
 **Description:** Displays a message and waits for user input from standard input. Returns the input as a string.
 
 **Category:** Input/Output
@@ -1043,68 +811,25 @@ tool.HasSuffix("document.doc", ".doc") // Returns true
 ```neuroscript
 userName = TOOL.Input(message: "Enter your name: ")
 ```
-
-**Error Conditions:** ErrorCodeType if the prompt message argument is provided but not a string; ErrorCodeIOFailed if reading from standard input fails (e.g., EOF).
 ---
 
-## `tool.Join`
-**Description:** Joins elements of a list of strings with a separator.
+## `tool.io.Print`
+**Description:** Prints values to the standard output. If multiple values are passed in a list, they are printed space-separated.
 
-**Category:** String Operations
+**Category:** Input/Output
 
 **Parameters:**
-* `string_list` (`slice_string`): List of strings to join.
-* `separator` (`string`): String to place between elements.
+* `values` (`any`): A single value or a list of values to print. List elements will be space-separated.
 
-**Returns:** (`string`) Returns a single string created by joining the elements of string_list with the separator.
+**Returns:** (`nil`) Returns nil. This tool is used for its side effect of printing to standard output.
 
 **Example:**
 ```neuroscript
-tool.Join(["apple", "banana"], ", ") // Returns "apple, banana"
+TOOL.Print(value: "Hello World")\nTOOL.Print(values: ["Hello", 42, "World!"]) // Prints "Hello 42 World!"
 ```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `string_list` is not a list of strings or `separator` is not a string.
 ---
 
-## `tool.Length`
-**Description:** Returns the number of UTF-8 characters (runes) in a string.
-
-**Category:** String Operations
-
-**Parameters:**
-* `input_string` (`string`): The string to measure.
-
-**Returns:** (`int`) Returns an integer representing the number of runes in the input string.
-
-**Example:**
-```neuroscript
-tool.Length("hello") // Returns 5
-```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `input_string` is not a string.
----
-
-## `tool.LineCount`
-**Description:** Counts the number of lines in the given string content.
-
-**Category:** String Operations
-
-**Parameters:**
-* `content_string` (`string`): The string content in which to count lines.
-
-**Returns:** (`int`) Returns an integer representing the number of lines in the string. Lines are typically separated by '\n'. An empty string results in 0 lines. If the string is not empty and does not end with a newline, the last line is still counted.
-
-**Example:**
-```neuroscript
-tool.LineCount("line1\nline2\nline3") // Returns 3
-tool.LineCount("line1\nline2") // Returns 2
-tool.LineCount("") // Returns 0
-```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `content_string` is not a string.
----
-
-## `tool.List.Append`
+## `tool.list.Append`
 **Description:** Returns a *new* list with the given element added to the end.
 
 **Category:** List Operations
@@ -1119,11 +844,9 @@ tool.LineCount("") // Returns 0
 ```neuroscript
 tool.List.Append([1, 2], 3) // returns [1, 2, 3]
 ```
-
-**Error Conditions:** None expected, as input validation ensures 'list' is a slice. Appending 'nil' is allowed.
 ---
 
-## `tool.List.Contains`
+## `tool.list.Contains`
 **Description:** Checks if a list contains a specific element (using deep equality comparison).
 
 **Category:** List Operations
@@ -1138,11 +861,9 @@ tool.List.Append([1, 2], 3) // returns [1, 2, 3]
 ```neuroscript
 tool.List.Contains([1, "a", true], "a") // returns true
 ```
-
-**Error Conditions:** None expected. Comparison with 'nil' elements is handled.
 ---
 
-## `tool.List.Get`
+## `tool.list.Get`
 **Description:** Safely gets the element at a specific index (0-based). Returns nil or the optional default value if the index is out of bounds.
 
 **Category:** List Operations
@@ -1158,11 +879,9 @@ tool.List.Contains([1, "a", true], "a") // returns true
 ```neuroscript
 tool.List.Get(["a", "b", "c"], 1) // returns "b"\n tool.List.Get(["a"], 5, "default_val") // returns "default_val"
 ```
-
-**Error Conditions:** Returns nil or the default value if the index is out of bounds. No specific error type is returned for out-of-bounds access by design.
 ---
 
-## `tool.List.Head`
+## `tool.list.Head`
 **Description:** Returns the first element of the list, or nil if the list is empty.
 
 **Category:** List Operations
@@ -1176,11 +895,9 @@ tool.List.Get(["a", "b", "c"], 1) // returns "b"\n tool.List.Get(["a"], 5, "defa
 ```neuroscript
 tool.List.Head([1, 2, 3]) // returns 1\ntool.List.Head([]) // returns nil
 ```
-
-**Error Conditions:** None expected. Returns nil for an empty list.
 ---
 
-## `tool.List.IsEmpty`
+## `tool.list.IsEmpty`
 **Description:** Returns true if the list has zero elements, false otherwise.
 
 **Category:** List Operations
@@ -1194,11 +911,9 @@ tool.List.Head([1, 2, 3]) // returns 1\ntool.List.Head([]) // returns nil
 ```neuroscript
 tool.List.IsEmpty([]) // returns true\ntool.List.IsEmpty([1]) // returns false
 ```
-
-**Error Conditions:** None expected.
 ---
 
-## `tool.List.Length`
+## `tool.list.Length`
 **Description:** Returns the number of elements in a list.
 
 **Category:** List Operations
@@ -1212,11 +927,9 @@ tool.List.IsEmpty([]) // returns true\ntool.List.IsEmpty([1]) // returns false
 ```neuroscript
 tool.List.Length([1, 2, 3]) // returns 3
 ```
-
-**Error Conditions:** None expected, as input validation ensures 'list' is a slice. An empty list returns 0.
 ---
 
-## `tool.List.Prepend`
+## `tool.list.Prepend`
 **Description:** Returns a *new* list with the given element added to the beginning.
 
 **Category:** List Operations
@@ -1231,11 +944,9 @@ tool.List.Length([1, 2, 3]) // returns 3
 ```neuroscript
 tool.List.Prepend([2, 3], 1) // returns [1, 2, 3]
 ```
-
-**Error Conditions:** None expected, as input validation ensures 'list' is a slice. Prepending 'nil' is allowed.
 ---
 
-## `tool.List.Rest`
+## `tool.list.Rest`
 **Description:** Returns a *new* list containing all elements except the first. Returns an empty list if the input list has 0 or 1 element.
 
 **Category:** List Operations
@@ -1249,11 +960,9 @@ tool.List.Prepend([2, 3], 1) // returns [1, 2, 3]
 ```neuroscript
 tool.List.Rest([1, 2, 3]) // returns [2, 3]\ntool.List.Rest([1]) // returns []
 ```
-
-**Error Conditions:** None expected. Returns an empty list for lists with 0 or 1 element.
 ---
 
-## `tool.List.Reverse`
+## `tool.list.Reverse`
 **Description:** Returns a *new* list with the elements in reverse order.
 
 **Category:** List Operations
@@ -1267,11 +976,9 @@ tool.List.Rest([1, 2, 3]) // returns [2, 3]\ntool.List.Rest([1]) // returns []
 ```neuroscript
 tool.List.Reverse([1, 2, 3]) // returns [3, 2, 1]
 ```
-
-**Error Conditions:** None expected.
 ---
 
-## `tool.List.Slice`
+## `tool.list.Slice`
 **Description:** Returns a *new* list containing elements from the start index (inclusive) up to the end index (exclusive). Follows Go slice semantics (indices are clamped, invalid range returns empty list).
 
 **Category:** List Operations
@@ -1287,11 +994,9 @@ tool.List.Reverse([1, 2, 3]) // returns [3, 2, 1]
 ```neuroscript
 tool.List.Slice([1, 2, 3, 4, 5], 1, 4) // returns [2, 3, 4]
 ```
-
-**Error Conditions:** Returns an empty list for invalid or out-of-bounds start/end indices. Does not return an error for range issues.
 ---
 
-## `tool.List.Sort`
+## `tool.list.Sort`
 **Description:** Returns a *new* list with elements sorted. Restricted to lists containing only numbers (int/float) or only strings. Throws error for mixed types or non-sortable types (nil, bool, list, map).
 
 **Category:** List Operations
@@ -1305,11 +1010,9 @@ tool.List.Slice([1, 2, 3, 4, 5], 1, 4) // returns [2, 3, 4]
 ```neuroscript
 tool.List.Sort([3, 1, 2]) // returns [1, 2, 3]\ntool.List.Sort(["c", "a", "b"]) // returns ["a", "b", "c"]
 ```
-
-**Error Conditions:** Returns an error (ErrListCannotSortMixedTypes) if the list contains mixed types (e.g., numbers and strings), nil elements, or other non-sortable types like booleans, maps, or other lists.
 ---
 
-## `tool.List.Tail`
+## `tool.list.Tail`
 **Description:** Returns a *new* list containing the last 'count' elements. Returns an empty list if count <= 0. Returns a copy of the whole list if count >= list length.
 
 **Category:** List Operations
@@ -1324,75 +1027,43 @@ tool.List.Sort([3, 1, 2]) // returns [1, 2, 3]\ntool.List.Sort(["c", "a", "b"]) 
 ```neuroscript
 tool.List.Tail([1, 2, 3, 4, 5], 3) // returns [3, 4, 5]\ntool.List.Tail([1, 2], 5) // returns [1, 2]
 ```
-
-**Error Conditions:** None expected. Handles various 'count' values appropriately, returning an empty list or a copy of the whole list as applicable.
 ---
 
-## `tool.ListAPIFiles`
-**Description:** Lists files currently available via the platform's File API.
+## `tool.math.Add`
+**Description:** Calculates the sum of two numbers (integers or decimals). Strings convertible to numbers are accepted.
+
+**Category:** Math Operations
 
 **Parameters:**
-_None_
+* `num1` (`float`): The first number (or numeric string) to add.
+* `num2` (`float`): The second number (or numeric string) to add.
 
-**Returns:** (`slice_any`) 
----
-
-## `tool.Meta.GetToolSpecificationsJSON`
-**Description:** Provides a JSON string containing an array of all currently available tool specifications. Each object in the array represents a tool and includes its name, description, category, arguments (with their details), return type, return help, variadic status, example usage, and error conditions.
-
-**Category:** Introspection
-
-**Parameters:**
-_None_
-
-**Returns:** (`string`) A JSON string representing an array of ToolSpec objects. This is intended for programmatic use or detailed inspection of all tool capabilities.
+**Returns:** (`float`) Returns the sum of num1 and num2 as a float64. Both inputs are expected to be (or be coercible to) numbers.
 
 **Example:**
 ```neuroscript
-TOOL.Meta.GetToolSpecificationsJSON()
+tool.Add(5, 3.5) // returns 8.5
 ```
-
-**Error Conditions:** Returns an error (ErrorCodeInternal) if JSON marshalling of the tool specifications fails. Generally does not return other errors unless the ToolRegistry is uninitialized (ErrorCodeConfiguration).
 ---
 
-## `tool.Meta.ListTools`
-**Description:** Provides a compact text list (sorted alphabetically) of all currently available tools, including basic parameter information. Each tool is listed on a new line, showing its name, parameters (name:type), and return type. Example: FS.Read(filepath:string) -> string
+## `tool.math.Divide`
+**Description:** Calculates the division of two numbers (num1 / num2). Returns float. Handles division by zero.
 
-**Category:** Introspection
+**Category:** Math Operations
 
 **Parameters:**
-_None_
+* `num1` (`float`): The dividend.
+* `num2` (`float`): The divisor.
 
-**Returns:** (`string`) A string containing a newline-separated list of tool names, their parameters (name:type), and return types.
+**Returns:** (`float`) Returns the result of num1 / num2 as a float64. Both inputs are expected to be (or be coercible to) numbers.
 
 **Example:**
 ```neuroscript
-TOOL.Meta.ListTools()
+tool.Divide(10, 4) // returns 2.5
 ```
-
-**Error Conditions:** Generally does not return errors, unless the ToolRegistry is uninitialized (which would be an ErrorCodeConfiguration if an attempt is made to call it in such a state).
 ---
 
-## `tool.Meta.ToolsHelp`
-**Description:** Provides a more extensive, Markdown-formatted list of available tools, including descriptions, parameters, and return types. Can be filtered by providing a partial tool name. Details include parameter names, types, descriptions, and return type with its description.
-
-**Category:** Introspection
-
-**Parameters:**
-* `filter` (`string`): (optional) An optional string to filter tool names. Only tools whose names contain this substring will be listed. If empty or omitted, all tools are listed.
-
-**Returns:** (`string`) A string in Markdown format detailing available tools, their descriptions, parameters, and return types. Output can be filtered by the optional 'filter' argument.
-
-**Example:**
-```neuroscript
-TOOL.Meta.ToolsHelp(filter: "FS")
-TOOL.Meta.ToolsHelp()
-```
-
-**Error Conditions:** Returns ErrorCodeType if the 'filter' argument is provided but is not a string. Generally does not return other errors, unless the ToolRegistry is uninitialized (ErrorCodeConfiguration).
----
-
-## `tool.Modulo`
+## `tool.math.Modulo`
 **Description:** Calculates the modulo (remainder) of two integers (num1 % num2). Handles division by zero.
 
 **Category:** Math Operations
@@ -1407,11 +1078,9 @@ TOOL.Meta.ToolsHelp()
 ```neuroscript
 tool.Modulo(10, 3) // returns 1
 ```
-
-**Error Conditions:** Returns 'ErrDivisionByZero' if num2 is 0. Returns an 'ErrInternalTool' if arguments cannot be processed as int64 (should be caught by validation).
 ---
 
-## `tool.Multiply`
+## `tool.math.Multiply`
 **Description:** Calculates the product of two numbers. Strings convertible to numbers are accepted.
 
 **Category:** Math Operations
@@ -1426,30 +1095,194 @@ tool.Modulo(10, 3) // returns 1
 ```neuroscript
 tool.Multiply(6, 7.0) // returns 42.0
 ```
-
-**Error Conditions:** Returns an 'ErrInternalTool' if arguments cannot be processed as float64 (should be caught by validation).
 ---
 
-## `tool.Print`
-**Description:** Prints values to the standard output. If multiple values are passed in a list, they are printed space-separated.
+## `tool.math.Subtract`
+**Description:** Calculates the difference between two numbers (num1 - num2). Strings convertible to numbers are accepted.
 
-**Category:** Input/Output
+**Category:** Math Operations
 
 **Parameters:**
-* `values` (`any`): A single value or a list of values to print. List elements will be space-separated.
+* `num1` (`float`): The number to subtract from.
+* `num2` (`float`): The number to subtract.
 
-**Returns:** (`nil`) Returns nil. This tool is used for its side effect of printing to standard output.
-**Variadic:** Yes
+**Returns:** (`float`) Returns the difference of num1 - num2 as a float64. Both inputs are expected to be (or be coercible to) numbers.
 
 **Example:**
 ```neuroscript
-TOOL.Print(value: "Hello World")\nTOOL.Print(values: ["Hello", 42, "World!"]) // Prints "Hello 42 World!"
+tool.Subtract(10, 4.5) // returns 5.5
 ```
-
-**Error Conditions:** ErrArgumentMismatch if the internal 'values' argument is not provided as expected by the implementation.
 ---
 
-## `tool.Replace`
+## `tool.script.ListFunctions`
+**Description:** Returns a map of all currently loaded function (procedure) names to their signatures.
+
+**Category:** Scripting
+
+**Parameters:**
+_None_
+
+**Returns:** (`map`) Returns a map where each key is the name of a known function and the value is its signature.
+
+**Example:**
+```neuroscript
+set loaded_functions = tool.script.ListFunctions()
+```
+---
+
+## `tool.script.LoadScript`
+**Description:** Parses a string of NeuroScript code and loads its functions and event handlers into the current interpreter's scope. Does not execute any code.
+
+**Category:** Scripting
+
+**Parameters:**
+* `script_content` (`string`): A string containing the NeuroScript code to load.
+
+**Returns:** (`map`) Returns a map with keys 'functions_loaded', 'event_handlers_loaded', and 'metadata', which contains the file-level metadata from the script header.
+
+**Example:**
+```neuroscript
+set result = tool.script.LoadScript(":: purpose: example\nfunc f()means\nendfunc")\nemit result["metadata"]["purpose"]
+```
+---
+
+## `tool.shell.Execute`
+**Description:** Executes an arbitrary shell command. WARNING: Use with extreme caution due to security risks. Command path validation is basic. Consider using specific tools (e.g., GoBuild, GitAdd) instead.
+
+**Category:** Shell Operations
+
+**Parameters:**
+* `command` (`string`): The command or executable path (must not contain path separators like '/' or '\').
+* `args_list` (`slice_string`): (optional) A list of string arguments for the command.
+* `directory` (`string`): (optional) Optional directory (relative to sandbox) to execute the command in. Defaults to sandbox root.
+
+**Returns:** (`map`) Returns a map containing 'stdout' (string), 'stderr' (string), 'exit_code' (int), and 'success' (bool) of the executed command. 'success' is true if the command exits with code 0, false otherwise. The command is executed within the sandboxed environment.
+
+**Example:**
+```neuroscript
+tool.shell.Execute("ls", ["-la"], "my_directory")
+```
+---
+
+## `tool.str.Concat`
+**Description:** Concatenates a list of strings without a separator.
+
+**Category:** String Operations
+
+**Parameters:**
+* `strings_list` (`slice_string`): List of strings to concatenate.
+
+**Returns:** (`string`) Returns a single string by concatenating all strings in the strings_list.
+
+**Example:**
+```neuroscript
+tool.Concat(["hello", " ", "world"]) // Returns "hello world"
+```
+---
+
+## `tool.str.Contains`
+**Description:** Checks if a string contains a substring.
+
+**Category:** String Operations
+
+**Parameters:**
+* `input_string` (`string`): The string to check.
+* `substring` (`string`): The substring to search for.
+
+**Returns:** (`bool`) Returns true if the input_string contains the substring, false otherwise.
+
+**Example:**
+```neuroscript
+tool.Contains("hello world", "world") // Returns true
+```
+---
+
+## `tool.str.HasPrefix`
+**Description:** Checks if a string starts with a prefix.
+
+**Category:** String Operations
+
+**Parameters:**
+* `input_string` (`string`): The string to check.
+* `prefix` (`string`): The prefix to check for.
+
+**Returns:** (`bool`) Returns true if the input_string starts with the prefix, false otherwise.
+
+**Example:**
+```neuroscript
+tool.HasPrefix("filename.txt", "filename") // Returns true
+```
+---
+
+## `tool.str.HasSuffix`
+**Description:** Checks if a string ends with a suffix.
+
+**Category:** String Operations
+
+**Parameters:**
+* `input_string` (`string`): The string to check.
+* `suffix` (`string`): The suffix to check for.
+
+**Returns:** (`bool`) Returns true if the input_string ends with the suffix, false otherwise.
+
+**Example:**
+```neuroscript
+tool.HasSuffix("document.doc", ".doc") // Returns true
+```
+---
+
+## `tool.str.Join`
+**Description:** Joins elements of a list of strings with a separator.
+
+**Category:** String Operations
+
+**Parameters:**
+* `string_list` (`slice_string`): List of strings to join.
+* `separator` (`string`): String to place between elements.
+
+**Returns:** (`string`) Returns a single string created by joining the elements of string_list with the separator.
+
+**Example:**
+```neuroscript
+tool.Join(["apple", "banana"], ", ") // Returns "apple, banana"
+```
+---
+
+## `tool.str.Length`
+**Description:** Returns the number of UTF-8 characters (runes) in a string.
+
+**Category:** String Operations
+
+**Parameters:**
+* `input_string` (`string`): The string to measure.
+
+**Returns:** (`int`) Returns an integer representing the number of runes in the input string.
+
+**Example:**
+```neuroscript
+tool.Length("hello") // Returns 5
+```
+---
+
+## `tool.str.LineCount`
+**Description:** Counts the number of lines in the given string content.
+
+**Category:** String Operations
+
+**Parameters:**
+* `content_string` (`string`): The string content in which to count lines.
+
+**Returns:** (`int`) Returns an integer representing the number of lines in the string. Lines are typically separated by '\n'. An empty string results in 0 lines. If the string is not empty and does not end with a newline, the last line is still counted.
+
+**Example:**
+```neuroscript
+tool.LineCount("line1\nline2\nline3") // Returns 3
+tool.LineCount("line1\nline2") // Returns 2
+tool.LineCount("") // Returns 0
+```
+---
+
+## `tool.str.Replace`
 **Description:** Replaces occurrences of a substring with another, up to a specified count.
 
 **Category:** String Operations
@@ -1466,31 +1299,9 @@ TOOL.Print(value: "Hello World")\nTOOL.Print(values: ["Hello", 42, "World!"]) //
 ```neuroscript
 tool.Replace("ababab", "ab", "cd", 2) // Returns "cdcdab"
 ```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `input_string`, `old_substring`, or `new_substring` are not strings, or if `count` is not an integer.
 ---
 
-## `tool.Shell.Execute`
-**Description:** Executes an arbitrary shell command. WARNING: Use with extreme caution due to security risks. Command path validation is basic. Consider using specific tools (e.g., GoBuild, GitAdd) instead.
-
-**Category:** Shell Operations
-
-**Parameters:**
-* `command` (`string`): The command or executable path (must not contain path separators like '/' or '\').
-* `args_list` (`slice_string`): (optional) A list of string arguments for the command.
-* `directory` (`string`): (optional) Optional directory (relative to sandbox) to execute the command in. Defaults to sandbox root.
-
-**Returns:** (`map`) Returns a map containing 'stdout' (string), 'stderr' (string), 'exit_code' (int), and 'success' (bool) of the executed command. 'success' is true if the command exits with code 0, false otherwise. The command is executed within the sandboxed environment.
-
-**Example:**
-```neuroscript
-tool.Shell.Execute("ls", ["-la"], "my_directory")
-```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` if an incorrect number of arguments is provided. Returns `ErrInvalidArgument` or `ErrorCodeType` if 'command' is not a string, 'args_list' is not a list of strings, or 'directory' is not a string. Returns `ErrSecurityViolation` if the 'command' path is deemed suspicious (e.g., contains path separators or shell metacharacters). Returns `ErrInternal` if the internal FileAPI is not available. May return path-related errors (e.g., `ErrFileNotFound`, `ErrPathNotDirectory`, `ErrPermissionDenied`) if the specified 'directory' is invalid or inaccessible. If the command itself executes but fails (non-zero exit code), 'success' in the result map will be false, and 'stderr' may contain error details. OS-level execution errors are also captured in 'stderr'.
----
-
-## `tool.Split`
+## `tool.str.Split`
 **Description:** Splits a string by a delimiter.
 
 **Category:** String Operations
@@ -1505,11 +1316,9 @@ tool.Shell.Execute("ls", ["-la"], "my_directory")
 ```neuroscript
 tool.Split("apple,banana,orange", ",") // Returns ["apple", "banana", "orange"]
 ```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `input_string` or `delimiter` are not strings.
 ---
 
-## `tool.SplitWords`
+## `tool.str.SplitWords`
 **Description:** Splits a string into words based on whitespace.
 
 **Category:** String Operations
@@ -1523,29 +1332,9 @@ tool.Split("apple,banana,orange", ",") // Returns ["apple", "banana", "orange"]
 ```neuroscript
 tool.SplitWords("hello world  example") // Returns ["hello", "world", "example"]
 ```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `input_string` is not a string.
 ---
 
-## `tool.Staticcheck`
-**Description:** Runs 'staticcheck' on the specified target(s) in the sandbox. Reports bugs, stylistic errors, and performance issues. Defaults to './...'. Assumes 'staticcheck' is in PATH.
-
-**Category:** Go Diagnostics
-
-**Parameters:**
-* `target` (`string`): (optional) Optional. The target for 'staticcheck' (e.g., a package path or './...'). Defaults to './...'.
-
-**Returns:** (`map`) Returns a map with 'stdout', 'stderr', 'exit_code' (int64), and 'success' (bool) from the 'staticcheck <target>' command. 'stdout' usually contains the diagnostics.
-
-**Example:**
-```neuroscript
-TOOL.Staticcheck(target: "./...")
-```
-
-**Error Conditions:** ErrInvalidArgument if optional target is not a string; ErrToolExecutionFailed if 'staticcheck' command fails (e.g. not found, or internal error), reported via the toolExecuteCommand structure.
----
-
-## `tool.Substring`
+## `tool.str.Substring`
 **Description:** Returns a portion of the string (rune-based indexing), from start_index for a given length.
 
 **Category:** String Operations
@@ -1561,74 +1350,9 @@ TOOL.Staticcheck(target: "./...")
 ```neuroscript
 tool.Substring("hello world", 6, 5) // Returns "world"
 ```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if arguments are not of the correct type. Returns `ErrListIndexOutOfBounds` (with `ErrorCodeBounds`) if `start_index` or `length` are negative.
 ---
 
-## `tool.Subtract`
-**Description:** Calculates the difference between two numbers (num1 - num2). Strings convertible to numbers are accepted.
-
-**Category:** Math Operations
-
-**Parameters:**
-* `num1` (`float`): The number to subtract from.
-* `num2` (`float`): The number to subtract.
-
-**Returns:** (`float`) Returns the difference of num1 - num2 as a float64. Both inputs are expected to be (or be coercible to) numbers.
-
-**Example:**
-```neuroscript
-tool.Subtract(10, 4.5) // returns 5.5
-```
-
-**Error Conditions:** Returns an 'ErrInternalTool' if arguments cannot be processed as float64 (should be caught by validation).
----
-
-## `tool.SyncFiles`
-**Description:** Synchronizes files between a local sandbox directory and the platform's File API. Supports 'up' (local to API) and 'down' (API to local) directions.
-
-**Parameters:**
-* `direction` (`string`): Sync direction: 'up' (local to API) or 'down' (API to local).
-* `local_dir` (`string`): Relative path (within the sandbox) of the local directory to sync.
-* `filter_pattern` (`string`): (optional) Optional glob pattern (e.g., '*.go', 'data/**') to filter files being synced. Applies to filenames relative to local_dir.
-* `ignore_gitignore` (`bool`): (optional) If true, ignores .gitignore rules found within the local_dir (default: false).
-
-**Returns:** (`map`) 
----
-
-## `tool.Time.Now`
-**Description:** Returns the current system time as a 'timedate' value.
-
-**Category:** Time
-
-**Parameters:**
-_None_
-
-**Returns:** (`timedate`) A 'timedate' value representing the moment the tool was called.
-
-**Example:**
-```neuroscript
-`set right_now = tool.Time.Now()`
-```
----
-
-## `tool.Time.Sleep`
-**Description:** Pauses the script execution for a specified duration.
-
-**Category:** Time
-
-**Parameters:**
-* `duration_seconds` (`number`): (optional) The number of seconds to sleep (can be a fraction).
-
-**Returns:** (`boolean`) Returns true on successful completion of the sleep duration.
-
-**Example:**
-```neuroscript
-`call tool.Time.Sleep(1.5)`
-```
----
-
-## `tool.ToLower`
+## `tool.str.ToLower`
 **Description:** Converts a string to lowercase.
 
 **Category:** String Operations
@@ -1642,11 +1366,9 @@ _None_
 ```neuroscript
 tool.ToLower("HELLO") // Returns "hello"
 ```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `input_string` is not a string.
 ---
 
-## `tool.ToUpper`
+## `tool.str.ToUpper`
 **Description:** Converts a string to uppercase.
 
 **Category:** String Operations
@@ -1660,288 +1382,9 @@ tool.ToLower("HELLO") // Returns "hello"
 ```neuroscript
 tool.ToUpper("hello") // Returns "HELLO"
 ```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `input_string` is not a string.
 ---
 
-## `tool.Tree.AddChildNode`
-**Description:** Adds a new child node to an existing parent node. Returns the ID of the newly created child node.
-
-**Category:** Tree Manipulation
-
-**Parameters:**
-* `tree_handle` (`string`): Handle for the tree structure.
-* `parent_node_id` (`string`): ID of the node that will become the parent.
-* `new_node_id_suggestion` (`string`): (optional) Optional suggested unique ID for the new node. If empty or nil, an ID will be auto-generated. Must be unique if provided.
-* `node_type` (`string`): Type of the new child (e.g., 'object', 'array', 'string', 'number', 'boolean', 'null', 'checklist_item').
-* `value` (`any`): (optional) Initial value if the node_type is a leaf or simple type. Ignored for 'object' and 'array' types.
-* `key_for_object_parent` (`string`): (optional) If the parent is an 'object' node, this key is used to link the new child in the parent's attributes. Required for object parents.
-
-**Returns:** (`string`) Returns the string ID of the newly created child node.
-
-**Example:**
-```neuroscript
-handle = tool.Tree.LoadJSON("{\"root\":{}}"); tool.Tree.AddChildNode(handle, "actual_root_id", "newChildNodeID", "string", "new child value", "childAttributeKey")
-```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` or `ErrInvalidArgument` (with `ErrorCodeType`) for bad/missing arguments (e.g., invalid `node_type`, missing `key_for_object_parent` when parent is 'object'). Returns `ErrTreeNotFound` if handle is invalid. Returns `ErrNodeNotFound` if `parent_node_id` does not exist. Returns `ErrNodeWrongType` if parent node type cannot accept children in the specified manner. Returns `ErrNodeIDExists` (with `ErrorCodeTreeConstraintViolation`) if `new_node_id_suggestion` (if provided) already exists.
----
-
-## `tool.Tree.FindNodes`
-**Description:** Finds nodes within a tree (starting from a specified node) that match specific criteria. Returns a list of matching node IDs.
-
-**Category:** Tree Manipulation
-
-**Parameters:**
-* `tree_handle` (`string`): Handle to the tree structure.
-* `start_node_id` (`string`): ID of the node within the tree to start searching from. The search includes this node.
-* `query_map` (`map`): Map defining search criteria. Supported keys: 'id' (string), 'type' (string), 'value' (any), 'attributes' (map of string:string for child node ID checks), 'metadata' (map of string:string for direct string value metadata checks). Other keys are treated as direct metadata attribute checks.
-* `max_depth` (`int`): (optional) Maximum depth to search relative to the start node (0 for start node only, -1 for unlimited). Default: -1.
-* `max_results` (`int`): (optional) Maximum number of matching node IDs to return (-1 for unlimited). Default: -1.
-
-**Returns:** (`slice_string`) Returns a slice of strings, where each string is a node ID matching the query criteria.
-
-**Example:**
-```neuroscript
-handle = tool.Tree.LoadJSON("{\"root\":{\"type\":\"folder\", \"data\":{\"id\":\"child1\", \"type\":\"file\"}}}"); tool.Tree.FindNodes(handle, "id_of_root_node", {\"type\":\"file\"})
-```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` or `ErrInvalidArgument` (with `ErrorCodeType`) for bad/missing arguments. Returns `ErrTreeNotFound` if handle is invalid. Returns `ErrNodeNotFound` if `start_node_id` does not exist. Returns `ErrTreeInvalidQuery` (with `ErrorCodeArgMismatch`) if `query_map` is malformed (e.g., incorrect value type for a query key). May return `ErrInternal` for other unexpected errors during the recursive search.
----
-
-## `tool.Tree.GetChildren`
-**Description:** Gets a list of node IDs of the children of a given 'array' type node. Other node types will result in an error.
-
-**Category:** Tree Manipulation
-
-**Parameters:**
-* `tree_handle` (`string`): Handle to the tree structure.
-* `node_id` (`string`): ID of the 'array' type parent node.
-
-**Returns:** (`slice_string`) Returns a slice of strings, where each string is a child node ID from the specified 'array' node. Returns an empty slice if the array node has no children.
-
-**Example:**
-```neuroscript
-handle = tool.Tree.LoadJSON("{\"myArray\":[{\"id\":\"child1\"}, {\"id\":\"child2\"}]}"); tool.Tree.GetChildren(handle, "id_of_myArray_node") // Returns ["child1", "child2"] if those are their actual IDs.
-```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` or `ErrInvalidArgument` (with `ErrorCodeType`) for bad arguments. Returns `ErrTreeNotFound` if handle is invalid. Returns `ErrNodeNotFound` if `node_id` does not exist. Returns `ErrNodeWrongType` if the specified `node_id` is not an 'array' type node.
----
-
-## `tool.Tree.GetNode`
-**Description:** Retrieves detailed information about a specific node within a tree, returned as a map. The map includes 'id', 'type', 'value', 'attributes' (map), 'children' (slice of IDs), 'parent_id', and 'parent_attribute_key'.
-
-**Category:** Tree Manipulation
-
-**Parameters:**
-* `tree_handle` (`string`): Handle to the tree structure.
-* `node_id` (`string`): The unique ID of the node to retrieve.
-
-**Returns:** (`map`) Returns a map containing details of the specified node. Structure: {'id': string, 'type': string, 'value': any, 'attributes': map[string]string, 'children': []string, 'parent_id': string, 'parent_attribute_key': string}. 'attributes' for non-object nodes will be their metadata. 'children' is primarily for array-like nodes.
-
-**Example:**
-```neuroscript
-handle = tool.Tree.LoadJSON("{\"root\":{\"child\":\"value\"}}"); tool.Tree.GetNode(handle, "root_node_id") // Replace root_node_id with actual ID of the 'root' node
-```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` or `ErrInvalidArgument` (with `ErrorCodeType`) for bad arguments. Returns `ErrTreeNotFound` if the handle is invalid. Returns `ErrNodeNotFound` if `node_id` does not exist in the tree.
----
-
-## `tool.Tree.GetParent`
-**Description:** Gets the node ID of the parent of a given node.
-
-**Category:** Tree Manipulation
-
-**Parameters:**
-* `tree_handle` (`string`): Handle to the tree structure.
-* `node_id` (`string`): ID of the node whose parent is sought.
-
-**Returns:** (`string`) Returns the string ID of the parent node. Returns nil if the node is the root or has no explicitly set parent (which can occur if the node was detached or is the root).
-
-**Example:**
-```neuroscript
-handle = tool.Tree.LoadJSON("{\"root\":{\"childKey\": {}}}"); tool.Tree.GetParent(handle, "child_node_id") // Assuming child_node_id is the ID of the node under 'childKey'
-```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` or `ErrInvalidArgument` (with `ErrorCodeType`) for bad arguments. Returns `ErrTreeNotFound` if the handle is invalid. Returns `ErrNodeNotFound` if `node_id` does not exist.
----
-
-## `tool.Tree.LoadJSON`
-**Description:** Loads a JSON string into a new tree structure and returns a tree handle.
-
-**Category:** Tree Manipulation
-
-**Parameters:**
-* `json_string` (`string`): The JSON data as a string.
-
-**Returns:** (`string`) Returns a string handle representing the loaded tree. This handle is used in subsequent tree operations.
-
-**Example:**
-```neuroscript
-tool.Tree.LoadJSON("{\"name\": \"example\"}") // Returns a tree handle like "tree_handle_XYZ"
-```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` for incorrect argument count. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `json_string` is not a string. Returns `ErrTreeJSONUnmarshal` (with `ErrorCodeSyntax`) if JSON parsing fails. Returns `ErrInternal` for failures in tree building or handle registration.
----
-
-## `tool.Tree.RemoveNode`
-**Description:** Removes a node (specified by ID) and all its descendants from the tree. Cannot remove the root node.
-
-**Category:** Tree Manipulation
-
-**Parameters:**
-* `tree_handle` (`string`): Handle to the tree.
-* `node_id` (`string`): ID of the node to remove.
-
-**Returns:** (`nil`) Returns nil on success. Removes the node and its descendants.
-
-**Example:**
-```neuroscript
-handle = tool.Tree.LoadJSON("{\"root\":{\"childKey\": {}}}"); tool.Tree.RemoveNode(handle, "id_of_child_node_under_childKey")
-```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` or `ErrInvalidArgument` (with `ErrorCodeType`) for bad arguments. Returns `ErrTreeNotFound` if handle is invalid. Returns `ErrNodeNotFound` if `node_id` does not exist. Returns `ErrCannotRemoveRoot` (with `ErrorCodeTreeConstraintViolation`) if attempting to remove the root node. May return `ErrInternal` for inconsistent tree states (e.g., non-root node without a parent).
----
-
-## `tool.Tree.RemoveNodeMetadata`
-**Description:** Removes a metadata attribute (a key-value string pair) from a node.
-
-**Category:** Tree Manipulation
-
-**Parameters:**
-* `tree_handle` (`string`): Handle to the tree structure.
-* `node_id` (`string`): ID of the node to remove metadata from.
-* `metadata_key` (`string`): The key of the metadata attribute to remove.
-
-**Returns:** (`nil`) Returns nil on success. Removes a metadata key-value pair from the node's attributes.
-
-**Example:**
-```neuroscript
-handle = tool.Tree.LoadJSON("{\"myNode\":{}}"); tool.Tree.SetNodeMetadata(handle, "id_of_myNode", "customData", "someValue"); tool.Tree.RemoveNodeMetadata(handle, "id_of_myNode", "customData")
-```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` or `ErrInvalidArgument` (with `ErrorCodeType`) for bad/empty arguments. Returns `ErrTreeNotFound` if handle is invalid. Returns `ErrNodeNotFound` if `node_id` does not exist. Returns `ErrAttributeNotFound` if the `metadata_key` does not exist in the node's attributes.
----
-
-## `tool.Tree.RemoveObjectAttribute`
-**Description:** Removes an attribute (a key mapping to a child node ID) from an 'object' type node. This unlinks the child but does not delete the child node itself.
-
-**Category:** Tree Manipulation
-
-**Parameters:**
-* `tree_handle` (`string`): Handle for the tree structure.
-* `object_node_id` (`string`): Unique ID of the 'object' type node to modify.
-* `attribute_key` (`string`): The key (name) of the attribute to remove.
-
-**Returns:** (`nil`) Returns nil on success. Removes the attribute link from the object node.
-
-**Example:**
-```neuroscript
-handle = tool.Tree.LoadJSON("{\"objNode\":{\"myChildAttribute\":\"some_child_id\"}}"); tool.Tree.RemoveObjectAttribute(handle, "id_of_objNode", "myChildAttribute")
-```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` or `ErrInvalidArgument` (with `ErrorCodeType`) for bad/empty arguments. Returns `ErrTreeNotFound` if handle is invalid. Returns `ErrNodeNotFound` if `object_node_id` does not exist. Returns `ErrTreeNodeNotObject` (with `ErrorCodeNodeWrongType`) if `object_node_id` is not an 'object' type. Returns `ErrAttributeNotFound` if the `attribute_key` does not exist on the object node.
----
-
-## `tool.Tree.RenderText`
-**Description:** Renders a visual text representation of the entire tree structure identified by the given tree handle.
-
-**Category:** Tree Manipulation
-
-**Parameters:**
-* `tree_handle` (`string`): Handle to the tree structure to render.
-
-**Returns:** (`string`) Returns a string containing a human-readable, indented text representation of the tree.
-
-**Example:**
-```neuroscript
-handle = tool.Tree.LoadJSON("{\"a\":{\"b\":\"c\"}}"); tool.Tree.RenderText(handle) // Returns a human-readable text tree
-```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` or `ErrInvalidArgument` (with `ErrorCodeType`) for bad arguments. Returns `ErrTreeNotFound` if handle is invalid. May return `ErrInternal` for issues like a missing root node or other unexpected errors during the rendering process.
----
-
-## `tool.Tree.SetNodeMetadata`
-**Description:** Sets a metadata attribute as a key-value string pair on any node. This is separate from object attributes that link to child nodes.
-
-**Category:** Tree Manipulation
-
-**Parameters:**
-* `tree_handle` (`string`): Handle to the tree structure.
-* `node_id` (`string`): ID of the node to set metadata on.
-* `metadata_key` (`string`): The key of the metadata attribute (string).
-* `metadata_value` (`string`): The value of the metadata attribute (string).
-
-**Returns:** (`nil`) Returns nil on success. Adds or updates a string key-value pair in the node's metadata attributes.
-
-**Example:**
-```neuroscript
-handle = tool.Tree.LoadJSON("{\"myNode\":{}}"); tool.Tree.SetNodeMetadata(handle, "id_of_myNode", "version", "1.0")
-```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` or `ErrInvalidArgument` (with `ErrorCodeType`) for bad/empty arguments. Returns `ErrTreeNotFound` if handle is invalid. Returns `ErrNodeNotFound` if `node_id` does not exist.
----
-
-## `tool.Tree.SetObjectAttribute`
-**Description:** Sets or updates an attribute on an 'object' type node, mapping the attribute key to an existing child node's ID. This is for establishing parent-child relationships in object nodes.
-
-**Category:** Tree Manipulation
-
-**Parameters:**
-* `tree_handle` (`string`): Handle for the tree structure.
-* `object_node_id` (`string`): Unique ID of the 'object' type node to modify.
-* `attribute_key` (`string`): The key (name) of the attribute to set.
-* `child_node_id` (`string`): The ID of an *existing* node within the same tree to associate with the key.
-
-**Returns:** (`nil`) Returns nil on success. Sets an attribute on the object node, linking it to the child node.
-
-**Example:**
-```neuroscript
-handle = tool.Tree.LoadJSON("{\"objNode\":{}, \"childNode\":{}}"); tool.Tree.SetObjectAttribute(handle, "id_of_objNode", "myChildAttribute", "id_of_childNode")
-```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` or `ErrInvalidArgument` (with `ErrorCodeType`) for bad/empty arguments. Returns `ErrTreeNotFound` if handle is invalid. Returns `ErrNodeNotFound` if `object_node_id` or `child_node_id` does not exist. Returns `ErrTreeNodeNotObject` (with `ErrorCodeNodeWrongType`) if `object_node_id` does not refer to an 'object' type node.
----
-
-## `tool.Tree.SetValue`
-**Description:** Sets the value of an existing leaf or simple-type node (e.g., string, number, boolean, null, checklist_item). Cannot set value on 'object' or 'array' type nodes using this tool.
-
-**Category:** Tree Manipulation
-
-**Parameters:**
-* `tree_handle` (`string`): Handle to the tree structure.
-* `node_id` (`string`): ID of the leaf or simple-type node to modify.
-* `value` (`any`): The new value for the node.
-
-**Returns:** (`nil`) Returns nil on success. Modifies the node's value in place.
-
-**Example:**
-```neuroscript
-handle = tool.Tree.LoadJSON("{\"keyNode\":\"old_value\"}"); tool.Tree.SetValue(handle, "id_of_keyNode", "new_value")
-```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` or `ErrInvalidArgument` (with `ErrorCodeType`) for bad arguments. Returns `ErrTreeNotFound` if the handle is invalid. Returns `ErrNodeNotFound` if `node_id` does not exist. Returns `ErrCannotSetValueOnType` (with `ErrorCodeTreeConstraintViolation`) if attempting to set value on an 'object' or 'array' node.
----
-
-## `tool.Tree.ToJSON`
-**Description:** Converts a tree structure (identified by tree handle) back into a JSON string. Output is pretty-printed.
-
-**Category:** Tree Manipulation
-
-**Parameters:**
-* `tree_handle` (`string`): Handle to the tree structure.
-
-**Returns:** (`string`) Returns a pretty-printed JSON string representation of the tree.
-
-**Example:**
-```neuroscript
-handle = tool.Tree.LoadJSON("{\"key\":\"value\"}"); tool.Tree.ToJSON(handle) // Returns a pretty-printed JSON string.
-```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` or `ErrInvalidArgument` (with `ErrorCodeType`) for bad arguments. Returns `ErrTreeNotFound` if the handle is invalid. Returns `ErrTreeJSONMarshal` (with `ErrorCodeInternal`) if marshalling to JSON fails. Returns `ErrInternal` for internal tree consistency issues (e.g., missing root node).
----
-
-## `tool.TrimSpace`
+## `tool.str.TrimSpace`
 **Description:** Removes leading and trailing whitespace from a string.
 
 **Category:** String Operations
@@ -1955,21 +1398,9 @@ handle = tool.Tree.LoadJSON("{\"key\":\"value\"}"); tool.Tree.ToJSON(handle) // 
 ```neuroscript
 tool.TrimSpace("  hello  ") // Returns "hello"
 ```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `input_string` is not a string.
 ---
 
-## `tool.UploadFile`
-**Description:** Uploads a local file (from the sandbox) to the platform's File API. Returns a map describing the uploaded file.
-
-**Parameters:**
-* `local_filepath` (`string`): Relative path (within the sandbox) of the local file to upload.
-* `api_display_name` (`string`): (optional) Optional display name for the file on the API.
-
-**Returns:** (`map`) 
----
-
-## `tool.analyzeNSSyntax`
+## `tool.syntax.analyzeNSSyntax`
 **Description:** Analyzes a NeuroScript string for syntax errors. Returns a list of maps, where each map details an error. Returns an empty list if no errors are found.
 
 **Category:** Syntax Utilities
@@ -1979,7 +1410,7 @@ tool.TrimSpace("  hello  ") // Returns "hello"
 
 **Returns:** (`slice_map`) Returns a list (slice) of maps. Each map represents a syntax error and contains the following keys:
 - `Line`: number (1-based) - The line number of the error.
-- `Column`: number (0-based) - The character position in the line where the error occurred.
+- `Column`: number (0-based) - The character types.Position in the line where the error occurred.
 - `Msg`: string - The error message.
 - `OffendingSymbol`: string - The text of the token that caused the error (may be empty).
 - `SourceName`: string - Identifier for the source (e.g., 'nsSyntaxAnalysisToolInput').
@@ -1996,8 +1427,335 @@ if tool.List.IsEmpty(error_list) == false
   emit "First error on line " + first_error["Line"] + ": " + first_error["Msg"]
 endif
 ```
-
-**Error Conditions:** Returns `ErrArgumentMismatch` if the wrong number of arguments is supplied. Returns `ErrInvalidArgument` if `nsScriptContent` is not a string, or if the interpreter instance is nil. The underlying call to `AnalyzeNSSyntaxInternal` might return an error (e.g. `ErrInternal`) if there's an unexpected issue during its processing, though it aims to return an error list.
 ---
 
+## `tool.time.Now`
+**Description:** Returns the current system time as a 'timedate' value.
 
+**Category:** Time
+
+**Parameters:**
+_None_
+
+**Returns:** (`timedate`) A 'timedate' value representing the moment the tool was called.
+
+**Example:**
+```neuroscript
+`set right_now = tool.Time.Now()`
+```
+---
+
+## `tool.time.Sleep`
+**Description:** Pauses the script execution for a specified duration.
+
+**Category:** Time
+
+**Parameters:**
+* `duration_seconds` (`number`): (optional) The number of seconds to sleep (can be a fraction).
+
+**Returns:** (`boolean`) Returns true on successful completion of the sleep duration.
+
+**Example:**
+```neuroscript
+`call tool.Time.Sleep(1.5)`
+```
+---
+
+## `tool.tree.AddChildNode`
+**Description:** Adds a new child node to an existing parent node.
+
+**Category:** Tree Manipulation
+
+**Parameters:**
+* `tree_handle` (`string`): Handle for the tree structure.
+* `parent_node_id` (`string`): ID of the node that will become the parent.
+* `new_node_id_suggestion` (`string`): (optional) Optional suggested unique ID for the new node.
+* `node_type` (`string`): Type of the new child (e.g., 'object', 'array', 'string').
+* `value` (`any`): (optional) Initial value for simple types.
+* `key_for_object_parent` (`string`): (optional) Required if the parent is an 'object' node.
+
+**Returns:** (`string`) Returns the string ID of the newly created child node.
+
+**Example:**
+```neuroscript
+tool.Tree.AddChildNode(handle, "root_id", "newChild", "string", "hello", "message")
+```
+---
+
+## `tool.tree.FindNodes`
+**Description:** Finds nodes within a tree that match specific criteria.
+
+**Category:** Tree Manipulation
+
+**Parameters:**
+* `tree_handle` (`string`): Handle to the tree structure.
+* `start_node_id` (`string`): ID of the node to start searching from.
+* `query_map` (`map`): Map defining search criteria.
+* `max_depth` (`int`): (optional) Maximum depth to search.
+* `max_results` (`int`): (optional) Maximum number of results to return.
+
+**Returns:** (`slice_string`) Returns a slice of node IDs matching the query.
+
+**Example:**
+```neuroscript
+tool.Tree.FindNodes(handle, "start_node_id", {\"type\":\"file\"})
+```
+---
+
+## `tool.tree.GetChildren`
+**Description:** Gets a list of node IDs of the children of a given 'array' type node.
+
+**Category:** Tree Manipulation
+
+**Parameters:**
+* `tree_handle` (`string`): Handle to the tree structure.
+* `node_id` (`string`): ID of the 'array' type parent node.
+
+**Returns:** (`slice_string`) Returns a slice of child node IDs.
+
+**Example:**
+```neuroscript
+tool.Tree.GetChildren(handle, "array_node_id")
+```
+---
+
+## `tool.tree.GetNode`
+**Description:** Retrieves detailed information about a specific node within a tree, returned as a map.
+
+**Category:** Tree Manipulation
+
+**Parameters:**
+* `tree_handle` (`string`): Handle to the tree structure.
+* `node_id` (`string`): The unique ID of the node to retrieve.
+
+**Returns:** (`map`) Returns a map containing details of the specified node.
+
+**Example:**
+```neuroscript
+tool.Tree.GetNode(handle, "node_id_123")
+```
+---
+
+## `tool.tree.GetNodeByPath`
+**Description:** Retrieves a node from a tree using a dot-separated path expression.
+
+**Category:** Tree Manipulation
+
+**Parameters:**
+* `tree_handle` (`string`): Handle to the tree structure.
+* `path` (`string`): Dot-separated path (e.g., 'key.0.name').
+
+**Returns:** (`map`) Returns a map containing details of the node found at the specified path.
+
+**Example:**
+```neuroscript
+tool.Tree.GetNodeByPath(handle, "data.users.1")
+```
+---
+
+## `tool.tree.GetNodeMetadata`
+**Description:** Retrieves the metadata attributes of a specific node as a map.
+
+**Category:** Tree Manipulation
+
+**Parameters:**
+* `tree_handle` (`string`): Handle to the tree structure.
+* `node_id` (`string`): ID of the node to get metadata from.
+
+**Returns:** (`map`) Returns a map of the node's metadata attributes.
+
+**Example:**
+```neuroscript
+tool.Tree.GetNodeMetadata(handle, "node_id")
+```
+---
+
+## `tool.tree.GetParent`
+**Description:** Gets the parent of a given node as a map.
+
+**Category:** Tree Manipulation
+
+**Parameters:**
+* `tree_handle` (`string`): Handle to the tree structure.
+* `node_id` (`string`): ID of the node whose parent is sought.
+
+**Returns:** (`map`) Returns a map of the parent node, or nil if the node is the root.
+
+**Example:**
+```neuroscript
+tool.Tree.GetParent(handle, "child_node_id")
+```
+---
+
+## `tool.tree.GetRoot`
+**Description:** Retrieves the root node of the tree as a map.
+
+**Category:** Tree Manipulation
+
+**Parameters:**
+* `tree_handle` (`string`): Handle to the tree structure.
+
+**Returns:** (`map`) Returns a map containing details of the root node.
+
+**Example:**
+```neuroscript
+handle = tool.Tree.LoadJSON("{}"); tool.Tree.GetRoot(handle)
+```
+---
+
+## `tool.tree.LoadJSON`
+**Description:** Loads a JSON string into a new tree structure and returns a tree handle.
+
+**Category:** Tree Manipulation
+
+**Parameters:**
+* `json_string` (`string`): The JSON data as a string.
+
+**Returns:** (`string`) Returns a string handle representing the loaded tree.
+
+**Example:**
+```neuroscript
+tool.Tree.LoadJSON("{\"name\": \"example\"}")
+```
+---
+
+## `tool.tree.RemoveNode`
+**Description:** Removes a node and all its descendants from the tree.
+
+**Category:** Tree Manipulation
+
+**Parameters:**
+* `tree_handle` (`string`): Handle to the tree.
+* `node_id` (`string`): ID of the node to remove.
+
+**Returns:** (`nil`) Returns nil on success.
+
+**Example:**
+```neuroscript
+tool.Tree.RemoveNode(handle, "node_to_delete_id")
+```
+---
+
+## `tool.tree.RemoveNodeMetadata`
+**Description:** Removes a metadata attribute from a node.
+
+**Category:** Tree Manipulation
+
+**Parameters:**
+* `tree_handle` (`string`): Handle to the tree structure.
+* `node_id` (`string`): ID of the node to remove metadata from.
+* `metadata_key` (`string`): The key of the metadata attribute to remove.
+
+**Returns:** (`nil`) Returns nil on success.
+
+**Example:**
+```neuroscript
+tool.Tree.RemoveNodeMetadata(handle, "my_node_id", "version")
+```
+---
+
+## `tool.tree.RemoveObjectAttribute`
+**Description:** Removes an attribute from an 'object' type node.
+
+**Category:** Tree Manipulation
+
+**Parameters:**
+* `tree_handle` (`string`): Handle for the tree structure.
+* `object_node_id` (`string`): Unique ID of the 'object' type node to modify.
+* `attribute_key` (`string`): The key of the attribute to remove.
+
+**Returns:** (`nil`) Returns nil on success.
+
+**Example:**
+```neuroscript
+tool.Tree.RemoveObjectAttribute(handle, "obj_id", "myChild")
+```
+---
+
+## `tool.tree.RenderText`
+**Description:** Renders a visual text representation of the entire tree structure.
+
+**Category:** Tree Manipulation
+
+**Parameters:**
+* `tree_handle` (`string`): Handle to the tree structure to render.
+
+**Returns:** (`string`) Returns a human-readable, indented text representation of the tree.
+
+**Example:**
+```neuroscript
+tool.Tree.RenderText(handle)
+```
+---
+
+## `tool.tree.SetNodeMetadata`
+**Description:** Sets a metadata attribute as a key-value string pair on any node.
+
+**Category:** Tree Manipulation
+
+**Parameters:**
+* `tree_handle` (`string`): Handle to the tree structure.
+* `node_id` (`string`): ID of the node to set metadata on.
+* `metadata_key` (`string`): The key of the metadata attribute (string).
+* `metadata_value` (`string`): The value of the metadata attribute (string).
+
+**Returns:** (`nil`) Returns nil on success.
+
+**Example:**
+```neuroscript
+tool.Tree.SetNodeMetadata(handle, "my_node_id", "version", "1.0")
+```
+---
+
+## `tool.tree.SetObjectAttribute`
+**Description:** Sets or updates an attribute on an 'object' type node.
+
+**Category:** Tree Manipulation
+
+**Parameters:**
+* `tree_handle` (`string`): Handle for the tree structure.
+* `object_node_id` (`string`): Unique ID of the 'object' type node to modify.
+* `attribute_key` (`string`): The key of the attribute to set.
+* `child_node_id` (`string`): The ID of an existing node to associate with the key.
+
+**Returns:** (`nil`) Returns nil on success.
+
+**Example:**
+```neuroscript
+tool.Tree.SetObjectAttribute(handle, "obj_id", "myChild", "child_id")
+```
+---
+
+## `tool.tree.SetValue`
+**Description:** Sets the value of an existing leaf or simple-type node.
+
+**Category:** Tree Manipulation
+
+**Parameters:**
+* `tree_handle` (`string`): Handle to the tree structure.
+* `node_id` (`string`): ID of the leaf or simple-type node to modify.
+* `value` (`any`): The new value for the node.
+
+**Returns:** (`nil`) Returns nil on success.
+
+**Example:**
+```neuroscript
+tool.Tree.SetValue(handle, "id_of_keyNode", "new_value")
+```
+---
+
+## `tool.tree.ToJSON`
+**Description:** Converts a tree structure back into a pretty-printed JSON string.
+
+**Category:** Tree Manipulation
+
+**Parameters:**
+* `tree_handle` (`string`): Handle to the tree structure.
+
+**Returns:** (`string`) Returns a pretty-printed JSON string representation of the tree.
+
+**Example:**
+```neuroscript
+handle = tool.Tree.LoadJSON("{\"key\":\"value\"}"); tool.Tree.ToJSON(handle)
+```
+---
