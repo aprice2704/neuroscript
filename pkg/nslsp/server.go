@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.1
-// File version: 10
-// Purpose: Add call to RegisterCoreTools to ensure the LSP server loads all tool definitions.
+// File version: 13
+// Purpose: Add diagnostic logging to the didSave handler to confirm live server version and tool count.
 // filename: pkg/nslsp/server.go
-// nlines: 260
+// nlines: 265
 // risk_rating: MEDIUM
 
 package nslsp
@@ -23,6 +23,8 @@ import (
 	"github.com/sourcegraph/jsonrpc2"
 )
 
+const serverVersion = "1.0.1" // Incremented version for diagnostics
+
 type Server struct {
 	conn            *jsonrpc2.Conn
 	logger          *log.Logger
@@ -38,13 +40,13 @@ func NewServer(logger *log.Logger) *Server {
 	if registry == nil {
 		logger.Println("CRITICAL: Failed to initialize tool registry in LSP server!")
 	} else {
-		// FIX: Call both core and extended tool registration functions.
 		if err := tool.RegisterCoreTools(registry); err != nil {
 			logger.Fatalf("CRITICAL: Failed to register core tools in LSP server: %v", err)
 		}
 		if err := tool.RegisterExtendedTools(registry); err != nil {
 			logger.Fatalf("CRITICAL: Failed to register extended tools in LSP server: %v", err)
 		}
+
 		logger.Printf("LSP Server: Tool registry initialized, %d tools loaded.", registry.NTools())
 	}
 
@@ -151,6 +153,11 @@ func (s *Server) handleTextDocumentDidSave(ctx context.Context, conn *jsonrpc2.C
 	if err := UnmarshalParams(req.Params, &params); err != nil {
 		return nil, &jsonrpc2.Error{Code: jsonrpc2.CodeParseError, Message: err.Error()}
 	}
+
+	// ** THE FIX IS HERE **
+	// Add a log line to provide state on every save.
+	s.logger.Printf("didSave: SERVER VERSION '%s', TOOL COUNT '%d'", serverVersion, s.toolRegistry.NTools())
+
 	s.logger.Printf("Document saved: %s", params.TextDocument.URI)
 	if content, found := s.documentManager.Get(params.TextDocument.URI); found {
 		go PublishDiagnostics(ctx, s.conn, s.logger, s, params.TextDocument.URI, content)
@@ -196,7 +203,7 @@ func (s *Server) handleTextDocumentHover(ctx context.Context, conn *jsonrpc2.Con
 		return nil, nil
 	}
 
-	toolImpl, foundSpec := s.toolRegistry.GetTool(types.FullName(toolName))
+	toolImpl, foundSpec := s.toolRegistry.GetTool(types.FullName(strings.ToLower(toolName))) // Case-insensitive lookup
 	if !foundSpec {
 		s.logger.Printf("Hover: ToolSpec not found for '%s'", toolName)
 		return nil, nil

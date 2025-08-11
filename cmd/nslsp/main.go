@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.0
-// Purpose: Main application entry point for the NeuroScript Language Server (nslsp).
+// File version: 0.1.2
+// Purpose: CRITICAL FIX - Add blank import for toolbundles to ensure tools are registered at startup.
 // filename: cmd/nslsp/main.go
-// nlines: 50 // Approximate, will vary with actual implementation
-// risk_rating: LOW // Primarily setup and boilerplate for LSP communication.
+// nlines: 55
+// risk_rating: LOW
 
 package main
 
@@ -13,18 +13,20 @@ import (
 	"os"
 
 	"github.com/aprice2704/neuroscript/pkg/nslsp"
+	_ "github.com/aprice2704/neuroscript/pkg/toolbundles/all" // register the tools
 	"github.com/sourcegraph/jsonrpc2"
 )
 
+// This version will be our ground truth.
+const serverVersion = "1.0.2"
+
 func main() {
 	logger := log.New(os.Stderr, "[nslsp] ", log.LstdFlags|log.Lshortfile)
-	logger.Println("Starting NeuroScript Language Server...")
+	logger.Printf("--- NeuroScript Language Server STARTING - VERSION %s ---", serverVersion)
 
 	server := nslsp.NewServer(logger)
 
 	var connOpt []jsonrpc2.ConnOpt
-	// Example: Add a logger for jsonrpc2 messages (can be verbose)
-	// connOpt = append(connOpt, jsonrpc2.LogMessages(log.New(os.Stderr, "[jsonrpc2] ", 0)))
 
 	<-jsonrpc2.NewConn(
 		context.Background(),

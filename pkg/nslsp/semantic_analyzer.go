@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.1
-// File version: 18
-// Purpose: Corrected the listener to use EnterCallable_expr, the correct ANTLR context for validating tool calls and their arguments.
+// File version: 20
+// Purpose: Made tool name lookup case-insensitive to match interpreter behavior.
 // filename: pkg/nslsp/semantic_analyzer.go
-// nlines: 110
+// nlines: 106
 // risk_rating: HIGH
 
 package nslsp
@@ -70,22 +70,18 @@ func (l *toolValidationListener) EnterCallable_expr(ctx *gen.Callable_exprContex
 		return
 	}
 
-	ids := getIdentifiersTextsFromQIGeneric(qi, l.semanticAnalyzer.isDebug)
-	if len(ids) < 2 {
-		return
-	}
+	astTextFullName := "tool." + qi.GetText()
+	// ** THE FIX IS HERE **
+	// Convert the full tool name to lowercase for a case-insensitive lookup.
+	lookupName := types.FullName(strings.ToLower(astTextFullName))
 
-	group := strings.Join(ids[:len(ids)-1], ".")
-	name := ids[len(ids)-1]
-	fullName := types.MakeFullName(group, name)
-	astTextFullName := "tool." + strings.Join(ids, ".")
+	toolImpl, found := l.semanticAnalyzer.toolRegistry.GetTool(lookupName)
 
-	toolImpl, found := l.semanticAnalyzer.toolRegistry.GetTool(fullName)
 	// --- 1. Undefined Tool Check ---
 	if !found {
-		token := qi.GetStart()
+		token := callTarget.GetStart()
 		diagnostic := lsp.Diagnostic{
-			Range:    lsp.Range{Start: lsp.Position{Line: token.GetLine() - 1, Character: token.GetColumn()}, End: lsp.Position{Line: token.GetLine() - 1, Character: token.GetColumn() + len(qi.GetText())}},
+			Range:    lspRangeFromToken(token, callTarget.GetText()),
 			Severity: lsp.Error,
 			Source:   "nslsp-semantic",
 			Message:  fmt.Sprintf("Tool '%s' is not defined.", astTextFullName),
@@ -105,11 +101,21 @@ func (l *toolValidationListener) EnterCallable_expr(ctx *gen.Callable_exprContex
 	if !spec.Variadic && len(spec.Args) != actualArgCount {
 		token := callTarget.GetStart()
 		diagnostic := lsp.Diagnostic{
-			Range:    lsp.Range{Start: lsp.Position{Line: token.GetLine() - 1, Character: token.GetColumn()}, End: lsp.Position{Line: token.GetLine() - 1, Character: token.GetColumn() + len(callTarget.GetText())}},
+			Range:    lspRangeFromToken(token, callTarget.GetText()),
 			Severity: lsp.Error,
 			Source:   "nslsp-semantic",
-			Message:  fmt.Sprintf("Expected %d argument(s) for tool '%s', but got %d", len(spec.Args), astTextFullName, actualArgCount),
+			Message:  fmt.Sprintf("Expected %d argument(s) for tool '%s', but got %d.", len(spec.Args), astTextFullName, actualArgCount),
 		}
 		l.diagnostics = append(l.diagnostics, diagnostic)
+	}
+}
+
+// lspRangeFromToken creates an LSP range from an ANTLR token.
+func lspRangeFromToken(token antlr.Token, text string) lsp.Range {
+	line := token.GetLine() - 1
+	char := token.GetColumn()
+	return lsp.Range{
+		Start: lsp.Position{Line: line, Character: char},
+		End:   lsp.Position{Line: line, Character: char + len(text)},
 	}
 }

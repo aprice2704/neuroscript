@@ -21,7 +21,6 @@ func full_grammar_test(needs required_param optional opt_param returns ret_val) 
     set l = [1, s, b, nil, [], {}]
     set m = {"key": "value", "nested": l}
 
-
     // Expressions & Operators
     set x = (1 + 2) * 3 / 4 % 5
     set y = 2 ** 3
@@ -72,7 +71,7 @@ func full_grammar_test(needs required_param optional opt_param returns ret_val) 
     set len_of_l = len(l)
     set last_val = last
     set eval_val = eval("10 + 5")
-    call tool.blah.name(len_of_l, last_val)
+    call tool.meta.ListTools()
 
     return eval_val
 endfunc

@@ -231,18 +231,118 @@ Adherence to this specification **must** be enforced via automated tooling and C
 -   **Version Check:** Fail a build if a::fileVersion:is not greater than the version in the main branch (to prevent regressions). 
 -   **SDI Link Check (for Go):** Fail if a file contains// sdi:impl `specID` but no corresponding::sdi_spec: 
 
+# NeuroScript Metadata Specification — Extended (Policy, Capabilities, Effects)
+
+## Overview
+Metadata lines appear at the top of a script or function, each beginning with `::key: value`.
+They are part of the NS file format and are parsed by the interpreter before execution.
+All metadata is optional unless otherwise noted; unknown keys are ignored with a warning.
+
+This extension adds explicit **policy**, **capability grants**, **limits**, and **effects** keys.
+These allow trusted configuration scripts to declare and constrain what they can do,
+and allow the runtime to enforce least privilege in normal scripts.
+
+## Existing Core Keys (unchanged)
+::schema: neuroscript
+::serialization: ns
+::description: Short human-readable description of the script/function.
+::pure: true|false  # Declares the script/function as having no external side effects.
+::requiresTool: tool.name[, tool.name...]  # Declares tools that must be available to run.
+
+## New Policy Keys
+::policyContext: config|normal|test
+    # Execution context for this script or function.
+    # 'config' → trusted bootstrap/init scripts; can call requires_trust tools if granted.
+    # 'normal' → untrusted user/business logic; requires_trust tools blocked.
+    # 'test' → controlled deterministic test runs.
+
+::policyAllow: tool.name[, pattern...] 
+    # Allowlisted tools for this script; patterns may be used (e.g., tool.agentmodel.*).
+
+::policyDeny: tool.name[, pattern...]
+    # Denylisted tools; overrides allow.
+
+## Capability Grants
+# Form: grant.<resource>.<verb>: <scope-list>
+# Scope list format is resource-specific; comma-separated entries; wildcards allowed.
+
+::grant.env.read: ENV_KEY1, ENV_KEY2
+::grant.secrets.read: SECRET_NAME1, SECRET_NAME2
+::grant.net.read: host[:port], hostpattern[:port]
+::grant.fs.read: /path/glob1, /path/glob2
+::grant.fs.write: /path/glob1
+::grant.model.admin: modelname[, modelname...]
+::grant.model.use: modelname[, modelname...]
+::grant.sandbox.admin: profileID[, profileID...]
+::grant.proc.exec: procID[, procID...]
+::grant.clock.read: true
+::grant.rand.read: true|seed:<int>
+
+## Capability Limits
+# Form: limit.<resource>.<limit-name>: <value>
+
+::limit.budget.CAD.max: 500     # Max CAD spend per run
+::limit.budget.CAD.perCall: 50  # Max CAD spend per tool call
+::limit.net.maxBytes: 1048576   # Bytes allowed across all net ops
+::limit.net.maxCalls: 100
+::limit.fs.maxBytes: 5242880
+::limit.fs.maxCalls: 50
+::limit.tool.toolname.maxCalls: 5
+
+## Function/Block Requirements (additional to file-level policy)
+::requiresCapability: resource:verb:scope[; resource:verb:scope...]
+    # Required capabilities to run this function.
+
+::requiresContext: config|normal|test
+    # Required execution context.
+
+## Effects
+::effects: idempotent[, readsClock][, readsRand][, readsNet][, readsFS]
+    # Declares side-effect behaviour; for caching, lints, deterministic test control.
+
+## Example — Trusted Config Script
+::schema: neuroscript
+::serialization: ns
+::description: Init agent models + sandbox
+::policyContext: config
+::policyAllow: tool.agentmodel.Register, tool.agentmodel.Delete, tool.os.Getenv, tool.sandbox.SetProfile
+::grant.env.read: OPENAI_API_KEY
+::grant.model.admin: *
+::grant.net.read: *.openai.com:443
+::limit.budget.CAD.max: 500
+
+must tool.agentmodel.Register("mini", {
+  "provider": "openai",
+  "model": "gpt-4o-mini",
+  "api_key": tool.os.Getenv("OPENAI_API_KEY")
+})
+
+## Example — Normal Script
+::schema: neuroscript
+::serialization: ns
+::description: Summarize docs with 'mini'
+::policyContext: normal
+::grant.model.use: mini
+::grant.net.read: *.openai.com:443
+::limit.budget.CAD.max: 60
+
+ask "mini", "Summarize: {{txt}}" with {"json": true} into out
+
+
+
+
 ---------------
 
 :: name: NeuroData MetaData Standard
 :: standardID: ndinmeta
 :: standardName: NeuroData In-Situ Metadata
-:: standardVersion: 2.0.0
+:: standardVersion: 2.1.0
 :: canonicalFileLocation: github.com/aprice2704/fdm/code/docs/metadata.md
 :: fileName: metadata.md
 :: schema: spec
 :: serialization: md
-:: fileVersion: 2
+:: fileVersion: 3
 :: author: Andrew Price
-:: modified: 2025-06-27
+:: modified: 2025-08-10
 :: howToUpdate: Update vocab or placement rules first, then bump file_version.
 :: dependsOn: none

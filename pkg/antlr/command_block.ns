@@ -9,5 +9,5 @@
 command
     :: command-key: command-value
     emit "This is a top-level command block."
-    set x = tool.another.name()
+    set x = tool.meta.ListTools()
 endcommand
