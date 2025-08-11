@@ -6,18 +6,15 @@ Follow these **CORE RULES** **very strictly** for all Go code contributions to t
 
 1.  **Understand Context First:** Before coding, review project documentation (especially `.md` files) and existing code to grasp goals and architecture. Remember the `neuroscript` folder dependency.
 1a. **MINIMAL CHANGES** unless otherwise told, when fixing compiler bugs or test fails, PERFORM THE MINIMUM changes required. Don't do a bunch of "tidying".
-2.  **Use the Code Index:**
-    * You should have a `codebase-indices` directory, full of indices into the code base. **If not, ask for it.**
-    * Use this index to find things in the codebase. **DO NOT MAKE ASSUMPTIONS.**
 3.  **Full & Functional Files ALWAYS:**
     * Always provide complete Go files based on latest versions (we have had some issues with stale files)
     * **NEVER EVER** generate code with function bodies "shorted out" or replaced by comments (e.g., `// ... implementation ...`). This wastes significant time and has lead to us wasting several hours of effort on at least two occasions. NEVER. **EVER**.
 4.  **One Main File Per Turn:**
     * Provide only **one primary code file** per response, unless we explicitly agree otherwise (e.g., when splitting a file).
     * Delivering multiple, potentially misdirected large files is very inefficient.
-5.  **Split Large Files Immediately:**
+5.  **Split Large Files When Created or Edited:**
     * If a Go file exceeds **200 lines of code**, you **MUST** split it logically.
-    * Do this automatically; you don't need to ask first. **THIS IS VITAL.**
+    * Do this automatically when creating or editing; you don't need to ask first. **THIS IS VITAL.**
 6.  **Apply Versioning Stamps:**
     * At the top of **every Go file you modify**, include the following, bumping the `File version` minor number:
         ```go
