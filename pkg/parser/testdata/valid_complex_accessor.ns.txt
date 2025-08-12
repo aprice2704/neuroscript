@@ -1,0 +1,12 @@
+:: title: Valid Complex Accessor Test
+
+func get_key() means
+    return "dynamic_key"
+endfunc
+
+func main() means
+    set my_map = {"dynamic_key": 123}
+    # Using a function call expression inside a map accessor is valid syntax.
+    set my_value = my_map[get_key()]
+    emit my_value
+endfunc

@@ -1,8 +1,7 @@
 // filename: pkg/parser/ast_builder_commands.go
 // NeuroScript Version: 0.6.0
-// File version: 12
-// Purpose: Removed obsolete blank line counting logic. Association is now handled by the LineInfo algorithm.
-
+// File version: 15
+// Purpose: Simplified to call the new centralized assignPendingMetadata helper.
 package parser
 
 import (
@@ -18,12 +17,14 @@ func (l *neuroScriptListenerImpl) EnterCommand_block(c *gen.Command_blockContext
 		Metadata:      make(map[string]string),
 		Body:          make([]ast.Step, 0),
 		ErrorHandlers: make([]*ast.Step, 0),
-		// BlankLinesBefore is now set by the LineInfo algorithm in the builder.
 	}
+	l.assignPendingMetadata(token, cmdNode.Metadata)
+
 	l.currentCommand = newNode(cmdNode, token, types.KindCommandBlock)
 	l.currentCommand.Comments = l.associateCommentsToNode(l.currentCommand)
 }
 
+// ... (rest of the file is unchanged)
 func (l *neuroScriptListenerImpl) ExitCommand_block(c *gen.Command_blockContext) {
 	l.logDebugAST("<<< ExitCommand_block")
 	if l.currentCommand == nil {

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 16.0.0
-// Purpose: Corrected logic to properly extract agent, prompt, and options from the generic fields of the ast.Step struct, aligning with the current AST builder's output.
+// File version: 22.0.0
+// Purpose: Corrects all type mismatch errors by adding explicit type conversions for types.AgentModelName.
 // filename: pkg/interpreter/interpreter_steps_ask.go
-// nlines: 115
+// nlines: 160
 // risk_rating: HIGH
 
 package interpreter
@@ -10,113 +10,119 @@ package interpreter
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/provider"
+	"github.com/aprice2704/neuroscript/pkg/runtime"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
-// executeAsk handles the execution of an 'ask' statement step.
-// It orchestrates evaluating arguments, finding the correct AgentModel and AIProvider,
-// making the call, and assigning the result.
+// executeAsk handles the "ask" statement.
 func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
-	// FIX: The AST builder places ask components into the generic Step fields.
-	// We must extract them from there instead of a dedicated AskStmt field.
-	if len(step.Values) < 2 {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "ask statement requires at least 2 arguments (agent, prompt)", nil).WithPosition(step.GetPos())
+	if step.AskStmt == nil {
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "ask step is missing its AskStmt node", nil).WithPosition(step.GetPos())
 	}
+	node := step.AskStmt
 
-	agentModelExpr := step.Values[0]
-	promptExpr := step.Values[1]
-	var withOptionsExpr ast.Expression
-	if len(step.Values) > 2 {
-		withOptionsExpr = step.Values[2]
-	}
-	var intoTarget *ast.LValueNode
-	if len(step.LValues) > 0 {
-		intoTarget = step.LValues[0]
-	}
-
-	// 1. Evaluate AgentModel name and Prompt expressions
-	agentModelVal, err := i.evaluate.Expression(agentModelExpr)
+	// 1. Evaluate AgentModel and Prompt expressions
+	agentModelVal, err := i.evaluate.Expression(node.AgentModelExpr)
 	if err != nil {
-		return nil, err
+		return nil, lang.WrapErrorWithPosition(err, node.AgentModelExpr.GetPos(), "evaluating agent model for ask")
 	}
-	agentName, isString := lang.ToString(agentModelVal)
-	if !isString || agentName == "" {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeType, "first 'ask' argument (AgentModel name) must be a non-empty string", nil).WithPosition(agentModelExpr.GetPos())
-	}
+	agentName, _ := lang.ToString(agentModelVal)
 
-	promptVal, err := i.evaluate.Expression(promptExpr)
+	promptVal, err := i.evaluate.Expression(node.PromptExpr)
 	if err != nil {
-		return nil, err
+		return nil, lang.WrapErrorWithPosition(err, node.PromptExpr.GetPos(), "evaluating prompt for ask")
 	}
-	prompt, isString := lang.ToString(promptVal)
-	if !isString {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeType, "second 'ask' argument (prompt) must be a string", nil).WithPosition(promptExpr.GetPos())
-	}
+	prompt, _ := lang.ToString(promptVal)
 
-	// 2. Get the AgentModel configuration from the registry
-	agentModel, found := i.GetAgentModel(agentName)
+	// 2. Get AgentModel configuration and perform policy validation
+	// FIX: Explicitly convert the string agentName to types.AgentModelName for the lookup.
+	agentModel, found := i.GetAgentModel(types.AgentModelName(agentName))
 	if !found {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("AgentModel '%s' is not registered", agentName), lang.ErrMapKeyNotFound).WithPosition(agentModelExpr.GetPos())
+		return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("AgentModel '%s' is not registered", agentName), lang.ErrMapKeyNotFound).WithPosition(node.AgentModelExpr.GetPos())
 	}
 
-	// 3. Get the corresponding AI provider from the centralized state
-	i.state.providersMu.RLock()
-	aiProvider, providerFound := i.state.providers[agentModel.Provider]
-	i.state.providersMu.RUnlock()
-
-	if !providerFound {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeConfig, fmt.Sprintf("AI provider '%s' for AgentModel '%s' is not registered", agentModel.Provider, agentName), nil).WithPosition(step.GetPos())
+	// Construct the security envelope from the AgentModel's config for policy check.
+	envelope := runtime.AgentModelEnvelope{
+		// FIX: Explicitly convert the types.AgentModelName to a string for the envelope.
+		Name:           string(agentModel.Name),
+		Hosts:          []string{agentModel.BaseURL},
+		SecretEnvKeys:  []string{agentModel.SecretRef},
+		BudgetCurrency: agentModel.BudgetCurrency,
 	}
 
-	// 4. Evaluate 'with' options and merge with AgentModel config
-	req := provider.AIRequest{
-		AgentModelName: agentModel.Name,
-		ProviderName:   agentModel.Provider,
-		ModelName:      agentModel.Model,
-		BaseURL:        agentModel.BaseURL,
-		APIKey:         agentModel.APIKey,
-		Prompt:         prompt,
-		Temperature:    agentModel.Temperature,
+	if i.ExecPolicy != nil {
+		if err := i.ExecPolicy.ValidateAgentModelEnvelope(envelope); err != nil {
+			return nil, lang.NewRuntimeError(lang.ErrorCodePolicy, fmt.Sprintf("ask statement rejected by policy: %v", err), err).WithPosition(step.GetPos())
+		}
 	}
 
-	if withOptionsExpr != nil {
-		optionsVal, err := i.evaluate.Expression(withOptionsExpr)
+	// 3. Resolve the API key *after* the policy check has passed.
+	var apiKey string
+	if agentModel.SecretRef != "" {
+		apiKey = os.Getenv(agentModel.SecretRef)
+		if apiKey == "" {
+			i.logger.Warn("AgentModel secret reference resolved to an empty string", "secret_ref", agentModel.SecretRef)
+		}
+	}
+
+	// 4. Evaluate 'with' options and build the AI request
+	opts := map[string]lang.Value{}
+	if node.WithOptions != nil {
+		optsVal, err := i.evaluate.Expression(node.WithOptions)
 		if err != nil {
-			return nil, err
+			return nil, lang.WrapErrorWithPosition(err, node.WithOptions.GetPos(), "evaluating 'with' options for ask")
 		}
-		optionsMap, ok := optionsVal.(*lang.MapValue)
-		if !ok {
-			return nil, lang.NewRuntimeError(lang.ErrorCodeType, "'with' clause must be a map", nil).WithPosition(withOptionsExpr.GetPos())
-		}
-
-		if tempVal, ok := optionsMap.Value["temperature"]; ok {
-			if temp, isFloat := lang.ToFloat64(tempVal); isFloat {
-				req.Temperature = temp
-			}
+		if m, ok := optsVal.(*lang.MapValue); ok {
+			opts = m.Value
 		}
 	}
 
-	// 5. Execute the request via the provider
+	req := provider.AIRequest{
+		ModelName: agentModel.Model,
+		Prompt:    prompt,
+		APIKey:    apiKey,
+	}
+	if temp, ok := opts["temperature"]; ok {
+		req.Temperature, _ = lang.ToFloat64(temp)
+	}
+
+	// 5. Get the provider and execute the call
+	prov, provExists := i.state.providers[agentModel.Provider]
+	if !provExists {
+		return nil, lang.NewRuntimeError(lang.ErrorCodeProviderNotFound, fmt.Sprintf("provider '%s' for AgentModel '%s' not found", agentModel.Provider, agentName), nil).WithPosition(step.GetPos())
+	}
+
 	ctx := context.Background()
-	resp, err := aiProvider.Chat(ctx, req)
+	resp, err := prov.Chat(ctx, req)
 	if err != nil {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeExternal, fmt.Sprintf("AI provider call failed: %v", err), err).WithPosition(step.GetPos())
+		return nil, lang.NewRuntimeError(lang.ErrorCodeExternal, "AI provider call failed", err).WithPosition(step.GetPos())
 	}
 
-	// 6. Assign the result to the 'into' variable, if present
-	resultVal, wrapErr := lang.Wrap(resp.TextContent)
+	// 6. Account for resource usage after a successful call
+	if i.ExecPolicy != nil && agentModel.BudgetCurrency != "" {
+		costInCents := 25 // Placeholder: This cost should come from the provider response eventually
+		if err := i.ExecPolicy.Grants.CheckPerCallBudget(agentModel.BudgetCurrency, costInCents); err != nil {
+			return nil, lang.NewRuntimeError(lang.ErrorCodePolicy, "ask call exceeds per-call budget", err).WithPosition(step.GetPos())
+		}
+		_ = i.ExecPolicy.Grants.ChargeBudget(agentModel.BudgetCurrency, costInCents)
+	}
+
+	// 7. Assign result and return
+	responseVal, wrapErr := lang.Wrap(resp.TextContent)
 	if wrapErr != nil {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("failed to wrap AI response: %v", wrapErr), wrapErr).WithPosition(step.GetPos())
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "failed to wrap AI response", wrapErr).WithPosition(step.GetPos())
 	}
 
-	if intoTarget != nil {
-		if err := i.setSingleLValue(intoTarget, resultVal); err != nil {
+	if node.IntoTarget != nil {
+		if err := i.setSingleLValue(node.IntoTarget, responseVal); err != nil {
 			return nil, err
 		}
 	}
 
-	return resultVal, nil
+	return responseVal, nil
 }

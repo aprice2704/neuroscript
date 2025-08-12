@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 1
-// Purpose: Contains unit tests for the internal AgentModel management methods on the Interpreter.
+// File version: 2.0.0
+// Purpose: Corrects test failures by converting []types.AgentModelName to []string before sorting.
 // filename: pkg/interpreter/interpreter_agentmodel_test.go
-// nlines: 110
+// nlines: 115
 // risk_rating: LOW
 
 package interpreter
@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // TestInterpreterAgentModelManagement provides direct unit tests for the interpreter's
@@ -24,17 +25,18 @@ func TestInterpreterAgentModelManagement(t *testing.T) {
 			"provider": lang.StringValue{Value: "test_provider"},
 			"model":    lang.StringValue{Value: "test_model"},
 		}
+		agentName := types.AgentModelName("test_agent")
 
-		err := interp.RegisterAgentModel("test_agent", config)
+		err := interp.RegisterAgentModel(agentName, config)
 		if err != nil {
 			t.Fatalf("RegisterAgentModel() returned an unexpected error: %v", err)
 		}
 
-		model, exists := interp.GetAgentModel("test_agent")
+		model, exists := interp.GetAgentModel(agentName)
 		if !exists {
 			t.Fatal("GetAgentModel() failed to find the newly registered agent.")
 		}
-		if model.Name != "test_agent" || model.Provider != "test_provider" {
+		if model.Name != agentName || model.Provider != "test_provider" {
 			t.Errorf("Registered agent has incorrect data. Got: %+v", model)
 		}
 	})
@@ -45,10 +47,11 @@ func TestInterpreterAgentModelManagement(t *testing.T) {
 			"provider": lang.StringValue{Value: "p"},
 			"model":    lang.StringValue{Value: "m"},
 		}
-		_ = interp.RegisterAgentModel("duplicate_agent", config)
+		agentName := types.AgentModelName("duplicate_agent")
+		_ = interp.RegisterAgentModel(agentName, config)
 
 		// Try to register again with the same name
-		err := interp.RegisterAgentModel("duplicate_agent", config)
+		err := interp.RegisterAgentModel(agentName, config)
 		if err == nil {
 			t.Fatal("RegisterAgentModel() did not return an error for a duplicate agent name.")
 		}
@@ -70,26 +73,33 @@ func TestInterpreterAgentModelManagement(t *testing.T) {
 		interp, _ := newLocalTestInterpreter(t, nil, nil)
 		config1 := map[string]lang.Value{"provider": lang.StringValue{Value: "p"}, "model": lang.StringValue{Value: "m1"}}
 		config2 := map[string]lang.Value{"provider": lang.StringValue{Value: "p"}, "model": lang.StringValue{Value: "m2"}}
+		agent1Name := types.AgentModelName("agent1")
+		agent2Name := types.AgentModelName("agent2")
 
-		_ = interp.RegisterAgentModel("agent1", config1)
-		_ = interp.RegisterAgentModel("agent2", config2)
+		_ = interp.RegisterAgentModel(agent1Name, config1)
+		_ = interp.RegisterAgentModel(agent2Name, config2)
 
 		// Test List
 		initialList := interp.ListAgentModels()
-		sort.Strings(initialList)
+		// FIX: Convert to []string for sorting.
+		stringList := make([]string, len(initialList))
+		for i, v := range initialList {
+			stringList[i] = string(v)
+		}
+		sort.Strings(stringList)
 		expected := []string{"agent1", "agent2"}
-		if !reflect.DeepEqual(initialList, expected) {
-			t.Errorf("ListAgentModels() mismatch. Got: %v, Want: %v", initialList, expected)
+		if !reflect.DeepEqual(stringList, expected) {
+			t.Errorf("ListAgentModels() mismatch. Got: %v, Want: %v", stringList, expected)
 		}
 
 		// Test Delete
-		deleted := interp.DeleteAgentModel("agent1")
+		deleted := interp.DeleteAgentModel(agent1Name)
 		if !deleted {
 			t.Error("DeleteAgentModel() returned false for an existing agent.")
 		}
 
 		finalList := interp.ListAgentModels()
-		if len(finalList) != 1 || finalList[0] != "agent2" {
+		if len(finalList) != 1 || finalList[0] != agent2Name {
 			t.Errorf("ListAgentModels() after delete is incorrect. Got: %v", finalList)
 		}
 
@@ -106,17 +116,18 @@ func TestInterpreterAgentModelManagement(t *testing.T) {
 			"provider": lang.StringValue{Value: "p_orig"},
 			"model":    lang.StringValue{Value: "m_orig"},
 		}
-		_ = interp.RegisterAgentModel("agent_to_update", initialConfig)
+		agentName := types.AgentModelName("agent_to_update")
+		_ = interp.RegisterAgentModel(agentName, initialConfig)
 
 		updates := map[string]lang.Value{
 			"model": lang.StringValue{Value: "m_new"},
 		}
-		err := interp.UpdateAgentModel("agent_to_update", updates)
+		err := interp.UpdateAgentModel(agentName, updates)
 		if err != nil {
 			t.Fatalf("UpdateAgentModel() returned an unexpected error: %v", err)
 		}
 
-		model, _ := interp.GetAgentModel("agent_to_update")
+		model, _ := interp.GetAgentModel(agentName)
 		if model.Provider != "p_orig" {
 			t.Error("UpdateAgentModel() incorrectly changed a non-updated field.")
 		}

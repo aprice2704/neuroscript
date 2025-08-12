@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 5
-// Purpose: Enable debug environment variable to get detailed trace from the semantic analyzer.
+// File version: 4
+// Purpose: Removed redundant toolbundle import, which is now handled centrally by server.go.
 // filename: pkg/nslsp/diagnostics_test.go
 // nlines: 135
 // risk_rating: MEDIUM
@@ -18,7 +18,6 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/aprice2704/neuroscript/pkg/toolbundles/all"
 	lsp "github.com/sourcegraph/go-lsp"
 	"github.com/sourcegraph/jsonrpc2"
 )

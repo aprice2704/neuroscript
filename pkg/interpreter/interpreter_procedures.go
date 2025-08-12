@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.5.2
-// File version: 48
-// Purpose: Adds high-visibility debugging to trace the return value as it exits the sandboxed procedure execution.
+// NeuroScript Version: 0.6.0
+// File version: 49.0.0
+// Purpose: Corrected procedure execution to use the new centralized clone method, ensuring sandboxed interpreters inherit all required state like the tool registry.
 // filename: pkg/interpreter/interpreter_procedures.go
 // nlines: 120
 // risk_rating: HIGH
@@ -30,7 +30,8 @@ func (i *Interpreter) RunProcedure(procName string, args ...lang.Value) (lang.Va
 		)
 	}
 
-	procInterpreter := i.CloneWithNewVariables()
+	// FIX: Use the new centralized clone method to ensure all state is copied correctly.
+	procInterpreter := i.clone()
 	procInterpreter.state.currentProcName = procName
 	procInterpreter.state.stackFrames = append(i.state.stackFrames, procName)
 

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 3
-// Purpose: CRITICAL FIX - Manually register all tools for the test's isolated server instance and add debug logging.
+// File version: 6
+// Purpose: Refactored to use the new centralized test helper from pkg/testutil, guaranteeing a complete tool registry.
 // filename: pkg/nslsp/grammar_test.go
 // nlines: 80
 // risk_rating: LOW
@@ -14,22 +14,16 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/parser"
-	"github.com/aprice2704/neuroscript/pkg/tool"
-	_ "github.com/aprice2704/neuroscript/pkg/toolbundles/all" // Ensure tools are registered
+	"github.com/aprice2704/neuroscript/pkg/testutil"
 )
 
 // TestGrammarFiles_NoError validates that a suite of known-good .ns files
 // parse and analyze with zero syntax or semantic errors.
 func TestGrammarFiles_NoError(t *testing.T) {
 	// --- Setup ---
-	registry := tool.NewToolRegistry(nil)
-	// ** THE FIX IS HERE: Explicitly register ALL tools for the test **
-	if err := tool.RegisterCoreTools(registry); err != nil {
-		t.Fatalf("Failed to register core tools for grammar test: %v", err)
-	}
-	if err := tool.RegisterExtendedTools(registry); err != nil {
-		t.Fatalf("Failed to register extended tools for grammar test: %v", err)
-	}
+	// ** THE FIX IS HERE: Use the centralized helper for a complete, verified registry **
+	interp := testutil.NewTestInterpreterWithAllTools(t)
+	registry := interp.ToolRegistry()
 
 	parserAPI := parser.NewParserAPI(nil)
 	analyzer := NewSemanticAnalyzer(registry, false)

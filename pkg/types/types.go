@@ -6,6 +6,9 @@ import (
 	"strings"
 )
 
+// AgentModel
+type AgentModelName string
+
 // For dealing with tools
 type ToolName string  // a tool's individual name -- no prefix or group
 type FullName string  // a tool's full name, used for finding it in the registry

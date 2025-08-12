@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 3
-// Purpose: CRITICAL FIX - Manually register all tools for the test's isolated server instance.
+// File version: 4
+// Purpose: CRITICAL FIX - Uses NewServer() to get a fully populated tool registry, resolving all 'tool not found' errors in this test.
 // filename: pkg/nslsp/semantic_analyzer_test.go
 // nlines: 90
 // risk_rating: LOW
@@ -8,24 +8,23 @@
 package nslsp
 
 import (
+	"io"
+	"log"
 	"os"
 	"strings"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/parser"
-	"github.com/aprice2704/neuroscript/pkg/tool"
 	_ "github.com/aprice2704/neuroscript/pkg/toolbundles/all" // Ensure tools are registered
 )
 
 func TestSemanticAnalyzer(t *testing.T) {
-	// --- Setup: Create a real tool registry and parser API instance ---
-	registry := tool.NewToolRegistry(nil)
-	// ** THE FIX IS HERE: Explicitly register tools for the test **
-	if err := tool.RegisterCoreTools(registry); err != nil {
-		t.Fatalf("Failed to register core tools: %v", err)
-	}
-	if err := tool.RegisterExtendedTools(registry); err != nil {
-		t.Fatalf("Failed to register extended tools: %v", err)
+	// --- Setup: Create a server to get a real tool registry ---
+	// ** THE FIX IS HERE: Use the NewServer constructor for a complete registry **
+	server := NewServer(log.New(io.Discard, "", 0))
+	registry := server.toolRegistry
+	if registry == nil {
+		t.Fatal("Failed to get tool registry from new server instance.")
 	}
 
 	parserAPI := parser.NewParserAPI(nil)

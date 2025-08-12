@@ -1,9 +1,9 @@
 // filename: pkg/parser/ast_builder_statements.go
 // NeuroScript Version: 0.6.0
-// File version: 24
-// Purpose: Corrected logic for the 'promptuser' statement to resolve a compiler error and fixed a typo in a method name.
-// nlines: 160
-// risk_rating: MEDIUM
+// File version: 26
+// Purpose: Corrected field names used for constructing the AskStmt to align with the canonical AST definition, resolving a compiler mismatch.
+// nlines: 230
+// risk_rating: HIGH
 
 package parser
 
@@ -167,7 +167,9 @@ func (l *neuroScriptListenerImpl) ExitFail_statement(c *gen.Fail_statementContex
 func (l *neuroScriptListenerImpl) ExitAsk_stmt(c *gen.Ask_stmtContext) {
 	l.logDebugAST("ExitAsk_stmt: Building AI ask step.")
 
-	var intoLValue *ast.LValueNode
+	askStmt := &ast.AskStmt{}
+	newNode(askStmt, c.GetStart(), types.KindAskStmt)
+
 	if c.Lvalue() != nil {
 		val, ok := l.pop()
 		if !ok {
@@ -179,10 +181,9 @@ func (l *neuroScriptListenerImpl) ExitAsk_stmt(c *gen.Ask_stmtContext) {
 			l.addError(c, "internal error in ask_statement: 'into' clause value is not an *ast.LValueNode, but %T", val)
 			return
 		}
-		intoLValue = lval
+		askStmt.IntoTarget = lval // FIX: Use IntoTarget field
 	}
 
-	var withExpr ast.Expression
 	if c.KW_WITH() != nil {
 		val, ok := l.pop()
 		if !ok {
@@ -194,11 +195,10 @@ func (l *neuroScriptListenerImpl) ExitAsk_stmt(c *gen.Ask_stmtContext) {
 			l.addError(c, "internal error in ask_statement: 'with' expression is not an ast.Expression, but %T", val)
 			return
 		}
-		withExpr = expr
+		askStmt.WithOptions = expr // FIX: Use WithOptions field
 	}
 
-	// Pop the two mandatory expressions (prompt and agent model). They are pushed on the stack
-	// in source order (agent model, then prompt), so the popped slice will contain them in that order.
+	// Pop the two mandatory expressions (agent model and prompt).
 	values, ok := l.popN(2)
 	if !ok {
 		l.addError(c, "internal error in ask_statement: stack underflow popping agent model and prompt expressions")
@@ -216,18 +216,14 @@ func (l *neuroScriptListenerImpl) ExitAsk_stmt(c *gen.Ask_stmtContext) {
 		l.addError(c, "internal error in ask_statement: prompt expression is not an ast.Expression, but %T", values[1])
 		return
 	}
+	askStmt.AgentModelExpr = agentModelExpr
+	askStmt.PromptExpr = promptExpr
 
 	pos := tokenToPosition(c.GetStart())
 	step := ast.Step{
 		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
 		Type:     "ask",
-		Values:   []ast.Expression{agentModelExpr, promptExpr},
-	}
-	if withExpr != nil {
-		step.Values = append(step.Values, withExpr)
-	}
-	if intoLValue != nil {
-		step.LValues = []*ast.LValueNode{intoLValue}
+		AskStmt:  askStmt, // FIX: Use AskStmt field
 	}
 
 	step.Comments = l.associateCommentsToNode(&step)

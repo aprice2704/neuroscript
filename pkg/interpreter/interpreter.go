@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 32
-// Purpose: Corrected the CloneWithNewVariables method to properly copy AgentModel state to sandboxed interpreters, resolving tool-to-tool call failures.
+// File version: 35.0.0
+// Purpose: Implements a centralized clone method to ensure sandboxed interpreters correctly inherit all required state (tools, providers, AgentModels), fixing numerous test failures. Adds a 'root' pointer to track the master interpreter for shared state modifications.
 // filename: pkg/interpreter/interpreter.go
-// nlines: 215
+// nlines: 245
 // risk_rating: HIGH
 
 package interpreter
@@ -20,6 +20,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/provider"
+	"github.com/aprice2704/neuroscript/pkg/runtime"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
@@ -27,7 +28,7 @@ import (
 type Interpreter struct {
 	logger             interfaces.Logger
 	fileAPI            interfaces.FileAPI
-	state              *interpreterState // ALL mutable state now lives here
+	state              *interpreterState
 	tools              tool.ToolRegistry
 	eventManager       *EventManager
 	evaluate           *evaluation
@@ -45,14 +46,16 @@ type Interpreter struct {
 	rateLimitDuration  interface{}
 	externalHandler    interface{}
 	objectCache        map[string]interface{}
-	objectCacheMu      interface{} // Mutex for the handle cache
+	objectCacheMu      interface{}
 	llmclient          interfaces.LLMClient
-	skipStdTools       bool // Flag to skip standard tool registration for isolated tests.
+	skipStdTools       bool
+	ExecPolicy         *runtime.ExecPolicy
+	root               *Interpreter // Points to the top-level interpreter instance.
 }
 
 func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	i := &Interpreter{
-		state:             newInterpreterState(), // This now initializes everything
+		state:             newInterpreterState(),
 		eventManager:      newEventManager(),
 		maxLoopIterations: 1000,
 		logger:            logging.NewNoOpLogger(),
@@ -63,6 +66,7 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	}
 	i.evaluate = &evaluation{i: i}
 	i.tools = tool.NewToolRegistry(i)
+	i.root = nil // The new interpreter is its own root.
 
 	for _, opt := range opts {
 		opt(i)
@@ -77,7 +81,51 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	return i
 }
 
-// PromptUser satisfies the tool.Runtime interface, providing a way for tools to request user input.
+// clone creates a new interpreter instance and copies all essential, non-mutable state.
+func (i *Interpreter) clone() *Interpreter {
+	clone := NewInterpreter(
+		WithLogger(i.logger),
+		WithStdout(i.stdout),
+		WithStdin(i.stdin),
+		WithStderr(i.stderr),
+		WithSandboxDir(i.state.sandboxDir),
+	)
+	// Share the same tool registry, providers, and agent models.
+	clone.tools = i.tools
+	clone.ExecPolicy = i.ExecPolicy
+
+	// FIX: Point clone's root to the original interpreter's root.
+	if i.root != nil {
+		clone.root = i.root
+	} else {
+		clone.root = i
+	}
+
+	// Copy known procedures
+	for k, v := range i.state.knownProcedures {
+		clone.state.knownProcedures[k] = v
+	}
+
+	// Copy registered providers
+	i.state.providersMu.RLock()
+	// This is a temporary RLock; the clone will have its own mutex.
+	// But since providers and agentmodels now delegate to root, this is safe.
+	for k, v := range i.state.providers {
+		clone.state.providers[k] = v
+	}
+	i.state.providersMu.RUnlock()
+
+	// Copy registered AgentModels
+	i.state.agentModelsMu.RLock()
+	for k, v := range i.state.agentModels {
+		clone.state.agentModels[k] = v
+	}
+	i.state.agentModelsMu.RUnlock()
+
+	return clone
+}
+
+// PromptUser satisfies the tool.Runtime interface.
 func (i *Interpreter) PromptUser(prompt string) (string, error) {
 	if _, err := fmt.Fprint(i.Stdout(), prompt+" "); err != nil {
 		return "", fmt.Errorf("failed to write prompt to stdout: %w", err)
@@ -92,6 +140,11 @@ func (i *Interpreter) PromptUser(prompt string) (string, error) {
 
 // RegisterProvider allows the host application to register a concrete AIProvider implementation.
 func (i *Interpreter) RegisterProvider(name string, p provider.AIProvider) {
+	// Delegate to root if this is a clone
+	if i.root != nil {
+		i.root.RegisterProvider(name, p)
+		return
+	}
 	i.state.providersMu.Lock()
 	defer i.state.providersMu.Unlock()
 	i.state.providers[name] = p
@@ -137,19 +190,21 @@ func (i *Interpreter) ToolRegistry() tool.ToolRegistry {
 
 // CloneForEventHandler creates a sandboxed clone for event handling.
 func (i *Interpreter) CloneForEventHandler() *Interpreter {
-	clone := NewInterpreter(WithLogger(i.logger), WithStdout(i.stdout), WithSandboxDir(i.state.sandboxDir))
+	clone := i.clone() // Use the centralized clone method.
 	i.state.variablesMu.RLock()
 	defer i.state.variablesMu.RUnlock()
+	// Copy global variables for read-only access.
 	for name := range i.state.globalVarNames {
 		if val, ok := i.state.variables[name]; ok {
 			clone.SetInitialVariable(name, val)
 		}
 	}
-	for name, proc := range i.state.knownProcedures {
-		clone.state.knownProcedures[name] = proc
-	}
-	clone.tools = i.tools
 	return clone
+}
+
+// CloneWithNewVariables creates a clone with a fresh set of variables for procedure calls.
+func (i *Interpreter) CloneWithNewVariables() *Interpreter {
+	return i.clone() // Use the centralized clone method.
 }
 
 func (i *Interpreter) GetLogger() interfaces.Logger {
@@ -226,29 +281,6 @@ func (i *Interpreter) Load(program *ast.Program) error {
 	}
 
 	return nil
-}
-
-func (i *Interpreter) CloneWithNewVariables() *Interpreter {
-	clone := NewInterpreter(WithLogger(i.logger), WithStdout(i.stdout))
-	for k, v := range i.state.knownProcedures {
-		clone.state.knownProcedures[k] = v
-	}
-	clone.tools = i.tools
-
-	// FIX: Ensure the clone inherits the registered AgentModels and providers.
-	i.state.agentModelsMu.RLock()
-	defer i.state.agentModelsMu.RUnlock()
-	for k, v := range i.state.agentModels {
-		clone.state.agentModels[k] = v
-	}
-
-	i.state.providersMu.RLock()
-	defer i.state.providersMu.RUnlock()
-	for k, v := range i.state.providers {
-		clone.state.providers[k] = v
-	}
-
-	return clone
 }
 
 func (i *Interpreter) setSandboxDir(path string) {

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 13
-// Purpose: Add diagnostic logging to the didSave handler to confirm live server version and tool count.
+// File version: 14
+// Purpose: CRITICAL FIX - Import the 'all' toolbundle directly to ensure the tool registry is always fully populated for both the server and its tests.
 // filename: pkg/nslsp/server.go
 // nlines: 265
 // risk_rating: MEDIUM
@@ -18,6 +18,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/parser"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	_ "github.com/aprice2704/neuroscript/pkg/toolbundles/all" // Ensure all tools are registered on server init.
 	"github.com/aprice2704/neuroscript/pkg/types"
 	lsp "github.com/sourcegraph/go-lsp"
 	"github.com/sourcegraph/jsonrpc2"

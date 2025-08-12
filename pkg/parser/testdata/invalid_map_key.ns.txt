@@ -1,0 +1,7 @@
+:: title: Invalid Map Key Test
+
+func main() means
+  set my_key = "key1"
+  # Invalid: Map keys must be string literals, not variables or expressions.
+  set my_map = {my_key: "value"}
+endfunc

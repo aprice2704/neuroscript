@@ -1,15 +1,15 @@
-// NeuroScript Version: 0.4.0
-// File version: 7
-// Purpose: Corrected all instances of parser.ArgSpec to the correct tool.ArgSpec.
-// nlines: 275 // Approximate
+// NeuroScript Version: 0.5.2
+// File version: 8
+// Purpose: Added RequiresTrust, RequiredCaps, and Effects to all filesystem tool definitions for policy integration.
+// nlines: 300 // Approximate
 // risk_rating: MEDIUM
 // filename: pkg/tool/fs/tooldefs_fs.go
 package fs
 
 import (
 	"fmt"
-	"time"
 
+	"github.com/aprice2704/neuroscript/pkg/policy/capability"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 ) // Required for time format constants used in some tool descriptions
 
@@ -27,10 +27,15 @@ var FsToolsToRegister = []tool.ToolImplementation{
 			},
 			ReturnType:      tool.ArgTypeString,
 			ReturnHelp:      "Returns a hex-encoded SHA256 hash string of the file's content. Returns an empty string on error.",
-			Example:         `TOOL.FS.Hash(filepath: "data/my_document.txt") // Returns "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" (example for an empty file)`,
-			ErrorConditions: "ErrArgumentMismatch if filepath is empty; ErrConfiguration if sandbox is not set; ErrSecurityPath (from SecureFilePath) for invalid paths; ErrFileNotFound if file does not exist; ErrPermissionDenied if file cannot be opened; ErrPathNotFile if path is a directory; ErrIOFailed for other I/O errors during open or read.",
+			Example:         `TOOL.FS.Hash(filepath: "data/my_document.txt")`,
+			ErrorConditions: "ErrArgumentMismatch if filepath is empty; ErrConfiguration if sandbox is not set; ErrSecurityPath for invalid paths; ErrFileNotFound; ErrPermissionDenied; ErrPathNotFile if path is a directory; ErrIOFailed for I/O errors.",
 		},
-		Func: toolFileHash, // from tools_fs_hash.go
+		Func:          toolFileHash,
+		RequiresTrust: false,
+		RequiredCaps: []capability.Capability{
+			{Resource: "fs", Verbs: []string{"read"}},
+		},
+		Effects: []string{"readsFS"},
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -43,10 +48,15 @@ var FsToolsToRegister = []tool.ToolImplementation{
 			},
 			ReturnType:      tool.ArgTypeInt,
 			ReturnHelp:      "Returns the number of lines in the specified file. Returns 0 on error or if file is empty.",
-			Example:         `TOOL.FS.LineCount(filepath: "logs/app.log") // Returns 150 (example)`,
-			ErrorConditions: "ErrArgumentMismatch if filepath is empty; ErrConfiguration if sandbox is not set; ErrSecurityPath for invalid paths; ErrFileNotFound; ErrPermissionDenied; ErrPathNotFile if path is a directory; ErrIOFailed for read errors. (Based on typical file tool error handling, actual implementation for toolLineCountFile in tools_fs_utils.go needed for exact errors).",
+			Example:         `TOOL.FS.LineCount(filepath: "logs/app.log")`,
+			ErrorConditions: "ErrArgumentMismatch if filepath is empty; ErrConfiguration if sandbox is not set; ErrSecurityPath for invalid paths; ErrFileNotFound; ErrPermissionDenied; ErrPathNotFile if path is a directory; ErrIOFailed for read errors.",
 		},
-		Func: toolLineCountFile, // from tools_fs_utils.go
+		Func:          toolLineCountFile,
+		RequiresTrust: false,
+		RequiredCaps: []capability.Capability{
+			{Resource: "fs", Verbs: []string{"read"}},
+		},
+		Effects: []string{"readsFS"},
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -58,11 +68,14 @@ var FsToolsToRegister = []tool.ToolImplementation{
 				{Name: "name", Type: tool.ArgTypeString, Required: true, Description: "The string to sanitize."},
 			},
 			ReturnType:      tool.ArgTypeString,
-			ReturnHelp:      "Returns a sanitized string suitable for use as a filename component (e.g., replacing unsafe characters with underscores).",
-			Example:         `TOOL.FS.SanitizeFilename(name: "My Report Final?.docx") // Returns "My_Report_Final_.docx" (example)`,
-			ErrorConditions: "ErrArgumentMismatch if name is not provided or not a string. (Based on typical utility tool error handling, actual implementation for toolSanitizeFilename in tools_fs_utils.go needed for exact errors).",
+			ReturnHelp:      "Returns a sanitized string suitable for use as a filename component.",
+			Example:         `TOOL.FS.SanitizeFilename(name: "My Report Final?.docx")`,
+			ErrorConditions: "ErrArgumentMismatch if name is not provided or not a string.",
 		},
-		Func: toolSanitizeFilename, // from tools_fs_utils.go
+		Func:          toolSanitizeFilename,
+		RequiresTrust: false,
+		RequiredCaps:  nil, // No specific capabilities needed for a pure string operation
+		Effects:       []string{"idempotent"},
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -75,10 +88,15 @@ var FsToolsToRegister = []tool.ToolImplementation{
 			},
 			ReturnType:      tool.ArgTypeString,
 			ReturnHelp:      "Returns the content of the file as a string. Returns an empty string on error.",
-			Example:         `TOOL.FS.Read(filepath: "config.txt") // Returns "setting=value\n..."`,
-			ErrorConditions: "ErrArgumentMismatch if filepath is empty; ErrConfiguration if sandbox is not set; ErrSecurityPath (from ResolveAndSecurePath) for invalid paths; ErrFileNotFound if file does not exist; ErrPermissionDenied; ErrPathNotFile if path is a directory; ErrIOFailed for other I/O errors.",
+			Example:         `TOOL.FS.Read(filepath: "config.txt")`,
+			ErrorConditions: "ErrArgumentMismatch if filepath is empty; ErrConfiguration if sandbox is not set; ErrSecurityPath for invalid paths; ErrFileNotFound; ErrPermissionDenied; ErrPathNotFile if path is a directory; ErrIOFailed for other I/O errors.",
 		},
-		Func: toolReadFile, // from tools_fs_read.go
+		Func:          toolReadFile,
+		RequiresTrust: false,
+		RequiredCaps: []capability.Capability{
+			{Resource: "fs", Verbs: []string{"read"}},
+		},
+		Effects: []string{"readsFS"},
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -93,9 +111,14 @@ var FsToolsToRegister = []tool.ToolImplementation{
 			ReturnType:      tool.ArgTypeString,
 			ReturnHelp:      "Returns 'OK' on success. Returns nil on error.",
 			Example:         `TOOL.FS.Write(filepath: "output/data.json", content: "{\"key\":\"value\"}")`,
-			ErrorConditions: "ErrArgumentMismatch if arguments are invalid; ErrConfiguration if sandbox is not set; ErrSecurityPath for invalid paths; ErrCannotCreateDir if parent directories cannot be created; ErrPermissionDenied if writing is not allowed; ErrPathNotFile if path exists and is a directory; ErrIOFailed for other I/O errors.",
+			ErrorConditions: "ErrArgumentMismatch; ErrConfiguration; ErrSecurityPath; ErrCannotCreateDir; ErrPermissionDenied; ErrPathNotFile; ErrIOFailed.",
 		},
-		Func: toolWriteFile, // from tools_fs_write.go
+		Func:          toolWriteFile,
+		RequiresTrust: false,
+		RequiredCaps: []capability.Capability{
+			{Resource: "fs", Verbs: []string{"write"}},
+		},
+		Effects: []string{"writesFS", "idempotent"}, // Idempotent if called with the same content
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -110,42 +133,57 @@ var FsToolsToRegister = []tool.ToolImplementation{
 			ReturnType:      tool.ArgTypeString,
 			ReturnHelp:      "Returns 'OK' on success. Returns nil on error.",
 			Example:         `TOOL.FS.Append(filepath: "logs/activity.log", content: "User logged in.\n")`,
-			ErrorConditions: "ErrArgumentMismatch if arguments are invalid; ErrConfiguration if sandbox is not set; ErrSecurityPath for invalid paths; ErrCannotCreateDir if parent directories cannot be created; ErrPermissionDenied if writing is not allowed; ErrPathNotFile if path exists and is a directory; ErrIOFailed for other I/O errors.",
+			ErrorConditions: "ErrArgumentMismatch; ErrConfiguration; ErrSecurityPath; ErrCannotCreateDir; ErrPermissionDenied; ErrPathNotFile; ErrIOFailed.",
 		},
-		Func: toolAppendFile, // from tools_fs_write.go
+		Func:          toolAppendFile,
+		RequiresTrust: false,
+		RequiredCaps: []capability.Capability{
+			{Resource: "fs", Verbs: []string{"write"}},
+		},
+		Effects: []string{"writesFS"}, // Not idempotent
 	},
 	{
 		Spec: tool.ToolSpec{
 			Name:        "List",
 			Group:       Group,
-			Description: "Lists files and subdirectories at a given path. Returns a list of maps, each describing an entry (keys: name, path, isDir, size, modTime).",
+			Description: "Lists files and subdirectories at a given path. Returns a list of maps, each describing an entry.",
 			Category:    "Filesystem",
 			Args: []tool.ArgSpec{
 				{Name: "path", Type: tool.ArgTypeString, Required: true, Description: "Relative path to the directory (use '.' for current)."},
 				{Name: "recursive", Type: tool.ArgTypeBool, Required: false, Description: "Whether to list recursively (default: false)."},
 			},
-			ReturnType:      tool.ArgTypeSliceAny, // Returns []map[string]interface{}
-			ReturnHelp:      "Returns a slice of maps. Each map details a file/directory: {'name':string, 'path':string (relative to input path for recursive), 'isDir':bool, 'size':int64, 'modTime':string (RFC3339Nano)}. Returns nil on error.",
+			ReturnType:      tool.ArgTypeSliceAny,
+			ReturnHelp:      "Returns a slice of maps detailing files/directories. Returns nil on error.",
 			Example:         `TOOL.FS.List(path: "mydir", recursive: true)`,
-			ErrorConditions: "ErrArgumentMismatch if path is not a string or recursive is not bool/nil; ErrConfiguration if sandbox is not set; ErrSecurityPath (from ResolveAndSecurePath) for invalid path; ErrFileNotFound if path does not exist; ErrPermissionDenied; ErrPathNotDirectory if path is not a directory; ErrIOFailed for other I/O errors during listing or walking.",
+			ErrorConditions: "ErrArgumentMismatch; ErrConfiguration; ErrSecurityPath; ErrFileNotFound; ErrPermissionDenied; ErrPathNotDirectory; ErrIOFailed.",
 		},
-		Func: toolListDirectory, // from tools_fs_dirs.go
+		Func:          toolListDirectory,
+		RequiresTrust: false,
+		RequiredCaps: []capability.Capability{
+			{Resource: "fs", Verbs: []string{"read"}},
+		},
+		Effects: []string{"readsFS", "idempotent"},
 	},
 	{
 		Spec: tool.ToolSpec{
 			Name:        "Mkdir",
 			Group:       Group,
-			Description: "Creates a directory. Parent directories are created if they do not exist (like mkdir -p). Returns a success message.",
+			Description: "Creates a directory (like mkdir -p). Returns a success message.",
 			Category:    "Filesystem",
 			Args: []tool.ArgSpec{
 				{Name: "path", Type: tool.ArgTypeString, Required: true, Description: "Relative path of the directory to create."},
 			},
-			ReturnType:      tool.ArgTypeMap, // Returns map[string]interface{}{"status":"success", "message": "...", "path": "..."}
-			ReturnHelp:      "Returns a map: {'status':'success', 'message':'Successfully created directory: <path>', 'path':'<path>'} on success. Returns nil on error.",
-			Example:         `TOOL.FS.Mkdir(path: "new/subdir") // Returns {"status":"success", "message":"Successfully created directory: new/subdir", "path":"new/subdir"}`,
-			ErrorConditions: "ErrArgumentMismatch if path is empty, '.', or not a string; ErrConfiguration if sandbox is not set; ErrSecurityPath (from ResolveAndSecurePath) for invalid path; ErrPathNotDirectory if path exists and is a file; ErrPathExists if directory already exists; ErrPermissionDenied; ErrIOFailed for other I/O errors or failure to stat; ErrCannotCreateDir if MkdirAll fails.",
+			ReturnType:      tool.ArgTypeMap,
+			ReturnHelp:      "Returns a map indicating success. Returns nil on error.",
+			Example:         `TOOL.FS.Mkdir(path: "new/subdir")`,
+			ErrorConditions: "ErrArgumentMismatch; ErrConfiguration; ErrSecurityPath; ErrPathNotDirectory; ErrPathExists; ErrPermissionDenied; ErrIOFailed; ErrCannotCreateDir.",
 		},
-		Func: toolMkdir, // from tools_fs_dirs.go
+		Func:          toolMkdir,
+		RequiresTrust: false,
+		RequiredCaps: []capability.Capability{
+			{Resource: "fs", Verbs: []string{"write"}},
+		},
+		Effects: []string{"writesFS", "idempotent"},
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -156,60 +194,81 @@ var FsToolsToRegister = []tool.ToolImplementation{
 			Args: []tool.ArgSpec{
 				{Name: "path", Type: tool.ArgTypeString, Required: true, Description: "Relative path to the file or empty directory to delete."},
 			},
-			ReturnType:      tool.ArgTypeString, // Returns "OK"
-			ReturnHelp:      "Returns the string 'OK' on successful deletion or if the path does not exist. Returns nil on error.",
-			Example:         `TOOL.FS.Delete(path: "temp/old_file.txt") // Returns "OK"`,
-			ErrorConditions: "ErrArgumentMismatch if path is empty or not a string; ErrConfiguration if sandbox is not set; ErrSecurityPath (from SecureFilePath) for invalid path; ErrPreconditionFailed if directory is not empty; ErrPermissionDenied; ErrIOFailed for other I/O errors. Path not found is treated as success.",
+			ReturnType:      tool.ArgTypeString,
+			ReturnHelp:      "Returns 'OK' on success. Returns nil on error.",
+			Example:         `TOOL.FS.Delete(path: "temp/old_file.txt")`,
+			ErrorConditions: "ErrArgumentMismatch; ErrConfiguration; ErrSecurityPath; ErrPreconditionFailed if directory is not empty; ErrPermissionDenied; ErrIOFailed.",
 		},
-		Func: toolDeleteFile, // from tools_fs_delete.go
+		Func:          toolDeleteFile,
+		RequiresTrust: false, // Deletion is a significant action, but contained by the sandbox
+		RequiredCaps: []capability.Capability{
+			{Resource: "fs", Verbs: []string{"delete"}},
+		},
+		Effects: []string{"writesFS", "idempotent"}, // Deleting a non-existent thing is still idempotent
 	},
 	{
 		Spec: tool.ToolSpec{
 			Name:        "Stat",
 			Group:       Group,
-			Description: fmt.Sprintf("Gets information about a file or directory. Returns a map containing: name(string), path(string), size_bytes(int), is_dir(bool), modified_unix(int), modified_rfc3339(string - format %s), mode_string(string), mode_perm(string).", time.RFC3339Nano),
+			Description: fmt.Sprintf("Gets information about a file or directory. Returns a map of file info."),
 			Category:    "Filesystem",
 			Args: []tool.ArgSpec{
 				{Name: "path", Type: tool.ArgTypeString, Required: true, Description: "Relative path to the file or directory."},
 			},
 			ReturnType:      tool.ArgTypeMap,
-			ReturnHelp:      "Returns a map with file/directory info: {'name', 'path', 'size_bytes', 'is_dir', 'modified_unix', 'modified_rfc3339', 'mode_string', 'mode_perm'}. Returns nil on error.",
+			ReturnHelp:      "Returns a map with file/directory info. Returns nil on error.",
 			Example:         `TOOL.FS.Stat(path: "my_file.go")`,
-			ErrorConditions: "ErrArgumentMismatch if path is empty or not a string; ErrConfiguration if sandbox is not set; ErrSecurityPath (from ResolveAndSecurePath) for invalid path; ErrFileNotFound if path does not exist; ErrPermissionDenied; ErrIOFailed for other I/O errors.",
+			ErrorConditions: "ErrArgumentMismatch; ErrConfiguration; ErrSecurityPath; ErrFileNotFound; ErrPermissionDenied; ErrIOFailed.",
 		},
-		Func: toolStat, // from tools_fs_stat.go
+		Func:          toolStat,
+		RequiresTrust: false,
+		RequiredCaps: []capability.Capability{
+			{Resource: "fs", Verbs: []string{"read"}},
+		},
+		Effects: []string{"readsFS", "idempotent"},
 	},
 	{
 		Spec: tool.ToolSpec{
 			Name:        "Move",
 			Group:       Group,
-			Description: "Moves or renames a file or directory within the sandbox. Returns a map: {'message': 'success message', 'error': nil} on success.",
+			Description: "Moves or renames a file or directory within the sandbox.",
 			Category:    "Filesystem",
 			Args: []tool.ArgSpec{
 				{Name: "source_path", Type: tool.ArgTypeString, Required: true, Description: "Relative path of the source file/directory."},
 				{Name: "destination_path", Type: tool.ArgTypeString, Required: true, Description: "Relative path of the destination."},
 			},
-			ReturnType:      tool.ArgTypeMap, // Returns map[string]interface{}
-			ReturnHelp:      "Returns a map {'message': 'success message', 'error': nil} on success. Returns nil on error.",
+			ReturnType:      tool.ArgTypeMap,
+			ReturnHelp:      "Returns a map indicating success. Returns nil on error.",
 			Example:         `TOOL.FS.Move(source_path: "old_name.txt", destination_path: "new_name.txt")`,
-			ErrorConditions: "ErrArgumentMismatch if paths are empty, not strings, or are the same; ErrConfiguration if sandbox is not set; ErrSecurityPath (from SecureFilePath) for invalid source or destination paths; ErrFileNotFound if source path does not exist; ErrPathExists if destination path already exists; ErrPermissionDenied for source or destination; ErrIOFailed for other I/O errors during stat or rename.",
+			ErrorConditions: "ErrArgumentMismatch; ErrConfiguration; ErrSecurityPath; ErrFileNotFound; ErrPathExists; ErrPermissionDenied; ErrIOFailed.",
 		},
-		Func: toolMoveFile, // from tools_fs_move.go
+		Func:          toolMoveFile,
+		RequiresTrust: false, // Contained by sandbox
+		RequiredCaps: []capability.Capability{
+			// Requires the ability to effectively write (create new) and delete (remove old)
+			{Resource: "fs", Verbs: []string{"write", "delete"}},
+		},
+		Effects: []string{"writesFS", "idempotent"},
 	},
 	{
 		Spec: tool.ToolSpec{
 			Name:        "Walk",
 			Group:       Group,
-			Description: fmt.Sprintf("Recursively walks a directory, returning a list of maps describing files/subdirectories found (keys: name, path_relative, is_dir, size_bytes, modified_unix, modified_rfc3339 (format %s), mode_string). Skips the root directory itself.", time.RFC3339Nano),
+			Description: fmt.Sprintf("Recursively walks a directory, returning a list of maps describing files/subdirectories found."),
 			Category:    "Filesystem",
 			Args: []tool.ArgSpec{
 				{Name: "path", Type: tool.ArgTypeString, Required: true, Description: "Relative path to the directory to walk."},
 			},
-			ReturnType:      tool.ArgTypeSliceAny, // Returns []map[string]interface{}
-			ReturnHelp:      "Returns a slice of maps, each describing a file/subdir: {'name', 'path_relative', 'is_dir', 'size_bytes', 'modified_unix', 'modified_rfc3339', 'mode_string'}. Skips the root dir itself. Returns nil on error.",
+			ReturnType:      tool.ArgTypeSliceAny,
+			ReturnHelp:      "Returns a slice of maps, each describing a file/subdir. Skips the root dir itself. Returns nil on error.",
 			Example:         `TOOL.FS.Walk(path: "src")`,
-			ErrorConditions: "ErrArgumentMismatch if path is empty or not a string; ErrConfiguration if sandbox is not set; ErrSecurityPath (from ResolveAndSecurePath) for invalid path; ErrFileNotFound if start path not found; ErrPathNotDirectory if start path is not a directory; ErrPermissionDenied for start path; ErrIOFailed for stat errors or errors during walk; ErrInternal if relative path calculation fails during walk.",
+			ErrorConditions: "ErrArgumentMismatch; ErrConfiguration; ErrSecurityPath; ErrFileNotFound; ErrPathNotDirectory; ErrPermissionDenied; ErrIOFailed; ErrInternal.",
 		},
-		Func: toolWalkDir, // from tools_fs_walk.go
+		Func:          toolWalkDir,
+		RequiresTrust: false,
+		RequiredCaps: []capability.Capability{
+			{Resource: "fs", Verbs: []string{"read"}},
+		},
+		Effects: []string{"readsFS", "idempotent"},
 	},
 }

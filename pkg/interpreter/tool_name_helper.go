@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 1.0.0
-// Purpose: Provides a centralized helper function to resolve the canonical tool name from an AST node, as per the official parser-interpreter contract.
-// filename: pkg/interpreter/evaluation_helpers.go
-// nlines: 30
+// File version: 2.0.0
+// Purpose: Provides a centralized, exported helper function to resolve the canonical tool name for all lookups, ensuring case-insensitivity.
+// filename: pkg/interpreter/tool_name_helper.go
+// nlines: 35
 // risk_rating: LOW
 
 package interpreter
@@ -14,6 +14,12 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
+
+// CanonicalToolName converts a tool name string to its canonical form for lookups.
+// The current canonical form is lowercase.
+func CanonicalToolName(name string) types.FullName {
+	return types.FullName(strings.ToLower(name))
+}
 
 // resolveToolName constructs the canonical tool name for registry lookup
 // based on the contract with the AST builder.
@@ -31,8 +37,8 @@ func resolveToolName(n *ast.CallableExprNode) (types.FullName, error) {
 
 	// Ensure we don't accidentally double-prefix if the parser's behavior changes.
 	if strings.HasPrefix(n.Target.Name, "tool.") {
-		return types.FullName(n.Target.Name), nil
+		return CanonicalToolName(n.Target.Name), nil
 	}
 
-	return types.FullName("tool." + n.Target.Name), nil
+	return CanonicalToolName("tool." + n.Target.Name), nil
 }

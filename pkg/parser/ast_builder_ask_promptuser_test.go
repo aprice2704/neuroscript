@@ -1,7 +1,7 @@
 // filename: pkg/parser/ast_builder_ask_promptuser_test.go
 // NeuroScript Version: 0.6.0
-// File version: 1
-// Purpose: Provides dedicated tests for the new AI 'ask' statement and the renamed 'promptuser' statement.
+// File version: 3
+// Purpose: Corrected all test assertions to use the canonical ast.Step.AskStmt field and its sub-fields, resolving compiler errors and panics.
 // nlines: 100
 // risk_rating: MEDIUM
 
@@ -29,11 +29,17 @@ func TestAskStatementParsing(t *testing.T) {
 		if step.Type != "ask" {
 			t.Errorf("Expected step type 'ask', got '%s'", step.Type)
 		}
-		if len(step.Values) != 2 {
-			t.Errorf("Expected 2 values (agent, prompt), got %d", len(step.Values))
+		if step.AskStmt == nil {
+			t.Fatal("Expected step.AskStmt to be a non-nil AskStmt")
 		}
-		if len(step.LValues) != 0 {
-			t.Errorf("Expected 0 LValues, got %d", len(step.LValues))
+		if step.AskStmt.AgentModelExpr == nil {
+			t.Error("Expected AgentModelExpr to be non-nil")
+		}
+		if step.AskStmt.PromptExpr == nil {
+			t.Error("Expected PromptExpr to be non-nil")
+		}
+		if step.AskStmt.IntoTarget != nil {
+			t.Error("Expected IntoTarget to be nil for simple ask")
 		}
 	})
 
@@ -46,11 +52,15 @@ func TestAskStatementParsing(t *testing.T) {
 		prog := testParseAndBuild(t, script)
 		proc := prog.Procedures["main"]
 		step := proc.Steps[0]
-		if len(step.LValues) != 1 {
-			t.Errorf("Expected 1 LValue, got %d", len(step.LValues))
+
+		if step.AskStmt == nil {
+			t.Fatal("Expected step.AskStmt to be a non-nil AskStmt")
 		}
-		if step.LValues[0].Identifier != "result" {
-			t.Errorf("Expected LValue identifier 'result', got '%s'", step.LValues[0].Identifier)
+		if step.AskStmt.IntoTarget == nil {
+			t.Fatal("Expected IntoTarget to be non-nil")
+		}
+		if step.AskStmt.IntoTarget.Identifier != "result" {
+			t.Errorf("Expected LValue identifier 'result', got '%s'", step.AskStmt.IntoTarget.Identifier)
 		}
 	})
 
@@ -63,11 +73,14 @@ func TestAskStatementParsing(t *testing.T) {
 		prog := testParseAndBuild(t, script)
 		proc := prog.Procedures["main"]
 		step := proc.Steps[0]
-		if len(step.Values) != 3 {
-			t.Errorf("Expected 3 values (agent, prompt, with), got %d", len(step.Values))
+		if step.AskStmt == nil {
+			t.Fatal("Expected step.AskStmt to be a non-nil AskStmt")
 		}
-		if _, ok := step.Values[2].(*ast.MapLiteralNode); !ok {
-			t.Errorf("Expected third value to be a MapLiteralNode, got %T", step.Values[2])
+		if step.AskStmt.WithOptions == nil {
+			t.Fatal("Expected WithOptions expression to be non-nil")
+		}
+		if _, ok := step.AskStmt.WithOptions.(*ast.MapLiteralNode); !ok {
+			t.Errorf("Expected WithOptions to be a MapLiteralNode, got %T", step.AskStmt.WithOptions)
 		}
 	})
 
@@ -80,11 +93,14 @@ func TestAskStatementParsing(t *testing.T) {
 		prog := testParseAndBuild(t, script)
 		proc := prog.Procedures["main"]
 		step := proc.Steps[0]
-		if len(step.Values) != 3 {
-			t.Errorf("Expected 3 values, got %d", len(step.Values))
+		if step.AskStmt == nil {
+			t.Fatal("Expected step.AskStmt to be a non-nil AskStmt")
 		}
-		if len(step.LValues) != 1 {
-			t.Errorf("Expected 1 LValue, got %d", len(step.LValues))
+		if step.AskStmt.WithOptions == nil {
+			t.Error("Expected WithOptions to be non-nil")
+		}
+		if step.AskStmt.IntoTarget == nil {
+			t.Error("Expected IntoTarget to be non-nil")
 		}
 	})
 }

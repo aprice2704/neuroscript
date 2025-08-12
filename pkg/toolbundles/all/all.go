@@ -1,22 +1,19 @@
+// NeuroScript Version: 0.6.0
+// File version: 1.0.0
+// Purpose: Imports all standard toolsets to enable them via the registration pattern.
+// filename: pkg/toolbundles/all/all.go
+// nlines: 10
+// risk_rating: LOW
+
+// Package all provides a convenient way to include all standard NeuroScript
+// toolsets in a build by simply importing this package.
 package all
 
-// filename: toolbundles/all/all.go
-
 import (
-	// By importing these packages, Go guarantees their init() functions will run.
-	_ "github.com/aprice2704/neuroscript/pkg/tool/ai"
-	_ "github.com/aprice2704/neuroscript/pkg/tool/errtools"
+	// Filesystem toolset
 	_ "github.com/aprice2704/neuroscript/pkg/tool/fs"
-	_ "github.com/aprice2704/neuroscript/pkg/tool/git"
-	_ "github.com/aprice2704/neuroscript/pkg/tool/gotools"
-	_ "github.com/aprice2704/neuroscript/pkg/tool/io"
-	_ "github.com/aprice2704/neuroscript/pkg/tool/list"
-	_ "github.com/aprice2704/neuroscript/pkg/tool/maths"
-	_ "github.com/aprice2704/neuroscript/pkg/tool/meta"
-	_ "github.com/aprice2704/neuroscript/pkg/tool/script"
-	_ "github.com/aprice2704/neuroscript/pkg/tool/shell"
-	_ "github.com/aprice2704/neuroscript/pkg/tool/strtools"
-	_ "github.com/aprice2704/neuroscript/pkg/tool/syntax"
-	_ "github.com/aprice2704/neuroscript/pkg/tool/time"
-	_ "github.com/aprice2704/neuroscript/pkg/tool/tree"
+	// OS-level toolset
+	_ "github.com/aprice2704/neuroscript/pkg/tool/os"
+	// AgentModel management toolset
+	_ "github.com/aprice2704/neuroscript/pkg/tool/agentmodel"
 )

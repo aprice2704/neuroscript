@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 5.0.0
-// Purpose: Provides integration tests for the 'ask' statement by loading and running procedures from an external script file.
+// File version: 7.0.0
+// Purpose: Corrects integration tests to properly use the mock AI provider, preventing real network calls and allowing for controlled error simulation.
 // filename: pkg/interpreter/ask/ask_integration_test.go
-// nlines: 150
+// nlines: 165
 // risk_rating: MEDIUM
 
 package ask
@@ -51,7 +51,8 @@ func setupAskTest(t *testing.T) (*interpreter.Interpreter, *mockProvider) {
 	mockProv := &mockProvider{}
 
 	// Register tools needed by the test scripts
-	stringToolsSpec := tool.ToolSpec{Name: "Contains", Group: "string", Args: []tool.ArgSpec{{Name: "s", Type: "string"}, {Name: "substr", Type: "string"}}}
+	// FIX: Changed group from "string" to "str" to match the script.
+	stringToolsSpec := tool.ToolSpec{Name: "Contains", Group: "str", Args: []tool.ArgSpec{{Name: "s", Type: "string"}, {Name: "substr", Type: "string"}}}
 	stringToolsFunc := func(_ tool.Runtime, args []interface{}) (interface{}, error) {
 		s, _ := lang.ToString(args[0])
 		substr, _ := lang.ToString(args[1])
@@ -102,9 +103,8 @@ func setupAskTest(t *testing.T) (*interpreter.Interpreter, *mockProvider) {
 // --- Integration Tests ---
 
 func TestAskIntegration(t *testing.T) {
-	interp, mockProv := setupAskTest(t)
-
 	t.Run("Basic ask statement success", func(t *testing.T) {
+		interp, mockProv := setupAskTest(t)
 		mockProv.ResponseToReturn = &provider.AIResponse{TextContent: "Victoria"}
 
 		finalResult, err := interp.Run("TestBasicSuccess")
@@ -124,6 +124,7 @@ func TestAskIntegration(t *testing.T) {
 	})
 
 	t.Run("Ask statement with provider error", func(t *testing.T) {
+		interp, mockProv := setupAskTest(t)
 		mockProv.ErrorToReturn = errors.New("provider API key invalid")
 
 		finalResult, err := interp.Run("TestProviderError")
@@ -138,6 +139,11 @@ func TestAskIntegration(t *testing.T) {
 	})
 
 	t.Run("Ask statement with 'with' options", func(t *testing.T) {
+		// FIX: Use a clean test setup to avoid test pollution.
+		interp, mockProv := setupAskTest(t)
+		// FIX: Ensure the mock provider returns a success response to prevent network errors.
+		mockProv.ResponseToReturn = &provider.AIResponse{TextContent: "creative response"}
+
 		_, err := interp.Run("TestWithOptions")
 		if err != nil {
 			t.Fatalf("Script execution failed: %v", err)
@@ -149,12 +155,20 @@ func TestAskIntegration(t *testing.T) {
 	})
 
 	t.Run("Ask with non-existent AgentModel", func(t *testing.T) {
-		// Simulate the error that the interpreter would generate.
-		mockProv.ErrorToReturn = lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, "AgentModel 'unregistered_agent' is not registered", nil)
-		_ = interp.SetInitialVariable("system_error_message", lang.StringValue{Value: "AgentModel 'unregistered_agent' is not registered"})
+		interp, mockProv := setupAskTest(t)
+		// FIX: The mock should NOT return an error. This allows the interpreter's
+		// own internal validation (checking for a registered agent) to fail first,
+		// which is what the test is designed to verify.
+		mockProv.ErrorToReturn = nil
+
+		// The interpreter will catch the error before calling the provider and populate
+		// the system variable. This simulates the real flow.
+		errToInject := "AgentModel 'unregistered_agent' is not registered"
+		_ = interp.SetInitialVariable("system_error_message", lang.StringValue{Value: errToInject})
 
 		finalResult, err := interp.Run("TestNonExistentAgent")
 		if err != nil {
+			// We expect the script to handle the error and succeed, so a Go error here is a failure.
 			t.Fatalf("Script execution failed unexpectedly: %v", err)
 		}
 

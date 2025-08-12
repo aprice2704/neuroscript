@@ -1,0 +1,10 @@
+:: title: Invalid Line Continuation Test
+:: purpose: Ensure the parser fails on incorrect use of line continuation.
+
+func main() means
+    # Invalid: continuation with trailing characters
+    set x = 1 + \ # this is not allowed
+              2
+
+    # Invalid: continuation at the very end of the file
+    emit "hello" \

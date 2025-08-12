@@ -1,8 +1,7 @@
 // filename: pkg/parser/ast_builder_procedures.go
 // NeuroScript Version: 0.6.0
-// File version: 16
-// Purpose: Corrected ParamSpec creation to use the newNode helper with the correct, existing NodeKind (types.KindVariable).
-
+// File version: 19
+// Purpose: Simplified to call the new centralized assignPendingMetadata helper.
 package parser
 
 import (
@@ -20,13 +19,15 @@ func (l *neuroScriptListenerImpl) EnterProcedure_definition(ctx *gen.Procedure_d
 	proc := &ast.Procedure{
 		Metadata: make(map[string]string),
 		Comments: make([]*ast.Comment, 0),
-		// BlankLinesBefore is now set by the LineInfo algorithm in the builder.
 	}
+	l.assignPendingMetadata(token, proc.Metadata)
+
 	proc.SetName(procName)
 	l.currentProc = newNode(proc, token, types.KindProcedureDecl)
 	l.currentProc.Comments = l.associateCommentsToNode(l.currentProc)
 }
 
+// ... (rest of the file is unchanged)
 func (l *neuroScriptListenerImpl) ExitProcedure_definition(ctx *gen.Procedure_definitionContext) {
 	procName := l.currentProc.Name()
 	l.logDebugAST("<<< Exit Procedure_definition for %s", procName)
@@ -97,9 +98,6 @@ func (l *neuroScriptListenerImpl) ExitOptional_clause(ctx *gen.Optional_clauseCo
 		l.addError(ctx, "found 'optional' clause outside of a procedure definition")
 		return
 	}
-	// We pop the value pushed by ExitParam_list to keep the stack clean, but we
-	// don't use it. We get the identifiers directly from the context to have
-	// access to their tokens for proper node initialization.
 	val, ok := l.pop()
 	if !ok {
 		l.addError(ctx, "stack underflow reading params for 'optional' clause")
@@ -110,17 +108,13 @@ func (l *neuroScriptListenerImpl) ExitOptional_clause(ctx *gen.Optional_clauseCo
 		return
 	}
 
-	// Re-get the identifiers from the context to access their tokens.
 	paramListCtx := ctx.Param_list()
 	if paramListCtx == nil {
-		return // No optional parameters present.
+		return
 	}
 
 	for _, identNode := range paramListCtx.AllIDENTIFIER() {
-		// FIX: Create the ParamSpec using the newNode helper to ensure its
-		// BaseNode (and thus NodeKind and StartPos) is fully initialized.
 		param := &ast.ParamSpec{Name: identNode.GetText()}
-		// A parameter is a form of variable, so KindVariable is the correct type.
 		newNode(param, identNode.GetSymbol(), types.KindVariable)
 		l.currentProc.OptionalParams = append(l.currentProc.OptionalParams, param)
 	}

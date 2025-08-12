@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 46
-// Purpose: Refactored to use helper functions from ast_helpers.go for improved modularity.
+// File version: 47
+// Purpose: Made tool name lookup case-insensitive to match interpreter behavior.
 // filename: pkg/nslsp/server_extracttool_b.go
 // nlines: 140
 // risk_rating: MEDIUM
@@ -44,11 +44,14 @@ func (s *Server) extractAndValidateFullToolName(qiRuleCtx antlr.RuleContext, deb
 		return ""
 	}
 
-	forceDebugf(debugHover, "extractAndValidateFullToolName: Checking tool registry for: '%s'", candidateToolName)
-	_, found := s.toolRegistry.GetTool(types.FullName(candidateToolName))
-	forceDebugf(debugHover, "extractAndValidateFullToolName: Tool: '%s', FoundInRegistry: %t", candidateToolName, found)
+	// FIX: Use case-insensitive lookup to match interpreter behavior.
+	lookupName := types.FullName(strings.ToLower(candidateToolName))
+	forceDebugf(debugHover, "extractAndValidateFullToolName: Checking tool registry for (case-insensitive): '%s'", lookupName)
+	_, found := s.toolRegistry.GetTool(lookupName)
+	forceDebugf(debugHover, "extractAndValidateFullToolName: Tool: '%s', FoundInRegistry: %t", lookupName, found)
 
 	if found {
+		// Return the original-cased name for display purposes.
 		return candidateToolName
 	}
 

@@ -1,7 +1,7 @@
 // filename: pkg/parser/ast_builder_events_test.go
 // NeuroScript Version: 0.5.2
-// File version: 2
-// Purpose: Corrected invalid syntax in tests and updated assertions to match expected behavior.
+// File version: 3
+// Purpose: Corrected invalid syntax in tests and updated assertions to match expected behavior. Added test for metadata on event handlers.
 // nlines: 105
 // risk_rating: MEDIUM
 
@@ -50,6 +50,27 @@ func TestOnEventParsing(t *testing.T) {
 		eventDecl := prog.Events[0]
 		if eventDecl.HandlerName != "MyEventHandler" {
 			t.Errorf("Expected HandlerName to be 'MyEventHandler', got '%s'", eventDecl.HandlerName)
+		}
+	})
+
+	t.Run("On-Event Handler with Metadata", func(t *testing.T) {
+		script := `
+			:: a: b
+			:: c: d
+			on event "test.event" do
+				emit "hello"
+			endon
+		`
+		prog := testParseAndBuild(t, script)
+		if len(prog.Events) != 1 {
+			t.Fatalf("Expected 1 event, got %d", len(prog.Events))
+		}
+		event := prog.Events[0]
+		if len(event.Metadata) != 2 {
+			t.Errorf("Expected 2 metadata entries, got %d", len(event.Metadata))
+		}
+		if event.Metadata["a"] != "b" {
+			t.Errorf("Expected metadata 'a' to be 'b', got '%s'", event.Metadata["a"])
 		}
 	})
 }

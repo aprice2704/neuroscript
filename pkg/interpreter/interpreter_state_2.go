@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 4
-// Purpose: Consolidated all state, including provider and agentmodel maps, into the main interpreterState struct.
+// File version: 5.0.0
+// Purpose: Consolidated AgentModel state directly into the main interpreterState struct, resolving missing field errors.
 // filename: pkg/interpreter/interpreter_state_2.go
-// nlines: 65
+// nlines: 70
 // risk_rating: MEDIUM
 
 package interpreter
@@ -13,9 +13,8 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/provider"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
-
-// NOTE: The AgentModel struct is defined in interpreter_agentmodel.go
 
 // interpreterState holds all the non-exported, mutable state of the interpreter.
 type interpreterState struct {
@@ -31,7 +30,8 @@ type interpreterState struct {
 	globalVarNames    map[string]bool
 
 	// --- AgentModel State ---
-	agentModels   map[string]AgentModel
+	// FIX: The agentModels map is now correctly defined here.
+	agentModels   map[types.AgentModelName]AgentModel
 	agentModelsMu sync.RWMutex
 
 	// --- Provider State ---
@@ -52,8 +52,8 @@ func newInterpreterState() *interpreterState {
 		commands:        []*ast.CommandNode{},
 		stackFrames:     []string{},
 		globalVarNames:  make(map[string]bool),
-		agentModels:     make(map[string]AgentModel),
-		providers:       make(map[string]provider.AIProvider), // Initialize providers map
+		agentModels:     make(map[types.AgentModelName]AgentModel), // Initialize agentModels map
+		providers:       make(map[string]provider.AIProvider),
 	}
 }
 

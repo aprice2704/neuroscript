@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.5.2
-// File version: 12
-// Purpose: Renamed Runtime.Ask to PromptUser for clarity.
+// File version: 14
+// Purpose: Reverted FullName to be a direct field of ToolImplementation and added policy fields.
 // filename: pkg/tool/tool_types.go
-// nlines: 112
+// nlines: 121
 // risk_rating: HIGH
 
 package tool
@@ -10,6 +10,7 @@ package tool
 import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/policy/capability"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
@@ -76,17 +77,21 @@ type ToolSpec struct {
 	ErrorConditions string          `json:"errorConditions,omitempty"`
 }
 
-// ToolImplementation combines the specification of a tool with its Go function.
+// ToolImplementation combines the specification of a tool with its Go function
+// and its policy requirements.
 type ToolImplementation struct {
-	FullName types.FullName
-	Spec     ToolSpec
-	Func     ToolFunc
+	FullName      types.FullName
+	Spec          ToolSpec
+	Func          ToolFunc
+	RequiresTrust bool
+	RequiredCaps  []capability.Capability
+	Effects       []string
 }
 
 // IsTool satisfies the lang.Tool interface.
 func (t ToolImplementation) IsTool() {}
 
-// Name returns the name of the tool.
+// Name returns the fully qualified name of the tool.
 func (t *ToolImplementation) Name() types.FullName {
 	return t.FullName
 }

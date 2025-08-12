@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.0
-// File version: 70
-// Purpose: Added dispatch cases for the 'ask' and 'promptuser' statements in the main execution loop.
+// File version: 73.0.0
+// Purpose: Corrected implicit return logic for 'must' statements by including them in the set of statements that update the final result.
 // filename: pkg/interpreter/interpreter_exec.go
 // nlines: 300
 // risk_rating: HIGH
@@ -22,6 +22,7 @@ func (i *Interpreter) executeSteps(steps []ast.Step, isInHandler bool, activeErr
 }
 
 func getStepSubjectForLogging(step ast.Step) string {
+	// ... (function content unchanged)
 	switch strings.ToLower(step.Type) {
 	case "set", "assign":
 		if len(step.LValues) > 0 {
@@ -93,6 +94,7 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 		stepTypeLower := strings.ToLower(step.Type)
 
 		switch stepTypeLower {
+		// ... (cases unchanged)
 		case "set", "assign":
 			stepResult, stepErr = i.executeSet(step)
 		case "call":
@@ -195,17 +197,25 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 			if !isInHandler && len(i.state.errorHandlerStack) > 0 {
 				handlerBlock := i.state.errorHandlerStack[len(i.state.errorHandlerStack)-1]
 				handlerToExecute := handlerBlock[0]
+
+				// FIX: Execute the handler in the CURRENT interpreter scope, not a sandbox.
+				// This allows 'set' and 'clear_error' to affect the procedure's state.
+				i.SetVariable("system_error_message", lang.StringValue{Value: rtErr.Message})
+
 				_, _, handlerCleared, handlerErr := i.executeSteps(handlerToExecute.Body, true, rtErr)
+
 				if handlerErr != nil {
 					return nil, false, false, ensureRuntimeError(handlerErr, handlerToExecute.GetPos(), "ON_ERROR_HANDLER")
 				}
 				if handlerCleared {
 					stepErr = nil
-					continue
+					continue // Resume execution in the current loop.
 				} else {
+					// If the error was not cleared, propagate it up.
 					return nil, false, false, rtErr
 				}
 			} else {
+				// No handler available, or we are already in one, so propagate the error.
 				return nil, false, wasCleared, rtErr
 			}
 		}
@@ -242,7 +252,7 @@ func (i *Interpreter) executeBlock(blockValue interface{}, parentPos *types.Posi
 
 func shouldUpdateLastResult(stepTypeLower string) bool {
 	switch stepTypeLower {
-	case "set", "assign", "emit", "ask", "promptuser", "call", "expression_statement":
+	case "set", "assign", "emit", "ask", "promptuser", "call", "expression_statement", "must", "mustbe":
 		return true
 	default:
 		return false

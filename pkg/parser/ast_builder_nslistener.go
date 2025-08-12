@@ -1,9 +1,9 @@
 // filename: pkg/parser/ast_builder_nslistener.go
 // NeuroScript Version: 0.6.0
-// File version: 18
-// Purpose: FIX: Removed all fragile counter logic; association is now handled by the LineInfo algorithm.
-// nlines: 150
-// risk_rating: LOW
+// File version: 22
+// Purpose: Updated listener to track pending metadata token for precise, centralized blank-line association logic.
+// nlines: 160
+// risk_rating: MEDIUM
 
 package parser
 
@@ -21,12 +21,14 @@ import (
 type neuroScriptListenerImpl struct {
 	*gen.BaseNeuroScriptListener
 	program                   *ast.Program
-	fileMetadata              map[string]string
+	pendingMetadata           map[string]string
+	lastPendingMetadataToken  antlr.Token
 	procedures                []*ast.Procedure
 	events                    []*ast.OnEventDecl
 	commands                  []*ast.CommandNode
 	currentProc               *ast.Procedure
 	currentCommand            *ast.CommandNode
+	currentEvent              *ast.OnEventDecl
 	ValueStack                []interface{}
 	blockStack                []*blockContext
 	logger                    interfaces.Logger
@@ -52,7 +54,7 @@ func newNeuroScriptListener(logger interfaces.Logger, debugAST bool, tokenStream
 	listener := &neuroScriptListenerImpl{
 		BaseNeuroScriptListener: &gen.BaseNeuroScriptListener{},
 		program:                 ast.NewProgram(),
-		fileMetadata:            make(map[string]string),
+		pendingMetadata:         make(map[string]string),
 		procedures:              make([]*ast.Procedure, 0),
 		events:                  make([]*ast.OnEventDecl, 0),
 		commands:                make([]*ast.CommandNode, 0),
@@ -97,7 +99,7 @@ func (l *neuroScriptListenerImpl) associateCommentsToNode(node ast.Node) []*ast.
 }
 
 func (l *neuroScriptListenerImpl) GetFileMetadata() map[string]string {
-	return l.fileMetadata
+	return l.program.Metadata
 }
 
 func (l *neuroScriptListenerImpl) GetResult() []*ast.Procedure {
@@ -132,6 +134,11 @@ func (l *neuroScriptListenerImpl) EnterProgram(c *gen.ProgramContext) {
 
 func (l *neuroScriptListenerImpl) ExitProgram(c *gen.ProgramContext) {
 	l.logDebugAST("ExitProgram: Finalizing program...")
+	// Any metadata left over at the end of the file is considered file-level metadata.
+	if len(l.pendingMetadata) > 0 {
+		l.assignPendingMetadata(nil, nil) // Pass nil to force assignment to file.
+	}
+
 	if len(l.ValueStack) > 0 {
 		l.addErrorf(c.GetStart(), "internal AST builder error: value stack size is %d at end of program", len(l.ValueStack))
 	}

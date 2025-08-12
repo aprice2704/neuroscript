@@ -23,16 +23,18 @@ func TestNeuroScriptParser(t *testing.T) {
 		expectError bool
 		desc        string
 	}{
-		"valid_basic.ns.txt":              {false, "Basic valid syntax with metadata"},
-		"valid_metadata.ns.txt":           {false, "Valid file and procedure metadata, allows blank lines between funcs"},
-		"valid_control_flow.ns.txt":       {false, "Valid if/else/endif blocks (corrected)"},
-		"valid_error_handler.ns.txt":      {false, "Valid on_error/endon syntax"},
-		"valid_tool_call.ns.txt":          {false, "Valid tool call (using LAST) and map access syntax"},
-		"invalid_keyword_case.ns.txt":     {true, "Invalid uppercase keywords"},
-		"invalid_syntax_structure.ns.txt": {true, "Invalid structure (missing means, mismatched end)"},
-		"valid_metadata_format.ns.txt":    {false, "Syntactically valid metadata format (semantic check needed later)"},
-
-		// New, more comprehensive test cases
+		"valid_basic.ns.txt":                {false, "Basic valid syntax with metadata"},
+		"valid_metadata.ns.txt":             {false, "Valid file and procedure metadata, allows blank lines between funcs"},
+		"valid_control_flow.ns.txt":         {false, "Valid if/else/endif blocks (corrected)"},
+		"valid_error_handler.ns.txt":        {false, "Valid on_error/endon syntax"},
+		"valid_tool_call.ns.txt":            {false, "Valid tool call (using LAST) and map access syntax"},
+		"invalid_keyword_case.ns.txt":       {true, "Invalid uppercase keywords"},
+		"invalid_syntax_structure.ns.txt":   {true, "Invalid structure (missing means, mismatched end)"},
+		"valid_metadata_format.ns.txt":      {false, "Syntactically valid metadata format (semantic check needed later)"},
+		"invalid_line_continuation.ns.txt":  {true, "Invalid use of the line continuation character"},
+		"invalid_map_key.ns.txt":            {true, "Using a variable as a map key, which is not allowed"},
+		"valid_recursive_call.ns.txt":       {false, "A function calling itself should parse correctly"},
+		"valid_complex_accessor.ns.txt":     {false, "Using a function call as a map accessor"},
 		"valid_comprehensive_syntax.ns.txt": {false, "A wide range of valid syntax constructs"},
 		"invalid_syntax_collection.ns.txt":  {true, "A collection of various common syntax errors"},
 	}

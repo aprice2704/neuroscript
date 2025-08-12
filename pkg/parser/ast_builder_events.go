@@ -1,8 +1,7 @@
 // filename: pkg/parser/ast_builder_events.go
 // NeuroScript Version: 0.6.0
-// File version: 13
-// Purpose: Removed obsolete blank line counting logic. Association is now handled by the LineInfo algorithm.
-
+// File version: 18
+// Purpose: Restored elided ExitEvent_handler function and correctly integrated metadata assignment.
 package parser
 
 import (
@@ -13,13 +12,16 @@ import (
 
 func (l *neuroScriptListenerImpl) EnterEvent_handler(c *gen.Event_handlerContext) {
 	l.logDebugAST(">>> EnterEvent_handler")
+	token := c.GetStart()
 	onEvent := &ast.OnEventDecl{
 		Metadata: make(map[string]string),
 		Comments: make([]*ast.Comment, 0),
-		// BlankLinesBefore is now set by the LineInfo algorithm in the builder.
 	}
+	l.assignPendingMetadata(token, onEvent.Metadata)
+
 	newNode(onEvent, c.GetStart(), types.KindOnEventDecl)
 	l.push(onEvent)
+	l.currentEvent = onEvent
 }
 
 func (l *neuroScriptListenerImpl) ExitEvent_handler(c *gen.Event_handlerContext) {
@@ -70,6 +72,7 @@ func (l *neuroScriptListenerImpl) ExitEvent_handler(c *gen.Event_handlerContext)
 	}
 
 	l.program.Events = append(l.program.Events, onEvent)
+	l.currentEvent = nil
 }
 
 func (l *neuroScriptListenerImpl) EnterError_handler(c *gen.Error_handlerContext) {

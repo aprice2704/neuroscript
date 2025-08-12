@@ -1,22 +1,22 @@
-# NeuroScript Go Development: Core AI Rules (Revised May 2025)
+# NeuroScript Go Development: Core AI Rules (Revised 2025-Aug-11)
 
 Follow these **CORE RULES** **very strictly** for all Go code contributions to the NeuroScript project, unless I (AJP) say otherwise. Your consistent adherence to these rules is crucial for project efficiency and code quality. We use Go version 1.24 or later.
 
-## TOP 10 CRITICAL RULES - ALWAYS FOLLOW:
+## TOP CRITICAL RULES - ALWAYS FOLLOW:
 
-1.  **Understand Context First:** Before coding, review project documentation (especially `.md` files) and existing code to grasp goals and architecture. Remember the `neuroscript` folder dependency.
+1.  **Understand Context First:** Before coding, review project documentation (especially `.md` files) and existing code to grasp goals and architecture.
 1a. **MINIMAL CHANGES** unless otherwise told, when fixing compiler bugs or test fails, PERFORM THE MINIMUM changes required. Don't do a bunch of "tidying".
 3.  **Full & Functional Files ALWAYS:**
     * Always provide complete Go files based on latest versions (we have had some issues with stale files)
-    * **NEVER EVER** generate code with function bodies "shorted out" or replaced by comments (e.g., `// ... implementation ...`). This wastes significant time and has lead to us wasting several hours of effort on at least two occasions. NEVER. **EVER**.
-4.  **One Main File Per Turn:**
-    * Provide only **one primary code file** per response, unless we explicitly agree otherwise (e.g., when splitting a file).
-    * Delivering multiple, potentially misdirected large files is very inefficient.
+    * **NEVER EVER** generate code with function bodies "shorted out" or replaced by comments (e.g., `// ... implementation ...`). This wastes significant time and has lead to us wasting several hours of effort on at least two occasions. **NEVER EVER**.
+4.  **No File Carpet Bombing Please**
+    * Provide only **a small number of files** per response please, unless we explicitly agree otherwise (e.g., when splitting a file). Tell me if there are more files to come.
+    * Delivering multiple, potentially misdirected **large** files is very inefficient -- only provide files when you are sure of them.
 5.  **Split Large Files When Created or Edited:**
-    * If a Go file exceeds **200 lines of code**, you **MUST** split it logically.
-    * Do this automatically when creating or editing; you don't need to ask first. **THIS IS VITAL.**
+    * If a Go file exceeds **200 lines of code**, please split it logically.
+    * Do this automatically when creating or editing; otherwise wait until asked.
 6.  **Apply Versioning Stamps:**
-    * At the top of **every Go file you modify**, include the following, bumping the `File version` minor number:
+    * At the top of **every Go file you modify**, include the following, bumping the `File version` number:
         ```go
         // NeuroScript Version: 0.3.0 // (Or current project version)
         // File version: X // (X is an integer bumped, if it starts as semantic convert to just the last number so 0.1.7 -> 8)
@@ -39,7 +39,6 @@ Follow these **CORE RULES** **very strictly** for all Go code contributions to t
     * **Avoid** using nil detection on returned values -- return an error instead of a nil.
 10. **Request Missing Information:**
     * If you need files (e.g., `.g4`, fixtures, other source code) or clarification that you don't have, **ask for them immediately.** Do not guess contents or specifications.
-11. **Export by Default** go's namespacing is good. Just use IsZeroValue not isZeroValue. Unconventional I know, I don't care -- it'll save effort in the end.
 12. **Beware stubbing** The go compiler is a great resource, preventing one from making a half program; stubbing neutralizes this advantage. Use stubbing sparingly.
 ---
 
@@ -51,8 +50,7 @@ While the Top 10 are paramount, also remember these important points:
 * **Pause for Discussion:** During design discussions, wait for an explicit request before generating code, especially multiple files.
 * **Single Update Block (Optional):** For minor changes in large files, you *may* provide just the changed block, clearly marked. If in doubt, send the whole file. NEVER more than one update block per file.
 * **Helpers:** Place reusable helpers in shared files (e.g., `utils.go`).
-* **Import Paths:** Use plain string literals for Go import paths.
-* **Package Comments:** Keep `// Package ...` comments accurate. No comments within import blocks. `.ns` files do not permit `//` comments.
+* **Import Paths:** Use plain string literals for Go import paths -- watch out for md links sneaking in. Also github.comcom is *not* a domain, github.com is.
 * **Sentinel Errors:** Define exported sentinel errors in `errors.go` files (e.g., `var ErrNotFound = errors.New(...)`). Return these exact sentinels or wrap them with `fmt.Errorf("... %w", ..., err)`.
 * **Testing Strategy:**
     * Keep tests simple, clear, table-driven. Use `pkg/core/universal_test_helpers.go`.
@@ -60,9 +58,4 @@ While the Top 10 are paramount, also remember these important points:
     * Verify errors with `errors.Is`. Test happy path first, then unhappy paths focusing on correct sentinel errors.
 * **Debugging:** Be systematic. Use and **KEEP** debug logging (`fmt.Println`, `log.Printf`) unless asked to remove it. Suggest bulk fixes with search/replace patterns if applicable.
 * **Go Design:** Favor explicit, single-purpose functions. Export sensibly.
-* **Markdown & Specs:** Prepend `@@@` to standalone Markdown lines. Use relative links. Follow `docs/specification_structure.md`.
-* **Interpreter Setup for Testing:** This is a complex but critical rule for writing tests involving the `core.Interpreter`. Refer to the full details in the original (full version) `AI_RULES.md` when setting up interpreters for tests, especially differentiating between tests *within* `pkg/core` (use internal helpers) and *outside* `pkg/core` (manual setup and tool registration required).
-
----
-
-This revised guide emphasizes the most critical rules to ensure smoother development. For full details, especially on complex topics like Interpreter Setup or specific examples, the original, more comprehensive `AI_RULES.md` (version: Revised 1-May-2025) remains a valuable reference if needed.
+* **Markdown & Specs:** Prepend `@@@` to each line when you provide Markdown files, present as text in an inline code box. Use relative links.

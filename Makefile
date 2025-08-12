@@ -147,7 +147,7 @@ vet:
 
 test:
 	@echo "--> Running Go tests..."
-	$(GO) test ./...
+	gotestsum ./...
 
 # ------------------------------------------------------------------------------
 # Phony target groupings

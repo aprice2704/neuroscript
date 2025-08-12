@@ -1,0 +1,10 @@
+:: title: Valid Recursive Call Test
+
+# The parser should have no issue building an AST for a recursive function.
+# The recursion itself is a runtime concern, not a parsing one.
+func factorial(needs n) means
+    if n <= 1
+        return 1
+    endif
+    return n * factorial(n - 1)
+endfunc
