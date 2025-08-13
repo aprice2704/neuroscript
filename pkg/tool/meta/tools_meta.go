@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.8
-// File version: 0.1.9
-// Purpose: Corrected type casting issues by explicitly converting ToolName and ToolGroup to string when calling types.MakeFullName.
+// File version: 0.2.0
+// Purpose: Corrected all compiler errors by accessing the nested 'Spec' field for tool properties.
 // nlines: 175 // Approximate
 // risk_rating: MEDIUM
 
@@ -30,14 +30,14 @@ func toolListTools(interpreter tool.Runtime, args []interface{}) (interface{}, e
 		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "Meta.ListTools: ToolRegistry is not available from runtime", lang.ErrConfiguration)
 	}
 
-	toolSpecs := registry.ListTools()
-	if len(toolSpecs) == 0 {
+	toolImpls := registry.ListTools()
+	if len(toolImpls) == 0 {
 		return "No tools are currently registered.", nil
 	}
 
-	// Use a slice of strings for sorting to handle full names correctly.
 	var toolStrings []string
-	for _, spec := range toolSpecs {
+	for _, impl := range toolImpls {
+		spec := impl.Spec
 		fullName := types.MakeFullName(string(spec.Group), string(spec.Name))
 		paramsStr := formatParamsSimpleForSpec(spec.Args)
 		toolStrings = append(toolStrings, fmt.Sprintf("%s(%s) -> %s", fullName, paramsStr, spec.ReturnType))
@@ -74,9 +74,10 @@ func toolToolsHelp(interpreter tool.Runtime, args []interface{}) (interface{}, e
 		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "Meta.ToolsHelp: ToolRegistry is not available from runtime", lang.ErrConfiguration)
 	}
 
-	allToolSpecs := registry.ListTools()
+	allToolImpls := registry.ListTools()
 	var filteredSpecs []tool.ToolSpec
-	for _, spec := range allToolSpecs {
+	for _, impl := range allToolImpls {
+		spec := impl.Spec
 		fullname := types.MakeFullName(string(spec.Group), string(spec.Name))
 		if normalizedFilter == "" || strings.Contains(strings.ToLower(string(fullname)), normalizedFilter) {
 			filteredSpecs = append(filteredSpecs, spec)
@@ -104,7 +105,7 @@ func toolToolsHelp(interpreter tool.Runtime, args []interface{}) (interface{}, e
 
 	for _, spec := range filteredSpecs {
 		fullName := types.MakeFullName(string(spec.Group), string(spec.Name))
-		mdBuilder.WriteString(fmt.Sprintf("## `%s`\n", fullName)) // Use full name
+		mdBuilder.WriteString(fmt.Sprintf("## `%s`\n", fullName))
 		mdBuilder.WriteString(fmt.Sprintf("**Description:** %s\n\n", spec.Description))
 		if spec.Category != "" {
 			mdBuilder.WriteString(fmt.Sprintf("**Category:** %s\n\n", spec.Category))
@@ -133,7 +134,12 @@ func toolGetToolSpecificationsJSON(interpreter tool.Runtime, args []interface{})
 		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "Meta.GetToolSpecificationsJSON: ToolRegistry is not available", lang.ErrConfiguration)
 	}
 
-	toolSpecs := registry.ListTools()
+	allToolImpls := registry.ListTools()
+	toolSpecs := make([]tool.ToolSpec, len(allToolImpls))
+	for i, impl := range allToolImpls {
+		toolSpecs[i] = impl.Spec
+	}
+
 	sort.Slice(toolSpecs, func(i, j int) bool {
 		fullNameI := types.MakeFullName(string(toolSpecs[i].Group), string(toolSpecs[i].Name))
 		fullNameJ := types.MakeFullName(string(toolSpecs[j].Group), string(toolSpecs[j].Name))

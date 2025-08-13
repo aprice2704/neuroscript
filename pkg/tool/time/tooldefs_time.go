@@ -1,6 +1,6 @@
 // filename: pkg/tool/time/tooldefs_time.go
-// version: 6
-// purpose: Corrected function signatures to match the ToolFunc type, resolving compiler errors. The adapters now correctly handle raw interface{} types.
+// version: 7
+// purpose: Added policy metadata (RequiresTrust, RequiredCaps, Effects) to all time tools.
 
 package time
 
@@ -21,7 +21,10 @@ var timeToolsToRegister = []tool.ToolImplementation{
 			ReturnHelp:  "A 'timedate' value representing the moment the tool was called.",
 			Example:     "`set right_now = tool.Time.Now()`",
 		},
-		Func: adaptToolTimeNow,
+		Func:          adaptToolTimeNow,
+		RequiresTrust: false,
+		RequiredCaps:  nil,
+		Effects:       []string{"readsClock"},
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -36,6 +39,9 @@ var timeToolsToRegister = []tool.ToolImplementation{
 			ReturnHelp: "Returns true on successful completion of the sleep duration.",
 			Example:    "`call tool.Time.Sleep(1.5)`",
 		},
-		Func: adaptToolTimeSleep,
+		Func:          adaptToolTimeSleep,
+		RequiresTrust: false,
+		RequiredCaps:  nil,
+		Effects:       []string{"readsClock"},
 	},
 }

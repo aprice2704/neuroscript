@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 1.0.0
-// Purpose: Adds dedicated tests for the interpreter's Load method, ensuring correct state initialization and handling of edge cases.
+// File version: 2.0.0
+// Purpose: Corrected calls to the renamed test helper function 'NewTestInterpreter'.
 // filename: pkg/interpreter/interpreter_load_test.go
 // nlines: 95
 // risk_rating: LOW
@@ -26,7 +26,7 @@ func TestInterpreterLoad(t *testing.T) {
 				return 1
 			endfunc
 		`
-		interp, _ := newLocalTestInterpreter(t, nil, nil)
+		interp, _ := NewTestInterpreter(t, nil, nil, false)
 		parserAPI := parser.NewParserAPI(interp.GetLogger())
 		p, pErr := parserAPI.Parse(script)
 		if pErr != nil {
@@ -58,7 +58,7 @@ func TestInterpreterLoad(t *testing.T) {
 	})
 
 	t.Run("Reloading a Program Clears Old State", func(t *testing.T) {
-		interp, _ := newLocalTestInterpreter(t, nil, nil)
+		interp, _ := NewTestInterpreter(t, nil, nil, false)
 
 		// Load initial program
 		program1 := &ast.Program{
@@ -99,7 +99,7 @@ func TestInterpreterLoad(t *testing.T) {
 	})
 
 	t.Run("Load Nil Program", func(t *testing.T) {
-		interp, _ := newLocalTestInterpreter(t, nil, nil)
+		interp, _ := NewTestInterpreter(t, nil, nil, false)
 		// This should not panic
 		err := interp.Load(nil)
 		if err != nil {
@@ -108,7 +108,7 @@ func TestInterpreterLoad(t *testing.T) {
 	})
 
 	t.Run("Load Empty Program", func(t *testing.T) {
-		interp, _ := newLocalTestInterpreter(t, nil, nil)
+		interp, _ := NewTestInterpreter(t, nil, nil, false)
 		program := &ast.Program{
 			Procedures: make(map[string]*ast.Procedure),
 			Events:     []*ast.OnEventDecl{},

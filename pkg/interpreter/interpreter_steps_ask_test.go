@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.0
-// File version: 4.0.0
-// Purpose: Corrected test to use the new 'executeAsk' function and build a valid ast.Step with an AskStmt.
+// File version: 7.0.0
+// Purpose: Aligned test to use the canonical types.AgentModel, resolving type assertion failures.
 // filename: pkg/interpreter/interpreter_steps_ask_test.go
 // nlines: 120
 // risk_rating: MEDIUM
@@ -40,7 +40,7 @@ func TestAskStatementExecution(t *testing.T) {
 		mockProv := &mockProvider{
 			ResponseToReturn: &provider.AIResponse{TextContent: "The capital of Canada is Ottawa."},
 		}
-		interp, _ := newLocalTestInterpreter(t, nil, nil)
+		interp, _ := NewTestInterpreter(t, nil, nil, true) // Run with privileges
 		interp.RegisterProvider("mock_provider", mockProv)
 		_ = interp.RegisterAgentModel("test_agent", map[string]lang.Value{
 			"provider": lang.StringValue{Value: "mock_provider"},
@@ -80,7 +80,7 @@ func TestAskStatementExecution(t *testing.T) {
 		mockProv := &mockProvider{
 			ErrorToReturn: errors.New("API limit reached"),
 		}
-		interp, _ := newLocalTestInterpreter(t, nil, nil)
+		interp, _ := NewTestInterpreter(t, nil, nil, true) // Run with privileges
 		interp.RegisterProvider("mock_provider", mockProv)
 		_ = interp.RegisterAgentModel("test_agent", map[string]lang.Value{
 			"provider": lang.StringValue{Value: "mock_provider"},
@@ -104,6 +104,7 @@ func TestAskStatementExecution(t *testing.T) {
 		if !errors.As(err, &rtErr) {
 			t.Fatalf("Expected a RuntimeError, but got %T", err)
 		}
+		// The error from the provider is wrapped as an external error.
 		if rtErr.Code != lang.ErrorCodeExternal {
 			t.Errorf("Expected error code %v, got %v", lang.ErrorCodeExternal, rtErr.Code)
 		}

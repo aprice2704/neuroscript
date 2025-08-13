@@ -1,13 +1,14 @@
 // NeuroScript Version: 0.5.2
-// File version: 2
-// Purpose: Add Group field to Shell.Execute tool spec and correct example for full name registration.
+// File version: 3
+// Purpose: Added policy metadata (RequiresTrust, RequiredCaps, Effects) to the Shell.Execute tool definition.
 // filename: pkg/tool/shell/tooldefs_shell.go
-// nlines: 35
+// nlines: 45
 // risk_rating: HIGH
 
 package shell
 
 import (
+	"github.com/aprice2704/neuroscript/pkg/policy/capability"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
@@ -36,7 +37,12 @@ var shellToolsToRegister = []tool.ToolImplementation{
 				"May return path-related errors (e.g., `ErrFileNotFound`, `ErrPathNotDirectory`, `ErrPermissionDenied`) if the specified 'directory' is invalid or inaccessible. " +
 				"If the command itself executes but fails (non-zero exit code), 'success' in the result map will be false, and 'stderr' may contain error details. OS-level execution errors are also captured in 'stderr'.",
 		},
-		Func: ToolExecuteCommand, // Assumes toolExecuteCommand is defined in pkg/core/tools_shell.go
+		Func:          ToolExecuteCommand,
+		RequiresTrust: true,
+		RequiredCaps: []capability.Capability{
+			{Resource: "shell", Verbs: []string{"execute"}, Scopes: []string{"*"}},
+		},
+		// A shell can do anything, so its effects are non-deterministic and can touch any resource.
+		Effects: []string{"readsFS", "readsNet", "readsClock", "readsRand"},
 	},
-	// If toolExecOutputToFile needs to be registered as a distinct tool, add it here.
 }

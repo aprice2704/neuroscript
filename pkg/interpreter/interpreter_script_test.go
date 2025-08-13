@@ -1,7 +1,7 @@
 // filename: pkg/interpreter/interpreter_script_test.go
 // Neuroscript version: 0.5.2
-// File version: 16
-// Purpose: Removed the faulty function-wrapping logic to correctly parse pre-formatted fixture files.
+// File version: 17
+// Purpose: Corrected call to the renamed test helper function 'NewTestInterpreter'.
 package interpreter
 
 import (
@@ -84,7 +84,7 @@ func TestInterpreterFixtures(t *testing.T) {
 				t.Fatalf("unexpected AST BUILD error: %v", buildErr)
 			}
 
-			interp, _ := newLocalTestInterpreter(t, nil, nil)
+			interp, _ := NewTestInterpreter(t, nil, nil, false)
 			if err := interp.Load(programAST); err != nil {
 				t.Fatalf("failed to load program into interpreter: %v", err)
 			}

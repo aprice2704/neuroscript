@@ -270,7 +270,7 @@ func getAvailableTools(agentCtx *AgentContext, registry tool.ToolRegistry) []*ge
 	for _, toolImpl := range allTools {
 		genaiFunc := &genai.FunctionDeclaration{
 			Name:        string(toolImpl.FullName),
-			Description: toolImpl.Description,
+			Description: toolImpl.Spec.Description,
 		}
 		genaiTools = append(genaiTools, &genai.Tool{
 			FunctionDeclarations: []*genai.FunctionDeclaration{genaiFunc},

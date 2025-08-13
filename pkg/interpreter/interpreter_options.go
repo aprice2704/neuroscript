@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.5.2
-// File version: 2
-// Purpose: Added WithoutStandardTools option for isolated testing.
+// NeuroScript Version: 0.6.0
+// File version: 4
+// Purpose: Adds WithExecPolicy option for host-provided runtime security gating.
 // filename: pkg/interpreter/options.go
-// nlines: 54
+// nlines: 62
 // risk_rating: LOW
 
 package interpreter
@@ -11,6 +11,7 @@ import (
 	"io"
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/runtime"
 )
 
 // InterpreterOption defines a function signature for configuring an Interpreter.
@@ -71,5 +72,12 @@ func WithInitialGlobals(globals map[string]interface{}) InterpreterOption {
 				i.logger.Error("Failed to set initial global variable", "key", key, "error", err)
 			}
 		}
+	}
+}
+
+// WithExecPolicy applies a runtime execution policy to the interpreter.
+func WithExecPolicy(policy *runtime.ExecPolicy) InterpreterOption {
+	return func(i *Interpreter) {
+		i.ExecPolicy = policy
 	}
 }

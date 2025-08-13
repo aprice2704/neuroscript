@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 2.0.0
-// Purpose: Corrected 'break_outside_loop' test to assert for a build-time error, not a runtime error.
+// File version: 3.0.0
+// Purpose: Corrected calls to the renamed test helper function 'NewTestInterpreter'.
 // filename: pkg/interpreter/interpreter_loop_control_test.go
 // nlines: 115
 // risk_rating: LOW
@@ -18,7 +18,7 @@ import (
 // runControlFlowTest now returns the final value from the run, and the error.
 func runLoopControlFlowTest(t *testing.T, script string) (lang.Value, error) {
 	t.Helper()
-	interp, err := newLocalTestInterpreter(t, nil, nil)
+	interp, err := NewTestInterpreter(t, nil, nil, false)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func TestLoopControlStatements(t *testing.T) {
 				return total
 			endfunc
 		`
-		result, err := runLoopControlFlowTest(t, script)
+		result, err := runControlFlowTest(t, script)
 		if err != nil {
 			t.Fatalf("script failed: %v", err)
 		}

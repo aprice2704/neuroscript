@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 15.0.0
-// Purpose: Reverted the 'must' statement test case to its original, correct form now that the root AST builder bug has been fixed in the interpreter execution loop.
+// File version: 16.0.0
+// Purpose: Corrected calls to the renamed test helper function 'NewTestInterpreter'.
 // filename: pkg/interpreter/interpreter_control_flow_test.go
 // nlines: 200
 // risk_rating: MEDIUM
@@ -18,7 +18,7 @@ import (
 // runControlFlowTest now returns the final value from the run, and the error.
 func runControlFlowTest(t *testing.T, script string) (lang.Value, error) {
 	t.Helper()
-	interp, err := newLocalTestInterpreter(t, nil, nil)
+	interp, err := NewTestInterpreter(t, nil, nil, false)
 	if err != nil {
 		return nil, err
 	}

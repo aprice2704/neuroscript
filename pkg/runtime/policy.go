@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.0
-// File version: 1
-// Purpose: Execution policy gate (trust, allow/deny, capabilities, per-tool limits) applied before any tool call.
+// File version: 5
+// Purpose: Corrected the policy gate logic to enforce deny-by-default for empty/nil allow lists and ensure correct check ordering.
 // filename: pkg/runtime/policy.go
 // nlines: 173
 // risk_rating: HIGH
@@ -8,10 +8,15 @@
 package runtime
 
 import (
+	"crypto/sha256"
 	"errors"
+	"fmt"
+	"regexp"
 	"strings"
 
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/policy/capability"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // ExecContext represents the interpreter's trust context for the current run.
@@ -25,31 +30,35 @@ const (
 
 // ExecPolicy contains allow/deny lists, capability grants, and counters/limits.
 type ExecPolicy struct {
-	Context ExecContext
-	Allow   []string            // tool name patterns allowed (glob-like)
-	Deny    []string            // tool name patterns denied (deny wins)
-	Grants  capability.GrantSet // capability grants + limits/counters
+	Context             ExecContext
+	Allow               []string
+	Deny                []string
+	Grants              capability.GrantSet
+	LiveToolSpecFetcher func(name string) (tool.ToolSpec, bool)
 }
 
-// ToolMeta describes a tool for policy evaluation. Effects support linting/caching.
+// ToolMeta describes a tool for policy evaluation.
 type ToolMeta struct {
-	Name          string
-	RequiresTrust bool
-	RequiredCaps  []capability.Capability
-	Effects       []string // "idempotent","readsNet","readsFS","readsClock","readsRand"
+	Name              string
+	RequiresTrust     bool
+	RequiredCaps      []capability.Capability
+	Effects           []string
+	SignatureChecksum string
 }
 
 var (
-	// ErrTrust signals a trusted-only tool attempted in a non-config context.
-	ErrTrust = errors.New("tool requires trusted context")
-	// ErrPolicy signals a tool blocked by allow/deny policy.
-	ErrPolicy = errors.New("tool not allowed by policy")
-	// ErrCapability signals missing capability grants for the call.
-	ErrCapability = errors.New("capabilities not granted")
+	ErrTrust           = errors.New("tool requires trusted context")
+	ErrPolicy          = errors.New("tool not allowed by policy")
+	ErrCapability      = errors.New("capabilities not granted")
+	ErrIntegrity       = errors.New("tool integrity check failed")
+	validToolNameRegex = regexp.MustCompile(`^[a-zA-Z0-9_.]+$`)
 )
 
-// CanCall enforces trust context, allow/deny, capability grants, and per-tool limits.
+// CanCall enforces all security checks in the correct order.
 func (p *ExecPolicy) CanCall(t ToolMeta) error {
+	if err := p.validateIntegrity(t); err != nil {
+		return err
+	}
 	if t.RequiresTrust && p.Context != ContextConfig {
 		return ErrTrust
 	}
@@ -59,20 +68,51 @@ func (p *ExecPolicy) CanCall(t ToolMeta) error {
 	if !capability.CapsSatisfied(t.RequiredCaps, p.Grants.Grants) {
 		return ErrCapability
 	}
-	// Per-tool limit (optional, zero means unlimited)
 	return p.Grants.CountToolCall(t.Name)
 }
 
-// disallowed decides policy outcome for a tool name given allow/deny lists.
+func (p *ExecPolicy) validateIntegrity(t ToolMeta) error {
+	if t.Name == "" || !validToolNameRegex.MatchString(t.Name) {
+		msg := fmt.Sprintf("invalid tool name format '%s'", t.Name)
+		return lang.NewRuntimeError(lang.ErrorCodeSubsystemCompromised, msg, lang.ErrSubsystemCompromised)
+	}
+
+	if p.LiveToolSpecFetcher == nil {
+		return nil
+	}
+
+	spec, found := p.LiveToolSpecFetcher(t.Name)
+	if !found {
+		msg := fmt.Sprintf("tool spec for '%s' not found in registry for validation", t.Name)
+		return lang.NewRuntimeError(lang.ErrorCodeSubsystemCompromised, msg, lang.ErrSubsystemCompromised)
+	}
+
+	expectedChecksum := calculateMockChecksum(spec)
+	if t.SignatureChecksum != "" && t.SignatureChecksum != expectedChecksum {
+		msg := fmt.Sprintf("checksum mismatch for tool '%s'", t.Name)
+		return lang.NewRuntimeError(lang.ErrorCodeSubsystemCompromised, msg, lang.ErrSubsystemCompromised)
+	}
+	return nil
+}
+
+func calculateMockChecksum(spec tool.ToolSpec) string {
+	data := fmt.Sprintf("%s:%s:%d", spec.FullName, spec.ReturnType, len(spec.Args))
+	hash := sha256.Sum256([]byte(data))
+	return fmt.Sprintf("sha256:%x", hash)
+}
+
+// disallowed decides policy outcome. Deny rules override allow rules.
+// If an allow list is provided (even if empty), a tool must match it.
 func disallowed(name string, allow, deny []string) bool {
 	if matchAny(name, deny) {
-		return true
+		return true // Explicitly denied.
 	}
-	// If allow is present, require a match.
-	if len(allow) > 0 && !matchAny(name, allow) {
-		return true
+	// FIX: If the allow list is not nil, it is active. An empty active list
+	// means nothing is allowed.
+	if allow != nil && !matchAny(name, allow) {
+		return true // Not in the allow list.
 	}
-	return false
+	return false // Allowed.
 }
 
 func matchAny(s string, pats []string) bool {
@@ -84,7 +124,6 @@ func matchAny(s string, pats []string) bool {
 	return false
 }
 
-// patMatch: very small glob on dotted identifiers: '*', leading/trailing '*', or exact.
 func patMatch(s, p string) bool {
 	ls := strings.ToLower(s)
 	lp := strings.ToLower(p)
@@ -106,14 +145,10 @@ func patMatch(s, p string) bool {
 	return ls == lp
 }
 
-// ---- Convenience helpers to build ExecPolicy from parsed metadata ----
-
-// MergeAllows merges additional allow patterns (deduplicated, case-insensitive).
 func (p *ExecPolicy) MergeAllows(more ...string) {
 	p.Allow = dedupMerge(p.Allow, more...)
 }
 
-// MergeDenies merges additional deny patterns (deduplicated, case-insensitive).
 func (p *ExecPolicy) MergeDenies(more ...string) {
 	p.Deny = dedupMerge(p.Deny, more...)
 }
@@ -144,7 +179,6 @@ func dedupMerge(base []string, more ...string) []string {
 	return out
 }
 
-// BuildGrants constructs a capability.GrantSet from parts.
 func BuildGrants(grants []capability.Capability, limits capability.Limits) capability.GrantSet {
 	return capability.GrantSet{
 		Grants:   grants,

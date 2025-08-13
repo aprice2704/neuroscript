@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 1.0.0
-// Purpose: Adds a dedicated test to ensure that the explicit return value from a procedure is correctly propagated back to the caller.
+// File version: 2.0.0
+// Purpose: Corrected call to the renamed test helper function 'NewTestInterpreter'.
 // filename: pkg/interpreter/interpreter_return_value_test.go
 // nlines: 45
 // risk_rating: LOW
@@ -24,7 +24,7 @@ func get_specific_value(returns val) means
 endfunc
 `
 	// 1. Setup the interpreter and parse the script.
-	interp, err := newLocalTestInterpreter(t, nil, nil)
+	interp, err := NewTestInterpreter(t, nil, nil, false)
 	if err != nil {
 		t.Fatalf("Failed to create test interpreter: %v", err)
 	}

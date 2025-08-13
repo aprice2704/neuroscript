@@ -1,13 +1,14 @@
-// NeuroScript Version: 0.3.1
-// File version: 0.0.6 // Added the missing Reset tool definition.
-// Purpose: Defines ToolImplementation structs for Git tools.
+// NeuroScript Version: 0.5.4
+// File version: 12
+// Purpose: Added 'usesExternal:git' effect to all tools to explicitly mark their reliance on the external Git executable.
 // filename: pkg/tool/git/tooldefs_git.go
-// nlines: 260 // Approximate
-// risk_rating: MEDIUM // Interacts with Git, potentially modifying state or exposing info.
+// nlines: 280 // Approximate
+// risk_rating: HIGH
 
 package git
 
 import (
+	"github.com/aprice2704/neuroscript/pkg/policy/capability"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
@@ -18,17 +19,20 @@ var gitToolsToRegister = []tool.ToolImplementation{
 		Spec: tool.ToolSpec{
 			Name:        "Status",
 			Group:       group,
-			Description: "Gets the status of the Git repository in the configured sandbox directory.",
+			Description: "Gets the status of the Git repository.",
 			Category:    "Git",
 			Args: []tool.ArgSpec{
-				{Name: "repo_path", Type: tool.ArgTypeString, Required: false, Description: "Optional. Relative path to the repository within the sandbox. Defaults to the sandbox root."},
+				{Name: "repo_path", Type: tool.ArgTypeString, Required: false, Description: "Optional. Relative path to the repository. Defaults to the sandbox root."},
 			},
-			ReturnType:      tool.ArgTypeMap,
-			ReturnHelp:      "Returns a map containing Git status information.",
-			Example:         `TOOL.Git.Status()`,
-			ErrorConditions: "ErrConfiguration, ErrGitRepositoryNotFound, ErrIOFailed, ErrInvalidArgument.",
+			ReturnType: tool.ArgTypeMap,
 		},
-		Func: toolGitStatus,
+		Func:          toolGitStatus,
+		RequiresTrust: true,
+		RequiredCaps: []capability.Capability{
+			{Resource: "fs", Verbs: []string{"read"}},
+			{Resource: "shell", Verbs: []string{"execute"}, Scopes: []string{"git"}},
+		},
+		Effects: []string{"readsFS", "usesExternal:git"},
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -37,15 +41,18 @@ var gitToolsToRegister = []tool.ToolImplementation{
 			Description: "Adds file contents to the index.",
 			Category:    "Git",
 			Args: []tool.ArgSpec{
-				{Name: "relative_path", Type: tool.ArgTypeString, Required: true, Description: "The relative path within the sandbox to the Git repository."},
-				{Name: "paths", Type: tool.ArgTypeSliceAny, Required: true, Description: "A list of file paths to add to the index."},
+				{Name: "relative_path", Type: tool.ArgTypeString, Required: true},
+				{Name: "paths", Type: tool.ArgTypeSliceAny, Required: true},
 			},
-			ReturnType:      tool.ArgTypeString,
-			ReturnHelp:      "Returns a success message upon completion.",
-			Example:         `TOOL.Git.Add(relative_path: "my_repo", paths: ["file1.txt", "docs/"])`,
-			ErrorConditions: "ErrConfiguration, ErrInvalidArgument, ErrGitRepositoryNotFound, ErrGitOperationFailed, ErrSecurityPath.",
+			ReturnType: tool.ArgTypeString,
 		},
-		Func: toolGitAdd,
+		Func:          toolGitAdd,
+		RequiresTrust: true,
+		RequiredCaps: []capability.Capability{
+			{Resource: "fs", Verbs: []string{"read", "write"}},
+			{Resource: "shell", Verbs: []string{"execute"}, Scopes: []string{"git"}},
+		},
+		Effects: []string{"writesFS", "usesExternal:git"},
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -54,33 +61,40 @@ var gitToolsToRegister = []tool.ToolImplementation{
 			Description: "Resets the current HEAD to the specified state.",
 			Category:    "Git",
 			Args: []tool.ArgSpec{
-				{Name: "relative_path", Type: tool.ArgTypeString, Required: true, Description: "Path to the repository."},
-				{Name: "mode", Type: tool.ArgTypeString, Required: false, Description: "Reset mode: 'soft', 'mixed' (default), 'hard', 'merge', or 'keep'."},
-				{Name: "commit", Type: tool.ArgTypeString, Required: false, Description: "Commit to reset to. Defaults to HEAD."},
+				{Name: "relative_path", Type: tool.ArgTypeString, Required: true},
+				{Name: "mode", Type: tool.ArgTypeString, Required: false},
+				{Name: "commit", Type: tool.ArgTypeString, Required: false},
 			},
-			ReturnType:      tool.ArgTypeString,
-			ReturnHelp:      "Returns a success message.",
-			Example:         `TOOL.Git.Reset(relative_path: "my_repo", mode: "hard", commit: "HEAD~1")`,
-			ErrorConditions: "ErrInvalidArgument, ErrGitOperationFailed.",
+			ReturnType: tool.ArgTypeString,
 		},
-		Func: toolGitReset,
+		Func:          toolGitReset,
+		RequiresTrust: true,
+		RequiredCaps: []capability.Capability{
+			{Resource: "fs", Verbs: []string{"read", "write"}},
+			{Resource: "shell", Verbs: []string{"execute"}, Scopes: []string{"git"}},
+		},
+		Effects: []string{"writesFS", "usesExternal:git"},
 	},
 	{
 		Spec: tool.ToolSpec{
 			Name:        "Clone",
 			Group:       group,
-			Description: "Clones a Git repository into the specified relative path within the sandbox.",
+			Description: "Clones a Git repository.",
 			Category:    "Git",
 			Args: []tool.ArgSpec{
-				{Name: "repository_url", Type: tool.ArgTypeString, Required: true, Description: "The URL of the Git repository to clone."},
-				{Name: "relative_path", Type: tool.ArgTypeString, Required: true, Description: "The relative path within the sandbox where the repository should be cloned."},
+				{Name: "repository_url", Type: tool.ArgTypeString, Required: true},
+				{Name: "relative_path", Type: tool.ArgTypeString, Required: true},
 			},
-			ReturnType:      tool.ArgTypeString,
-			ReturnHelp:      "Returns a success message.",
-			Example:         `TOOL.Git.Clone(repository_url: "https://github.com/example/repo.git", relative_path: "cloned_repos/my_repo")`,
-			ErrorConditions: "ErrConfiguration, ErrInvalidArgument, ErrPathExists, ErrGitOperationFailed, ErrSecurityPath.",
+			ReturnType: tool.ArgTypeString,
 		},
-		Func: toolGitClone,
+		Func:          toolGitClone,
+		RequiresTrust: true,
+		RequiredCaps: []capability.Capability{
+			{Resource: "fs", Verbs: []string{"write"}},
+			{Resource: "net", Verbs: []string{"read"}},
+			{Resource: "shell", Verbs: []string{"execute"}, Scopes: []string{"git"}},
+		},
+		Effects: []string{"writesFS", "readsNet", "usesExternal:git"},
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -89,16 +103,20 @@ var gitToolsToRegister = []tool.ToolImplementation{
 			Description: "Pulls the latest changes from the remote repository.",
 			Category:    "Git",
 			Args: []tool.ArgSpec{
-				{Name: "relative_path", Type: tool.ArgTypeString, Required: true, Description: "Path to the repository."},
-				{Name: "remote_name", Type: tool.ArgTypeString, Required: false, Description: "Optional. The remote to pull from. Defaults to 'origin'."},
-				{Name: "branch_name", Type: tool.ArgTypeString, Required: false, Description: "Optional. The branch to pull. Defaults to the current branch."},
+				{Name: "relative_path", Type: tool.ArgTypeString, Required: true},
+				{Name: "remote_name", Type: tool.ArgTypeString, Required: false},
+				{Name: "branch_name", Type: tool.ArgTypeString, Required: false},
 			},
-			ReturnType:      tool.ArgTypeString,
-			ReturnHelp:      "Returns a success message.",
-			Example:         `TOOL.Git.Pull(relative_path: "my_repo")`,
-			ErrorConditions: "ErrConfiguration, ErrInvalidArgument, ErrGitRepositoryNotFound, ErrGitOperationFailed, ErrSecurityPath.",
+			ReturnType: tool.ArgTypeString,
 		},
-		Func: toolGitPull,
+		Func:          toolGitPull,
+		RequiresTrust: true,
+		RequiredCaps: []capability.Capability{
+			{Resource: "fs", Verbs: []string{"read", "write"}},
+			{Resource: "net", Verbs: []string{"read"}},
+			{Resource: "shell", Verbs: []string{"execute"}, Scopes: []string{"git"}},
+		},
+		Effects: []string{"writesFS", "readsNet", "usesExternal:git"},
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -107,16 +125,19 @@ var gitToolsToRegister = []tool.ToolImplementation{
 			Description: "Commits staged changes.",
 			Category:    "Git",
 			Args: []tool.ArgSpec{
-				{Name: "relative_path", Type: tool.ArgTypeString, Required: true, Description: "Path to the repository."},
-				{Name: "commit_message", Type: tool.ArgTypeString, Required: true, Description: "The commit message."},
-				{Name: "allow_empty", Type: tool.ArgTypeBool, Required: false, Description: "Allow an empty commit. Defaults to false."},
+				{Name: "relative_path", Type: tool.ArgTypeString, Required: true},
+				{Name: "commit_message", Type: tool.ArgTypeString, Required: true},
+				{Name: "allow_empty", Type: tool.ArgTypeBool, Required: false},
 			},
-			ReturnType:      tool.ArgTypeString,
-			ReturnHelp:      "Returns a success message.",
-			Example:         `TOOL.Git.Commit(relative_path: "my_repo", commit_message: "Fix: bug #123")`,
-			ErrorConditions: "ErrConfiguration, ErrInvalidArgument, ErrGitRepositoryNotFound, ErrGitOperationFailed, ErrSecurityPath.",
+			ReturnType: tool.ArgTypeString,
 		},
-		Func: toolGitCommit,
+		Func:          toolGitCommit,
+		RequiresTrust: true,
+		RequiredCaps: []capability.Capability{
+			{Resource: "fs", Verbs: []string{"read", "write"}},
+			{Resource: "shell", Verbs: []string{"execute"}, Scopes: []string{"git"}},
+		},
+		Effects: []string{"writesFS", "usesExternal:git"},
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -125,16 +146,20 @@ var gitToolsToRegister = []tool.ToolImplementation{
 			Description: "Pushes committed changes to a remote repository.",
 			Category:    "Git",
 			Args: []tool.ArgSpec{
-				{Name: "relative_path", Type: tool.ArgTypeString, Required: true, Description: "Path to the repository."},
-				{Name: "remote_name", Type: tool.ArgTypeString, Required: false, Description: "Optional. The remote to push to. Defaults to 'origin'."},
-				{Name: "branch_name", Type: tool.ArgTypeString, Required: false, Description: "Optional. The branch to push. Defaults to the current branch."},
+				{Name: "relative_path", Type: tool.ArgTypeString, Required: true},
+				{Name: "remote_name", Type: tool.ArgTypeString, Required: false},
+				{Name: "branch_name", Type: tool.ArgTypeString, Required: false},
 			},
-			ReturnType:      tool.ArgTypeString,
-			ReturnHelp:      "Returns a success message.",
-			Example:         `TOOL.Git.Push(relative_path: "my_repo")`,
-			ErrorConditions: "ErrConfiguration, ErrInvalidArgument, ErrGitRepositoryNotFound, ErrGitOperationFailed, ErrSecurityPath.",
+			ReturnType: tool.ArgTypeString,
 		},
-		Func: toolGitPush,
+		Func:          toolGitPush,
+		RequiresTrust: true,
+		RequiredCaps: []capability.Capability{
+			{Resource: "fs", Verbs: []string{"read"}},
+			{Resource: "net", Verbs: []string{"write"}},
+			{Resource: "shell", Verbs: []string{"execute"}, Scopes: []string{"git"}},
+		},
+		Effects: []string{"readsFS", "writesNet", "usesExternal:git"},
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -143,18 +168,21 @@ var gitToolsToRegister = []tool.ToolImplementation{
 			Description: "Manages branches.",
 			Category:    "Git",
 			Args: []tool.ArgSpec{
-				{Name: "relative_path", Type: tool.ArgTypeString, Required: true, Description: "Path to the repository."},
-				{Name: "name", Type: tool.ArgTypeString, Required: false, Description: "The name of the branch to create. If omitted, lists branches."},
-				{Name: "checkout", Type: tool.ArgTypeBool, Required: false, Description: "If true, checks out the new branch after creation."},
-				{Name: "list_remote", Type: tool.ArgTypeBool, Required: false, Description: "If true, lists remote-tracking branches."},
-				{Name: "list_all", Type: tool.ArgTypeBool, Required: false, Description: "If true, lists all branches."},
+				{Name: "relative_path", Type: tool.ArgTypeString, Required: true},
+				{Name: "name", Type: tool.ArgTypeString, Required: false},
+				{Name: "checkout", Type: tool.ArgTypeBool, Required: false},
+				{Name: "list_remote", Type: tool.ArgTypeBool, Required: false},
+				{Name: "list_all", Type: tool.ArgTypeBool, Required: false},
 			},
-			ReturnType:      tool.ArgTypeString,
-			ReturnHelp:      "Returns a success message or a list of branches.",
-			Example:         `TOOL.Git.Branch(relative_path: "my_repo", name: "new-feature")`,
-			ErrorConditions: "ErrConfiguration, ErrInvalidArgument, ErrGitRepositoryNotFound, ErrGitOperationFailed, ErrSecurityPath.",
+			ReturnType: tool.ArgTypeString,
 		},
-		Func: toolGitBranch,
+		Func:          toolGitBranch,
+		RequiresTrust: true,
+		RequiredCaps: []capability.Capability{
+			{Resource: "fs", Verbs: []string{"read", "write"}},
+			{Resource: "shell", Verbs: []string{"execute"}, Scopes: []string{"git"}},
+		},
+		Effects: []string{"writesFS", "readsFS", "usesExternal:git"},
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -163,16 +191,19 @@ var gitToolsToRegister = []tool.ToolImplementation{
 			Description: "Switches branches or restores working tree files.",
 			Category:    "Git",
 			Args: []tool.ArgSpec{
-				{Name: "relative_path", Type: tool.ArgTypeString, Required: true, Description: "Path to the repository."},
-				{Name: "branch", Type: tool.ArgTypeString, Required: true, Description: "The branch to checkout."},
-				{Name: "create", Type: tool.ArgTypeBool, Required: false, Description: "If true, creates and checks out the branch."},
+				{Name: "relative_path", Type: tool.ArgTypeString, Required: true},
+				{Name: "branch", Type: tool.ArgTypeString, Required: true},
+				{Name: "create", Type: tool.ArgTypeBool, Required: false},
 			},
-			ReturnType:      tool.ArgTypeString,
-			ReturnHelp:      "Returns a success message.",
-			Example:         `TOOL.Git.Checkout(relative_path: "my_repo", branch: "main")`,
-			ErrorConditions: "ErrConfiguration, ErrInvalidArgument, ErrGitRepositoryNotFound, ErrGitOperationFailed, ErrSecurityPath.",
+			ReturnType: tool.ArgTypeString,
 		},
-		Func: toolGitCheckout,
+		Func:          toolGitCheckout,
+		RequiresTrust: true,
+		RequiredCaps: []capability.Capability{
+			{Resource: "fs", Verbs: []string{"read", "write"}},
+			{Resource: "shell", Verbs: []string{"execute"}, Scopes: []string{"git"}},
+		},
+		Effects: []string{"writesFS", "usesExternal:git"},
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -181,15 +212,18 @@ var gitToolsToRegister = []tool.ToolImplementation{
 			Description: "Removes files from the working tree and from the index.",
 			Category:    "Git",
 			Args: []tool.ArgSpec{
-				{Name: "relative_path", Type: tool.ArgTypeString, Required: true, Description: "Path to the repository."},
-				{Name: "paths", Type: tool.ArgTypeAny, Required: true, Description: "A single path or a list of paths to remove."},
+				{Name: "relative_path", Type: tool.ArgTypeString, Required: true},
+				{Name: "paths", Type: tool.ArgTypeAny, Required: true},
 			},
-			ReturnType:      tool.ArgTypeString,
-			ReturnHelp:      "Returns a success message.",
-			Example:         `TOOL.Git.Rm(relative_path: "my_repo", paths: "old_file.txt")`,
-			ErrorConditions: "ErrConfiguration, ErrInvalidArgument, ErrGitRepositoryNotFound, ErrGitOperationFailed, ErrSecurityPath.",
+			ReturnType: tool.ArgTypeString,
 		},
-		Func: toolGitRm,
+		Func:          toolGitRm,
+		RequiresTrust: true,
+		RequiredCaps: []capability.Capability{
+			{Resource: "fs", Verbs: []string{"read", "write", "delete"}},
+			{Resource: "shell", Verbs: []string{"execute"}, Scopes: []string{"git"}},
+		},
+		Effects: []string{"writesFS", "usesExternal:git"},
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -198,15 +232,18 @@ var gitToolsToRegister = []tool.ToolImplementation{
 			Description: "Joins two or more development histories together.",
 			Category:    "Git",
 			Args: []tool.ArgSpec{
-				{Name: "relative_path", Type: tool.ArgTypeString, Required: true, Description: "Path to the repository."},
-				{Name: "branch", Type: tool.ArgTypeString, Required: true, Description: "The branch to merge into the current branch."},
+				{Name: "relative_path", Type: tool.ArgTypeString, Required: true},
+				{Name: "branch", Type: tool.ArgTypeString, Required: true},
 			},
-			ReturnType:      tool.ArgTypeString,
-			ReturnHelp:      "Returns a success message.",
-			Example:         `TOOL.Git.Merge(relative_path: "my_repo", branch: "feature-branch")`,
-			ErrorConditions: "ErrConfiguration, ErrInvalidArgument, ErrGitRepositoryNotFound, ErrGitOperationFailed, ErrSecurityPath.",
+			ReturnType: tool.ArgTypeString,
 		},
-		Func: toolGitMerge,
+		Func:          toolGitMerge,
+		RequiresTrust: true,
+		RequiredCaps: []capability.Capability{
+			{Resource: "fs", Verbs: []string{"read", "write"}},
+			{Resource: "shell", Verbs: []string{"execute"}, Scopes: []string{"git"}},
+		},
+		Effects: []string{"writesFS", "usesExternal:git"},
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -215,17 +252,20 @@ var gitToolsToRegister = []tool.ToolImplementation{
 			Description: "Shows changes between commits, commit and working tree, etc.",
 			Category:    "Git",
 			Args: []tool.ArgSpec{
-				{Name: "relative_path", Type: tool.ArgTypeString, Required: true, Description: "Path to the repository."},
-				{Name: "cached", Type: tool.ArgTypeBool, Required: false, Description: "Show staged changes."},
-				{Name: "commit1", Type: tool.ArgTypeString, Required: false, Description: "First commit for diff."},
-				{Name: "commit2", Type: tool.ArgTypeString, Required: false, Description: "Second commit for diff."},
-				{Name: "path", Type: tool.ArgTypeString, Required: false, Description: "Limit the diff to a specific path."},
+				{Name: "relative_path", Type: tool.ArgTypeString, Required: true},
+				{Name: "cached", Type: tool.ArgTypeBool, Required: false},
+				{Name: "commit1", Type: tool.ArgTypeString, Required: false},
+				{Name: "commit2", Type: tool.ArgTypeString, Required: false},
+				{Name: "path", Type: tool.ArgTypeString, Required: false},
 			},
-			ReturnType:      tool.ArgTypeString,
-			ReturnHelp:      "Returns a string containing the diff output.",
-			Example:         `TOOL.Git.Diff(relative_path: "my_repo", cached: true)`,
-			ErrorConditions: "ErrConfiguration, ErrInvalidArgument, ErrGitRepositoryNotFound, ErrGitOperationFailed, ErrSecurityPath.",
+			ReturnType: tool.ArgTypeString,
 		},
-		Func: toolGitDiff,
+		Func:          toolGitDiff,
+		RequiresTrust: true,
+		RequiredCaps: []capability.Capability{
+			{Resource: "fs", Verbs: []string{"read"}},
+			{Resource: "shell", Verbs: []string{"execute"}, Scopes: []string{"git"}},
+		},
+		Effects: []string{"readsFS", "usesExternal:git"},
 	},
 }

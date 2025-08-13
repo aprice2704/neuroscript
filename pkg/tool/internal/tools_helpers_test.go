@@ -11,13 +11,11 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/tool"
-	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // --- Mocks for testing toolExec ---
 
-// mockLogger implements the interfaces.Logger interface.
+// mockLogger implements the interfaces.Logger interface for testing.
 type mockLogger struct {
 	debugMessages []string
 	errorMessages []string
@@ -39,34 +37,10 @@ func (m *mockLogger) Errorf(format string, args ...any) {
 	m.errorMessages = append(m.errorMessages, fmt.Sprintf(format, args...))
 }
 
-// Other methods
 func (m *mockLogger) SetLevel(level interfaces.LogLevel) {}
 
 // Ensure mockLogger satisfies the interface.
 var _ interfaces.Logger = (*mockLogger)(nil)
-
-// mockRuntime correctly implements the real tool.Runtime interface.
-type mockRuntime struct {
-	logger interfaces.Logger
-}
-
-func (m *mockRuntime) Println(...any)                                        {}
-func (m *mockRuntime) PromptUser(prompt string) (string, error)              { return "", nil }
-func (m *mockRuntime) GetVar(name string) (any, bool)                        { return nil, false }
-func (m *mockRuntime) SetVar(name string, val any)                           {}
-func (m *mockRuntime) CallTool(name types.FullName, args []any) (any, error) { return nil, nil }
-func (m *mockRuntime) GetLogger() interfaces.Logger                          { return m.logger }
-func (m *mockRuntime) SandboxDir() string                                    { return "/tmp/ns_test_sandbox" }
-func (m *mockRuntime) ToolRegistry() tool.ToolRegistry                       { return nil }
-func (m *mockRuntime) LLM() interfaces.LLMClient                             { return nil }
-func (m *mockRuntime) RegisterHandle(obj interface{}, typePrefix string) (string, error) {
-	return "mock", nil
-}
-
-// FIX: Added the missing method to satisfy the tool.Runtime interface.
-func (m *mockRuntime) GetHandleValue(handle string, expectedTypePrefix string) (interface{}, error) {
-	return nil, nil // Mock implementation
-}
 
 // --- Tests ---
 
@@ -102,7 +76,8 @@ func TestToolExec(t *testing.T) {
 	}
 
 	t.Run("successful execution", func(t *testing.T) {
-		mockRt := &mockRuntime{logger: &mockLogger{}}
+		mockRt := NewMockRuntime()
+		mockRt.Logger = &mockLogger{}
 		output, err := toolExec(mockRt, goExe, "version")
 		if err != nil {
 			t.Fatalf("Expected successful execution, but got error: %v", err)
@@ -111,7 +86,7 @@ func TestToolExec(t *testing.T) {
 			t.Errorf("Expected output to contain 'go version', but got: %s", output)
 		}
 		// Check logs
-		logger := mockRt.logger.(*mockLogger)
+		logger := mockRt.Logger.(*mockLogger)
 		if len(logger.debugMessages) != 2 {
 			t.Errorf("Expected 2 debug log messages, got %d", len(logger.debugMessages))
 		}
@@ -121,7 +96,8 @@ func TestToolExec(t *testing.T) {
 	})
 
 	t.Run("failed execution (non-zero exit)", func(t *testing.T) {
-		mockRt := &mockRuntime{logger: &mockLogger{}}
+		mockRt := NewMockRuntime()
+		mockRt.Logger = &mockLogger{}
 		// 'go help unknowncommand' exits with status 1
 		_, err := toolExec(mockRt, goExe, "help", "unknowncommand")
 		if err == nil {
@@ -131,7 +107,7 @@ func TestToolExec(t *testing.T) {
 			t.Errorf("Expected error to wrap lang.ErrInternalTool, but it didn't")
 		}
 		// Check logs
-		logger := mockRt.logger.(*mockLogger)
+		logger := mockRt.Logger.(*mockLogger)
 		if len(logger.debugMessages) != 1 {
 			t.Errorf("Expected 1 debug log message, got %d", len(logger.debugMessages))
 		}
@@ -141,7 +117,7 @@ func TestToolExec(t *testing.T) {
 	})
 
 	t.Run("security block path traversal", func(t *testing.T) {
-		mockRt := &mockRuntime{} // No logger needed
+		mockRt := NewMockRuntime() // No logger needed
 		_, err := toolExec(mockRt, "../bin/go")
 		if err == nil {
 			t.Fatal("Expected an error for path traversal, but got nil")
@@ -152,7 +128,7 @@ func TestToolExec(t *testing.T) {
 	})
 
 	t.Run("security block special characters", func(t *testing.T) {
-		mockRt := &mockRuntime{} // No logger needed
+		mockRt := NewMockRuntime() // No logger needed
 		_, err := toolExec(mockRt, "go; ls")
 		if err == nil {
 			t.Fatal("Expected an error for special characters, but got nil")
@@ -163,7 +139,7 @@ func TestToolExec(t *testing.T) {
 	})
 
 	t.Run("no command provided", func(t *testing.T) {
-		mockRt := &mockRuntime{}
+		mockRt := NewMockRuntime()
 		_, err := toolExec(mockRt)
 		if err == nil {
 			t.Fatal("Expected an error when no command is provided, but got nil")

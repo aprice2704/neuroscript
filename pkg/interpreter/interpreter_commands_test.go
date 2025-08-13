@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 7.0.0
-// Purpose: Corrected manual AST construction to use the full, proper tool name ('tool.TestTool.Record'), fixing the test failure.
+// File version: 8.0.0
+// Purpose: Corrected call to the renamed test helper function 'NewTestInterpreter'.
 // filename: pkg/interpreter/interpreter_commands_test.go
 // nlines: 80
 // risk_rating: LOW
@@ -17,7 +17,7 @@ import (
 
 func TestCommandExecution(t *testing.T) {
 	t.Run("Execute Multiple Commands in Order", func(t *testing.T) {
-		interp, _ := newLocalTestInterpreter(t, nil, nil)
+		interp, _ := NewTestInterpreter(t, nil, nil, false)
 
 		// Register a mock tool for the commands to call.
 		var callLog []string

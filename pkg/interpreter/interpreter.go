@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 35.0.0
-// Purpose: Implements a centralized clone method to ensure sandboxed interpreters correctly inherit all required state (tools, providers, AgentModels), fixing numerous test failures. Adds a 'root' pointer to track the master interpreter for shared state modifications.
+// File version: 38.0.0
+// Purpose: Initializes the AgentModelStore in the constructor to prevent nil pointer panics when using agent model tools.
 // filename: pkg/interpreter/interpreter.go
-// nlines: 245
+// nlines: 255
 // risk_rating: HIGH
 
 package interpreter
@@ -49,6 +49,7 @@ type Interpreter struct {
 	objectCacheMu      interface{}
 	llmclient          interfaces.LLMClient
 	skipStdTools       bool
+	modelStore         *runtime.AgentModelStore
 	ExecPolicy         *runtime.ExecPolicy
 	root               *Interpreter // Points to the top-level interpreter instance.
 }
@@ -67,6 +68,7 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	i.evaluate = &evaluation{i: i}
 	i.tools = tool.NewToolRegistry(i)
 	i.root = nil // The new interpreter is its own root.
+	i.modelStore = runtime.NewAgentModelStore()
 
 	for _, opt := range opts {
 		opt(i)
@@ -81,7 +83,9 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	return i
 }
 
-// clone creates a new interpreter instance and copies all essential, non-mutable state.
+// clone creates a new interpreter instance for sandboxing.
+// It inherits shared state like tools and agent models via the root pointer,
+// but gets its own variable scope to prevent state leakage.
 func (i *Interpreter) clone() *Interpreter {
 	clone := NewInterpreter(
 		WithLogger(i.logger),
@@ -90,39 +94,31 @@ func (i *Interpreter) clone() *Interpreter {
 		WithStderr(i.stderr),
 		WithSandboxDir(i.state.sandboxDir),
 	)
-	// Share the same tool registry, providers, and agent models.
+	// Share the same tool registry, execution policy, and agent model store.
 	clone.tools = i.tools
 	clone.ExecPolicy = i.ExecPolicy
+	clone.modelStore = i.modelStore
 
-	// FIX: Point clone's root to the original interpreter's root.
+	// Point clone's root to the original interpreter's root, or to the
+	// original if it is the root. This ensures access to shared state
+	// like AgentModels and providers.
 	if i.root != nil {
 		clone.root = i.root
 	} else {
 		clone.root = i
 	}
 
-	// Copy known procedures
-	for k, v := range i.state.knownProcedures {
-		clone.state.knownProcedures[k] = v
-	}
-
-	// Copy registered providers
-	i.state.providersMu.RLock()
-	// This is a temporary RLock; the clone will have its own mutex.
-	// But since providers and agentmodels now delegate to root, this is safe.
-	for k, v := range i.state.providers {
-		clone.state.providers[k] = v
-	}
-	i.state.providersMu.RUnlock()
-
-	// Copy registered AgentModels
-	i.state.agentModelsMu.RLock()
-	for k, v := range i.state.agentModels {
-		clone.state.agentModels[k] = v
-	}
-	i.state.agentModelsMu.RUnlock()
+	// The clone gets its own variable map, but inherits known procedures.
+	clone.state.knownProcedures = i.state.knownProcedures
 
 	return clone
+}
+
+func (i *Interpreter) AgentModels() interfaces.AgentModelReader {
+	return runtime.NewAgentModelReader(i.modelStore)
+}
+func (i *Interpreter) AgentModelsAdmin() interfaces.AgentModelAdmin {
+	return runtime.NewAgentModelAdmin(i.modelStore, i.ExecPolicy)
 }
 
 // PromptUser satisfies the tool.Runtime interface.
@@ -148,6 +144,17 @@ func (i *Interpreter) RegisterProvider(name string, p provider.AIProvider) {
 	i.state.providersMu.Lock()
 	defer i.state.providersMu.Unlock()
 	i.state.providers[name] = p
+}
+
+// GetProvider retrieves a registered AIProvider by name.
+func (i *Interpreter) GetProvider(name string) (provider.AIProvider, bool) {
+	if i.root != nil {
+		return i.root.GetProvider(name)
+	}
+	i.state.providersMu.RLock()
+	defer i.state.providersMu.RUnlock()
+	p, found := i.state.providers[name]
+	return p, found
 }
 
 // NTools returns the number of registered tools.
@@ -190,13 +197,17 @@ func (i *Interpreter) ToolRegistry() tool.ToolRegistry {
 
 // CloneForEventHandler creates a sandboxed clone for event handling.
 func (i *Interpreter) CloneForEventHandler() *Interpreter {
-	clone := i.clone() // Use the centralized clone method.
+	clone := i.clone() // Use the centralized, corrected clone method.
+
+	// Copy global variables for read-only access, as per the spec.
+	// We lock the parent's variables for reading.
 	i.state.variablesMu.RLock()
 	defer i.state.variablesMu.RUnlock()
-	// Copy global variables for read-only access.
+
 	for name := range i.state.globalVarNames {
 		if val, ok := i.state.variables[name]; ok {
-			clone.SetInitialVariable(name, val)
+			// This sets the variable on the clone's independent variable map.
+			clone.SetVariable(name, val)
 		}
 	}
 	return clone
@@ -204,7 +215,7 @@ func (i *Interpreter) CloneForEventHandler() *Interpreter {
 
 // CloneWithNewVariables creates a clone with a fresh set of variables for procedure calls.
 func (i *Interpreter) CloneWithNewVariables() *Interpreter {
-	return i.clone() // Use the centralized clone method.
+	return i.clone() // The corrected clone method already creates a fresh variable map.
 }
 
 func (i *Interpreter) GetLogger() interfaces.Logger {

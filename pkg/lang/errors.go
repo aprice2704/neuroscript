@@ -296,6 +296,7 @@ var (
 	ErrUnknownKeyword      = errors.New("unknown keyword encountered")
 	ErrTypeAssertionFailed = errors.New("type assertion failed")
 	ErrNotImplemented      = errors.New("feature or tool not implemented")
+	ErrDuplicateKey        = errors.New("duplicate key")
 )
 
 // --- Control Flow Sentinel Errors ---

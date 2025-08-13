@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.0
-// File version: 22.0.0
-// Purpose: Corrects all type mismatch errors by adding explicit type conversions for types.AgentModelName.
+// File version: 30.0.0
+// Purpose: Updated to import and use the canonical AgentModel struct from pkg/types, breaking the import cycle.
 // filename: pkg/interpreter/interpreter_steps_ask.go
 // nlines: 160
 // risk_rating: HIGH
@@ -40,16 +40,20 @@ func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
 	prompt, _ := lang.ToString(promptVal)
 
 	// 2. Get AgentModel configuration and perform policy validation
-	// FIX: Explicitly convert the string agentName to types.AgentModelName for the lookup.
-	agentModel, found := i.GetAgentModel(types.AgentModelName(agentName))
+	agentModelObj, found := i.GetAgentModel(types.AgentModelName(agentName))
 	if !found {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("AgentModel '%s' is not registered", agentName), lang.ErrMapKeyNotFound).WithPosition(node.AgentModelExpr.GetPos())
+	}
+	agentModel, ok := agentModelObj.(types.AgentModel)
+	if !ok {
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("internal error: retrieved AgentModel for '%s' is not of type types.AgentModel, but %T", agentName, agentModelObj), nil).WithPosition(node.AgentModelExpr.GetPos())
 	}
 
 	// Construct the security envelope from the AgentModel's config for policy check.
 	envelope := runtime.AgentModelEnvelope{
-		// FIX: Explicitly convert the types.AgentModelName to a string for the envelope.
 		Name:           string(agentModel.Name),
+		Provider:       agentModel.Provider,
+		ModelID:        agentModel.Model,
 		Hosts:          []string{agentModel.BaseURL},
 		SecretEnvKeys:  []string{agentModel.SecretRef},
 		BudgetCurrency: agentModel.BudgetCurrency,
@@ -92,7 +96,7 @@ func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
 	}
 
 	// 5. Get the provider and execute the call
-	prov, provExists := i.state.providers[agentModel.Provider]
+	prov, provExists := i.GetProvider(agentModel.Provider)
 	if !provExists {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeProviderNotFound, fmt.Sprintf("provider '%s' for AgentModel '%s' not found", agentModel.Provider, agentName), nil).WithPosition(step.GetPos())
 	}
@@ -105,7 +109,7 @@ func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
 
 	// 6. Account for resource usage after a successful call
 	if i.ExecPolicy != nil && agentModel.BudgetCurrency != "" {
-		costInCents := 25 // Placeholder: This cost should come from the provider response eventually
+		costInCents := 25 // Placeholder
 		if err := i.ExecPolicy.Grants.CheckPerCallBudget(agentModel.BudgetCurrency, costInCents); err != nil {
 			return nil, lang.NewRuntimeError(lang.ErrorCodePolicy, "ask call exceeds per-call budget", err).WithPosition(step.GetPos())
 		}

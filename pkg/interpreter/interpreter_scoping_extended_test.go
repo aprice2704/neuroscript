@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 3.0.0
-// Purpose: Corrected the test helper to wrap script snippets in a full function definition, fixing all parsing-related test failures.
+// File version: 4.0.0
+// Purpose: Corrected calls to the renamed test helper function 'NewTestInterpreter'.
 // filename: pkg/interpreter/interpreter_scoping_extended_test.go
 // nlines: 125
 // risk_rating: LOW
@@ -19,7 +19,7 @@ import (
 func runScopeTestScript(t *testing.T, scriptContent string, initialVars map[string]lang.Value) (*Interpreter, error) {
 	t.Helper()
 
-	interp, err := newLocalTestInterpreter(t, initialVars, nil)
+	interp, err := NewTestInterpreter(t, initialVars, nil, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create test interpreter: %w", err)
 	}
@@ -106,7 +106,7 @@ func TestVariableScopingExtended(t *testing.T) {
 				call modify_var()
 			endfunc
 		`
-		interp, _ := newLocalTestInterpreter(t, nil, nil)
+		interp, _ := NewTestInterpreter(t, nil, nil, false)
 		parserAPI := parser.NewParserAPI(interp.GetLogger())
 		ast, _ := parserAPI.Parse(script)
 		prog, _, _ := parser.NewASTBuilder(interp.GetLogger()).Build(ast)

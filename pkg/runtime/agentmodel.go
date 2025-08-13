@@ -1,0 +1,23 @@
+// NeuroScript Version: 0.6.0
+// File version: 1.0.0
+// Purpose: Provides the canonical definition for the AgentModel struct to be used across the runtime and interpreter.
+// filename: pkg/runtime/agentmodel.go
+// nlines: 30
+// risk_rating: LOW
+
+package runtime
+
+import "github.com/aprice2704/neuroscript/pkg/types"
+
+// AgentModel holds the validated and parsed configuration for a specific AI model endpoint.
+// This is the canonical definition used throughout the system.
+type AgentModel struct {
+	Name           types.AgentModelName
+	Provider       string
+	Model          string
+	SecretRef      string
+	BaseURL        string
+	BudgetCurrency string
+	PriceTable     map[string]float64
+	Temperature    float64
+}

@@ -37,7 +37,7 @@ func NewTestInterpreterWithAllTools(t *testing.T) *interpreter.Interpreter {
 	if _, found := interp.ToolRegistry().GetTool(expectedTool); !found {
 		var availableTools []string
 		for _, spec := range interp.ToolRegistry().ListTools() {
-			availableTools = append(availableTools, string(spec.Name))
+			availableTools = append(availableTools, string(spec.Name()))
 		}
 		t.Fatalf("FATAL: Test interpreter's tool registry is incomplete. Expected to find '%s', but it was missing. "+
 			"This usually indicates a problem with test build linkage. Available tools (%d): %s",

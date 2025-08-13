@@ -1,19 +1,16 @@
 // NeuroScript Version: 0.3.5
-// File version: 9.4.0
-// Purpose: Corrected helper functions by removing invalid SetPos method calls.
+// File version: 9.6.0
+// Purpose: Removed the local test interpreter helper, which has been moved to testing_bits.go to be exported for cross-package use.
 // filename: pkg/interpreter/interpreter_suite_test.go
 package interpreter
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
-	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
@@ -87,7 +84,8 @@ func createForStep(pos *types.Position, loopVar string, collection ast.Expressio
 
 func runLocalExecuteStepsTest(t *testing.T, tc localExecuteStepsTestCase) {
 	t.Helper()
-	interp, err := newLocalTestInterpreter(t, tc.initialVars, tc.lastResult)
+	// Most step tests do not require privileges.
+	interp, err := NewTestInterpreter(t, tc.initialVars, tc.lastResult, false)
 	if err != nil {
 		t.Fatalf("Test %q: Failed to create test interpreter: %v", tc.name, err)
 	}
@@ -122,27 +120,6 @@ func runLocalExecuteStepsTest(t *testing.T, tc localExecuteStepsTestCase) {
 			}
 		}
 	}
-}
-
-func newLocalTestInterpreter(t *testing.T, initialVars map[string]lang.Value, lastResult lang.Value) (*Interpreter, error) {
-	t.Helper()
-	testLogger := logging.NewTestLogger(t)
-	testLogger.SetLevel(interfaces.LogLevelInfo)
-	sandboxDir := t.TempDir()
-	interp := NewInterpreter(
-		WithLogger(testLogger),
-		WithSandboxDir(sandboxDir),
-	)
-
-	for k, v := range initialVars {
-		if err := interp.SetInitialVariable(k, v); err != nil {
-			return nil, fmt.Errorf("failed to set initial variable %q: %w", k, err)
-		}
-	}
-	if lastResult != nil {
-		interp.lastCallResult = lastResult
-	}
-	return interp, nil
 }
 
 // --- Main Test Function ---

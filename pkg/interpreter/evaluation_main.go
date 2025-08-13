@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.0
-// File version: 60
-// Purpose: Updated the evaluator to use the new centralized resolveToolName helper, aligning it with the final parser contract for tool call resolution.
+// File version: 62
+// Purpose: Integrated the ExecPolicy security gate into the tool call evaluation path, as per the design specification.
 // filename: pkg/interpreter/evaluation_main.go
 // nlines: 280
 // risk_rating: HIGH
@@ -15,6 +15,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/runtime"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
@@ -92,10 +93,7 @@ func (e *evaluation) evaluateStringLiteral(n *ast.StringLiteralNode) (lang.Value
 }
 
 func (i *Interpreter) resolveVariable(n *ast.VariableNode) (lang.Value, error) {
-	// DEBUG: Print variable lookup attempt.
-	//fmt.Printf("[DEBUG] resolveVariable: Attempting to resolve variable '%s' in procedure '%s'\n", n.Name, i.state.currentProcName)
 	if val, exists := i.GetVariable(n.Name); exists {
-		//	fmt.Printf("[DEBUG] resolveVariable: Found variable '%s' with value '%s'\n", n.Name, val.String())
 		return val, nil
 	}
 
@@ -111,7 +109,6 @@ func (i *Interpreter) resolveVariable(n *ast.VariableNode) (lang.Value, error) {
 	if isBuiltInFunction(n.Name) {
 		return lang.StringValue{Value: fmt.Sprintf("<built-in function: %s>", n.Name)}, nil
 	}
-	fmt.Printf("[DEBUG] resolveVariable: Variable or function '%s' NOT FOUND\n", n.Name)
 	return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("variable or function '%s' not found", n.Name), lang.ErrVariableNotFound).WithPosition(n.StartPos)
 }
 
@@ -186,16 +183,29 @@ func (e *evaluation) evaluateCall(n *ast.CallableExprNode) (lang.Value, error) {
 			return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "failed to resolve tool name", err).WithPosition(n.StartPos)
 		}
 
-		tool, found := e.i.tools.GetTool(toolNameForLookup)
+		toolImpl, found := e.i.tools.GetTool(toolNameForLookup)
 		if !found {
-			// Provide a more helpful error message including the constructed key.
 			errMessage := fmt.Sprintf("tool '%s' not found (looked up as '%s')", n.Target.Name, toolNameForLookup)
 			return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, errMessage, lang.ErrToolNotFound).WithPosition(n.StartPos)
 		}
 
-		specArgs := tool.Spec.Args
-		if len(n.Arguments) > len(specArgs) && !tool.Spec.Variadic {
-			return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("tool '%s' expects at most %d arguments, got %d", tool.Spec.Name, len(specArgs), len(n.Arguments)), lang.ErrArgumentMismatch).WithPosition(n.StartPos)
+		// --- POLICY GATE ---
+		if e.i.ExecPolicy != nil {
+			meta := runtime.ToolMeta{
+				Name:          string(toolImpl.FullName),
+				RequiresTrust: toolImpl.RequiresTrust,
+				RequiredCaps:  toolImpl.RequiredCaps,
+				Effects:       toolImpl.Effects,
+			}
+			if err := e.i.ExecPolicy.CanCall(meta); err != nil {
+				return nil, lang.NewRuntimeError(lang.ErrorCodePolicy, fmt.Sprintf("tool call '%s' rejected by policy", meta.Name), err).WithPosition(n.StartPos)
+			}
+		}
+		// --- END POLICY GATE ---
+
+		specArgs := toolImpl.Spec.Args
+		if len(n.Arguments) > len(specArgs) && !toolImpl.Spec.Variadic {
+			return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("tool '%s' expects at most %d arguments, got %d", toolImpl.Spec.Name, len(specArgs), len(n.Arguments)), lang.ErrArgumentMismatch).WithPosition(n.StartPos)
 		}
 
 		evaluatedArgs := make([]lang.Value, len(n.Arguments))
@@ -212,9 +222,9 @@ func (e *evaluation) evaluateCall(n *ast.CallableExprNode) (lang.Value, error) {
 			unwrappedArgs[i] = lang.Unwrap(v)
 		}
 
-		result, err := tool.Func(e.i, unwrappedArgs)
+		result, err := toolImpl.Func(e.i, unwrappedArgs)
 		if err != nil {
-			return nil, lang.NewRuntimeError(lang.ErrorCodeToolExecutionFailed, fmt.Sprintf("tool '%s' execution failed", tool.Spec.Name), err).WithPosition(n.StartPos)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeToolExecutionFailed, fmt.Sprintf("tool '%s' execution failed", toolImpl.Spec.Name), err).WithPosition(n.StartPos)
 		}
 
 		return lang.Wrap(result)

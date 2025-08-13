@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 2.0.0
-// Purpose: Corrected the test logic to pass the group-qualified tool name (not the full language-level key) to the caller tool, aligning the test with the runtime contract.
+// File version: 3.0.0
+// Purpose: Corrected call to the renamed test helper function 'NewTestInterpreter'.
 // filename: pkg/interpreter/interpreter_tool_calling_test.go
 
 package interpreter
@@ -64,7 +64,7 @@ func TestToolToToolCalling_WithDottedGroup(t *testing.T) {
 	}
 
 	// 3. Setup the interpreter and register the tools.
-	interp, err := newLocalTestInterpreter(t, nil, nil)
+	interp, err := NewTestInterpreter(t, nil, nil, false)
 	if err != nil {
 		t.Fatalf("Failed to create test interpreter: %v", err)
 	}

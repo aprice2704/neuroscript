@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.0
-// File version: 2.0.0
-// Purpose: Defines the tool specifications for managing agent models.
+// File version: 5
+// Purpose: Defines the tool specifications for managing agent models. Added policy metadata.
 // filename: pkg/tool/agentmodel/tooldefs_agentmodel.go
 // nlines: 120
 // risk_rating: HIGH
@@ -26,11 +26,12 @@ var AgentModelToolsToRegister = []tool.ToolImplementation{
 			},
 			ReturnType: tool.ArgTypeBool,
 		},
+		Func:          toolRegisterAgentModel,
 		RequiresTrust: true,
 		RequiredCaps: []capability.Capability{
 			{Resource: "model", Verbs: []string{"admin"}, Scopes: []string{"*"}},
 		},
-		Func: toolRegisterAgentModel,
+		Effects: []string{"idempotent"},
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -43,11 +44,12 @@ var AgentModelToolsToRegister = []tool.ToolImplementation{
 			},
 			ReturnType: tool.ArgTypeBool,
 		},
+		Func:          toolUpdateAgentModel,
 		RequiresTrust: true,
 		RequiredCaps: []capability.Capability{
 			{Resource: "model", Verbs: []string{"admin"}, Scopes: []string{"*"}},
 		},
-		Func: toolUpdateAgentModel,
+		Effects: []string{"idempotent"},
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -59,11 +61,12 @@ var AgentModelToolsToRegister = []tool.ToolImplementation{
 			},
 			ReturnType: tool.ArgTypeBool,
 		},
+		Func:          toolDeleteAgentModel,
 		RequiresTrust: true,
 		RequiredCaps: []capability.Capability{
 			{Resource: "model", Verbs: []string{"admin"}, Scopes: []string{"*"}},
 		},
-		Func: toolDeleteAgentModel,
+		Effects: []string{"idempotent"},
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -72,20 +75,24 @@ var AgentModelToolsToRegister = []tool.ToolImplementation{
 			Description: "Lists the names of all available AgentModels.",
 			ReturnType:  tool.ArgTypeSliceString,
 		},
-		RequiresTrust: false,
 		Func:          toolListAgentModels,
+		RequiresTrust: false,
+		RequiredCaps:  nil,
+		Effects:       []string{"idempotent"},
 	},
 	{
 		Spec: tool.ToolSpec{
 			Name:        "Select",
 			Group:       Group,
-			Description: "Selects the first available AgentModel. Criteria argument is a placeholder.",
+			Description: "Selects (finds) a specific AgentModel by name.",
 			Args: []tool.ArgSpec{
-				{Name: "criteria", Type: tool.ArgTypeMap, Required: false},
+				{Name: "name", Type: tool.ArgTypeString, Required: true},
 			},
 			ReturnType: tool.ArgTypeString,
 		},
-		RequiresTrust: false,
 		Func:          toolSelectAgentModel,
+		RequiresTrust: false,
+		RequiredCaps:  nil,
+		Effects:       []string{"idempotent"},
 	},
 }

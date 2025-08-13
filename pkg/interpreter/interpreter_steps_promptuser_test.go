@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.0
-// File version: 1
-// Purpose: Contains unit tests for the 'promptuser' statement.
+// File version: 2
+// Purpose: Corrected call to the renamed test helper function 'NewTestInterpreter'.
 // filename: pkg/interpreter/interpreter_steps_promptuser_test.go
 // nlines: 60
 // risk_rating: LOW
@@ -23,7 +23,7 @@ func TestPromptUserStatement(t *testing.T) {
 		stdin := strings.NewReader(userInput)
 		var stdout bytes.Buffer
 
-		interp, _ := newLocalTestInterpreter(t, nil, nil)
+		interp, _ := NewTestInterpreter(t, nil, nil, false)
 		interp.SetStdin(stdin)
 		interp.SetStdout(&stdout)
 

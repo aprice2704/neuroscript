@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.0
-// File version: 3
-// Purpose: Defines the toolset for the AI package. Aligned with new ToolImplementation spec.
+// File version: 4
+// Purpose: Defines the toolset for the AI package. Added policy metadata (RequiresTrust, RequiredCaps, Effects).
 // filename: pkg/tool/ai/tooldefs_ai.go
-// nlines: 77
+// nlines: 85
 // risk_rating: LOW
 
 package ai
@@ -30,7 +30,10 @@ var aiToolsToRegister = []tool.ToolImplementation{
 			Example:         `tool.ai.Validate(my_data, my_shape, false)`,
 			ErrorConditions: "Returns 'ErrValidationRequiredArgMissing', 'ErrValidationTypeMismatch', or 'ErrInvalidArgument' on failure.",
 		},
-		Func: Validate,
+		Func:          Validate,
+		RequiresTrust: false,
+		RequiredCaps:  nil,
+		Effects:       []string{"idempotent"},
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -48,7 +51,10 @@ var aiToolsToRegister = []tool.ToolImplementation{
 			Example:         `tool.ai.Select(my_data, "user.name")`,
 			ErrorConditions: "Returns 'ErrMapKeyNotFound', 'ErrListIndexOutOfBounds', or 'ErrInvalidPath' on failure.",
 		},
-		Func: Select,
+		Func:          Select,
+		RequiresTrust: false,
+		RequiredCaps:  nil,
+		Effects:       []string{"idempotent"},
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -66,6 +72,9 @@ var aiToolsToRegister = []tool.ToolImplementation{
 			Example:         `tool.ai.SelectMany(my_data, {"name": "user.name", "city": "user.address.city"})`,
 			ErrorConditions: "Returns 'ErrMapKeyNotFound' or 'ErrInvalidPath' on failure.",
 		},
-		Func: SelectMany,
+		Func:          SelectMany,
+		RequiresTrust: false,
+		RequiredCaps:  nil,
+		Effects:       []string{"idempotent"},
 	},
 }

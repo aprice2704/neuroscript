@@ -1,94 +1,151 @@
 // NeuroScript Version: 0.6.0
-// File version: 2.1.0
-// Purpose: Corrected lang.Wrap calls to handle two return values.
+// File version: 9.1.0
+// Purpose: Corrected toolSelectAgentModel to properly type-assert to the canonical types.AgentModel.
 // filename: pkg/tool/agentmodel/tools_agentmodel.go
-// nlines: 100
+// nlines: 150
 // risk_rating: HIGH
 
 package agentmodel
 
 import (
 	"fmt"
+	"sort"
 
-	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
-// getInterpreter is a helper to safely cast the runtime to our interpreter instance.
-func getInterpreter(rt tool.Runtime) (*interpreter.Interpreter, error) {
-	interp, ok := rt.(*interpreter.Interpreter)
+// modelAdminRuntime defines the interface we expect from the runtime
+// for agent model administrative operations.
+type modelAdminRuntime interface {
+	AgentModelsAdmin() interfaces.AgentModelAdmin
+	AgentModels() interfaces.AgentModelReader
+}
+
+func getModelAdmin(rt tool.Runtime) (interfaces.AgentModelAdmin, error) {
+	interp, ok := rt.(modelAdminRuntime)
 	if !ok {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "agentmodel tools require a direct interpreter instance", lang.ErrConfiguration)
+		return nil, fmt.Errorf("internal error: runtime does not support agent model admin operations")
 	}
-	return interp, nil
+	return interp.AgentModelsAdmin(), nil
+}
+
+func getModelReader(rt tool.Runtime) (interfaces.AgentModelReader, error) {
+	interp, ok := rt.(modelAdminRuntime)
+	if !ok {
+		return nil, fmt.Errorf("internal error: runtime does not support agent model read operations")
+	}
+	return interp.AgentModels(), nil
 }
 
 func toolRegisterAgentModel(rt tool.Runtime, args []interface{}) (interface{}, error) {
-	interp, err := getInterpreter(rt)
+	admin, err := getModelAdmin(rt)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
-	name, _ := args[0].(string)
-	configMap, ok := args[1].(map[string]interface{})
+	name, ok := args[0].(string)
 	if !ok {
-		return false, lang.NewRuntimeError(lang.ErrorCodeType, "config argument must be a map", lang.ErrInvalidArgument)
+		return nil, fmt.Errorf("argument 'name' must be a string")
 	}
-	langValueMap := make(map[string]lang.Value)
-	for k, v := range configMap {
-		langValueMap[k], _ = lang.Wrap(v) // Corrected assignment
+	config, ok := args[1].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("argument 'config' must be a map[string]interface{}")
 	}
-	err = interp.RegisterAgentModel(types.AgentModelName(name), langValueMap)
-	return err == nil, err
+
+	if _, ok := config["model"]; !ok {
+		return nil, lang.ErrInvalidArgument
+	}
+
+	err = admin.Register(types.AgentModelName(name), config)
+	if err != nil {
+		return nil, err
+	}
+	return true, nil
 }
 
 func toolUpdateAgentModel(rt tool.Runtime, args []interface{}) (interface{}, error) {
-	interp, err := getInterpreter(rt)
+	admin, err := getModelAdmin(rt)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
-	name, _ := args[0].(string)
-	updatesMap, ok := args[1].(map[string]interface{})
+	name, ok := args[0].(string)
 	if !ok {
-		return false, lang.NewRuntimeError(lang.ErrorCodeType, "updates argument must be a map", lang.ErrInvalidArgument)
+		return nil, fmt.Errorf("argument 'name' must be a string")
 	}
-	langValueMap := make(map[string]lang.Value)
-	for k, v := range updatesMap {
-		langValueMap[k], _ = lang.Wrap(v) // Corrected assignment
+	updates, ok := args[1].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("argument 'updates' must be a map[string]interface{}")
 	}
-	err = interp.UpdateAgentModel(types.AgentModelName(name), langValueMap)
-	return err == nil, err
+	err = admin.Update(types.AgentModelName(name), updates)
+	if err != nil {
+		if err.Error() == "agent model not found" {
+			return nil, lang.ErrNotFound
+		}
+		return nil, err
+	}
+	return true, nil
 }
 
 func toolDeleteAgentModel(rt tool.Runtime, args []interface{}) (interface{}, error) {
-	interp, err := getInterpreter(rt)
+	admin, err := getModelAdmin(rt)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
-	name, _ := args[0].(string)
-	if !interp.DeleteAgentModel(types.AgentModelName(name)) {
-		return false, lang.NewRuntimeError(lang.ErrorCodeToolExecutionFailed, fmt.Sprintf("failed to delete agent model '%s'", name), lang.ErrNotFound)
+	name, ok := args[0].(string)
+	if !ok {
+		return nil, fmt.Errorf("argument 'name' must be a string")
+	}
+	if ok := admin.Delete(types.AgentModelName(name)); !ok {
+		return false, nil
 	}
 	return true, nil
 }
 
 func toolListAgentModels(rt tool.Runtime, args []interface{}) (interface{}, error) {
-	interp, err := getInterpreter(rt)
+	reader, err := getModelReader(rt)
 	if err != nil {
 		return nil, err
 	}
-	return interp.ListAgentModels(), nil
+	names := reader.List()
+	return names, nil
 }
 
 func toolSelectAgentModel(rt tool.Runtime, args []interface{}) (interface{}, error) {
-	interp, err := getInterpreter(rt)
+	reader, err := getModelReader(rt)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	models := interp.ListAgentModels()
-	if len(models) == 0 {
-		return "", lang.NewRuntimeError(lang.ErrorCodeToolNotFound, "no agent models are registered", lang.ErrNotFound)
+
+	var name string
+	if args[0] != nil {
+		var ok bool
+		name, ok = args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("argument 'name' must be a string")
+		}
 	}
-	return models[0], nil
+
+	if name == "" {
+		models := reader.List()
+		if len(models) == 0 {
+			return nil, fmt.Errorf("%w: no agent models available to select from", lang.ErrNotFound)
+		}
+		sort.Slice(models, func(i, j int) bool {
+			return models[i] < models[j]
+		})
+		return string(models[0]), nil
+	}
+
+	info, found := reader.Get(types.AgentModelName(name))
+	if !found {
+		return nil, fmt.Errorf("%w: agent model %q not found", lang.ErrNotFound, name)
+	}
+
+	model, ok := info.(types.AgentModel)
+	if !ok {
+		return nil, fmt.Errorf("internal error: retrieved agent model is not of type types.AgentModel, but %T", info)
+	}
+	return string(model.Name), nil
 }

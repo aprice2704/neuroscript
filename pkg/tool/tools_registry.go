@@ -1,13 +1,14 @@
 // NeuroScript Version: 0.4.0
-// File version: 8
-// Purpose: Removed the conflicting auto-registration loop from the constructor to centralize tool setup in the api.New function.
+// File version: 10
+// Purpose: Updated ListTools to return full ToolImplementation structs for policy testing.
 // filename: pkg/tool/tools_registry.go
-// nlines: 147
+// nlines: 150
 // risk_rating: HIGH
 
 package tool
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"sync"
 
@@ -15,22 +16,6 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/types"
 	"github.com/aprice2704/neuroscript/pkg/utils"
 )
-
-// The global tool registration mechanism below is part of a conflicting pattern
-// and is being deprecated in favor of the 'register.go' pattern. It is commented
-// out to prevent its use.
-/*
-var (
-	globalToolImplementations []ToolImplementation
-	globalRegMutex            sync.Mutex
-)
-
-func AddToolImplementations(impls ...ToolImplementation) {
-	globalRegMutex.Lock()
-	defer globalRegMutex.Unlock()
-	globalToolImplementations = append(globalToolImplementations, impls...)
-}
-*/
 
 // ToolRegistryImpl manages the available tools for an Interpreter instance.
 type ToolRegistryImpl struct {
@@ -40,7 +25,6 @@ type ToolRegistryImpl struct {
 }
 
 // NewToolRegistry creates a new, empty registry instance.
-// Tool registration is now handled by the high-level api.New() function.
 func NewToolRegistry(interpreter Runtime) *ToolRegistryImpl {
 	r := &ToolRegistryImpl{
 		tools:       make(map[types.FullName]ToolImplementation),
@@ -49,8 +33,15 @@ func NewToolRegistry(interpreter Runtime) *ToolRegistryImpl {
 	return r
 }
 
+// calculateChecksum generates a stable hash of a tool's essential signature.
+func calculateChecksum(spec ToolSpec) string {
+	data := fmt.Sprintf("%s:%s:%d", spec.FullName, spec.ReturnType, len(spec.Args))
+	hash := sha256.Sum256([]byte(data))
+	return fmt.Sprintf("sha256:%x", hash)
+}
+
 // RegisterTool adds a tool to the registry. It canonicalizes the tool's name
-// to ensure consistent storage and lookup.
+// and automatically calculates its integrity checksum.
 func (r *ToolRegistryImpl) RegisterTool(impl ToolImplementation) (ToolImplementation, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -66,8 +57,7 @@ func (r *ToolRegistryImpl) RegisterTool(impl ToolImplementation) (ToolImplementa
 
 	impl.FullName = types.FullName(canonicalName)
 	impl.Spec.FullName = types.FullName(canonicalName)
-
-	//log.Printf("[DEBUG] Registering tool. Group: '%s', Name: '%s', Final Key: '%s'", impl.Spec.Group, impl.Spec.Name, canonicalName)
+	impl.SignatureChecksum = calculateChecksum(impl.Spec)
 
 	r.tools[types.FullName(canonicalName)] = impl
 
@@ -90,13 +80,13 @@ func (r *ToolRegistryImpl) GetToolShort(group types.ToolGroup, name types.ToolNa
 	return r.GetTool(baseName)
 }
 
-// ListTools returns the specs of all registered tools.
-func (r *ToolRegistryImpl) ListTools() []ToolSpec {
+// ListTools returns all registered tool implementations.
+func (r *ToolRegistryImpl) ListTools() []ToolImplementation {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	list := make([]ToolSpec, 0, len(r.tools))
+	list := make([]ToolImplementation, 0, len(r.tools))
 	for _, impl := range r.tools {
-		list = append(list, impl.Spec)
+		list = append(list, impl)
 	}
 	return list
 }
@@ -164,7 +154,7 @@ func (r *ToolRegistryImpl) ExecuteTool(fullname types.FullName, args map[string]
 			if spec.Required {
 				return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("missing required argument '%s' for tool '%s'", spec.Name, impl.FullName), lang.ErrArgumentMismatch)
 			}
-			orderedLangArgs[i] = lang.NilValue{}
+			orderedLangArgs[i] = &lang.NilValue{}
 		} else {
 			orderedLangArgs[i] = val
 		}

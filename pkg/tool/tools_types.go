@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.5.2
-// File version: 14
-// Purpose: Reverted FullName to be a direct field of ToolImplementation and added policy fields.
+// File version: 17
+// Purpose: Expanded the Runtime interface to include AgentModel management, breaking an import cycle.
 // filename: pkg/tool/tool_types.go
-// nlines: 121
+// nlines: 132
 // risk_rating: HIGH
 
 package tool
@@ -17,7 +17,6 @@ import (
 // Runtime is the minimal surface a tool needs to interact with the VM.
 type Runtime interface {
 	Println(...any)
-	// PromptUser prompts the human user for a line of text input.
 	PromptUser(prompt string) (string, error)
 	GetVar(name string) (any, bool)
 	SetVar(name string, val any)
@@ -28,6 +27,9 @@ type Runtime interface {
 	LLM() interfaces.LLMClient
 	RegisterHandle(obj interface{}, typePrefix string) (string, error)
 	GetHandleValue(handle string, expectedTypePrefix string) (interface{}, error)
+
+	AgentModels() interfaces.AgentModelReader
+	AgentModelsAdmin() interfaces.AgentModelAdmin
 }
 
 // ArgType defines the expected data type for a tool argument or return value.
@@ -80,12 +82,13 @@ type ToolSpec struct {
 // ToolImplementation combines the specification of a tool with its Go function
 // and its policy requirements.
 type ToolImplementation struct {
-	FullName      types.FullName
-	Spec          ToolSpec
-	Func          ToolFunc
-	RequiresTrust bool
-	RequiredCaps  []capability.Capability
-	Effects       []string
+	FullName          types.FullName
+	Spec              ToolSpec
+	Func              ToolFunc
+	RequiresTrust     bool
+	RequiredCaps      []capability.Capability
+	Effects           []string
+	SignatureChecksum string
 }
 
 // IsTool satisfies the lang.Tool interface.
@@ -106,7 +109,7 @@ type ToolRegistry interface {
 	ToolRegistrar
 	GetTool(name types.FullName) (ToolImplementation, bool)
 	GetToolShort(group types.ToolGroup, name types.ToolName) (ToolImplementation, bool)
-	ListTools() []ToolSpec
+	ListTools() []ToolImplementation
 	NTools() int
 	ExecuteTool(toolName types.FullName, args map[string]lang.Value) (lang.Value, error)
 }

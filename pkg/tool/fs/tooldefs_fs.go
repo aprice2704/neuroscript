@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.5.2
-// File version: 8
-// Purpose: Added RequiresTrust, RequiredCaps, and Effects to all filesystem tool definitions for policy integration.
+// File version: 9
+// Purpose: Updated all filesystem tools to require trust (`RequiresTrust: true`) for enhanced security, except for pure functions.
 // nlines: 300 // Approximate
-// risk_rating: MEDIUM
+// risk_rating: HIGH
 // filename: pkg/tool/fs/tooldefs_fs.go
 package fs
 
@@ -31,7 +31,7 @@ var FsToolsToRegister = []tool.ToolImplementation{
 			ErrorConditions: "ErrArgumentMismatch if filepath is empty; ErrConfiguration if sandbox is not set; ErrSecurityPath for invalid paths; ErrFileNotFound; ErrPermissionDenied; ErrPathNotFile if path is a directory; ErrIOFailed for I/O errors.",
 		},
 		Func:          toolFileHash,
-		RequiresTrust: false,
+		RequiresTrust: true,
 		RequiredCaps: []capability.Capability{
 			{Resource: "fs", Verbs: []string{"read"}},
 		},
@@ -52,7 +52,7 @@ var FsToolsToRegister = []tool.ToolImplementation{
 			ErrorConditions: "ErrArgumentMismatch if filepath is empty; ErrConfiguration if sandbox is not set; ErrSecurityPath for invalid paths; ErrFileNotFound; ErrPermissionDenied; ErrPathNotFile if path is a directory; ErrIOFailed for read errors.",
 		},
 		Func:          toolLineCountFile,
-		RequiresTrust: false,
+		RequiresTrust: true,
 		RequiredCaps: []capability.Capability{
 			{Resource: "fs", Verbs: []string{"read"}},
 		},
@@ -74,7 +74,7 @@ var FsToolsToRegister = []tool.ToolImplementation{
 		},
 		Func:          toolSanitizeFilename,
 		RequiresTrust: false,
-		RequiredCaps:  nil, // No specific capabilities needed for a pure string operation
+		RequiredCaps:  nil,
 		Effects:       []string{"idempotent"},
 	},
 	{
@@ -92,7 +92,7 @@ var FsToolsToRegister = []tool.ToolImplementation{
 			ErrorConditions: "ErrArgumentMismatch if filepath is empty; ErrConfiguration if sandbox is not set; ErrSecurityPath for invalid paths; ErrFileNotFound; ErrPermissionDenied; ErrPathNotFile if path is a directory; ErrIOFailed for other I/O errors.",
 		},
 		Func:          toolReadFile,
-		RequiresTrust: false,
+		RequiresTrust: true,
 		RequiredCaps: []capability.Capability{
 			{Resource: "fs", Verbs: []string{"read"}},
 		},
@@ -114,11 +114,11 @@ var FsToolsToRegister = []tool.ToolImplementation{
 			ErrorConditions: "ErrArgumentMismatch; ErrConfiguration; ErrSecurityPath; ErrCannotCreateDir; ErrPermissionDenied; ErrPathNotFile; ErrIOFailed.",
 		},
 		Func:          toolWriteFile,
-		RequiresTrust: false,
+		RequiresTrust: true,
 		RequiredCaps: []capability.Capability{
 			{Resource: "fs", Verbs: []string{"write"}},
 		},
-		Effects: []string{"writesFS", "idempotent"}, // Idempotent if called with the same content
+		Effects: []string{"writesFS", "idempotent"},
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -136,11 +136,11 @@ var FsToolsToRegister = []tool.ToolImplementation{
 			ErrorConditions: "ErrArgumentMismatch; ErrConfiguration; ErrSecurityPath; ErrCannotCreateDir; ErrPermissionDenied; ErrPathNotFile; ErrIOFailed.",
 		},
 		Func:          toolAppendFile,
-		RequiresTrust: false,
+		RequiresTrust: true,
 		RequiredCaps: []capability.Capability{
 			{Resource: "fs", Verbs: []string{"write"}},
 		},
-		Effects: []string{"writesFS"}, // Not idempotent
+		Effects: []string{"writesFS"},
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -158,7 +158,7 @@ var FsToolsToRegister = []tool.ToolImplementation{
 			ErrorConditions: "ErrArgumentMismatch; ErrConfiguration; ErrSecurityPath; ErrFileNotFound; ErrPermissionDenied; ErrPathNotDirectory; ErrIOFailed.",
 		},
 		Func:          toolListDirectory,
-		RequiresTrust: false,
+		RequiresTrust: true,
 		RequiredCaps: []capability.Capability{
 			{Resource: "fs", Verbs: []string{"read"}},
 		},
@@ -179,7 +179,7 @@ var FsToolsToRegister = []tool.ToolImplementation{
 			ErrorConditions: "ErrArgumentMismatch; ErrConfiguration; ErrSecurityPath; ErrPathNotDirectory; ErrPathExists; ErrPermissionDenied; ErrIOFailed; ErrCannotCreateDir.",
 		},
 		Func:          toolMkdir,
-		RequiresTrust: false,
+		RequiresTrust: true,
 		RequiredCaps: []capability.Capability{
 			{Resource: "fs", Verbs: []string{"write"}},
 		},
@@ -200,11 +200,11 @@ var FsToolsToRegister = []tool.ToolImplementation{
 			ErrorConditions: "ErrArgumentMismatch; ErrConfiguration; ErrSecurityPath; ErrPreconditionFailed if directory is not empty; ErrPermissionDenied; ErrIOFailed.",
 		},
 		Func:          toolDeleteFile,
-		RequiresTrust: false, // Deletion is a significant action, but contained by the sandbox
+		RequiresTrust: true,
 		RequiredCaps: []capability.Capability{
 			{Resource: "fs", Verbs: []string{"delete"}},
 		},
-		Effects: []string{"writesFS", "idempotent"}, // Deleting a non-existent thing is still idempotent
+		Effects: []string{"writesFS", "idempotent"},
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -221,7 +221,7 @@ var FsToolsToRegister = []tool.ToolImplementation{
 			ErrorConditions: "ErrArgumentMismatch; ErrConfiguration; ErrSecurityPath; ErrFileNotFound; ErrPermissionDenied; ErrIOFailed.",
 		},
 		Func:          toolStat,
-		RequiresTrust: false,
+		RequiresTrust: true,
 		RequiredCaps: []capability.Capability{
 			{Resource: "fs", Verbs: []string{"read"}},
 		},
@@ -243,9 +243,8 @@ var FsToolsToRegister = []tool.ToolImplementation{
 			ErrorConditions: "ErrArgumentMismatch; ErrConfiguration; ErrSecurityPath; ErrFileNotFound; ErrPathExists; ErrPermissionDenied; ErrIOFailed.",
 		},
 		Func:          toolMoveFile,
-		RequiresTrust: false, // Contained by sandbox
+		RequiresTrust: true,
 		RequiredCaps: []capability.Capability{
-			// Requires the ability to effectively write (create new) and delete (remove old)
 			{Resource: "fs", Verbs: []string{"write", "delete"}},
 		},
 		Effects: []string{"writesFS", "idempotent"},
@@ -265,7 +264,7 @@ var FsToolsToRegister = []tool.ToolImplementation{
 			ErrorConditions: "ErrArgumentMismatch; ErrConfiguration; ErrSecurityPath; ErrFileNotFound; ErrPathNotDirectory; ErrPermissionDenied; ErrIOFailed; ErrInternal.",
 		},
 		Func:          toolWalkDir,
-		RequiresTrust: false,
+		RequiresTrust: true,
 		RequiredCaps: []capability.Capability{
 			{Resource: "fs", Verbs: []string{"read"}},
 		},

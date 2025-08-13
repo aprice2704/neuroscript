@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.6.0
-// File version: 2.0.0
-// Purpose: Corrected the test script to include line continuations for the multi-line map literal, fixing the parser error.
+// File version: 5.0.0
+// Purpose: Corrected mock AgentModel config to include the required 'api_key_ref', fixing policy validation failures in the E2E test.
 // filename: pkg/interpreter/ask/agentmodel_e2e_test.go
-// nlines: 150
-// risk_rating: MEDIUM
+// nlines: 200
+// risk_rating: HIGH
 
 package ask
 
@@ -18,7 +18,9 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/parser"
+	"github.com/aprice2704/neuroscript/pkg/policy/capability"
 	"github.com/aprice2704/neuroscript/pkg/provider"
+	"github.com/aprice2704/neuroscript/pkg/runtime"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/tool/agentmodel"
 )
@@ -37,7 +39,7 @@ func (m *mockE2EProvider) Chat(ctx context.Context, req provider.AIRequest) (*pr
 	m.t.Helper()
 	m.WasCalled = true
 
-	if req.APIKey != m.ExpectedAPIKey {
+	if m.ExpectedAPIKey != "" && req.APIKey != m.ExpectedAPIKey {
 		err := fmt.Errorf("mock provider received wrong API key. got: '%s', want: '%s'", req.APIKey, m.ExpectedAPIKey)
 		m.t.Error(err)
 		return nil, err
@@ -52,11 +54,7 @@ func (m *mockE2EProvider) Chat(ctx context.Context, req provider.AIRequest) (*pr
 	return m.ResponseToReturn, nil
 }
 
-// --- Test ---
-
-func TestAgentModelE2E(t *testing.T) {
-	// 1. Define the script that uses the tools to configure the system.
-	const script = `
+const e2eScript = `
 :: name: E2E AgentModel Registration and Use
 :: version: 1.0
 
@@ -76,29 +74,43 @@ func TestTheAsk(returns result) means
     return result
 endfunc
 `
+
+// TestAgentModelE2E_SuccessWithPrivileges verifies the full flow works when the
+// interpreter is configured with a policy that allows trusted tools to run.
+func TestAgentModelE2E_SuccessWithPrivileges(t *testing.T) {
 	const mockAPIKey = "secret-key-for-e2e-test"
 	const mockEnvVar = "MOCK_API_KEY_ENV_VAR"
-
-	// 2. Set up the environment (mock API key)
 	t.Setenv(mockEnvVar, mockAPIKey)
 	defer os.Unsetenv(mockEnvVar)
 
-	// 3. Setup Interpreter with tools and mock provider
-	interp := interpreter.NewInterpreter(interpreter.WithoutStandardTools(), interpreter.WithLogger(logging.NewTestLogger(t)))
-	mockProv := &mockE2EProvider{t: t, ExpectedAPIKey: mockAPIKey}
+	// Define a policy that allows the script's setup function to succeed.
+	configPolicy := &runtime.ExecPolicy{
+		Context: runtime.ContextConfig,
+		Allow:   []string{"tool.agentmodel.*"},
+		Grants: capability.NewGrantSet(
+			[]capability.Capability{
+				{Resource: "model", Verbs: []string{"admin", "use"}, Scopes: []string{"*"}},
+				{Resource: "env", Verbs: []string{"read"}, Scopes: []string{"*"}},
+				{Resource: "net", Verbs: []string{"read"}, Scopes: []string{"*"}},
+			},
+			capability.Limits{},
+		),
+	}
 
-	// Register the agentmodel tools so the script can use them
+	interp := interpreter.NewInterpreter(
+		interpreter.WithoutStandardTools(),
+		interpreter.WithLogger(logging.NewTestLogger(t)),
+		interpreter.WithExecPolicy(configPolicy),
+	)
+	mockProv := &mockE2EProvider{t: t, ExpectedAPIKey: mockAPIKey}
 	regFunc := tool.CreateRegistrationFunc("agentmodel", agentmodel.AgentModelToolsToRegister)
 	if err := regFunc(interp.ToolRegistry()); err != nil {
 		t.Fatalf("Failed to register agentmodel toolset: %v", err)
 	}
-
-	// Register the mock provider
 	interp.RegisterProvider("mock_e2e_provider", mockProv)
 
-	// 4. Load the script
 	parserAPI := parser.NewParserAPI(interp.GetLogger())
-	p, pErr := parserAPI.Parse(script)
+	p, pErr := parserAPI.Parse(e2eScript)
 	if pErr != nil {
 		t.Fatalf("Failed to parse script: %v", pErr)
 	}
@@ -110,38 +122,76 @@ endfunc
 		t.Fatalf("Failed to load program: %v", err)
 	}
 
-	// 5. Run the setup procedure from the script
+	// Run the setup procedure, which should succeed with the correct policy.
 	_, err := interp.Run("_SetupMockAgent")
 	if err != nil {
-		var rtErr *lang.RuntimeError
-		if errors.As(err, &rtErr) {
-			t.Fatalf("Agent setup procedure failed: %s (wrapped: %v)", rtErr.Message, rtErr.Unwrap())
-		}
-		t.Fatalf("Agent setup procedure failed with non-runtime error: %v", err)
+		t.Fatalf("Agent setup procedure failed unexpectedly: %v", err)
 	}
-
-	// Verify the agent was registered
 	_, exists := interp.GetAgentModel("mock_e2e_agent")
 	if !exists {
 		t.Fatal("AgentModel 'mock_e2e_agent' was not registered by the setup script.")
 	}
 
-	// 6. Run the main test procedure
+	// Run the main test procedure.
 	resultVal, err := interp.Run("TestTheAsk")
 	if err != nil {
 		t.Fatalf("Main test procedure 'TestTheAsk' failed: %v", err)
 	}
 
-	// 7. Assertions
+	// Assertions
 	if !mockProv.WasCalled {
 		t.Error("Mock AI provider's Chat method was never called.")
 	}
-
 	resultStr, _ := lang.ToString(resultVal)
 	expectedResponse := "mock e2e success"
 	if resultStr != expectedResponse {
 		t.Errorf("Expected final result to be '%s', but got '%s'", expectedResponse, resultStr)
 	}
+	t.Log("Successfully verified E2E success path with a privileged policy.")
+}
 
-	t.Log("Successfully completed E2E test: script registered an AgentModel and 'ask' used it correctly.")
+// TestAgentModelE2E_FailureNoPrivileges verifies that the setup script fails
+// as expected when the interpreter is run with a default, non-privileged policy.
+func TestAgentModelE2E_FailureNoPrivileges(t *testing.T) {
+	// No ExecPolicy is provided, so the interpreter defaults to ContextNormal.
+	interp := interpreter.NewInterpreter(
+		interpreter.WithoutStandardTools(),
+		interpreter.WithLogger(logging.NewTestLogger(t)),
+	)
+	mockProv := &mockE2EProvider{t: t}
+	regFunc := tool.CreateRegistrationFunc("agentmodel", agentmodel.AgentModelToolsToRegister)
+	if err := regFunc(interp.ToolRegistry()); err != nil {
+		t.Fatalf("Failed to register agentmodel toolset: %v", err)
+	}
+	interp.RegisterProvider("mock_e2e_provider", mockProv)
+
+	parserAPI := parser.NewParserAPI(interp.GetLogger())
+	p, pErr := parserAPI.Parse(e2eScript)
+	if pErr != nil {
+		t.Fatalf("Failed to parse script: %v", pErr)
+	}
+	program, _, bErr := parser.NewASTBuilder(interp.GetLogger()).Build(p)
+	if bErr != nil {
+		t.Fatalf("Failed to build AST: %v", bErr)
+	}
+	if err := interp.Load(program); err != nil {
+		t.Fatalf("Failed to load program: %v", err)
+	}
+
+	// Run the setup procedure, which is now expected to fail.
+	_, err := interp.Run("_SetupMockAgent")
+	if err == nil {
+		t.Fatal("Agent setup procedure was expected to fail due to lack of privileges, but it succeeded.")
+	}
+
+	// Check for the specific error from the policy gate.
+	var rtErr *lang.RuntimeError
+	if !errors.As(err, &rtErr) {
+		t.Fatalf("Expected a RuntimeError, but got %T", err)
+	}
+	if !errors.Is(rtErr.Unwrap(), runtime.ErrTrust) {
+		t.Errorf("Expected error to wrap runtime.ErrTrust, but it wrapped: %v", rtErr.Unwrap())
+	}
+
+	t.Logf("Successfully verified that setup fails with the expected error: %v", err)
 }

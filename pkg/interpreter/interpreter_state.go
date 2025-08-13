@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.5.2
-// File version: 9
-// Purpose: Removed noisy debug Printf from SetVariable.
+// File version: 11
+// Purpose: Removed root interpreter delegation from variable getters/setters to fix scoping bugs.
 // filename: pkg/interpreter/interpreter_state.go
 // nlines: 85
-// risk_rating: MEDIUM
+// risk_rating: HIGH
 
 package interpreter
 

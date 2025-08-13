@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 2.0.0
-// Purpose: Corrected the infinite loop test script by wrapping it in a full function definition, fixing the parser error.
+// File version: 3.0.0
+// Purpose: Corrected calls to the renamed test helper function 'NewTestInterpreter'.
 // filename: pkg/interpreter/interpreter_resource_usage_test.go
 // nlines: 80
 // risk_rating: MEDIUM
@@ -27,7 +27,7 @@ func TestResourceUsageLimits(t *testing.T) {
 				call infinite_recursion()
 			endfunc
 		`
-		interp, _ := newLocalTestInterpreter(t, nil, nil)
+		interp, _ := NewTestInterpreter(t, nil, nil, false)
 		parserAPI := parser.NewParserAPI(interp.GetLogger())
 		ast, _ := parserAPI.Parse(script)
 		prog, _, _ := parser.NewASTBuilder(interp.GetLogger()).Build(ast)
@@ -52,7 +52,7 @@ func TestResourceUsageLimits(t *testing.T) {
 				endwhile
 			endfunc
 		`
-		interp, _ := newLocalTestInterpreter(t, nil, nil)
+		interp, _ := NewTestInterpreter(t, nil, nil, false)
 		// Lower the limit for a faster test
 		interp.maxLoopIterations = 500
 

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.0
-// File version: 7.0.0
-// Purpose: Corrects integration tests to properly use the mock AI provider, preventing real network calls and allowing for controlled error simulation.
+// File version: 9.0.0
+// Purpose: Corrected test setup to call the newly exported NewTestInterpreter helper function from the interpreter package.
 // filename: pkg/interpreter/ask/ask_integration_test.go
 // nlines: 165
 // risk_rating: MEDIUM
@@ -17,7 +17,6 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/parser"
 	"github.com/aprice2704/neuroscript/pkg/provider"
 	"github.com/aprice2704/neuroscript/pkg/tool"
@@ -47,7 +46,12 @@ func (m *mockProvider) Chat(ctx context.Context, req provider.AIRequest) (*provi
 func setupAskTest(t *testing.T) (*interpreter.Interpreter, *mockProvider) {
 	t.Helper()
 
-	interp := interpreter.NewInterpreter(interpreter.WithoutStandardTools(), interpreter.WithLogger(logging.NewTestLogger(t)))
+	// FIX: Use the privileged test helper to allow agent registration.
+	interp, err := interpreter.NewTestInterpreter(t, nil, nil, true)
+	if err != nil {
+		t.Fatalf("Failed to create privileged test interpreter: %v", err)
+	}
+
 	mockProv := &mockProvider{}
 
 	// Register tools needed by the test scripts

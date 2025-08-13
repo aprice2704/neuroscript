@@ -1,3 +1,6 @@
+// NeuroScript Version: 0.6.0
+// File version: 3.0.0
+// Purpose: Expanded the privileged test policy to include comprehensive grants for model, env, and net resources, fixing policy-related test failures.
 // filename: pkg/interpreter/testing_bits.go
 package interpreter
 
@@ -7,7 +10,11 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/policy/capability"
+	"github.com/aprice2704/neuroscript/pkg/runtime"
 )
 
 // RunSteps is an exported wrapper for the unexported executeSteps method, allowing it to be called by external test packages.
@@ -43,4 +50,46 @@ func DebugDumpVariables(i *Interpreter, t *testing.T) {
 	}
 	sb.WriteString("---------------------\n")
 	t.Log(sb.String())
+}
+
+// NewTestInterpreter is an exported test helper for creating a pre-configured
+// interpreter instance, accessible from other packages.
+func NewTestInterpreter(t *testing.T, initialVars map[string]lang.Value, lastResult lang.Value, privileged bool) (*Interpreter, error) {
+	t.Helper()
+	testLogger := logging.NewTestLogger(t)
+	testLogger.SetLevel(interfaces.LogLevelInfo)
+	sandboxDir := t.TempDir()
+
+	opts := []InterpreterOption{
+		WithLogger(testLogger),
+		WithSandboxDir(sandboxDir),
+	}
+
+	if privileged {
+		policy := &runtime.ExecPolicy{
+			Context: runtime.ContextConfig, // Allows trusted tools
+			Allow:   []string{"*"},
+			Grants: capability.NewGrantSet(
+				[]capability.Capability{
+					{Resource: "model", Verbs: []string{"admin", "use"}, Scopes: []string{"*"}},
+					{Resource: "env", Verbs: []string{"read"}, Scopes: []string{"*"}},
+					{Resource: "net", Verbs: []string{"read"}, Scopes: []string{"*"}},
+				},
+				capability.Limits{},
+			),
+		}
+		opts = append(opts, WithExecPolicy(policy))
+	}
+
+	interp := NewInterpreter(opts...)
+
+	for k, v := range initialVars {
+		if err := interp.SetInitialVariable(k, v); err != nil {
+			return nil, fmt.Errorf("failed to set initial variable %q: %w", k, err)
+		}
+	}
+	if lastResult != nil {
+		interp.lastCallResult = lastResult
+	}
+	return interp, nil
 }
