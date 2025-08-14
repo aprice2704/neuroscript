@@ -190,7 +190,7 @@ endfunc
 		testServerLogger.Println("Hover Test: Document set in manager.")
 		testServerLogger.Println("Registered tools for this test run:")
 		for _, toolSpec := range serverInstance.toolRegistry.ListTools() {
-			testServerLogger.Printf("- %s\n", toolSpec.Name)
+			testServerLogger.Printf("- %s\n", string(toolSpec.Name()))
 		}
 	}
 
