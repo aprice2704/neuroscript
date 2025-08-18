@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 18
-// Purpose: Corrected the WithTool implementation to remove flawed logic and rely on the authoritative RegisterTool function.
+// File version: 20
+// Purpose: Re-export the provider.AIProvider interface for use with the new RegisterProvider API method.
 // filename: pkg/api/reexport.go
-// nlines: 75
+// nlines: 90
 // risk_rating: MEDIUM
 
 package api
@@ -11,6 +11,9 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/policy/capability"
+	"github.com/aprice2704/neuroscript/pkg/provider"
+	"github.com/aprice2704/neuroscript/pkg/runtime"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
@@ -38,6 +41,14 @@ type (
 	Value  any
 	Option = interpreter.InterpreterOption
 
+	// --- POLICY & CAPABILITY TYPES ---
+	// Re-exported for building trusted interpreter configurations.
+	ExecPolicy = runtime.ExecPolicy
+	Capability = capability.Capability
+
+	// --- PROVIDER TYPES ---
+	AIProvider = provider.AIProvider
+
 	// Tool-related types needed to define custom tools.
 	ToolImplementation = tool.ToolImplementation
 	ArgSpec            = tool.ArgSpec
@@ -45,13 +56,15 @@ type (
 	ToolFunc           = tool.ToolFunc
 	ToolSpec           = tool.ToolSpec
 	FullName           = types.FullName
+	ToolName           = types.ToolName
+	ToolGroup          = types.ToolGroup
 )
 
 // WithTool creates an interpreter option to register a custom tool.
 func WithTool(t ToolImplementation) Option {
+	// The RegisterTool function is the authority on canonicalizing names.
+	// We simply pass the implementation through to it.
 	return func(i *interpreter.Interpreter) {
-		// The RegisterTool function is the authority on canonicalizing names.
-		// We simply pass the implementation through to it.
 		if _, err := i.ToolRegistry().RegisterTool(t); err != nil {
 			if logger := i.GetLogger(); logger != nil {
 				logger.Error("failed to register tool via WithTool option", "tool", t.Spec.Name, "error", err)
@@ -77,4 +90,11 @@ func RegisterCriticalErrorHandler(h func(*lang.RuntimeError)) {
 // It acts as a public facade for the internal types.MakeFullName function.
 func MakeToolFullName(group, name string) types.FullName {
 	return types.MakeFullName(group, name)
+}
+
+// WithExecPolicy applies a runtime execution policy to the interpreter.
+// This provides an escape hatch for advanced users who need to construct
+// a policy manually.
+func WithExecPolicy(policy *ExecPolicy) Option {
+	return interpreter.WithExecPolicy(policy)
 }

@@ -111,33 +111,100 @@ For stateful applications, you can create a long-running interpreter instance an
 
 Use `api.New()` with functional options to configure the interpreter.
 
-- **`api.New(opts ...api.Option) *api.Interpreter`**: Creates a new interpreter.
-- **`api.WithSandboxDir(path string) api.Option`**: **Mandatory for filesystem tools.** Sets the secure root directory for all file operations for this interpreter instance. The application is responsible for creating this directory.
-- **`api.WithLogger(logger api.Logger) api.Option`**: Provides a custom logger that conforms to the `interfaces.Logger` interface.
-- **`api.WithStdout(w io.Writer) api.Option`**: Sets the standard output stream for the `emit` command.
-- **`api.WithStderr(w io.Writer) api.Option`**: Sets the standard error stream.
-- **`api.WithTool(tool api.ToolImplementation) api.Option`**: Registers a custom Go function as a tool (see Section 5).
+-   **`api.New(opts ...api.Option) *api.Interpreter`**: Creates a new interpreter.
+-   **`api.WithSandboxDir(path string) api.Option`**: **Mandatory for filesystem tools.** Sets the secure root directory for all file operations for this interpreter instance. The application is responsible for creating this directory.
+-   **`api.WithLogger(logger api.Logger) api.Option`**: Provides a custom logger that conforms to the `interfaces.Logger` interface.
+-   **`api.WithStdout(w io.Writer) api.Option`**: Sets the standard output stream for the `emit` command.
+-   **`api.WithStderr(w io.Writer) api.Option`**: Sets the standard error stream.
+-   **`api.WithTool(tool api.ToolImplementation) api.Option`**: Registers a custom Go function as a tool (see Section 6).
+
+### Standard Tool and Provider Registration
+
+**Core tools** (like `tool.math.Add`, `tool.fs.Read`, etc.) and **default AI providers** (like `google`) are automatically registered for you when you call `api.New()`. You do not need to take any special steps, such as importing a "tool bundle", to make them available. They are ready to use immediately in your NeuroScript code.
 
 ### Managing I/O
 
 You can set the I/O streams after creation as well.
 
-- **`interp.SetStdout(w io.Writer)`**
-- **`interp.SetStderr(w io.Writer)`**
+-   **`interp.SetStdout(w io.Writer)`**
+-   **`interp.SetStderr(w io.Writer)`**
 
 ### Executing Code and Handling Values
 
-- **`api.LoadFromUnit(interp *api.Interpreter, unit *api.LoadedUnit) error`**: Loads definitions from a verified unit into an interpreter.
-- **`api.RunProcedure(ctx context.Context, interp *api.Interpreter, name string, args ...any) (api.Value, error)`**: Executes a named procedure, automatically wrapping native Go arguments (`any`) into NeuroScript values.
-- **`api.Unwrap(v api.Value) (any, error)`**: Converts a NeuroScript `api.Value` back into a standard Go `any` type.
+-   **`api.LoadFromUnit(interp *api.Interpreter, unit *api.LoadedUnit) error`**: Loads definitions from a verified unit into an interpreter.
+-   **`api.RunProcedure(ctx context.Context, interp *api.Interpreter, name string, args ...any) (api.Value, error)`**: Executes a named procedure, automatically wrapping native Go arguments (`any`) into NeuroScript values.
+-   **`api.Unwrap(v api.Value) (any, error)`**: Converts a NeuroScript `api.Value` back into a standard Go `any` type.
 
 ---
 
-## 4. Stateless Execution
+## 4. Trusted Configuration Scripts
+
+For running initialization or setup scripts that require privileged tools (e.g., `tool.agentmodel.Register` or `tool.os.Getenv`), the API provides a high-level helper to create a correctly configured, trusted interpreter.
+
+-   **`api.NewConfigInterpreter(allowedTools []string, grants []api.Capability, otherOpts ...api.Option) *api.Interpreter`**: Creates a new interpreter pre-configured with a trusted policy.
+
+This function handles the details of setting the execution context to `config`, which enables tools marked with `RequiresTrust = true`.
+
+### Example: Initializing AgentModels
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+
+	"github.com/aprice2704/neuroscript/pkg/api"
+)
+
+func main() {
+	// 1. Define the capabilities the startup script needs.
+	// The api.Capability type is re-exported for convenience.
+	requiredGrants := []api.Capability{
+		{Resource: "model", Verbs: []string{"admin"}, Scopes: []string{"*"}},
+		{Resource: "env", Verbs: []string{"read"}, Scopes: []string{"OPENAI_API_KEY"}},
+	}
+
+	// 2. Specify which tools the script is allowed to call.
+	allowedTools := []string{
+		"tool.agentmodel.Register",
+		"tool.os.Getenv",
+	}
+
+	// 3. Create the trusted interpreter.
+	interp := api.NewConfigInterpreter(allowedTools, requiredGrants, api.WithStdout(os.Stdout))
+
+	// 4. Execute the trusted setup script.
+	setupScript := `
+command
+    emit "Registering AgentModels..."
+    set api_key = tool.os.Getenv("OPENAI_API_KEY")
+    must tool.agentmodel.Register("default", {
+        "provider": "openai",
+        "model": "gpt-4o-mini",
+        "api_key": api_key
+    })
+    emit "Setup complete."
+endcommand
+`
+	// The ExecInNewInterpreter helper is not used here because we are using a
+	// pre-configured interpreter instance.
+	tree, _ := api.Parse([]byte(setupScript), api.ParseSkipComments)
+	_, err := api.ExecWithInterpreter(context.Background(), interp, tree)
+	if err != nil {
+		panic(err)
+	}
+}
+```
+
+---
+
+## 5. Stateless Execution
 
 For simple, one-shot script execution where the source is trusted, you can use a more direct helper.
 
-- **`api.ExecInNewInterpreter(ctx context.Context, src string, opts ...api.Option) (api.Value, error)`**: Parses and runs any top-level `command` blocks in a single call.
+-   **`api.ExecInNewInterpreter(ctx context.Context, src string, opts ...api.Option) (api.Value, error)`**: Parses and runs any top-level `command` blocks in a single call.
 
 ```go
 // Example: Stateless execution
@@ -147,11 +214,11 @@ result, err := api.ExecInNewInterpreter(context.Background(), src, api.WithStdou
 
 ---
 
-## 5. Custom Tools
+## 6. Custom Tools
 
 You can extend NeuroScript with custom Go functions by registering them as "tools".
 
-- **`api.MakeToolFullName(group, name string) api.FullName`**: A helper to create the correctly formatted name for tool registry lookups.
+-   **`api.MakeToolFullName(group, name string) api.FullName`**: A helper to create the correctly formatted name for tool registry lookups.
 
 ```go
 package main
@@ -222,11 +289,53 @@ endfunc`
 
 ---
 
-## 6. Critical Error Handling
+## 7. Registering AI Providers
+
+To use the `ask` statement, the interpreter must know how to communicate with an AI backend. This is done by registering an **AI Provider**. A provider is a Go object that implements the `api.AIProvider` interface.
+
+-   **`interp.RegisterProvider(name string, p api.AIProvider)`**: Registers a provider implementation under a given name. This name is then used in AgentModel configurations to select which provider to use.
+
+### Example: Registering a Mock Provider
+
+```go
+package main
+
+import (
+	"context"
+	"github.com/aprice2704/neuroscript/pkg/api"
+	"[github.com/aprice2704/neuroscript/pkg/provider](https://github.com/aprice2704/neuroscript/pkg/provider)" // Note: internal package needed for AIRequest/AIResponse
+)
+
+// 1. Create a struct that implements the api.AIProvider interface.
+type MockProvider struct{}
+
+func (m *MockProvider) Chat(ctx context.Context, req provider.AIRequest) (*provider.AIResponse, error) {
+	// In a real provider, this would make an API call.
+	// Here, we just return a canned response.
+	return &provider.AIResponse{
+		TextContent: "This is a mock response to the prompt: " + req.Prompt,
+	}, nil
+}
+
+func main() {
+	// 2. Create a new interpreter.
+	interp := api.New()
+
+	// 3. Instantiate your provider and register it with the interpreter.
+	mockProv := &MockProvider{}
+	interp.RegisterProvider("mock_provider", mockProv)
+
+	// Now, any AgentModel configured with "provider": "mock_provider" will use this implementation.
+}
+```
+
+---
+
+## 8. Critical Error Handling
 
 The NeuroScript engine can identify critical, potentially security-related errors. By default, it will `panic` when one occurs. You can override this behavior to integrate with your application's logging and monitoring systems.
 
-- **`api.RegisterCriticalErrorHandler(h func(*api.RuntimeError))`**: Replaces the default panic handler with your custom function.
+-   **`api.RegisterCriticalErrorHandler(h func(*api.RuntimeError))`**: Replaces the default panic handler with your custom function.
 
 ```go
 import (
@@ -248,25 +357,26 @@ func init() {
 
 ---
 
-## 7. Core Types Reference
+## 9. Core Types Reference
 
 The `api` package re-exports all necessary types so you don't need to import internal packages.
 
-- **AST & Nodes**: `api.Tree`, `api.Node`, `api.Position`, `api.Kind`
-- **Execution**: `api.Interpreter`, `api.Value`, `api.Option`, `api.RuntimeError`
-- **Security**: `api.SignedAST`, `api.LoadedUnit`
-- **Tools**: `api.ToolImplementation`, `api.ToolSpec`, `api.ToolFunc`, `api.ArgSpec`, `api.FullName`
-- **Logging**: `api.Logger`
+-   **AST & Nodes**: `api.Tree`, `api.Node`, `api.Position`, `api.Kind`
+-   **Execution**: `api.Interpreter`, `api.Value`, `api.Option`, `api.RuntimeError`
+-   **Security & Policy**: `api.SignedAST`, `api.LoadedUnit`, `api.ExecPolicy`, `api.Capability`
+-   **AI Providers**: `api.AIProvider`
+-   **Tools**: `api.ToolImplementation`, `api.ToolSpec`, `api.ToolFunc`, `api.ArgSpec`, `api.FullName`, `api.ToolName`, `api.ToolGroup`
+-   **Logging**: `api.Logger`
 
 ---
 
-## 8. Important “Don’ts”
+## 10. Important “Don’ts”
 
-- **Do not** use filesystem tools without configuring a sandbox via `api.WithSandboxDir`.
-- **Do not** import `pkg/parser`, `pkg/interpreter`, etc., directly. Use the `api` package.
-- **Do not** execute a script from an untrusted source without using the full `Parse -> Sign -> Load` workflow.
-- **Do not** re-canonicalise an AST after it has been verified by `api.Load`.
-- **Do not** construct tool names manually; always use the `api.MakeToolFullName` helper to ensure the correct `tool.group.name` format.
+-   **Do not** use filesystem tools without configuring a sandbox via `api.WithSandboxDir`.
+-   **Do not** import `pkg/parser`, `pkg/interpreter`, etc., directly. Use the `api` package.
+-   **Do not** execute a script from an untrusted source without using the full `Parse -> Sign -> Load` workflow.
+-   **Do not** re-canonicalise an AST after it has been verified by `api.Load`.
+-   **Do not** construct tool names manually; always use the `api.MakeToolFullName` helper to ensure the correct `tool.group.name` format.
 
 ---
 

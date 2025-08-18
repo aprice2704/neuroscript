@@ -1,9 +1,9 @@
-// NeuroScript Version: 0.3.1
-// File version: 14
-// Purpose: CRITICAL FIX - Import the 'all' toolbundle directly to ensure the tool registry is always fully populated for both the server and its tests.
+// NeuroScript Version: 0.6.0
+// File version: 23
+// Purpose: Simplifies server by removing the redundant tool registry, now that the api.Interpreter exposes it via a getter.
 // filename: pkg/nslsp/server.go
-// nlines: 265
-// risk_rating: MEDIUM
+// nlines: 300
+// risk_rating: HIGH
 
 package nslsp
 
@@ -15,47 +15,43 @@ import (
 	"os"
 	"strings"
 
-	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/api"
 	"github.com/aprice2704/neuroscript/pkg/parser"
 	"github.com/aprice2704/neuroscript/pkg/tool"
-	_ "github.com/aprice2704/neuroscript/pkg/toolbundles/all" // Ensure all tools are registered on server init.
 	"github.com/aprice2704/neuroscript/pkg/types"
+	"github.com/fsnotify/fsnotify"
 	lsp "github.com/sourcegraph/go-lsp"
 	"github.com/sourcegraph/jsonrpc2"
 )
 
-const serverVersion = "1.0.1" // Incremented version for diagnostics
+const serverVersion = "1.3.1"
 
 type Server struct {
 	conn            *jsonrpc2.Conn
 	logger          *log.Logger
 	documentManager *DocumentManager
 	coreParserAPI   *parser.ParserAPI
-	toolRegistry    tool.ToolRegistry
+	interpreter     *api.Interpreter // This now provides the tool registry.
+	config          Config
+	externalTools   *ExternalToolManager
+	fileWatcher     *fsnotify.Watcher
 }
 
 func NewServer(logger *log.Logger) *Server {
-	apiLoggerForCoreParser := interfaces.Logger(nil)
-
-	registry := tool.NewToolRegistry(nil)
-	if registry == nil {
-		logger.Println("CRITICAL: Failed to initialize tool registry in LSP server!")
-	} else {
-		if err := tool.RegisterCoreTools(registry); err != nil {
-			logger.Fatalf("CRITICAL: Failed to register core tools in LSP server: %v", err)
-		}
-		if err := tool.RegisterExtendedTools(registry); err != nil {
-			logger.Fatalf("CRITICAL: Failed to register extended tools in LSP server: %v", err)
-		}
-
-		logger.Printf("LSP Server: Tool registry initialized, %d tools loaded.", registry.NTools())
+	interp := api.New(api.WithLogger(nil))
+	if interp == nil {
+		logger.Fatal("CRITICAL: Failed to initialize NeuroScript interpreter via api.New()")
+	}
+	if interp.ToolRegistry() != nil {
+		logger.Printf("LSP Server: Interpreter initialized, %d built-in tools loaded via API.", interp.ToolRegistry().NTools())
 	}
 
 	return &Server{
 		logger:          logger,
 		documentManager: NewDocumentManager(),
-		coreParserAPI:   parser.NewParserAPI(apiLoggerForCoreParser),
-		toolRegistry:    registry,
+		coreParserAPI:   parser.NewParserAPI(nil),
+		interpreter:     interp,
+		externalTools:   NewExternalToolManager(),
 	}
 }
 
@@ -88,6 +84,8 @@ func (s *Server) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.
 		return s.handleTextDocumentDidClose(ctx, conn, req)
 	case "textDocument/hover":
 		return s.handleTextDocumentHover(ctx, conn, req)
+	case "textDocument/completion":
+		return s.handleTextDocumentCompletion(ctx, conn, req)
 	default:
 		s.logger.Printf("Received unhandled method: %s", req.Method)
 		if isNotification(req.ID) {
@@ -98,8 +96,15 @@ func (s *Server) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.
 }
 
 func (s *Server) handleInitialize(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) (interface{}, error) {
-	s.logger.Println("Handling 'initialize' request")
+	var params lsp.InitializeParams
+	if err := UnmarshalParams(req.Params, &params); err != nil {
+		return nil, &jsonrpc2.Error{Code: jsonrpc2.CodeParseError, Message: err.Error()}
+	}
 
+	s.loadConfig(params.RootURI)
+	s.startFileWatcher(ctx, params.RootURI)
+
+	s.logger.Println("Handling 'initialize' request")
 	return lsp.InitializeResult{
 		Capabilities: lsp.ServerCapabilities{
 			TextDocumentSync: &lsp.TextDocumentSyncOptionsOrKind{
@@ -110,12 +115,18 @@ func (s *Server) handleInitialize(ctx context.Context, conn *jsonrpc2.Conn, req 
 				},
 			},
 			HoverProvider: true,
+			CompletionProvider: &lsp.CompletionOptions{
+				TriggerCharacters: []string{"."},
+			},
 		},
 	}, nil
 }
 
 func (s *Server) handleShutdown(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) (interface{}, error) {
 	s.logger.Println("Handling 'shutdown' request")
+	if s.fileWatcher != nil {
+		s.fileWatcher.Close()
+	}
 	return nil, nil
 }
 
@@ -154,11 +165,7 @@ func (s *Server) handleTextDocumentDidSave(ctx context.Context, conn *jsonrpc2.C
 	if err := UnmarshalParams(req.Params, &params); err != nil {
 		return nil, &jsonrpc2.Error{Code: jsonrpc2.CodeParseError, Message: err.Error()}
 	}
-
-	// ** THE FIX IS HERE **
-	// Add a log line to provide state on every save.
-	s.logger.Printf("didSave: SERVER VERSION '%s', TOOL COUNT '%d'", serverVersion, s.toolRegistry.NTools())
-
+	s.logger.Printf("didSave: SERVER VERSION '%s', BUILT-IN TOOL COUNT '%d'", serverVersion, s.interpreter.ToolRegistry().NTools())
 	s.logger.Printf("Document saved: %s", params.TextDocument.URI)
 	if content, found := s.documentManager.Get(params.TextDocument.URI); found {
 		go PublishDiagnostics(ctx, s.conn, s.logger, s, params.TextDocument.URI, content)
@@ -182,41 +189,41 @@ func (s *Server) handleTextDocumentHover(ctx context.Context, conn *jsonrpc2.Con
 	if err := UnmarshalParams(req.Params, &params); err != nil {
 		return nil, &jsonrpc2.Error{Code: jsonrpc2.CodeParseError, Message: err.Error()}
 	}
-
 	s.logger.Printf("Hover request for %s at L%d:%d", params.TextDocument.URI, params.Position.Line+1, params.Position.Character+1)
-
 	content, found := s.documentManager.Get(params.TextDocument.URI)
 	if !found {
 		s.logger.Printf("Hover: Document not found %s", params.TextDocument.URI)
 		return nil, nil
 	}
-
 	toolName := s.extractToolNameAtPosition(content, params.Position, string(params.TextDocument.URI))
-
 	if toolName == "" {
 		return nil, nil
 	}
-
 	s.logger.Printf("Hover: Identified potential tool name: %s", toolName)
+	lookupName := types.FullName(strings.ToLower(toolName))
 
-	if s.toolRegistry == nil {
-		s.logger.Printf("ERROR: Hover: ToolRegistry not available in LSP server.")
-		return nil, nil
+	var spec tool.ToolSpec
+	var foundTool bool
+	var impl tool.ToolImplementation
+
+	if s.interpreter.ToolRegistry() != nil {
+		impl, foundTool = s.interpreter.ToolRegistry().GetTool(lookupName)
+	}
+	if !foundTool && s.externalTools != nil {
+		impl, foundTool = s.externalTools.GetTool(lookupName)
 	}
 
-	toolImpl, foundSpec := s.toolRegistry.GetTool(types.FullName(strings.ToLower(toolName))) // Case-insensitive lookup
-	if !foundSpec {
-		s.logger.Printf("Hover: ToolSpec not found for '%s'", toolName)
+	if !foundTool {
+		s.logger.Printf("Hover: ToolSpec not found for '%s' in any registry.", toolName)
 		return nil, nil
 	}
+	spec = impl.Spec
 
-	spec := toolImpl.Spec
 	var hoverContent strings.Builder
 	hoverContent.WriteString(fmt.Sprintf("#### `%s`\n\n", toolName))
 	if spec.Description != "" {
 		hoverContent.WriteString(spec.Description + "\n\n")
 	}
-
 	hoverContent.WriteString("**Arguments:**\n")
 	if len(spec.Args) == 0 {
 		hoverContent.WriteString("*None*\n")

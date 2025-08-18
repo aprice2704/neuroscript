@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 4
-// Purpose: Removed redundant toolbundle import, which is now handled centrally by server.go.
+// File version: 6
+// Purpose: Updated test to get tool registry from server.interpreter's ToolRegistry method.
 // filename: pkg/nslsp/diagnostics_test.go
 // nlines: 135
 // risk_rating: MEDIUM
@@ -43,7 +43,6 @@ func (h *clientHandler) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *js
 // TestSemanticDiagnostics_UndefinedTool verifies that a semantic error is reported for an undefined tool.
 func TestSemanticDiagnostics_UndefinedTool(t *testing.T) {
 	// --- Setup ---
-	// FIX: Set the environment variable to enable detailed debug logging in the analyzer.
 	t.Setenv("DEBUG_LSP_HOVER_TEST", "1")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -52,8 +51,9 @@ func TestSemanticDiagnostics_UndefinedTool(t *testing.T) {
 	testLogger := log.New(os.Stderr, "[DIAGNOSTICS_TEST] ", log.LstdFlags|log.Lshortfile)
 	serverInstance := NewServer(testLogger)
 
-	if serverInstance.toolRegistry != nil {
-		t.Logf("DEBUG: Tool registry initialized with %d tools.", serverInstance.toolRegistry.NTools())
+	// THE FIX IS HERE: Access the tool registry via the interpreter and its method.
+	if serverInstance.interpreter != nil && serverInstance.interpreter.ToolRegistry() != nil {
+		t.Logf("DEBUG: Tool registry initialized with %d tools.", serverInstance.interpreter.ToolRegistry().NTools())
 	} else {
 		t.Fatal("FATAL: Tool registry is nil in the test server instance.")
 	}

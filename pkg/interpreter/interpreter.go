@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.0
-// File version: 38.0.0
-// Purpose: Initializes the AgentModelStore in the constructor to prevent nil pointer panics when using agent model tools.
+// File version: 39.0.0
+// Purpose: Adds an exported RegisterProvider method for direct, programmatic provider registration by the host.
 // filename: pkg/interpreter/interpreter.go
 // nlines: 255
 // risk_rating: HIGH
@@ -135,14 +135,17 @@ func (i *Interpreter) PromptUser(prompt string) (string, error) {
 }
 
 // RegisterProvider allows the host application to register a concrete AIProvider implementation.
+// If the current interpreter is a clone, it delegates registration to the root interpreter.
 func (i *Interpreter) RegisterProvider(name string, p provider.AIProvider) {
-	// Delegate to root if this is a clone
 	if i.root != nil {
 		i.root.RegisterProvider(name, p)
 		return
 	}
 	i.state.providersMu.Lock()
 	defer i.state.providersMu.Unlock()
+	if i.state.providers == nil {
+		i.state.providers = make(map[string]provider.AIProvider)
+	}
 	i.state.providers[name] = p
 }
 

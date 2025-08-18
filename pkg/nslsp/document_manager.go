@@ -1,9 +1,9 @@
-// NeuroScript Version: 0.3.1
-// File version: 0.1.0
-// Purpose: Manages in-memory store of open document contents for the LSP server.
+// NeuroScript Version: 0.6.0
+// File version: 0.1.1
+// Purpose: Manages in-memory store of open document contents, with a new method to retrieve all documents.
 // filename: pkg/nslsp/document_manager.go
-// nlines: 35 // Approximate
-// risk_rating: LOW // Simple map with mutex.
+// nlines: 45
+// risk_rating: LOW
 
 package nslsp
 
@@ -14,8 +14,8 @@ import (
 )
 
 type DocumentManager struct {
-	mu		sync.RWMutex
-	documents	map[lsp.DocumentURI]string
+	mu        sync.RWMutex
+	documents map[lsp.DocumentURI]string
 }
 
 func NewDocumentManager() *DocumentManager {
@@ -41,4 +41,15 @@ func (dm *DocumentManager) Delete(uri lsp.DocumentURI) {
 	dm.mu.Lock()
 	defer dm.mu.Unlock()
 	delete(dm.documents, uri)
+}
+
+// GetAll returns a copy of the current documents map.
+func (dm *DocumentManager) GetAll() map[lsp.DocumentURI]string {
+	dm.mu.RLock()
+	defer dm.mu.RUnlock()
+	docsCopy := make(map[lsp.DocumentURI]string)
+	for uri, content := range dm.documents {
+		docsCopy[uri] = content
+	}
+	return docsCopy
 }

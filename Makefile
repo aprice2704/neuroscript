@@ -1,5 +1,5 @@
 # Makefile for NeuroScript Project
-# file_version: 11
+# file_version: 13
 
 # Directories
 ROOT_DIR        := $(shell pwd)
@@ -19,16 +19,11 @@ else
 endif
 
 # --- Versioning ---
-# GrammarVersion is the single source of truth for the language spec and VSCode extension.
-# NOTE: This now finds the first case-insensitive match for 'NeuroScript Version:' in the .g4 file.
 G4_VERSION := $(shell grep -m 1 -i 'NeuroScript Version:' $(G4_FILE) | awk '{print $$NF}')
-
-# AppVersion is a timestamp for the specific build of the 'ng' binary, now in PST/PDT.
 BUILD_TIMESTAMP := $(shell TZ='America/Los_Angeles' date +'%Y%m%d%H%M')
 
 # --- Go Build Configuration ---
 GO := go
-# Inject the AppVersion build timestamp into the main package of our Go binaries.
 GOFLAGS := -ldflags="-X 'main.AppVersion=$(BUILD_TIMESTAMP)'"
 
 # Find all .go files in the project to use as dependencies
@@ -39,7 +34,6 @@ NG_GO_FILES        := $(shell find $(CMDS_DIR)/ng -name '*.go')
 # ------------------------------------------------------------------------------
 # ANTLR variables
 ANTLR_JAR          := $(ROOT_DIR)/antlr4-4.13.2-complete.jar
-G4_TXT_FILE        := $(PKG_DIR)/antlr/NeuroScript.g4.txt
 ANTLR_OUTPUT_DIR   := $(PKG_DIR)/antlr/generated
 ANTLR_STAMP_FILE   := $(ANTLR_OUTPUT_DIR)/.antlr-generated-stamp
 
@@ -62,8 +56,6 @@ build: install build-vscode
 .PHONY: install
 install: $(BIN_INSTALL_DIR)/nslsp $(BIN_INSTALL_DIR)/ng
 
-# Add $(ANTLR_STAMP_FILE) as a dependency to ensure version.go is updated
-# before building the Go binaries.
 $(BIN_INSTALL_DIR)/nslsp: $(NSLSP_GO_FILES) $(ALL_PKG_GO_FILES) $(ANTLR_STAMP_FILE)
 	@echo "--> Installing nslsp Go binary to $(BIN_INSTALL_DIR)..."
 	$(GO) install $(GOFLAGS) ./cmd/nslsp
@@ -77,7 +69,6 @@ $(BIN_INSTALL_DIR)/ng: $(NG_GO_FILES) $(ALL_PKG_GO_FILES) $(ANTLR_STAMP_FILE)
 .PHONY: generate-antlr
 generate-antlr: $(ANTLR_STAMP_FILE)
 
-# Stamp target that triggers ANTLR regeneration & version.go update
 $(ANTLR_STAMP_FILE): $(G4_FILE) $(ANTLR_JAR)
 	@echo "--> Generating ANTLR parser and updating version..."
 	@mkdir -p $(dir $(VERSION_GO_FILE))
@@ -111,6 +102,7 @@ build-vscode: $(BIN_INSTALL_DIR)/nslsp $(ANTLR_STAMP_FILE)
 	@echo "    Running npm install and packaging..."
 	@cd $(VSCODE_EXT_DIR) && npm install --silent --no-fund --no-audit && npm run package
 	@echo "    VSCode extension created."
+
 # ------------------------------------------------------------------------------
 # Vim plugin installation
 .PHONY: install-vim
@@ -120,15 +112,14 @@ install-vim: $(BIN_INSTALL_DIR)/nslsp
 	@cp $(BIN_INSTALL_DIR)/nslsp $(VIM_PLUGIN_DIR)/bin/
 	@echo "    nslsp copied to $(VIM_PLUGIN_DIR)/bin/"
 	@echo "    NOTE: Add the plugin directory to your Vim runtimepath and configure your LSP client."
+
 # ------------------------------------------------------------------------------
 # Clean generated artifacts
 .PHONY: clean
 clean:
 	@echo "--> Cleaning project..."
-	# NOTE: Go binaries are NOT removed from the shared Go bin directory.
 	-rm -rf $(ANTLR_OUTPUT_DIR)
 	-rm -f $(ANTLR_STAMP_FILE)
-	-rm -f $(G4_TXT_FILE)
 	-rm -rf $(VSCODE_EXT_DIR)/node_modules
 	-rm -rf $(VSCODE_SERVER_DIR)
 	-rm -f $(VSCODE_EXT_DIR)/*.vsix

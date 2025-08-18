@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.5.0
-// File version: 10
-// Purpose: Implements the main application logic using the 'api' package, with corrections for type safety and function signatures.
+// File version: 18
+// Purpose: Removed explicit provider registration, which is now handled automatically by api.New().
 // filename: cmd/ng/run.go
-// nlines: 162
+// nlines: 193
 // risk_rating: HIGH
 package main
 
@@ -14,6 +14,7 @@ import (
 	"syscall"
 
 	"github.com/aprice2704/neuroscript/pkg/api"
+	// The provider is no longer directly instantiated here.
 )
 
 // CliConfig holds all configuration passed from the command line flags.
@@ -43,19 +44,29 @@ func Run(cfg CliConfig) int {
 		cancel()
 	}()
 
-	// --- Create Interpreter using the new API ---
-	interp := api.New(
-		api.WithStdout(os.Stdout),
-		api.WithStderr(os.Stderr),
-	)
-	fmt.Println("Interpreter created using the 'api' package.")
+	var interp *api.Interpreter
 
 	// --- Execute Trusted Config Script ---
 	if cfg.TrustedConfig != "" {
 		fmt.Printf("Executing trusted config script: %s\n", cfg.TrustedConfig)
-		// FIX 1: Convert []string to []any before calling
+		requiredGrants := []api.Capability{
+			{Resource: "model", Verbs: []string{"admin"}, Scopes: []string{"*"}},
+			{Resource: "model", Verbs: []string{"use"}, Scopes: []string{"*"}},
+			{Resource: "env", Verbs: []string{"read"}, Scopes: []string{"*"}},
+			{Resource: "net", Verbs: []string{"read", "write"}, Scopes: []string{"*"}},
+		}
+		var allowedTools []string
+		// Trusted interpreter created via NewConfigInterpreter will have default providers.
+		trustedInterp := api.NewConfigInterpreter(
+			allowedTools,
+			requiredGrants,
+			api.WithStdout(os.Stdout),
+			api.WithStderr(os.Stderr),
+		)
+		fmt.Println("Interpreter created with elevated privileges.")
+
 		args := stringSliceToAnySlice(cfg.TrustedTargetArgs)
-		err := executeScript(ctx, interp, cfg.TrustedConfig, cfg.TrustedConfigTarget, args)
+		err := executeScript(ctx, trustedInterp, cfg.TrustedConfig, cfg.TrustedConfigTarget, args)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error in trusted config script '%s': %v\n", cfg.TrustedConfig, err)
 			return 1
@@ -69,6 +80,16 @@ func Run(cfg CliConfig) int {
 		scriptToRunNonTUI = cfg.PositionalScript
 	}
 
+	// --- Create Standard Interpreter for subsequent operations ---
+	if scriptToRunNonTUI != "" || cfg.TuiMode || cfg.ReplMode {
+		// api.New() now handles registration of default providers automatically.
+		interp = api.New(
+			api.WithStdout(os.Stdout),
+			api.WithStderr(os.Stderr),
+		)
+		fmt.Println("Interpreter created with standard privileges.")
+	}
+
 	// TUI Mode (Conceptual)
 	if cfg.TuiMode {
 		fmt.Println("TUI mode requested. (Note: TUI needs to be updated to use the new api.Interpreter)")
@@ -78,7 +99,6 @@ func Run(cfg CliConfig) int {
 	// Non-TUI Script Execution
 	if scriptToRunNonTUI != "" {
 		fmt.Printf("Executing script: %s\n", scriptToRunNonTUI)
-		// FIX 1: Convert []string to []any before calling
 		args := stringSliceToAnySlice(cfg.ProcArgs)
 		err := executeScript(ctx, interp, scriptToRunNonTUI, cfg.TargetArg, args)
 		if err != nil {
@@ -109,19 +129,15 @@ func executeScript(ctx context.Context, interp *api.Interpreter, scriptPath stri
 		return fmt.Errorf("could not read script file '%s': %w", scriptPath, err)
 	}
 
-	// FIX 2: Added the required 'api.ParseSkipComments' argument.
 	tree, err := api.Parse(scriptBytes, api.ParseSkipComments)
 	if err != nil {
 		return fmt.Errorf("failed to parse script '%s': %w", scriptPath, err)
 	}
 
-	// FIX 3: Correctly handle the two return values from ExecWithInterpreter.
-	// We only care about the error when loading definitions.
 	if _, err := api.ExecWithInterpreter(ctx, interp, tree); err != nil {
 		return fmt.Errorf("failed to load script '%s' into interpreter: %w", scriptPath, err)
 	}
 
-	// Run the target procedure.
 	if target != "" {
 		fmt.Printf("Running procedure '%s'...\n", target)
 		if _, err := api.RunProcedure(ctx, interp, target, args...); err != nil {
@@ -132,8 +148,6 @@ func executeScript(ctx context.Context, interp *api.Interpreter, scriptPath stri
 	return nil
 }
 
-// stringSliceToAnySlice converts a slice of strings to a slice of any (interface{}),
-// which is required for passing arguments to variadic functions like RunProcedure.
 func stringSliceToAnySlice(ss []string) []any {
 	if ss == nil {
 		return nil

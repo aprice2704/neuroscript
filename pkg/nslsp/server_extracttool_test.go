@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 8
-// Purpose: Fix: Update test cases to expect full tool names (e.g., "tool.FS.List") to match the corrected extraction logic.
+// File version: 10
+// Purpose: Updated tests to use the server.interpreter.ToolRegistry() method.
 // filename: pkg/nslsp/server_extracttool_test.go
 // nlines: 245
 // risk_rating: LOW
@@ -65,7 +65,6 @@ endfunc
 		expected   string
 		sourceName string
 	}{
-		// Corrected test cases to expect the full tool name including the "tool." prefix.
 		{"On 'tool' in tool.FS.List", neuroscriptCodeSnippet, 1, 12, "tool.FS.List", "test.ns"},
 		{"On first '.' in tool.FS.List", neuroscriptCodeSnippet, 1, 16, "tool.FS.List", "test.ns"},
 		{"On 'FS' in tool.FS.List", neuroscriptCodeSnippet, 1, 17, "tool.FS.List", "test.ns"},
@@ -189,7 +188,8 @@ endfunc
 	if debugHoverTest {
 		testServerLogger.Println("Hover Test: Document set in manager.")
 		testServerLogger.Println("Registered tools for this test run:")
-		for _, toolSpec := range serverInstance.toolRegistry.ListTools() {
+		// THE FIX IS HERE: Access the tool registry via the interpreter and its method.
+		for _, toolSpec := range serverInstance.interpreter.ToolRegistry().ListTools() {
 			testServerLogger.Printf("- %s\n", string(toolSpec.Name()))
 		}
 	}

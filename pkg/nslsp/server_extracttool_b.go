@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 47
-// Purpose: Made tool name lookup case-insensitive to match interpreter behavior.
+// File version: 48
+// Purpose: Made tool name lookup case-insensitive to match interpreter behavior. FIX: Use interpreter from server struct.
 // filename: pkg/nslsp/server_extracttool_b.go
 // nlines: 140
 // risk_rating: MEDIUM
@@ -38,16 +38,17 @@ func (s *Server) extractAndValidateFullToolName(qiRuleCtx antlr.RuleContext, deb
 	candidateToolName := "tool." + nameWithoutPrefix
 	forceDebugf(debugHover, "extractAndValidateFullToolName: Candidate partial name from QI '%s' is: '%s'. Prepended prefix to form full name: '%s'", truncateStringForLog(getTreeTextSafe(qiRuleCtx), 30), nameWithoutPrefix, candidateToolName)
 
-	if s.toolRegistry == nil {
-		s.logger.Printf("ERROR: Hover: ToolRegistry is nil in LSP server instance for validation.")
-		forceDebugf(debugHover, "extractAndValidateFullToolName: ToolRegistry is nil in server instance!")
+	if s.interpreter == nil || s.interpreter.ToolRegistry() == nil {
+		s.logger.Printf("ERROR: Hover: Interpreter or its ToolRegistry is nil in LSP server instance.")
+		forceDebugf(debugHover, "extractAndValidateFullToolName: Interpreter or ToolRegistry is nil in server instance!")
 		return ""
 	}
 
 	// FIX: Use case-insensitive lookup to match interpreter behavior.
 	lookupName := types.FullName(strings.ToLower(candidateToolName))
 	forceDebugf(debugHover, "extractAndValidateFullToolName: Checking tool registry for (case-insensitive): '%s'", lookupName)
-	_, found := s.toolRegistry.GetTool(lookupName)
+	// THE FIX IS HERE: Access the tool registry via the API interpreter facade.
+	_, found := s.interpreter.ToolRegistry().GetTool(lookupName)
 	forceDebugf(debugHover, "extractAndValidateFullToolName: Tool: '%s', FoundInRegistry: %t", lookupName, found)
 
 	if found {

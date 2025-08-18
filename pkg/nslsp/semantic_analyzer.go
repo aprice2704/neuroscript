@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.3.1
-// File version: 20
-// Purpose: Made tool name lookup case-insensitive to match interpreter behavior.
+// NeuroScript Version: 0.6.0
+// File version: 22
+// Purpose: Integrated external tool implementations for diagnostics, correctly extracting the spec.
 // filename: pkg/nslsp/semantic_analyzer.go
-// nlines: 106
+// nlines: 125
 // risk_rating: HIGH
 
 package nslsp
@@ -20,21 +20,23 @@ import (
 
 // SemanticAnalyzer performs semantic checks on a parsed NeuroScript AST.
 type SemanticAnalyzer struct {
-	toolRegistry tool.ToolRegistry
-	isDebug      bool
+	toolRegistry  tool.ToolRegistry
+	externalTools *ExternalToolManager
+	isDebug       bool
 }
 
 // NewSemanticAnalyzer creates a new analyzer instance.
-func NewSemanticAnalyzer(registry tool.ToolRegistry, isDebug bool) *SemanticAnalyzer {
+func NewSemanticAnalyzer(registry tool.ToolRegistry, externalTools *ExternalToolManager, isDebug bool) *SemanticAnalyzer {
 	return &SemanticAnalyzer{
-		toolRegistry: registry,
-		isDebug:      isDebug,
+		toolRegistry:  registry,
+		externalTools: externalTools,
+		isDebug:       isDebug,
 	}
 }
 
 // Analyze performs all configured semantic checks and returns a list of diagnostics.
 func (sa *SemanticAnalyzer) Analyze(tree antlr.Tree) []lsp.Diagnostic {
-	if tree == nil || sa.toolRegistry == nil {
+	if tree == nil || (sa.toolRegistry == nil && sa.externalTools == nil) {
 		return nil
 	}
 	parseTree, ok := tree.(antlr.ParseTree)
@@ -71,13 +73,25 @@ func (l *toolValidationListener) EnterCallable_expr(ctx *gen.Callable_exprContex
 	}
 
 	astTextFullName := "tool." + qi.GetText()
-	// ** THE FIX IS HERE **
-	// Convert the full tool name to lowercase for a case-insensitive lookup.
 	lookupName := types.FullName(strings.ToLower(astTextFullName))
 
-	toolImpl, found := l.semanticAnalyzer.toolRegistry.GetTool(lookupName)
+	// --- 1. Find Tool Specification ---
+	var spec tool.ToolSpec
+	var found bool
+	var impl tool.ToolImplementation
 
-	// --- 1. Undefined Tool Check ---
+	if l.semanticAnalyzer.toolRegistry != nil {
+		impl, found = l.semanticAnalyzer.toolRegistry.GetTool(lookupName)
+	}
+	if !found && l.semanticAnalyzer.externalTools != nil {
+		impl, found = l.semanticAnalyzer.externalTools.GetTool(lookupName)
+	}
+
+	if found {
+		spec = impl.Spec
+	}
+
+	// --- 2. Undefined Tool Check ---
 	if !found {
 		token := callTarget.GetStart()
 		diagnostic := lsp.Diagnostic{
@@ -90,8 +104,7 @@ func (l *toolValidationListener) EnterCallable_expr(ctx *gen.Callable_exprContex
 		return
 	}
 
-	// --- 2. Argument Count Check ---
-	spec := toolImpl.Spec
+	// --- 3. Argument Count Check ---
 	argList := ctx.Expression_list_opt()
 	actualArgCount := 0
 	if argList != nil && argList.Expression_list() != nil {

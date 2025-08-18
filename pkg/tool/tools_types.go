@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.5.2
-// File version: 17
-// Purpose: Expanded the Runtime interface to include AgentModel management, breaking an import cycle.
+// NeuroScript Version: 0.6.0
+// File version: 18
+// Purpose: Expanded the Runtime interface and added JSON tags to ToolImplementation for metadata export.
 // filename: pkg/tool/tool_types.go
-// nlines: 132
+// nlines: 135
 // risk_rating: HIGH
 
 package tool
@@ -82,13 +82,13 @@ type ToolSpec struct {
 // ToolImplementation combines the specification of a tool with its Go function
 // and its policy requirements.
 type ToolImplementation struct {
-	FullName          types.FullName
-	Spec              ToolSpec
-	Func              ToolFunc
-	RequiresTrust     bool
-	RequiredCaps      []capability.Capability
-	Effects           []string
-	SignatureChecksum string
+	FullName          types.FullName          `json:"-"`
+	Spec              ToolSpec                `json:"spec"`
+	Func              ToolFunc                `json:"-"`
+	RequiresTrust     bool                    `json:"requiresTrust"`
+	RequiredCaps      []capability.Capability `json:"requiredCaps,omitempty"`
+	Effects           []string                `json:"effects,omitempty"`
+	SignatureChecksum string                  `json:"signatureChecksum"`
 }
 
 // IsTool satisfies the lang.Tool interface.

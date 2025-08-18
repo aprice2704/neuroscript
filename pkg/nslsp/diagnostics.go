@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.3.1
-// File version: 0.1.1
-// Purpose: Integrate semantic analysis to publish both syntax and semantic diagnostics.
+// NeuroScript Version: 0.6.0
+// File version: 0.1.3
+// Purpose: Integrate semantic analysis to publish both syntax and semantic diagnostics, now with external tool support. FIX: Use interpreter from server struct.
 // filename: pkg/nslsp/diagnostics.go
 // nlines: 80
 // risk_rating: MEDIUM
@@ -48,15 +48,16 @@ func PublishDiagnostics(ctx context.Context, conn *jsonrpc2.Conn, logger *log.Lo
 	}
 
 	// 2. Get Semantic Errors from Analyzer
-	if tree != nil && s.toolRegistry != nil {
+	// THE FIX IS HERE: Access the tool registry via the API interpreter facade.
+	if tree != nil && s.interpreter != nil && (s.interpreter.ToolRegistry() != nil || s.externalTools != nil) {
 		isDebug := os.Getenv("NSLSP_DEBUG_HOVER") != "" || os.Getenv("DEBUG_LSP_HOVER_TEST") != ""
-		semanticAnalyzer := NewSemanticAnalyzer(s.toolRegistry, isDebug)
+		semanticAnalyzer := NewSemanticAnalyzer(s.interpreter.ToolRegistry(), s.externalTools, isDebug)
 		semanticDiagnostics := semanticAnalyzer.Analyze(tree)
 		if len(semanticDiagnostics) > 0 {
 			allDiagnostics = append(allDiagnostics, semanticDiagnostics...)
 		}
 	} else {
-		logger.Println("Skipping semantic analysis: AST or Tool Registry not available.")
+		logger.Println("Skipping semantic analysis: AST, Interpreter, or Tool Registries not available.")
 	}
 
 	// 3. Publish Combined Diagnostics

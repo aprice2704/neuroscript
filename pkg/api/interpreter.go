@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 13
-// Purpose: Removed redundant tool registration; this is now handled correctly by the internal interpreter constructor.
+// File version: 16
+// Purpose: Exposes the internal tool registry via a public ToolRegistry() method for use in tools like the LSP.
 // filename: pkg/api/interpreter.go
-// nlines: 91
+// nlines: 112
 // risk_rating: LOW
 
 package api
@@ -13,6 +13,10 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/tool"
+
+	// Import default providers to make them available for registration.
+	"github.com/aprice2704/neuroscript/pkg/api/providers/google"
 )
 
 // Interpreter is a facade over the internal interpreter, providing a stable,
@@ -22,10 +26,17 @@ type Interpreter struct {
 }
 
 // New creates a new, persistent NeuroScript interpreter instance.
+// It now automatically registers a default set of AI providers.
 func New(opts ...Option) *Interpreter {
 	// The internal NewInterpreter now handles all setup, including applying
 	// options and registering all standard tools in the correct order.
 	i := interpreter.NewInterpreter(opts...)
+
+	// Automatically register the default providers for this new instance.
+	// For now, this is just the Google provider.
+	googleProvider := google.New()
+	i.RegisterProvider("google", googleProvider)
+
 	return &Interpreter{internal: i}
 }
 
@@ -60,6 +71,11 @@ func (i *Interpreter) SetStderr(w io.Writer) {
 	i.internal.SetStderr(w)
 }
 
+// RegisterProvider allows the host application to register a concrete AIProvider implementation.
+func (i *Interpreter) RegisterProvider(name string, p AIProvider) {
+	i.internal.RegisterProvider(name, p)
+}
+
 // Load injects a verified and parsed program into the interpreter's memory.
 func (i *Interpreter) Load(p *ast.Program) error {
 	return i.internal.Load(p)
@@ -81,8 +97,9 @@ func (i *Interpreter) EmitEvent(eventName string, source string, payload lang.Va
 	i.internal.EmitEvent(eventName, source, payload)
 }
 
-func (i *Interpreter) ToolCount() int {
-	return i.internal.NTools()
+// THE FIX IS HERE: Expose the tool registry via a getter.
+func (i *Interpreter) ToolRegistry() tool.ToolRegistry {
+	return i.internal.ToolRegistry()
 }
 
 // Unwrap converts a NeuroScript api.Value back into a standard Go `any` type.

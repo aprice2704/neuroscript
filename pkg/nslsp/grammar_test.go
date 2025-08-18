@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.3.1
-// File version: 6
-// Purpose: Refactored to use the new centralized test helper from pkg/testutil, guaranteeing a complete tool registry.
+// NeuroScript Version: 0.6.0
+// File version: 7
+// Purpose: Refactored to use the new centralized test helper and updated the SemanticAnalyzer constructor call.
 // filename: pkg/nslsp/grammar_test.go
 // nlines: 80
 // risk_rating: LOW
@@ -21,12 +21,12 @@ import (
 // parse and analyze with zero syntax or semantic errors.
 func TestGrammarFiles_NoError(t *testing.T) {
 	// --- Setup ---
-	// ** THE FIX IS HERE: Use the centralized helper for a complete, verified registry **
 	interp := testutil.NewTestInterpreterWithAllTools(t)
 	registry := interp.ToolRegistry()
 
 	parserAPI := parser.NewParserAPI(nil)
-	analyzer := NewSemanticAnalyzer(registry, false)
+	// ** THE FIX IS HERE: Pass a new ExternalToolManager to the analyzer constructor **
+	analyzer := NewSemanticAnalyzer(registry, NewExternalToolManager(), false)
 
 	t.Logf("[GrammarTest] Tool registry initialized with %d tools for test run.", registry.NTools())
 

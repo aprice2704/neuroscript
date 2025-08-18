@@ -6,7 +6,7 @@ func main() means
 
   emit "" # Add a blank line for separation
   emit "--- Detailed Tool Help (All Tools) ---"
-  set detailed_help_all = tool.Meta.ToolsHelp() # No arguments for all tools
+  set detailed_help_all = tool.Meta.ToolsHelp("*") # No arguments for all tools
   emit detailed_help_all
 
   emit "" # Add a blank line for separation
