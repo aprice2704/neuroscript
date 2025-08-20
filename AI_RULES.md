@@ -6,6 +6,7 @@ Follow these **CORE RULES** **very strictly** for all Go code contributions to t
 
 1.  **Understand Context First:** Before coding, review project documentation (especially `.md` files) and existing code to grasp goals and architecture.
 1a. **MINIMAL CHANGES** unless otherwise told, when fixing compiler bugs or test fails, PERFORM THE MINIMUM changes required. Don't do a bunch of "tidying".
+2. Please try to avoid: putting "github.comcom" in imports -- this happens regularly: it should be just one com of course. Also, try to avoid making import urls into md links, this tends to happen in code examples in md files.
 3.  **Full & Functional Files ALWAYS:**
     * Always provide complete Go files based on latest versions (we have had some issues with stale files)
     * **NEVER EVER** generate code with function bodies "shorted out" or replaced by comments (e.g., `// ... implementation ...`). This wastes significant time and has lead to us wasting several hours of effort on at least two occasions. **NEVER EVER**.

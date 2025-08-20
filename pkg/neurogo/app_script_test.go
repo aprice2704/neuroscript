@@ -1,7 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.4.0
-// Purpose: Corrected the NewInterpreter constructor to use the functional options pattern
-// and fixed the logger constructor name. Removed non-existent WithLibPaths option.
+// File version: 0.4.2
+// Purpose: Updated the test setup to provide a permissive policy, granting fs:read capability needed for the tests to pass.
 // filename: pkg/neurogo/app_script_test.go
 package neurogo
 
@@ -16,6 +15,8 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/policy/capability"
+	"github.com/aprice2704/neuroscript/pkg/runtime"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	_ "github.com/aprice2704/neuroscript/pkg/toolbundles/all" // load tools
 )
@@ -31,11 +32,23 @@ func setupTestApp(t *testing.T) *App {
 	llmClient := adapters.NewNoOpLLMClient()
 	app, _ := NewApp(&cfg, logger, llmClient)
 
+	// FIX: Add a permissive policy for testing to grant necessary capabilities.
+	policy := &runtime.ExecPolicy{
+		Context: runtime.ContextNormal,
+		Allow:   []string{"*"}, // Allow all tools by name for testing.
+		Grants: capability.GrantSet{
+			Grants: []capability.Capability{
+				capability.New(capability.ResFS, capability.VerbRead, "*"),
+				capability.New(capability.ResFS, capability.VerbWrite, "*"), // Grant write as well for broader testing.
+			},
+		},
+	}
+
 	interp := interpreter.NewInterpreter(
 		interpreter.WithLogger(logger),
 		interpreter.WithLLMClient(llmClient),
 		interpreter.WithSandboxDir(cfg.SandboxDir),
-		// interpreter.WithLibPaths(cfg.LibPaths), // This option does not exist yet
+		interpreter.WithExecPolicy(policy), // Apply the policy
 	)
 
 	app.SetInterpreter(interp)
@@ -72,7 +85,6 @@ func TestApp_LoadAndRunScript_MultiReturn(t *testing.T) {
 		t.Fatalf("Failed to wrap filepath argument: %v", err)
 	}
 	toolArgs := map[string]lang.Value{"filepath": filepathArg}
-	// CORRECTED: Use the canonical tool name 'fs.read'
 	contentValue, err := app.GetInterpreter().ExecuteTool("fs.read", toolArgs)
 	if err != nil {
 		t.Fatalf("Executing tool 'fs.read' failed: %v", err)
@@ -112,6 +124,7 @@ func TestApp_LoadScript_DoesNotExecuteTopLevelCode(t *testing.T) {
 		},
 	}
 	app := setupTestApp(t)
+	// The permissive policy now allows any tool, so no need to adjust Allow list.
 	if _, err := app.GetInterpreter().ToolRegistry().RegisterTool(canaryTool); err != nil {
 		t.Fatalf("Failed to register canary tool: %v", err)
 	}

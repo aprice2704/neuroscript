@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 18
-// Purpose: Expanded the Runtime interface and added JSON tags to ToolImplementation for metadata export.
+// File version: 19
+// Purpose: Expanded the Runtime interface to include GetGrantSet for capability checking.
 // filename: pkg/tool/tool_types.go
-// nlines: 135
+// nlines: 136
 // risk_rating: HIGH
 
 package tool
@@ -30,6 +30,8 @@ type Runtime interface {
 
 	AgentModels() interfaces.AgentModelReader
 	AgentModelsAdmin() interfaces.AgentModelAdmin
+	// GetGrantSet returns the currently active capability grant set for policy enforcement.
+	GetGrantSet() *capability.GrantSet
 }
 
 // ArgType defines the expected data type for a tool argument or return value.

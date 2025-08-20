@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.6.0
-// File version: 16
-// Purpose: Exposes the internal tool registry via a public ToolRegistry() method for use in tools like the LSP.
+// File version: 19
+// Purpose: Correctly initializes a default 'normal' context ExecPolicy by constructing the struct directly.
 // filename: pkg/api/interpreter.go
-// nlines: 112
-// risk_rating: LOW
+// nlines: 115
+// risk_rating: MEDIUM
 
 package api
 
@@ -13,6 +13,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/runtime"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 
 	// Import default providers to make them available for registration.
@@ -26,14 +27,20 @@ type Interpreter struct {
 }
 
 // New creates a new, persistent NeuroScript interpreter instance.
-// It now automatically registers a default set of AI providers.
+// It now automatically registers a default set of AI providers and a default
+// non-privileged execution policy.
 func New(opts ...Option) *Interpreter {
-	// The internal NewInterpreter now handles all setup, including applying
-	// options and registering all standard tools in the correct order.
 	i := interpreter.NewInterpreter(opts...)
 
-	// Automatically register the default providers for this new instance.
-	// For now, this is just the Google provider.
+	// If no policy was set by an option, install the default 'normal' context policy.
+	if i.ExecPolicy == nil {
+		// This ensures interpreters are non-privileged and deny tools by default.
+		i.ExecPolicy = &runtime.ExecPolicy{
+			Context: runtime.ContextNormal,
+			Allow:   []string{}, // A non-nil, empty list denies all tools.
+		}
+	}
+
 	googleProvider := google.New()
 	i.RegisterProvider("google", googleProvider)
 
@@ -41,7 +48,6 @@ func New(opts ...Option) *Interpreter {
 }
 
 // WithSandboxDir returns an option to set the secure directory for file operations.
-// This is a mandatory setting for any interpreter that will interact with the filesystem.
 func WithSandboxDir(path string) interpreter.InterpreterOption {
 	return interpreter.WithSandboxDir(path)
 }
@@ -97,7 +103,7 @@ func (i *Interpreter) EmitEvent(eventName string, source string, payload lang.Va
 	i.internal.EmitEvent(eventName, source, payload)
 }
 
-// THE FIX IS HERE: Expose the tool registry via a getter.
+// ToolRegistry returns the tool registry associated with the interpreter.
 func (i *Interpreter) ToolRegistry() tool.ToolRegistry {
 	return i.internal.ToolRegistry()
 }

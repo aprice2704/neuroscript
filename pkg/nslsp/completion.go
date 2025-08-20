@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 7
-// Purpose: Implements textDocument/completion. FIX: Correctly isolates the active tool expression for completion, fixing bugs with multiple tool calls on one line. FIX: Use interpreter from server struct.
+// File version: 8
+// Purpose: Implements textDocument/completion. FIX: Correctly isolates the active tool expression for completion, fixing bugs with multiple tool calls on one line. FIX: Use interpreter from server struct. FIX: Format documentation as markdown for better client-side rendering.
 // filename: pkg/nslsp/completion.go
-// nlines: 178
+// nlines: 188
 // risk_rating: HIGH
 
 package nslsp
@@ -149,11 +149,20 @@ func createCompletionItemFromSpec(spec tool.ToolSpec) lsp.CompletionItem {
 		params = append(params, fmt.Sprintf("%s: %s", arg.Name, typeString))
 	}
 	paramSignature := strings.Join(params, ", ")
+	fullSignatureForDetail := fmt.Sprintf("(%s) -> %s", paramSignature, spec.ReturnType)
+
+	// Build a markdown documentation string to help the client with syntax highlighting.
+	var docBuilder strings.Builder
+	docBuilder.WriteString(fmt.Sprintf("```neuroscript\n(tool) %s%s\n```\n", spec.Name, fullSignatureForDetail))
+	if spec.Description != "" {
+		docBuilder.WriteString("---\n")
+		docBuilder.WriteString(spec.Description)
+	}
 
 	return lsp.CompletionItem{
 		Label:         string(spec.Name),
 		Kind:          lsp.CIKFunction,
-		Detail:        fmt.Sprintf("(%s) -> %s", paramSignature, spec.ReturnType),
-		Documentation: spec.Description,
+		Detail:        fullSignatureForDetail,
+		Documentation: docBuilder.String(),
 	}
 }

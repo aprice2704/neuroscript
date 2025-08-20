@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 20
-// Purpose: Re-export the provider.AIProvider interface for use with the new RegisterProvider API method.
+// File version: 21
+// Purpose: Re-exported capability constants and builder functions for the public API.
 // filename: pkg/api/reexport.go
-// nlines: 90
+// nlines: 110
 // risk_rating: MEDIUM
 
 package api
@@ -60,10 +60,33 @@ type (
 	ToolGroup          = types.ToolGroup
 )
 
+// Standard capability resources and verbs, re-exported for convenience.
+const (
+	ResFS     = capability.ResFS
+	ResNet    = capability.ResNet
+	ResEnv    = capability.ResEnv
+	ResModel  = capability.ResModel
+	ResTool   = capability.ResTool
+	ResSecret = capability.ResSecret
+	ResBudget = capability.ResBudget
+
+	VerbRead  = capability.VerbRead
+	VerbWrite = capability.VerbWrite
+	VerbAdmin = capability.VerbAdmin
+	VerbUse   = capability.VerbUse
+	VerbExec  = capability.VerbExec
+)
+
+// Capability construction and parsing helpers.
+var (
+	NewCapability   = capability.New
+	ParseCapability = capability.Parse
+	MustParse       = capability.MustParse
+	NewWithVerbs    = capability.NewWithVerbs
+)
+
 // WithTool creates an interpreter option to register a custom tool.
 func WithTool(t ToolImplementation) Option {
-	// The RegisterTool function is the authority on canonicalizing names.
-	// We simply pass the implementation through to it.
 	return func(i *interpreter.Interpreter) {
 		if _, err := i.ToolRegistry().RegisterTool(t); err != nil {
 			if logger := i.GetLogger(); logger != nil {
@@ -73,13 +96,6 @@ func WithTool(t ToolImplementation) Option {
 	}
 }
 
-// InstantiateAllStandardTools returns a slice of ToolImplementation structs for all
-// standard tools that come with NeuroScript.
-func InstantiateAllStandardTools() []ToolImplementation {
-	// This remains a placeholder as the standard tools are auto-bundled.
-	return []ToolImplementation{}
-}
-
 // RegisterCriticalErrorHandler allows the host application to override the default
 // panic behavior for critical errors.
 func RegisterCriticalErrorHandler(h func(*lang.RuntimeError)) {
@@ -87,14 +103,11 @@ func RegisterCriticalErrorHandler(h func(*lang.RuntimeError)) {
 }
 
 // MakeToolFullName creates a correctly formatted, fully-qualified tool name.
-// It acts as a public facade for the internal types.MakeFullName function.
 func MakeToolFullName(group, name string) types.FullName {
 	return types.MakeFullName(group, name)
 }
 
 // WithExecPolicy applies a runtime execution policy to the interpreter.
-// This provides an escape hatch for advanced users who need to construct
-// a policy manually.
 func WithExecPolicy(policy *ExecPolicy) Option {
 	return interpreter.WithExecPolicy(policy)
 }

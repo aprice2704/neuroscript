@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 6.0.0
-// Purpose: Aligned MockRuntime to use the canonical types.AgentModel, removing dependencies on the deleted agentmodel package.
+// File version: 6.0.2
+// Purpose: Fixed a test-only import cycle issue by changing MockRuntime.Registry to type any and using a type assertion.
 // filename: pkg/tool/internal/tools_helpers.go
-// nlines: 235
+// nlines: 247
 // risk_rating: MEDIUM
 
 package internal
@@ -17,6 +17,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/policy/capability"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
@@ -122,7 +123,8 @@ type MockRuntime struct {
 	PromptErr      error
 	Logger         interfaces.Logger
 	LlmClient      interfaces.LLMClient
-	Registry       tool.ToolRegistry
+	Registry       any // Changed to `any` to break import cycle in tests.
+	GrantSet       *capability.GrantSet
 }
 
 func NewMockRuntime() *MockRuntime {
@@ -163,7 +165,7 @@ func (m *MockRuntime) SetVar(name string, val any) {
 }
 
 func (m *MockRuntime) CallTool(name types.FullName, args []any) (any, error) {
-	impl, ok := m.Registry.GetTool(name)
+	impl, ok := m.ToolRegistry().GetTool(name)
 	if !ok {
 		return nil, fmt.Errorf("tool '%s' not found in mock registry", name)
 	}
@@ -179,7 +181,11 @@ func (m *MockRuntime) SandboxDir() string {
 }
 
 func (m *MockRuntime) ToolRegistry() tool.ToolRegistry {
-	return m.Registry
+	if m.Registry == nil {
+		return nil
+	}
+	// This type assertion resolves the compiler's circular dependency confusion.
+	return m.Registry.(tool.ToolRegistry)
 }
 
 func (m *MockRuntime) LLM() interfaces.LLMClient {
@@ -206,6 +212,14 @@ func (m *MockRuntime) GetHandleValue(handle string, expectedTypePrefix string) (
 		return nil, fmt.Errorf("handle not found: %s", handle)
 	}
 	return val, nil
+}
+
+func (m *MockRuntime) GetGrantSet() *capability.GrantSet {
+	if m.GrantSet != nil {
+		return m.GrantSet
+	}
+	// Return a default GrantSet that allows tools without specific requirements to run.
+	return &capability.GrantSet{}
 }
 
 // --- AgentModel Management ---

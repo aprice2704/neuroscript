@@ -19,6 +19,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/policy/capability"
 	"github.com/aprice2704/neuroscript/pkg/provider"
 	"github.com/aprice2704/neuroscript/pkg/runtime"
 	"github.com/aprice2704/neuroscript/pkg/tool"
@@ -303,4 +304,15 @@ func (i *Interpreter) setSandboxDir(path string) {
 
 func (i *Interpreter) RegisterEvent(decl *ast.OnEventDecl) error {
 	return i.eventManager.register(decl, i)
+}
+
+// Add this method to the *interpreter.Interpreter type
+
+// GetGrantSet returns the currently active capability grant set for policy enforcement.
+func (i *Interpreter) GetGrantSet() *capability.GrantSet {
+	if i.ExecPolicy == nil {
+		// Return a default, empty grant set if no policy is attached.
+		return &capability.GrantSet{}
+	}
+	return &i.ExecPolicy.Grants
 }

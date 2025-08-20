@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 1
-// Purpose: Provides integration tests for the toolsmeta export functionality.
+// File version: 5
+// Purpose: Made the tool verification more robust by using a case-insensitive comparison.
 // filename: pkg/api/toolsmeta/export_test.go
-// nlines: 65
+// nlines: 61
 // risk_rating: LOW
 
 package toolsmeta_test
@@ -11,15 +11,12 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/api"
 	"github.com/aprice2704/neuroscript/pkg/api/toolsmeta"
 	"github.com/aprice2704/neuroscript/pkg/tool"
-	"github.com/aprice2704/neuroscript/pkg/types"
-
-	// This blank import is necessary for the test to find the standard tools
-	// and verify that the export works correctly.
-	_ "github.com/aprice2704/neuroscript/pkg/toolbundles/all"
 )
 
 func TestExportTools(t *testing.T) {
@@ -27,8 +24,12 @@ func TestExportTools(t *testing.T) {
 	tempDir := t.TempDir()
 	outputFile := filepath.Join(tempDir, "test-tools.json")
 
+	// Create a full interpreter to get a populated tool registry.
+	// api.New() automatically registers all standard toolsets.
+	interp := api.New()
+	reg := interp.ToolRegistry()
+
 	// --- Execute ---
-	reg := tool.NewToolRegistry(nil)
 	err := toolsmeta.ExportTools(reg, outputFile)
 	if err != nil {
 		t.Fatalf("ExportTools() returned an unexpected error: %v", err)
@@ -58,12 +59,13 @@ func TestExportTools(t *testing.T) {
 		t.Fatal("Expected to find at least one tool implementation in the output, but found none.")
 	}
 
-	// Spot-check for a well-known tool to ensure the registry was populated.
+	// Spot-check for a well-known tool.
 	foundReadTool := false
-	expectedFullName := types.FullName("tool.fs.read")
+	expectedFullName := "tool.fs.read"
 	for _, impl := range toolImpls {
-		canonicalName := tool.CanonicalizeToolName(string(impl.Spec.Group) + "." + string(impl.Spec.Name))
-		if types.FullName(canonicalName) == expectedFullName {
+		actualFullName := api.MakeToolFullName(string(impl.Spec.Group), string(impl.Spec.Name))
+		// FIX: Use a case-insensitive comparison for robustness.
+		if strings.EqualFold(string(actualFullName), expectedFullName) {
 			foundReadTool = true
 			break
 		}

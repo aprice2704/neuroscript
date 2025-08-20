@@ -160,10 +160,10 @@ import (
 
 func main() {
 	// 1. Define the capabilities the startup script needs.
-	// The api.Capability type is re-exported for convenience.
+	// The api package re-exports helpers and constants for building capabilities.
 	requiredGrants := []api.Capability{
-		{Resource: "model", Verbs: []string{"admin"}, Scopes: []string{"*"}},
-		{Resource: "env", Verbs: []string{"read"}, Scopes: []string{"OPENAI_API_KEY"}},
+		api.NewWithVerbs(api.ResModel, []string{api.VerbAdmin}, []string{"*"}),
+		api.New(api.ResEnv, api.VerbRead, "OPENAI_API_KEY"),
 	}
 
 	// 2. Specify which tools the script is allowed to call.
@@ -364,6 +364,9 @@ The `api` package re-exports all necessary types so you don't need to import int
 -   **AST & Nodes**: `api.Tree`, `api.Node`, `api.Position`, `api.Kind`
 -   **Execution**: `api.Interpreter`, `api.Value`, `api.Option`, `api.RuntimeError`
 -   **Security & Policy**: `api.SignedAST`, `api.LoadedUnit`, `api.ExecPolicy`, `api.Capability`
+-   **Capability Helpers**:
+    -   Constants for resources (`api.ResFS`, `api.ResNet`, etc.) and verbs (`api.VerbRead`, `api.VerbUse`, etc.).
+    -   Constructor functions (`api.NewCapability`, `api.NewWithVerbs`).
 -   **AI Providers**: `api.AIProvider`
 -   **Tools**: `api.ToolImplementation`, `api.ToolSpec`, `api.ToolFunc`, `api.ArgSpec`, `api.FullName`, `api.ToolName`, `api.ToolGroup`
 -   **Logging**: `api.Logger`

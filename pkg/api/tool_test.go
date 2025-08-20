@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.6.0
-// File version: 6
-// Purpose: Reverted test to use the now-fixed WithTool function.
+// File version: 7
+// Purpose: Updated tests to create interpreters with explicit policies, allowing the necessary tools to run.
 // filename: pkg/api/tool_test.go
-// nlines: 93
-// risk_rating: LOW
+// nlines: 105
+// risk_rating: MEDIUM
 
 package api_test
 
@@ -13,6 +13,8 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/api"
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/runtime"
 )
 
 // TestAPI_BuiltinToolExecution verifies that a standard, built-in tool can be
@@ -24,8 +26,12 @@ func do_math(returns number) means
     return tool.math.Add(10, 32)
 endfunc
 `
-	// 2. Create a standard interpreter. The standard tools are auto-bundled.
-	interp := api.New()
+	// 2. Create an interpreter with a policy that explicitly allows the 'Add' tool.
+	policy := &runtime.ExecPolicy{
+		Context: runtime.ContextNormal,
+		Allow:   []string{"tool.math.Add"},
+	}
+	interp := api.New(interpreter.WithExecPolicy(policy))
 
 	// 3. Parse and load the script.
 	tree, err := api.Parse([]byte(scriptContent), api.ParseSkipComments)
@@ -49,10 +55,8 @@ endfunc
 	}
 }
 
-// TestAPI_CustomToolWithDottedGroup is the critical test. It verifies that a
-// custom-defined tool with a dot in its group name can be registered and
-// resolved correctly through the public API. This directly tests the fix
-// for the interpreter bug.
+// TestAPI_CustomToolWithDottedGroup verifies that a custom-defined tool can be
+// registered and resolved correctly through the public API.
 func TestAPI_CustomToolWithDottedGroup(t *testing.T) {
 	// 1. Define the custom tool's Go implementation.
 	echoToolFunc := func(rt api.Runtime, args []any) (any, error) {
@@ -62,21 +66,22 @@ func TestAPI_CustomToolWithDottedGroup(t *testing.T) {
 		return args[0], nil
 	}
 
-	// 2. Define the tool's implementation struct using only public API types.
+	// 2. Define the tool's implementation struct.
 	echoToolImpl := api.ToolImplementation{
 		Spec: api.ToolSpec{
 			Name:  "bleat",
 			Group: "xx",
-			Args: []api.ArgSpec{
-				{Name: "value", Type: "any", Required: true},
-			},
-			ReturnType: "any",
+			Args:  []api.ArgSpec{{Name: "value", Type: "any", Required: true}},
 		},
 		Func: echoToolFunc,
 	}
 
-	// 3. Create an interpreter and register the custom tool using the now-fixed WithTool.
-	interp := api.New(api.WithTool(echoToolImpl))
+	// 3. Create an interpreter with the custom tool and a policy to allow it.
+	policy := &runtime.ExecPolicy{
+		Context: runtime.ContextNormal,
+		Allow:   []string{"tool.xx.bleat"},
+	}
+	interp := api.New(api.WithTool(echoToolImpl), interpreter.WithExecPolicy(policy))
 
 	// 4. The script that calls the custom tool.
 	scriptContent := `
@@ -104,6 +109,4 @@ endfunc
 	if val, ok := unwrapped.(string); !ok || val != "hello, world" {
 		t.Errorf("Expected result to be 'hello, world', but got %v (type %T)", unwrapped, unwrapped)
 	}
-
-	t.Log("Successfully registered and called custom tool with dotted group name.")
 }

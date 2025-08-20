@@ -7,17 +7,15 @@
 
 package runtime
 
-import "github.com/aprice2704/neuroscript/pkg/types"
-
 // AgentModel holds the validated and parsed configuration for a specific AI model endpoint.
 // This is the canonical definition used throughout the system.
-type AgentModel struct {
-	Name           types.AgentModelName
-	Provider       string
-	Model          string
-	SecretRef      string
-	BaseURL        string
-	BudgetCurrency string
-	PriceTable     map[string]float64
-	Temperature    float64
-}
+// type AgentModel struct {
+// 	Name           types.AgentModelName
+// 	Provider       string
+// 	Model          string
+// 	SecretRef      string
+// 	BaseURL        string
+// 	BudgetCurrency string
+// 	PriceTable     map[string]float64
+// 	Temperature    float64
+// }

@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.3.1
-// File version: 48
-// Purpose: Made tool name lookup case-insensitive to match interpreter behavior. FIX: Use interpreter from server struct.
+// File version: 52
+// Purpose: Made tool name lookup case-insensitive. FIX: Plumbed a real logger through all hover-related functions. FIX: Corrected typo (o -> 0).
 // filename: pkg/nslsp/server_extracttool_b.go
-// nlines: 140
-// risk_rating: MEDIUM
+// nlines: 153
+// risk_rating: HIGH
 
 package nslsp
 
@@ -18,48 +18,50 @@ import (
 	lsp "github.com/sourcegraph/go-lsp"
 )
 
-const serverExtractToolFileVersion = "0.1.46"
+const serverExtractToolFileVersion = "0.1.50"
 
-func (s *Server) extractAndValidateFullToolName(qiRuleCtx antlr.RuleContext, debugHover bool) string {
+func (s *Server) extractAndValidateFullToolName(qiRuleCtx antlr.RuleContext, log loggerFunc) string {
 	if qiRuleCtx == nil {
-		forceDebugf(debugHover, "extractAndValidateFullToolName: Called with nil qiRuleCtx.")
+		log("extractAndValidateFullToolName: Called with nil qiRuleCtx.")
 		return ""
 	}
-	forceDebugf(debugHover, "extractAndValidateFullToolName: ENTRY. Validating QI: '%s'", truncateStringForLog(getTreeTextSafe(qiRuleCtx), 30))
+	log("extractAndValidateFullToolName: ENTRY. Validating QI: '%s'", truncateStringForLog(getTreeTextSafe(qiRuleCtx), 30))
 
-	ids := getIdentifiersTextsFromQIGeneric(qiRuleCtx, debugHover)
+	ids := getIdentifiersTextsFromQIGeneric(qiRuleCtx, log)
 
 	if len(ids) == 0 {
-		forceDebugf(debugHover, "extractAndValidateFullToolName: QI '%s' yielded no IDENTIFIER children.", truncateStringForLog(getTreeTextSafe(qiRuleCtx), 30))
+		log("extractAndValidateFullToolName: QI '%s' yielded no IDENTIFIER children.", truncateStringForLog(getTreeTextSafe(qiRuleCtx), 30))
 		return ""
 	}
 
 	nameWithoutPrefix := strings.Join(ids, ".")
 	candidateToolName := "tool." + nameWithoutPrefix
-	forceDebugf(debugHover, "extractAndValidateFullToolName: Candidate partial name from QI '%s' is: '%s'. Prepended prefix to form full name: '%s'", truncateStringForLog(getTreeTextSafe(qiRuleCtx), 30), nameWithoutPrefix, candidateToolName)
+	log("extractAndValidateFullToolName: Candidate partial name from QI '%s' is: '%s'. Prepended prefix to form full name: '%s'", truncateStringForLog(getTreeTextSafe(qiRuleCtx), 30), nameWithoutPrefix, candidateToolName)
 
 	if s.interpreter == nil || s.interpreter.ToolRegistry() == nil {
 		s.logger.Printf("ERROR: Hover: Interpreter or its ToolRegistry is nil in LSP server instance.")
-		forceDebugf(debugHover, "extractAndValidateFullToolName: Interpreter or ToolRegistry is nil in server instance!")
+		log("extractAndValidateFullToolName: Interpreter or ToolRegistry is nil in server instance!")
 		return ""
 	}
 
-	// FIX: Use case-insensitive lookup to match interpreter behavior.
 	lookupName := types.FullName(strings.ToLower(candidateToolName))
-	forceDebugf(debugHover, "extractAndValidateFullToolName: Checking tool registry for (case-insensitive): '%s'", lookupName)
-	// THE FIX IS HERE: Access the tool registry via the API interpreter facade.
+	log("extractAndValidateFullToolName: Checking tool registry for (case-insensitive): '%s'", lookupName)
 	_, found := s.interpreter.ToolRegistry().GetTool(lookupName)
-	forceDebugf(debugHover, "extractAndValidateFullToolName: Tool: '%s', FoundInRegistry: %t", lookupName, found)
+	if !found {
+		if s.externalTools != nil {
+			_, found = s.externalTools.GetTool(lookupName)
+		}
+	}
+	log("extractAndValidateFullToolName: Tool: '%s', FoundInRegistry: %t", lookupName, found)
 
 	if found {
-		// Return the original-cased name for display purposes.
 		return candidateToolName
 	}
 
 	return ""
 }
 
-func (s *Server) extractToolNameFromKWRule(foundTokenNode antlr.TerminalNode, debugHover bool) string {
+func (s *Server) extractToolNameFromKWRule(foundTokenNode antlr.TerminalNode, log loggerFunc) string {
 	parent := foundTokenNode.GetParent()
 	parentRuleCtx, okParentRule := parent.(antlr.RuleContext)
 	if !okParentRule || parentRuleCtx.GetRuleIndex() != gen.NeuroScriptParserRULE_call_target {
@@ -72,12 +74,12 @@ func (s *Server) extractToolNameFromKWRule(foundTokenNode antlr.TerminalNode, de
 		if !okRule || qiCandRuleCtx.GetRuleIndex() != gen.NeuroScriptParserRULE_qualified_identifier {
 			continue
 		}
-		return s.extractAndValidateFullToolName(qiCandRuleCtx, debugHover)
+		return s.extractAndValidateFullToolName(qiCandRuleCtx, log)
 	}
 	return ""
 }
 
-func (s *Server) extractToolNameFromIdentifierRule(foundTokenNode antlr.TerminalNode, debugHover bool) string {
+func (s *Server) extractToolNameFromIdentifierRule(foundTokenNode antlr.TerminalNode, log loggerFunc) string {
 	var qiNode antlr.RuleContext
 	currentNode := foundTokenNode.GetParent()
 	for currentNode != nil {
@@ -111,7 +113,7 @@ func (s *Server) extractToolNameFromIdentifierRule(foundTokenNode antlr.Terminal
 		return ""
 	}
 
-	return s.extractAndValidateFullToolName(qiNode, debugHover)
+	return s.extractAndValidateFullToolName(qiNode, log)
 }
 
 func (s *Server) extractToolNameAtPosition(content string, position lsp.Position, sourceName string) string {
@@ -120,6 +122,12 @@ func (s *Server) extractToolNameAtPosition(content string, position lsp.Position
 	}
 
 	debugHover := os.Getenv("NSLSP_DEBUG_HOVER") != "" || os.Getenv("DEBUG_LSP_HOVER_TEST") != ""
+	var log loggerFunc = noOpLogger
+	if debugHover {
+		log = func(format string, args ...interface{}) {
+			s.logger.Printf("[HOVER_TRACE] "+format, args...)
+		}
+	}
 
 	if s.coreParserAPI == nil {
 		s.logger.Printf("ERROR_LSP_HOVER: coreParserAPI is nil in server.")
@@ -128,6 +136,7 @@ func (s *Server) extractToolNameAtPosition(content string, position lsp.Position
 
 	treeFromParser, _ := s.coreParserAPI.ParseForLSP(sourceName, content)
 	if treeFromParser == nil {
+		log("extractToolNameAtPosition: Parser returned a nil tree. Cannot find token.")
 		s.logger.Printf("WARN: extractToolName: AST is nil after parsing for source '%s'.", sourceName)
 		return ""
 	}
@@ -138,17 +147,20 @@ func (s *Server) extractToolNameAtPosition(content string, position lsp.Position
 		return ""
 	}
 
-	foundTokenNode := findInitialNodeManually(parseTreeRoot, position.Line, position.Character, debugHover)
+	log("extractToolNameAtPosition: Starting token search at L%d:C%d", position.Line, position.Character)
+	foundTokenNode := findInitialNodeManually(parseTreeRoot, position.Line, position.Character, log)
 	if foundTokenNode == nil {
+		log("extractToolNameAtPosition: findInitialNodeManually did not find a token at the specified position.")
 		return ""
 	}
 
+	log("extractToolNameAtPosition: Found token '%s' of type %s.", foundTokenNode.GetText(), gen.NeuroScriptParserStaticData.SymbolicNames[foundTokenNode.GetSymbol().GetTokenType()])
 	tokenType := foundTokenNode.GetSymbol().GetTokenType()
 	switch tokenType {
 	case gen.NeuroScriptLexerKW_TOOL:
-		return s.extractToolNameFromKWRule(foundTokenNode, debugHover)
+		return s.extractToolNameFromKWRule(foundTokenNode, log)
 	case gen.NeuroScriptLexerIDENTIFIER, gen.NeuroScriptLexerDOT:
-		return s.extractToolNameFromIdentifierRule(foundTokenNode, debugHover)
+		return s.extractToolNameFromIdentifierRule(foundTokenNode, log)
 	default:
 		return ""
 	}

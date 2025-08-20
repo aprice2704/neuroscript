@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.2.6
-// Purpose: Final corrections to logger/level constructors and interpreter functional options.
+// File version: 0.2.7
+// Purpose: Added a permissive execution policy to the interpreter to grant the fs:read capability, resolving the test failure.
 // filename: pkg/neurogo/app_script_break_continue_test.go
 package neurogo
 
@@ -14,6 +14,8 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/policy/capability"
+	"github.com/aprice2704/neuroscript/pkg/runtime"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
@@ -25,14 +27,17 @@ func TestApp_RunScriptMode_BreakContinue(t *testing.T) {
 	// 1. Create Config & App
 	cfg := Config{}
 	cfg.SandboxDir = t.TempDir()
-	loglev, _ := logging.LogLevelFromString("debug") // Corrected package
+	loglev, err := logging.LogLevelFromString("debug")
+	if err != nil {
+		t.Fatalf("%s: Failed to create log level: %v", testName, err)
+	}
 	logger, err := logging.NewSimpleSlogAdapter(os.Stderr, loglev)
 	if err != nil {
 		t.Fatalf("%s: Failed to create logger: %v", testName, err)
 	}
 	llmClient := adapters.NewNoOpLLMClient()
 	config := NewConfig()
-	app, _ := NewApp(config, logger, llmClient)
+	app, err := NewApp(config, logger, llmClient)
 	if err != nil {
 		t.Fatalf("%s: Failed to create App: %v", testName, err)
 	}
@@ -50,17 +55,23 @@ func TestApp_RunScriptMode_BreakContinue(t *testing.T) {
 		t.Fatalf("Failed to write script to sandbox: %v", err)
 	}
 
-	// _, aiWmErr := wm.NewAIWorkerManager(logger, app.Config.SandboxDir, llmClient, "", "")
-	// if aiWmErr != nil { // FIXME
-	// 	t.Logf("%s: Warning - Failed to create AI Worker Manager: %v", testName, aiWmErr)
-	// }
+	// FIX: Add a permissive policy for testing to grant necessary capabilities.
+	policy := &runtime.ExecPolicy{
+		Context: runtime.ContextNormal,
+		Allow:   []string{"*"}, // Allow all tools by name for testing.
+		Grants: capability.GrantSet{
+			Grants: []capability.Capability{
+				capability.New(capability.ResFS, capability.VerbRead, "*"),
+			},
+		},
+	}
 
 	// Corrected Interpreter constructor with all options
 	interp := interpreter.NewInterpreter(
 		interpreter.WithLogger(logger),
 		interpreter.WithLLMClient(llmClient),
 		interpreter.WithSandboxDir(cfg.SandboxDir),
-		//		interpreter.WithAIWorkerManager(aiWm), // FIXME
+		interpreter.WithExecPolicy(policy), // Apply the policy
 	)
 	app.SetInterpreter(interp)
 
@@ -77,7 +88,6 @@ func TestApp_RunScriptMode_BreakContinue(t *testing.T) {
 		t.Fatalf("Failed to wrap script path argument: %v", err)
 	}
 	toolArgs := map[string]lang.Value{"filepath": filepathArg}
-	// CORRECTED: Use the canonical tool name 'fs.read'
 	contentValue, err := app.GetInterpreter().ExecuteTool("fs.read", toolArgs)
 	if err != nil {
 		t.Fatalf("Executing tool 'fs.read' failed: %v", err)

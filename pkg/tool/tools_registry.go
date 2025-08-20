@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.4.0
-// File version: 10
-// Purpose: Updated ListTools to return full ToolImplementation structs for policy testing.
+// File version: 11
+// Purpose: Added capability enforcement to CallFromInterpreter, the central tool gateway.
 // filename: pkg/tool/tools_registry.go
-// nlines: 150
+// nlines: 159
 // risk_rating: HIGH
 
 package tool
@@ -13,6 +13,7 @@ import (
 	"sync"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/policy/capability"
 	"github.com/aprice2704/neuroscript/pkg/types"
 	"github.com/aprice2704/neuroscript/pkg/utils"
 )
@@ -100,6 +101,17 @@ func (r *ToolRegistryImpl) CallFromInterpreter(interp Runtime, fullname types.Fu
 		canonicalName := CanonicalizeToolName(string(fullname))
 		return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found", canonicalName), lang.ErrToolNotFound)
 	}
+
+	// --- NEW ENFORCEMENT LOGIC ---
+	if len(impl.RequiredCaps) > 0 {
+		grantSet := interp.GetGrantSet()
+		if grantSet == nil || !capability.CapsSatisfied(impl.RequiredCaps, grantSet.Grants) {
+			return nil, lang.NewRuntimeError(lang.ErrorCodePermissionDenied,
+				fmt.Sprintf("permission denied: tool '%s' requires capabilities that are not granted", impl.FullName),
+				lang.ErrPermissionDenied)
+		}
+	}
+	// --- END NEW LOGIC ---
 
 	rawArgs := make([]interface{}, len(args))
 	for i, arg := range args {

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 23
-// Purpose: Simplifies server by removing the redundant tool registry, now that the api.Interpreter exposes it via a getter.
+// File version: 24
+// Purpose: Simplifies server by removing the redundant tool registry, now that the api.Interpreter exposes it via a getter. FIX: Added detailed debug logging to the hover handler to diagnose inconsistent behavior.
 // filename: pkg/nslsp/server.go
-// nlines: 300
+// nlines: 322
 // risk_rating: HIGH
 
 package nslsp
@@ -24,7 +24,7 @@ import (
 	"github.com/sourcegraph/jsonrpc2"
 )
 
-const serverVersion = "1.3.1"
+const serverVersion = "1.3.2"
 
 type Server struct {
 	conn            *jsonrpc2.Conn
@@ -195,29 +195,42 @@ func (s *Server) handleTextDocumentHover(ctx context.Context, conn *jsonrpc2.Con
 		s.logger.Printf("Hover: Document not found %s", params.TextDocument.URI)
 		return nil, nil
 	}
+
+	s.logger.Printf("Hover Debug: Starting hover logic for %s at L%d:%d", params.TextDocument.URI, params.Position.Line+1, params.Position.Character+1)
 	toolName := s.extractToolNameAtPosition(content, params.Position, string(params.TextDocument.URI))
 	if toolName == "" {
+		s.logger.Printf("Hover Debug: extractToolNameAtPosition returned empty string. No tool identified.")
 		return nil, nil
 	}
-	s.logger.Printf("Hover: Identified potential tool name: %s", toolName)
+	s.logger.Printf("Hover Debug: Identified potential tool name: '%s'", toolName)
 	lookupName := types.FullName(strings.ToLower(toolName))
 
 	var spec tool.ToolSpec
 	var foundTool bool
+	var foundIn string
 	var impl tool.ToolImplementation
 
 	if s.interpreter.ToolRegistry() != nil {
+		s.logger.Printf("Hover Debug: Checking built-in tool registry for '%s'", lookupName)
 		impl, foundTool = s.interpreter.ToolRegistry().GetTool(lookupName)
+		if foundTool {
+			foundIn = "built-in registry"
+		}
 	}
 	if !foundTool && s.externalTools != nil {
+		s.logger.Printf("Hover Debug: Checking external tool registry for '%s'", lookupName)
 		impl, foundTool = s.externalTools.GetTool(lookupName)
+		if foundTool {
+			foundIn = "external registry"
+		}
 	}
 
 	if !foundTool {
-		s.logger.Printf("Hover: ToolSpec not found for '%s' in any registry.", toolName)
+		s.logger.Printf("Hover Debug: ToolSpec not found for '%s' in any registry. Returning nil hover.", toolName)
 		return nil, nil
 	}
 	spec = impl.Spec
+	s.logger.Printf("Hover Debug: Found tool '%s' in %s. Generating hover content.", toolName, foundIn)
 
 	var hoverContent strings.Builder
 	hoverContent.WriteString(fmt.Sprintf("#### `%s`\n\n", toolName))
