@@ -1,197 +1,9 @@
 [
   {
     "spec": {
-      "name": "GetNodeMetadata",
-      "groupname": "tree",
-      "fullname": "tool.tree.getnodemetadata",
-      "description": "Retrieves the metadata attributes of a specific node as a map.",
-      "category": "Tree Manipulation",
-      "args": [
-        {
-          "name": "tree_handle",
-          "type": "string",
-          "description": "Handle to the tree structure.",
-          "required": true
-        },
-        {
-          "name": "node_id",
-          "type": "string",
-          "description": "ID of the node to get metadata from.",
-          "required": true
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map of the node's metadata attributes.",
-      "example": "tool.Tree.GetNodeMetadata(handle, \"node_id\")",
-      "errorConditions": "Returns `ErrArgumentMismatch`, `ErrInvalidArgument`, `ErrTreeNotFound`, `ErrNodeNotFound`."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:999f0ad73cbd44e4d65295396106608797c5d051f345ccdb3ebcc4e84efa2bbc"
-  },
-  {
-    "spec": {
-      "name": "SetNodeMetadata",
-      "groupname": "tree",
-      "fullname": "tool.tree.setnodemetadata",
-      "description": "Sets a metadata attribute as a key-value string pair on any node.",
-      "category": "Tree Manipulation",
-      "args": [
-        {
-          "name": "tree_handle",
-          "type": "string",
-          "description": "Handle to the tree structure.",
-          "required": true
-        },
-        {
-          "name": "node_id",
-          "type": "string",
-          "description": "ID of the node to set metadata on.",
-          "required": true
-        },
-        {
-          "name": "metadata_key",
-          "type": "string",
-          "description": "The key of the metadata attribute (string).",
-          "required": true
-        },
-        {
-          "name": "metadata_value",
-          "type": "string",
-          "description": "The value of the metadata attribute (string).",
-          "required": true
-        }
-      ],
-      "returnType": "nil",
-      "returnHelp": "Returns nil on success.",
-      "example": "tool.Tree.SetNodeMetadata(handle, \"my_node_id\", \"version\", \"1.0\")",
-      "errorConditions": "Returns `ErrArgumentMismatch`, `ErrInvalidArgument`, `ErrTreeNotFound`, `ErrNodeNotFound`."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:55a6e69679d1546177a39674bd44eb26888dabd2a00d73d9a6e2784d96ac8d5d"
-  },
-  {
-    "spec": {
-      "name": "Update",
-      "groupname": "agentmodel",
-      "fullname": "tool.agentmodel.update",
-      "description": "Updates an existing AgentModel's configuration.",
-      "args": [
-        {
-          "name": "name",
-          "type": "string",
-          "description": "",
-          "required": true
-        },
-        {
-          "name": "updates",
-          "type": "map",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "bool"
-    },
-    "requiresTrust": true,
-    "requiredCaps": [
-      {
-        "Resource": "model",
-        "Verbs": [
-          "admin"
-        ],
-        "Scopes": [
-          "*"
-        ]
-      }
-    ],
-    "effects": [
-      "idempotent"
-    ],
-    "signatureChecksum": "sha256:038d3b674a49dd7ba407e62489c3e60d9788056f1c6e7564e655dfa6a7a6f447"
-  },
-  {
-    "spec": {
-      "name": "Delete",
-      "groupname": "fs",
-      "fullname": "tool.fs.delete",
-      "description": "Deletes a file or an empty directory. Returns 'OK' on success or if path doesn't exist.",
-      "category": "Filesystem",
-      "args": [
-        {
-          "name": "path",
-          "type": "string",
-          "description": "Relative path to the file or empty directory to delete.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns 'OK' on success. Returns nil on error.",
-      "example": "TOOL.FS.Delete(path: \"temp/old_file.txt\")",
-      "errorConditions": "ErrArgumentMismatch; ErrConfiguration; ErrSecurityPath; ErrPreconditionFailed if directory is not empty; ErrPermissionDenied; ErrIOFailed."
-    },
-    "requiresTrust": true,
-    "requiredCaps": [
-      {
-        "Resource": "fs",
-        "Verbs": [
-          "delete"
-        ],
-        "Scopes": null
-      }
-    ],
-    "effects": [
-      "writesFS",
-      "idempotent"
-    ],
-    "signatureChecksum": "sha256:da805b152f671b0a7e99bd1834dbd2f2f09f0d4e2efed62f76dcb756174e3bd5"
-  },
-  {
-    "spec": {
-      "name": "Move",
-      "groupname": "fs",
-      "fullname": "tool.fs.move",
-      "description": "Moves or renames a file or directory within the sandbox.",
-      "category": "Filesystem",
-      "args": [
-        {
-          "name": "source_path",
-          "type": "string",
-          "description": "Relative path of the source file/directory.",
-          "required": true
-        },
-        {
-          "name": "destination_path",
-          "type": "string",
-          "description": "Relative path of the destination.",
-          "required": true
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map indicating success. Returns nil on error.",
-      "example": "TOOL.FS.Move(source_path: \"old_name.txt\", destination_path: \"new_name.txt\")",
-      "errorConditions": "ErrArgumentMismatch; ErrConfiguration; ErrSecurityPath; ErrFileNotFound; ErrPathExists; ErrPermissionDenied; ErrIOFailed."
-    },
-    "requiresTrust": true,
-    "requiredCaps": [
-      {
-        "Resource": "fs",
-        "Verbs": [
-          "write",
-          "delete"
-        ],
-        "Scopes": null
-      }
-    ],
-    "effects": [
-      "writesFS",
-      "idempotent"
-    ],
-    "signatureChecksum": "sha256:dd94d4f8a8bacbd1d42bc56711ab73395bdfe79a60628e3f7b4a6cfe835a6251"
-  },
-  {
-    "spec": {
       "name": "CreateRoot",
       "groupname": "FDM.Forum",
-      "fullname": "tool.fdm.forum.createroot",
+      "fullname": "",
       "description": "Creates a new root node for a discussion forum or thread.",
       "args": [
         {
@@ -205,1856 +17,13 @@
       "returnHelp": "Returns the NodeID of the newly created disc_root node."
     },
     "requiresTrust": false,
-    "signatureChecksum": "sha256:49ec87e0a80d9310b7b65251b6477fe3d9a2e6cd1e94ec5d2b58a7aa9e2ff7da"
-  },
-  {
-    "spec": {
-      "name": "CreateNode",
-      "groupname": "FDM",
-      "fullname": "tool.fdm.createnode",
-      "description": "Creates a new node in the FDM.",
-      "args": [
-        {
-          "name": "type",
-          "type": "string",
-          "description": "",
-          "required": true
-        },
-        {
-          "name": "fields",
-          "type": "map",
-          "description": "",
-          "required": false
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map representing the newly created node, including its ID."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:ec36d68bb84a17651a8d26b056da61ec3e50716eb667b999b621c74e3d1ed859"
-  },
-  {
-    "spec": {
-      "name": "Lookup",
-      "groupname": "FDM.FS",
-      "fullname": "tool.fdm.fs.lookup",
-      "description": "Looks up a specific path in the filesystem overlay.",
-      "args": [
-        {
-          "name": "path",
-          "type": "string",
-          "description": "The exact path of the file or directory to look up.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the NodeID of the fs_file or fs_dir node, or nil if not found."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:acda6b546b23aa297f641c8a00ff078df6b4d6e6efde17f55fd0122a005d531d"
-  },
-  {
-    "spec": {
-      "name": "FindNodes",
-      "groupname": "tree",
-      "fullname": "tool.tree.findnodes",
-      "description": "Finds nodes within a tree that match specific criteria.",
-      "category": "Tree Manipulation",
-      "args": [
-        {
-          "name": "tree_handle",
-          "type": "string",
-          "description": "Handle to the tree structure.",
-          "required": true
-        },
-        {
-          "name": "start_node_id",
-          "type": "string",
-          "description": "ID of the node to start searching from.",
-          "required": true
-        },
-        {
-          "name": "query_map",
-          "type": "map",
-          "description": "Map defining search criteria.",
-          "required": true
-        },
-        {
-          "name": "max_depth",
-          "type": "int",
-          "description": "Maximum depth to search.",
-          "required": false
-        },
-        {
-          "name": "max_results",
-          "type": "int",
-          "description": "Maximum number of results to return.",
-          "required": false
-        }
-      ],
-      "returnType": "slice_string",
-      "returnHelp": "Returns a slice of node IDs matching the query.",
-      "example": "tool.Tree.FindNodes(handle, \"start_node_id\", {\\\"type\\\":\\\"file\\\"})",
-      "errorConditions": "Returns `ErrArgumentMismatch`, `ErrInvalidArgument`, `ErrTreeNotFound`, `ErrNodeNotFound`, `ErrTreeInvalidQuery`, `ErrInternal`."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:f0d2d024c84e7111a46a60a3c85e92049048cd24ba97a9e9d4ae17bbe56bb942"
-  },
-  {
-    "spec": {
-      "name": "Append",
-      "groupname": "fs",
-      "fullname": "tool.fs.append",
-      "description": "Appends content to a specific file. Creates the file and parent directories if needed. Returns 'OK' on success.",
-      "category": "Filesystem",
-      "args": [
-        {
-          "name": "filepath",
-          "type": "string",
-          "description": "Relative path to the file.",
-          "required": true
-        },
-        {
-          "name": "content",
-          "type": "string",
-          "description": "The content to append.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns 'OK' on success. Returns nil on error.",
-      "example": "TOOL.FS.Append(filepath: \"logs/activity.log\", content: \"User logged in.\\n\")",
-      "errorConditions": "ErrArgumentMismatch; ErrConfiguration; ErrSecurityPath; ErrCannotCreateDir; ErrPermissionDenied; ErrPathNotFile; ErrIOFailed."
-    },
-    "requiresTrust": true,
-    "requiredCaps": [
-      {
-        "Resource": "fs",
-        "Verbs": [
-          "write"
-        ],
-        "Scopes": null
-      }
-    ],
-    "effects": [
-      "writesFS"
-    ],
-    "signatureChecksum": "sha256:c0e97a359ad3665655419d90731f2d5fbc46fc4bdbb62f4ea97a4ea8fcce8e0e"
-  },
-  {
-    "spec": {
-      "name": "ToolsHelp",
-      "groupname": "Meta",
-      "fullname": "tool.meta.toolshelp",
-      "description": "Provides a more extensive, Markdown-formatted list of available tools, including descriptions, parameters, and return types. Can be filtered by providing a partial tool name. Details include parameter names, types, descriptions, and return type with its description.",
-      "category": "Introspection",
-      "args": [
-        {
-          "name": "filter",
-          "type": "string",
-          "description": "An optional string to filter tool names. Only tools whose names contain this substring will be listed. If empty or omitted, all tools are listed.",
-          "required": false
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "A string in Markdown format detailing available tools, their descriptions, parameters, and return types. Output can be filtered by the optional 'filter' argument.",
-      "example": "ToolsHelp(filter: \"FS\")\nMeta.ToolsHelp()",
-      "errorConditions": "Returns ErrorCodeType if the 'filter' argument is provided but is not a string. Generally does not return other errors, unless the ToolRegistry is uninitialized (ErrorCodeConfiguration)."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:e971ea4deb1a14ff6f47a0a1a250eeced67f50cb908e42320764a46be4235db2"
-  },
-  {
-    "spec": {
-      "name": "GetToolSpecificationsJSON",
-      "groupname": "Meta",
-      "fullname": "tool.meta.gettoolspecificationsjson",
-      "description": "Provides a JSON string containing an array of all currently available tool specifications. Each object in the array represents a tool and includes its name, description, category, arguments (with their details), return type, return help, variadic status, example usage, and error conditions.",
-      "category": "Introspection",
-      "returnType": "string",
-      "returnHelp": "A JSON string representing an array of ToolSpec objects. This is intended for programmatic use or detailed inspection of all tool capabilities.",
-      "example": "GetToolSpecificationsJSON()",
-      "errorConditions": "Returns an error (ErrorCodeInternal) if JSON marshalling of the tool specifications fails. Generally does not return other errors unless the ToolRegistry is uninitialized (ErrorCodeConfiguration)."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:3d60242778f65fa2fa6bc28a2b2ce36eb20440895e569c751896068acb129d8d"
-  },
-  {
-    "spec": {
-      "name": "Length",
-      "groupname": "str",
-      "fullname": "tool.str.length",
-      "description": "Returns the number of UTF-8 characters (runes) in a string.",
-      "category": "String Operations",
-      "args": [
-        {
-          "name": "input_string",
-          "type": "string",
-          "description": "The string to measure.",
-          "required": true
-        }
-      ],
-      "returnType": "int",
-      "returnHelp": "Returns an integer representing the number of runes in the input string.",
-      "example": "tool.Length(\"hello\") // Returns 5",
-      "errorConditions": "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `input_string` is not a string."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:559a73f69f530d0b89ee2e4a77c964152154e89204e1babd533ef38adb5ac15b"
-  },
-  {
-    "spec": {
-      "name": "ListFunctions",
-      "groupname": "script",
-      "fullname": "tool.script.listfunctions",
-      "description": "Returns a map of all currently loaded function (procedure) names to their signatures.",
-      "category": "Scripting",
-      "returnType": "map",
-      "returnHelp": "Returns a map where each key is the name of a known function and the value is its signature.",
-      "example": "set loaded_functions = tool.script.ListFunctions()"
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:7f91d20592d75183900c7273b217d24e02caca72487633d8e2cb0741f5c8adbc"
-  },
-  {
-    "spec": {
-      "name": "Print",
-      "groupname": "io",
-      "fullname": "tool.io.print",
-      "description": "Prints values to the standard output. If multiple values are passed in a list, they are printed space-separated.",
-      "category": "Input/Output",
-      "args": [
-        {
-          "name": "values",
-          "type": "any",
-          "description": "A single value or a list of values to print. List elements will be space-separated.",
-          "required": true
-        }
-      ],
-      "returnType": "nil",
-      "returnHelp": "Returns nil. This tool is used for its side effect of printing to standard output.",
-      "variadic": true,
-      "example": "TOOL.Print(value: \"Hello World\")\\nTOOL.Print(values: [\"Hello\", 42, \"World!\"]) // Prints \"Hello 42 World!\"",
-      "errorConditions": "ErrArgumentMismatch if the internal 'values' argument is not provided as expected by the implementation."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:903263c302e83167d6b219fd16f90cd85e7f419edef4419e3213a77943fbedfe"
-  },
-  {
-    "spec": {
-      "name": "Divide",
-      "groupname": "math",
-      "fullname": "tool.math.divide",
-      "description": "Calculates the division of two numbers (num1 / num2). Returns float. Handles division by zero.",
-      "category": "Math Operations",
-      "args": [
-        {
-          "name": "num1",
-          "type": "float",
-          "description": "The dividend.",
-          "required": true
-        },
-        {
-          "name": "num2",
-          "type": "float",
-          "description": "The divisor.",
-          "required": true
-        }
-      ],
-      "returnType": "float",
-      "returnHelp": "Returns the result of num1 / num2 as a float64. Both inputs are expected to be (or be coercible to) numbers.",
-      "example": "tool.Divide(10, 4) // returns 2.5",
-      "errorConditions": "Returns 'ErrDivisionByZero' if num2 is 0. Returns an 'ErrInternalTool' if arguments cannot be processed as float64 (should be caught by validation)."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:fa48c0f66d97271698524381809df429eb9f86ee49d2958cfbad26948031c87f"
-  },
-  {
-    "spec": {
-      "name": "Vet",
-      "groupname": "gotools",
-      "fullname": "tool.gotools.vet",
-      "description": "Runs 'go vet' on the specified target(s) in the sandbox to report likely mistakes in Go source code. Defaults to './...'.",
-      "category": "Go types.Diagnostics",
-      "args": [
-        {
-          "name": "target",
-          "type": "string",
-          "description": "Optional. The target for 'go vet' (e.g., a package path or './...'). Defaults to './...'.",
-          "required": false
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map with 'stdout', 'stderr', 'exit_code' (int64), and 'success' (bool) from the 'go vet \u003ctarget\u003e' command. 'stderr' usually contains the vet diagnostics.",
-      "example": "tool.gotools.Vet(target: \"./pkg/core\")",
-      "errorConditions": "ErrInvalidArgument if optional target is not a string; ErrConfiguration if sandbox is not set; ErrInternalSecurity for path validation issues. Command execution failures are reported within the returned map."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:2a405670d602b32f764c20f40858115bb8c2542a06f55c4dbad201507233098a"
-  },
-  {
-    "spec": {
-      "name": "HasPrefix",
-      "groupname": "str",
-      "fullname": "tool.str.hasprefix",
-      "description": "Checks if a string starts with a prefix.",
-      "category": "String Operations",
-      "args": [
-        {
-          "name": "input_string",
-          "type": "string",
-          "description": "The string to check.",
-          "required": true
-        },
-        {
-          "name": "prefix",
-          "type": "string",
-          "description": "The prefix to check for.",
-          "required": true
-        }
-      ],
-      "returnType": "bool",
-      "returnHelp": "Returns true if the input_string starts with the prefix, false otherwise.",
-      "example": "tool.HasPrefix(\"filename.txt\", \"filename\") // Returns true",
-      "errorConditions": "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `input_string` or `prefix` are not strings."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:69ab339e67a412096ad5259cb5d05b67d9019e2a8f9c0b55c4e88ea257f30473"
-  },
-  {
-    "spec": {
-      "name": "LineCount",
-      "groupname": "str",
-      "fullname": "tool.str.linecount",
-      "description": "Counts the number of lines in the given string content.",
-      "category": "String Operations",
-      "args": [
-        {
-          "name": "content_string",
-          "type": "string",
-          "description": "The string content in which to count lines.",
-          "required": true
-        }
-      ],
-      "returnType": "int",
-      "returnHelp": "Returns an integer representing the number of lines in the string. Lines are typically separated by '\\n'. An empty string results in 0 lines. If the string is not empty and does not end with a newline, the last line is still counted.",
-      "example": "tool.LineCount(\"line1\\nline2\\nline3\") // Returns 3\ntool.LineCount(\"line1\\nline2\") // Returns 2\ntool.LineCount(\"\") // Returns 0",
-      "errorConditions": "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `content_string` is not a string."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:3a89c34b8bf73baa02b326beb56e24c91f6a2f02e9aac61224a44db0d822f15b"
-  },
-  {
-    "spec": {
-      "name": "Append",
-      "groupname": "list",
-      "fullname": "tool.list.append",
-      "description": "Returns a *new* list with the given element added to the end.",
-      "category": "List Operations",
-      "args": [
-        {
-          "name": "list",
-          "type": "slice_any",
-          "description": "The list to append to.",
-          "required": true
-        },
-        {
-          "name": "element",
-          "type": "any",
-          "description": "The element to append (can be nil).",
-          "required": false
-        }
-      ],
-      "returnType": "slice_any",
-      "returnHelp": "Returns a new list with the 'element' added to the end of the input 'list'. The original list is not modified.",
-      "example": "tool.List.Append([1, 2], 3) // returns [1, 2, 3]",
-      "errorConditions": "None expected, as input validation ensures 'list' is a slice. Appending 'nil' is allowed."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:e2b9c66ce38ef3898847f1ee79876c81591fc77658c2b2b0bf24fc43744971cf"
-  },
-  {
-    "spec": {
-      "name": "Get",
-      "groupname": "list",
-      "fullname": "tool.list.get",
-      "description": "Safely gets the element at a specific index (0-based). Returns nil or the optional default value if the index is out of bounds.",
-      "category": "List Operations",
-      "args": [
-        {
-          "name": "list",
-          "type": "slice_any",
-          "description": "The list to get from.",
-          "required": true
-        },
-        {
-          "name": "index",
-          "type": "int",
-          "description": "The 0-based index.",
-          "required": true
-        },
-        {
-          "name": "default",
-          "type": "any",
-          "description": "Optional default value if index is out of bounds.",
-          "required": false
-        }
-      ],
-      "returnType": "any",
-      "returnHelp": "Returns the element at the specified 0-based 'index' in the 'list'. If the index is out of bounds, it returns the provided 'default' value. If no 'default' is provided and the index is out of bounds, it returns nil.",
-      "example": "tool.List.Get([\"a\", \"b\", \"c\"], 1) // returns \"b\"\\n tool.List.Get([\"a\"], 5, \"default_val\") // returns \"default_val\"",
-      "errorConditions": "Returns nil or the default value if the index is out of bounds. No specific error type is returned for out-of-bounds access by design."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:f32ad0767a8ee6418c585e841d02040af1c909e79f26ac771a18179e944ce44d"
-  },
-  {
-    "spec": {
-      "name": "Getenv",
-      "groupname": "os",
-      "fullname": "tool.os.getenv",
-      "description": "Gets the value of an environment variable. Requires 'env:read' capability.",
-      "category": "Operating System",
-      "args": [
-        {
-          "name": "varName",
-          "type": "string",
-          "description": "The name of the environment variable.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the value of the environment variable as a string. Returns an empty string if the variable is not set.",
-      "example": "TOOL.OS.Getenv(varName: \"HOME\")",
-      "errorConditions": "ErrArgumentMismatch if varName is empty or not a string. Returns an empty string for non-existent variables, which is not considered an error."
-    },
-    "requiresTrust": true,
-    "requiredCaps": [
-      {
-        "Resource": "env",
-        "Verbs": [
-          "read"
-        ],
-        "Scopes": null
-      }
-    ],
-    "effects": [
-      "readsEnv"
-    ],
-    "signatureChecksum": "sha256:6128e589367da5efa0ef7ef72141299e1014365e699a24ac3c1920f399bdbb1b"
-  },
-  {
-    "spec": {
-      "name": "SetObjectAttribute",
-      "groupname": "tree",
-      "fullname": "tool.tree.setobjectattribute",
-      "description": "Sets or updates an attribute on an 'object' type node.",
-      "category": "Tree Manipulation",
-      "args": [
-        {
-          "name": "tree_handle",
-          "type": "string",
-          "description": "Handle for the tree structure.",
-          "required": true
-        },
-        {
-          "name": "object_node_id",
-          "type": "string",
-          "description": "Unique ID of the 'object' type node to modify.",
-          "required": true
-        },
-        {
-          "name": "attribute_key",
-          "type": "string",
-          "description": "The key of the attribute to set.",
-          "required": true
-        },
-        {
-          "name": "child_node_id",
-          "type": "string",
-          "description": "The ID of an existing node to associate with the key.",
-          "required": true
-        }
-      ],
-      "returnType": "nil",
-      "returnHelp": "Returns nil on success.",
-      "example": "tool.Tree.SetObjectAttribute(handle, \"obj_id\", \"myChild\", \"child_id\")",
-      "errorConditions": "Returns `ErrArgumentMismatch`, `ErrInvalidArgument`, `ErrTreeNotFound`, `ErrNodeNotFound`, `ErrTreeNodeNotObject`."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:866e3310622729b9bb23bf4c54173205e04a276b2db4b893054a9026bcb46406"
-  },
-  {
-    "spec": {
-      "name": "Add",
-      "groupname": "math",
-      "fullname": "tool.math.add",
-      "description": "Calculates the sum of two numbers (integers or decimals). Strings convertible to numbers are accepted.",
-      "category": "Math Operations",
-      "args": [
-        {
-          "name": "num1",
-          "type": "float",
-          "description": "The first number (or numeric string) to add.",
-          "required": true
-        },
-        {
-          "name": "num2",
-          "type": "float",
-          "description": "The second number (or numeric string) to add.",
-          "required": true
-        }
-      ],
-      "returnType": "float",
-      "returnHelp": "Returns the sum of num1 and num2 as a float64. Both inputs are expected to be (or be coercible to) numbers.",
-      "example": "tool.Add(5, 3.5) // returns 8.5",
-      "errorConditions": "Returns an 'ErrInternalTool' if arguments cannot be processed as float64 (this scenario should ideally be caught by input validation before the tool function is called)."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:938782e1b3ddacd29fe32ceccb98017890518f4cc3d2e733eba80abaeae90056"
-  },
-  {
-    "spec": {
-      "name": "Substring",
-      "groupname": "str",
-      "fullname": "tool.str.substring",
-      "description": "Returns a portion of the string (rune-based indexing), from start_index for a given length.",
-      "category": "String Operations",
-      "args": [
-        {
-          "name": "input_string",
-          "type": "string",
-          "description": "The string to take a substring from.",
-          "required": true
-        },
-        {
-          "name": "start_index",
-          "type": "int",
-          "description": "0-based start index (inclusive).",
-          "required": true
-        },
-        {
-          "name": "length",
-          "type": "int",
-          "description": "Number of characters to extract.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the specified substring (rune-based). Returns an empty string if length is zero or if start_index is out of bounds (after clamping). Gracefully handles out-of-bounds for non-negative start_index and length by returning available characters.",
-      "example": "tool.Substring(\"hello world\", 6, 5) // Returns \"world\"",
-      "errorConditions": "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if arguments are not of the correct type. Returns `ErrListIndexOutOfBounds` (with `ErrorCodeBounds`) if `start_index` or `length` are negative."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:4e97b740a39669ea8131cb2a3c3eae00ccca64235905f975505126e69b8dd6e5"
-  },
-  {
-    "spec": {
-      "name": "Concat",
-      "groupname": "str",
-      "fullname": "tool.str.concat",
-      "description": "Concatenates a list of strings without a separator.",
-      "category": "String Operations",
-      "args": [
-        {
-          "name": "strings_list",
-          "type": "slice_string",
-          "description": "List of strings to concatenate.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns a single string by concatenating all strings in the strings_list.",
-      "example": "tool.Concat([\"hello\", \" \", \"world\"]) // Returns \"hello world\"",
-      "errorConditions": "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `strings_list` is not a list of strings. May return `ErrTypeAssertionFailed` (with `ErrorCodeInternal`) if type validation fails unexpectedly."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:824d50c82c989d547ba8823efa1112f2ad38fb38582bf7b4d5aec23401e026d0"
-  },
-  {
-    "spec": {
-      "name": "HasSuffix",
-      "groupname": "str",
-      "fullname": "tool.str.hassuffix",
-      "description": "Checks if a string ends with a suffix.",
-      "category": "String Operations",
-      "args": [
-        {
-          "name": "input_string",
-          "type": "string",
-          "description": "The string to check.",
-          "required": true
-        },
-        {
-          "name": "suffix",
-          "type": "string",
-          "description": "The suffix to check for.",
-          "required": true
-        }
-      ],
-      "returnType": "bool",
-      "returnHelp": "Returns true if the input_string ends with the suffix, false otherwise.",
-      "example": "tool.HasSuffix(\"document.doc\", \".doc\") // Returns true",
-      "errorConditions": "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `input_string` or `suffix` are not strings."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:c8cc9d71fdac45cf4fe739989e74611f2f1eca61f1580a137fb7030f69d021e4"
-  },
-  {
-    "spec": {
-      "name": "Prepend",
-      "groupname": "list",
-      "fullname": "tool.list.prepend",
-      "description": "Returns a *new* list with the given element added to the beginning.",
-      "category": "List Operations",
-      "args": [
-        {
-          "name": "list",
-          "type": "slice_any",
-          "description": "The list to prepend to.",
-          "required": true
-        },
-        {
-          "name": "element",
-          "type": "any",
-          "description": "The element to prepend (can be nil).",
-          "required": false
-        }
-      ],
-      "returnType": "slice_any",
-      "returnHelp": "Returns a new list with the 'element' added to the beginning of the input 'list'. The original list is not modified.",
-      "example": "tool.List.Prepend([2, 3], 1) // returns [1, 2, 3]",
-      "errorConditions": "None expected, as input validation ensures 'list' is a slice. Prepending 'nil' is allowed."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:cdaf7fbb58ce0261c4b7b6641b93782fc51007aaa34d21b6884965390667e976"
-  },
-  {
-    "spec": {
-      "name": "Reverse",
-      "groupname": "list",
-      "fullname": "tool.list.reverse",
-      "description": "Returns a *new* list with the elements in reverse order.",
-      "category": "List Operations",
-      "args": [
-        {
-          "name": "list",
-          "type": "slice_any",
-          "description": "The list to reverse.",
-          "required": true
-        }
-      ],
-      "returnType": "slice_any",
-      "returnHelp": "Returns a new list with the elements of the input 'list' in reverse order. The original list is not modified.",
-      "example": "tool.List.Reverse([1, 2, 3]) // returns [3, 2, 1]",
-      "errorConditions": "None expected."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:59a652d9c00942e3874213ba0f2e7fb89f517786bf68e7375c744fc83530c653"
-  },
-  {
-    "spec": {
-      "name": "Rate",
-      "groupname": "FDM.Forum",
-      "fullname": "tool.fdm.forum.rate",
-      "description": "Submits a bipolar (-1..+1) quality rating for a message.",
-      "args": [
-        {
-          "name": "msgID",
-          "type": "string",
-          "description": "",
-          "required": true
-        },
-        {
-          "name": "rating",
-          "type": "float",
-          "description": "The rating value between -1.0 and 1.0.",
-          "required": true
-        },
-        {
-          "name": "reason",
-          "type": "string",
-          "description": "An optional brief justification for the rating.",
-          "required": false
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the NodeID of the newly created disc_feedback node."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:eee68f3c231f6b2b8f13ebd788cda0f9224329403286e1b8485d7eff8518035f"
-  },
-  {
-    "spec": {
-      "name": "ListMeta",
-      "groupname": "FDM.Overlays",
-      "fullname": "tool.fdm.overlays.listmeta",
-      "description": "Lists metadata for all registered overlays.",
-      "returnType": "slice_map",
-      "returnHelp": "Returns a list of maps, where each map contains metadata about an overlay: id, label, kind"
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:8746e67fc00848e4f0f3fe52612dd17f5cd4768bfa3b7bde9de94870c2cc5bbe"
-  },
-  {
-    "spec": {
-      "name": "AddIndex",
-      "groupname": "FDM.Plan",
-      "fullname": "tool.fdm.plan.addindex",
-      "description": "Adds an index to an ingest_plan, creating a new version of the plan.",
-      "args": [
-        {
-          "name": "planID",
-          "type": "string",
-          "description": "",
-          "required": true
-        },
-        {
-          "name": "indexID",
-          "type": "string",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the NodeID of the new, updated ingest_plan node."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:6c1186dd59f5161032c048c3b548f72b838ded339740b6a9be3bc2d6b01c03b9"
-  },
-  {
-    "spec": {
-      "name": "SetRespectGitignore",
-      "groupname": "FDM.Plan",
-      "fullname": "tool.fdm.plan.setrespectgitignore",
-      "description": "Sets whether the ingestion plan should respect .gitignore files.",
-      "args": [
-        {
-          "name": "planID",
-          "type": "string",
-          "description": "The NodeID of the ingest_plan to modify.",
-          "required": true
-        },
-        {
-          "name": "respect",
-          "type": "bool",
-          "description": "Set to true to respect .gitignore, false to ignore it.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the NodeID of the new, updated ingest_plan node."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:0fc794001c94f02f437a5ae3585d6ab0d5ea3e82496d3d22b04b61050052c281"
-  },
-  {
-    "spec": {
-      "name": "AddExcludeMIMETypes",
-      "groupname": "FDM.Plan",
-      "fullname": "tool.fdm.plan.addexcludemimetypes",
-      "description": "Adds a list of MIME types to the plan's exclusion list.",
-      "args": [
-        {
-          "name": "planID",
-          "type": "string",
-          "description": "The NodeID of the ingest_plan to modify.",
-          "required": true
-        },
-        {
-          "name": "mimeTypes",
-          "type": "slice_string",
-          "description": "A list of MIME type strings to exclude (e.g., ['image/png', 'application/pdf']).",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the NodeID of the new, updated ingest_plan node."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:8ffe00cea55e09ae27c0158869f37f8a6220a4fb3f2cd42883b13f946b81b91c"
-  },
-  {
-    "spec": {
-      "name": "GetNode",
-      "groupname": "FDM",
-      "fullname": "tool.fdm.getnode",
-      "description": "Retrieves a node by its ID from the FDM.",
-      "args": [
-        {
-          "name": "id",
-          "type": "string",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map representing the node's data, or nil if not found."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:ce9bbe5881da14c1213fbcc75a90f23a5c0dec6513d57175c4bdb72cb2cc6128"
-  },
-  {
-    "spec": {
-      "name": "ToJSON",
-      "groupname": "tree",
-      "fullname": "tool.tree.tojson",
-      "description": "Converts a tree structure back into a pretty-printed JSON string.",
-      "category": "Tree Manipulation",
-      "args": [
-        {
-          "name": "tree_handle",
-          "type": "string",
-          "description": "Handle to the tree structure.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns a pretty-printed JSON string representation of the tree.",
-      "example": "handle = tool.Tree.LoadJSON(\"{\\\"key\\\":\\\"value\\\"}\"); tool.Tree.ToJSON(handle)",
-      "errorConditions": "Returns `ErrArgumentMismatch`, `ErrInvalidArgument`, `ErrTreeNotFound`, `ErrTreeJSONMarshal`, `ErrInternal`."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:656f45974bd958ee70e05a01a4de7444f44b548304f51eac48b79b17b5343d35"
-  },
-  {
-    "spec": {
-      "name": "GetRoot",
-      "groupname": "tree",
-      "fullname": "tool.tree.getroot",
-      "description": "Retrieves the root node of the tree as a map.",
-      "category": "Tree Manipulation",
-      "args": [
-        {
-          "name": "tree_handle",
-          "type": "string",
-          "description": "Handle to the tree structure.",
-          "required": true
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map containing details of the root node.",
-      "example": "handle = tool.Tree.LoadJSON(\"{}\"); tool.Tree.GetRoot(handle)",
-      "errorConditions": "Returns `ErrArgumentMismatch`, `ErrInvalidArgument`, `ErrTreeNotFound`, `ErrInternal`."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:12d4af179f9c20531929d4a2c0e328ca526dbfa698bdfd633eeb027e54653ee8"
-  },
-  {
-    "spec": {
-      "name": "GetNodeByPath",
-      "groupname": "tree",
-      "fullname": "tool.tree.getnodebypath",
-      "description": "Retrieves a node from a tree using a dot-separated path expression.",
-      "category": "Tree Manipulation",
-      "args": [
-        {
-          "name": "tree_handle",
-          "type": "string",
-          "description": "Handle to the tree structure.",
-          "required": true
-        },
-        {
-          "name": "path",
-          "type": "string",
-          "description": "Dot-separated path (e.g., 'key.0.name').",
-          "required": true
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map containing details of the node found at the specified path.",
-      "example": "tool.Tree.GetNodeByPath(handle, \"data.users.1\")",
-      "errorConditions": "Returns `ErrArgumentMismatch`, `ErrInvalidArgument`, `ErrTreeNotFound`, `ErrNodeNotFound`, `ErrKeyNotFound`, `ErrNodeWrongType`."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:918b0484226b63ec55c698f78fc742716498bc6a4df066923f37f34c8b785881"
-  },
-  {
-    "spec": {
-      "name": "Register",
-      "groupname": "agentmodel",
-      "fullname": "tool.agentmodel.register",
-      "description": "Registers a new AgentModel configuration.",
-      "args": [
-        {
-          "name": "name",
-          "type": "string",
-          "description": "",
-          "required": true
-        },
-        {
-          "name": "config",
-          "type": "map",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "bool"
-    },
-    "requiresTrust": true,
-    "requiredCaps": [
-      {
-        "Resource": "model",
-        "Verbs": [
-          "admin"
-        ],
-        "Scopes": [
-          "*"
-        ]
-      }
-    ],
-    "effects": [
-      "idempotent"
-    ],
-    "signatureChecksum": "sha256:5b142453c32bbb24002b345eb7c40857681bf9a66839be7a22b0d546c04e8b2d"
-  },
-  {
-    "spec": {
-      "name": "Select",
-      "groupname": "agentmodel",
-      "fullname": "tool.agentmodel.select",
-      "description": "Selects (finds) a specific AgentModel by name.",
-      "args": [
-        {
-          "name": "name",
-          "type": "string",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "string"
-    },
-    "requiresTrust": false,
-    "effects": [
-      "idempotent"
-    ],
-    "signatureChecksum": "sha256:50bff8ae503c6de416eaed0146036e14007476716fdd2b6c1f536d4c67ae3365"
-  },
-  {
-    "spec": {
-      "name": "Write",
-      "groupname": "fs",
-      "fullname": "tool.fs.write",
-      "description": "Writes content to a specific file, overwriting it if it exists. Creates parent directories if needed. Returns 'OK' on success.",
-      "category": "Filesystem",
-      "args": [
-        {
-          "name": "filepath",
-          "type": "string",
-          "description": "Relative path to the file.",
-          "required": true
-        },
-        {
-          "name": "content",
-          "type": "string",
-          "description": "The content to write.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns 'OK' on success. Returns nil on error.",
-      "example": "TOOL.FS.Write(filepath: \"output/data.json\", content: \"{\\\"key\\\":\\\"value\\\"}\")",
-      "errorConditions": "ErrArgumentMismatch; ErrConfiguration; ErrSecurityPath; ErrCannotCreateDir; ErrPermissionDenied; ErrPathNotFile; ErrIOFailed."
-    },
-    "requiresTrust": true,
-    "requiredCaps": [
-      {
-        "Resource": "fs",
-        "Verbs": [
-          "write"
-        ],
-        "Scopes": null
-      }
-    ],
-    "effects": [
-      "writesFS",
-      "idempotent"
-    ],
-    "signatureChecksum": "sha256:9049bfacf69d0b31f0243b6c11b1eb9166b2ab1be6d023243b1c33424d85f318"
-  },
-  {
-    "spec": {
-      "name": "Input",
-      "groupname": "io",
-      "fullname": "tool.io.input",
-      "description": "Displays a message and waits for user input from standard input. Returns the input as a string.",
-      "category": "Input/Output",
-      "args": [
-        {
-          "name": "message",
-          "type": "string",
-          "description": "The message to display to the user before waiting for input. If null or empty, no prompt message is printed.",
-          "required": false
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the string entered by the user, with trailing newline characters trimmed. Returns an empty string and an error if reading input fails.",
-      "example": "userName = TOOL.Input(message: \"Enter your name: \")",
-      "errorConditions": "ErrorCodeType if the prompt message argument is provided but not a string; ErrorCodeIOFailed if reading from standard input fails (e.g., EOF)."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:ce032312981861b8288e9273f6f5bc04e4094bd8193a5359962e3d26d9e9f690"
-  },
-  {
-    "spec": {
-      "name": "Staticcheck",
-      "groupname": "gotools",
-      "fullname": "tool.gotools.staticcheck",
-      "description": "Runs 'staticcheck' on the specified target(s) in the sandbox. Reports bugs, stylistic errors, and performance issues. Defaults to './...'. Assumes 'staticcheck' is in PATH.",
-      "category": "Go types.Diagnostics",
-      "args": [
-        {
-          "name": "target",
-          "type": "string",
-          "description": "Optional. The target for 'staticcheck' (e.g., a package path or './...'). Defaults to './...'.",
-          "required": false
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map with 'stdout', 'stderr', 'exit_code' (int64), and 'success' (bool) from the 'staticcheck \u003ctarget\u003e' command. 'stdout' usually contains the diagnostics.",
-      "example": "tool.gotools.Staticcheck(target: \"./...\")",
-      "errorConditions": "ErrInvalidArgument if optional target is not a string; ErrToolExecutionFailed if 'staticcheck' command fails (e.g. not found, or internal error), reported via the toolExecuteCommand structure."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:91211816c94f2dc98640b8790571c5270d5bc356ae197c535d5b50ff4f20f1a2"
-  },
-  {
-    "spec": {
-      "name": "ToLower",
-      "groupname": "str",
-      "fullname": "tool.str.tolower",
-      "description": "Converts a string to lowercase.",
-      "category": "String Operations",
-      "args": [
-        {
-          "name": "input_string",
-          "type": "string",
-          "description": "The string to convert.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the lowercase version of the input string.",
-      "example": "tool.ToLower(\"HELLO\") // Returns \"hello\"",
-      "errorConditions": "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `input_string` is not a string."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:c5d5627814a8c56a4134d9e45c228e8584cfc25521a3d5c05bc95ab3e5c217e9"
-  },
-  {
-    "spec": {
-      "name": "Sleep",
-      "groupname": "time",
-      "fullname": "tool.time.sleep",
-      "description": "Pauses the script execution for a specified duration.",
-      "category": "Time",
-      "args": [
-        {
-          "name": "duration_seconds",
-          "type": "number",
-          "description": "The number of seconds to sleep (can be a fraction).",
-          "required": false
-        }
-      ],
-      "returnType": "boolean",
-      "returnHelp": "Returns true on successful completion of the sleep duration.",
-      "example": "`call tool.Time.Sleep(1.5)`"
-    },
-    "requiresTrust": false,
-    "effects": [
-      "readsClock"
-    ],
-    "signatureChecksum": "sha256:cdec70042e6dba3c9d9f26b6fe8373baef51467ca0a1568565bf098438653066"
-  },
-  {
-    "spec": {
-      "name": "Summarize",
-      "groupname": "FDM.Forum",
-      "fullname": "tool.fdm.forum.summarize",
-      "description": "Generates a summary node for a message using its aggregated vote and rating data.",
-      "args": [
-        {
-          "name": "msgID",
-          "type": "string",
-          "description": "The NodeID of the message to summarize.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the NodeID of the newly created disc_summary node."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:bca8843467340c9fa24fbc8b0a06ca4a6f2aabd08c7db2147f81e4ac22dcdcdb"
-  },
-  {
-    "spec": {
-      "name": "AddIgnorePatterns",
-      "groupname": "FDM.Plan",
-      "fullname": "tool.fdm.plan.addignorepatterns",
-      "description": "Adds a list of glob patterns to an ingest_plan's ignore list.",
-      "args": [
-        {
-          "name": "planID",
-          "type": "string",
-          "description": "The NodeID of the ingest_plan to modify.",
-          "required": true
-        },
-        {
-          "name": "patterns",
-          "type": "slice_string",
-          "description": "A list of glob patterns to add (e.g., ['**/node_modules', '*.log']).",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the NodeID of the new, updated ingest_plan node."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:efb2bb5aef7bbb953ec7536722d66890f9b267e87f806af20c1f002f4c55855c"
-  },
-  {
-    "spec": {
-      "name": "RemoveObjectAttribute",
-      "groupname": "tree",
-      "fullname": "tool.tree.removeobjectattribute",
-      "description": "Removes an attribute from an 'object' type node.",
-      "category": "Tree Manipulation",
-      "args": [
-        {
-          "name": "tree_handle",
-          "type": "string",
-          "description": "Handle for the tree structure.",
-          "required": true
-        },
-        {
-          "name": "object_node_id",
-          "type": "string",
-          "description": "Unique ID of the 'object' type node to modify.",
-          "required": true
-        },
-        {
-          "name": "attribute_key",
-          "type": "string",
-          "description": "The key of the attribute to remove.",
-          "required": true
-        }
-      ],
-      "returnType": "nil",
-      "returnHelp": "Returns nil on success.",
-      "example": "tool.Tree.RemoveObjectAttribute(handle, \"obj_id\", \"myChild\")",
-      "errorConditions": "Returns `ErrArgumentMismatch`, `ErrInvalidArgument`, `ErrTreeNotFound`, `ErrNodeNotFound`, `ErrTreeNodeNotObject`, `ErrAttributeNotFound`."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:b2a40483ef126fe4e8904eae9776cc47c348ece76d3a88d7abd27a5cd4ff65e0"
-  },
-  {
-    "spec": {
-      "name": "Delete",
-      "groupname": "agentmodel",
-      "fullname": "tool.agentmodel.delete",
-      "description": "Deletes an AgentModel configuration.",
-      "args": [
-        {
-          "name": "name",
-          "type": "string",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "bool"
-    },
-    "requiresTrust": true,
-    "requiredCaps": [
-      {
-        "Resource": "model",
-        "Verbs": [
-          "admin"
-        ],
-        "Scopes": [
-          "*"
-        ]
-      }
-    ],
-    "effects": [
-      "idempotent"
-    ],
-    "signatureChecksum": "sha256:3f88c399c85935ca0a4d0de9ce6f5911f3abac7c85e525e2b89cb745ce5825a3"
-  },
-  {
-    "spec": {
-      "name": "Subtract",
-      "groupname": "math",
-      "fullname": "tool.math.subtract",
-      "description": "Calculates the difference between two numbers (num1 - num2). Strings convertible to numbers are accepted.",
-      "category": "Math Operations",
-      "args": [
-        {
-          "name": "num1",
-          "type": "float",
-          "description": "The number to subtract from.",
-          "required": true
-        },
-        {
-          "name": "num2",
-          "type": "float",
-          "description": "The number to subtract.",
-          "required": true
-        }
-      ],
-      "returnType": "float",
-      "returnHelp": "Returns the difference of num1 - num2 as a float64. Both inputs are expected to be (or be coercible to) numbers.",
-      "example": "tool.Subtract(10, 4.5) // returns 5.5",
-      "errorConditions": "Returns an 'ErrInternalTool' if arguments cannot be processed as float64 (should be caught by validation)."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:2b2e108cf0017b050c6a5271daa1a1a4018be819dfbbd80b1c65763f92541606"
-  },
-  {
-    "spec": {
-      "name": "Check",
-      "groupname": "gotools",
-      "fullname": "tool.gotools.check",
-      "description": "Checks Go code validity using 'go list -e -json \u003ctarget\u003e' within the sandbox. Returns a map indicating success and error details.",
-      "category": "Go types.Diagnostics",
-      "args": [
-        {
-          "name": "target",
-          "type": "string",
-          "description": "Target Go package path or file path relative to sandbox (e.g., './pkg/core', 'main.go').",
-          "required": true
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map with 'check_success' (bool) and 'error_details' (string). 'check_success' is true if 'go list -e -json' finds no errors in the target's JSON output. 'error_details' contains messages if errors are found or if the command fails.",
-      "example": "tool.gotools.Check(target: \"./pkg/core\")",
-      "errorConditions": "ErrConfiguration if sandbox is not set; ErrInternalSecurity for path validation issues. Command execution issues or JSON parsing errors result in 'check_success':false and details in 'error_details'."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:44cde51939108ec0afe309ea917cd1e864a4d76f8c06e002dcbd4a1b766514ab"
-  },
-  {
-    "spec": {
-      "name": "Contains",
-      "groupname": "list",
-      "fullname": "tool.list.contains",
-      "description": "Checks if a list contains a specific element (using deep equality comparison).",
-      "category": "List Operations",
-      "args": [
-        {
-          "name": "list",
-          "type": "slice_any",
-          "description": "The list to search within.",
-          "required": true
-        },
-        {
-          "name": "element",
-          "type": "any",
-          "description": "The element to search for (can be nil).",
-          "required": false
-        }
-      ],
-      "returnType": "bool",
-      "returnHelp": "Returns true if the 'list' contains the specified 'element', using deep equality for comparison. Returns false otherwise.",
-      "example": "tool.List.Contains([1, \"a\", true], \"a\") // returns true",
-      "errorConditions": "None expected. Comparison with 'nil' elements is handled."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:2a19ce5d78cb4bdc83ae719d1a42cd14ae1af11ef4875ae794ecbba884403aa8"
-  },
-  {
-    "spec": {
-      "name": "Vote",
-      "groupname": "FDM.Forum",
-      "fullname": "tool.fdm.forum.vote",
-      "description": "Submits a unipolar (+1/support, 0/abstain) vote for a message.",
-      "args": [
-        {
-          "name": "msgID",
-          "type": "string",
-          "description": "",
-          "required": true
-        },
-        {
-          "name": "value",
-          "type": "float",
-          "description": "The vote value, typically 1.0 for 'yes' or 0.0 for 'no'.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the NodeID of the newly created disc_vote node."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:b4532bce8d2bba9d9cb2663b18082764a5b0c5a7d47ec7ccf032ca447d28da9e"
-  },
-  {
-    "spec": {
-      "name": "Ingest",
-      "groupname": "FDM.Repo",
-      "fullname": "tool.fdm.repo.ingest",
-      "description": "Executes a full ingestion process by walking the entire repository based on a specified ingest_plan.",
-      "args": [
-        {
-          "name": "planID",
-          "type": "string",
-          "description": "The NodeID of the ingest_plan to execute.",
-          "required": true
-        }
-      ],
-      "returnType": "bool",
-      "returnHelp": "Returns true on successful completion of the ingestion."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:ad613e731a13b68490435e53f908a512f13520887d7e2a88a37278476e55d008"
-  },
-  {
-    "spec": {
-      "name": "DeleteNode",
-      "groupname": "FDM",
-      "fullname": "tool.fdm.deletenode",
-      "description": "Deletes a node by its ID from the FDM.",
-      "args": [
-        {
-          "name": "id",
-          "type": "string",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "bool",
-      "returnHelp": "Returns true on success."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:9a426242a7e16d5ef20c6ca5273d409534a69bf6e40e0f06093ca811bf79b0f3"
-  },
-  {
-    "spec": {
-      "name": "Read",
-      "groupname": "fs",
-      "fullname": "tool.fs.read",
-      "description": "Reads the entire content of a specific file. Returns the content as a string.",
-      "category": "Filesystem",
-      "args": [
-        {
-          "name": "filepath",
-          "type": "string",
-          "description": "Relative path to the file.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the content of the file as a string. Returns an empty string on error.",
-      "example": "TOOL.FS.Read(filepath: \"config.txt\")",
-      "errorConditions": "ErrArgumentMismatch if filepath is empty; ErrConfiguration if sandbox is not set; ErrSecurityPath for invalid paths; ErrFileNotFound; ErrPermissionDenied; ErrPathNotFile if path is a directory; ErrIOFailed for other I/O errors."
-    },
-    "requiresTrust": true,
-    "requiredCaps": [
-      {
-        "Resource": "fs",
-        "Verbs": [
-          "read"
-        ],
-        "Scopes": null
-      }
-    ],
-    "effects": [
-      "readsFS"
-    ],
-    "signatureChecksum": "sha256:2a67595dd311b786077796af5e9f132bd549fe16d55e0834abd6a69db16ab9c0"
-  },
-  {
-    "spec": {
-      "name": "Modulo",
-      "groupname": "math",
-      "fullname": "tool.math.modulo",
-      "description": "Calculates the modulo (remainder) of two integers (num1 % num2). Handles division by zero.",
-      "category": "Math Operations",
-      "args": [
-        {
-          "name": "num1",
-          "type": "int",
-          "description": "The dividend (must be integer).",
-          "required": true
-        },
-        {
-          "name": "num2",
-          "type": "int",
-          "description": "The divisor (must be integer).",
-          "required": true
-        }
-      ],
-      "returnType": "int",
-      "returnHelp": "Returns the remainder of num1 % num2 as an int64. Both inputs must be integers.",
-      "example": "tool.Modulo(10, 3) // returns 1",
-      "errorConditions": "Returns 'ErrDivisionByZero' if num2 is 0. Returns an 'ErrInternalTool' if arguments cannot be processed as int64 (should be caught by validation)."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:1385e4a31e879db7e5a62c29942ea84ac629e222a0231e97f5133f94df0891cc"
-  },
-  {
-    "spec": {
-      "name": "Join",
-      "groupname": "str",
-      "fullname": "tool.str.join",
-      "description": "Joins elements of a list of strings with a separator.",
-      "category": "String Operations",
-      "args": [
-        {
-          "name": "string_list",
-          "type": "slice_string",
-          "description": "List of strings to join.",
-          "required": true
-        },
-        {
-          "name": "separator",
-          "type": "string",
-          "description": "String to place between elements.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns a single string created by joining the elements of string_list with the separator.",
-      "example": "tool.Join([\"apple\", \"banana\"], \", \") // Returns \"apple, banana\"",
-      "errorConditions": "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `string_list` is not a list of strings or `separator` is not a string."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:beea402ab7532a62193b98c446bd79e9598171e096c900f8f6cf248c5ef85fb8"
-  },
-  {
-    "spec": {
-      "name": "Head",
-      "groupname": "list",
-      "fullname": "tool.list.head",
-      "description": "Returns the first element of the list, or nil if the list is empty.",
-      "category": "List Operations",
-      "args": [
-        {
-          "name": "list",
-          "type": "slice_any",
-          "description": "The list to get the head from.",
-          "required": true
-        }
-      ],
-      "returnType": "any",
-      "returnHelp": "Returns the first element of the 'list'. If the list is empty, it returns nil.",
-      "example": "tool.List.Head([1, 2, 3]) // returns 1\\ntool.List.Head([]) // returns nil",
-      "errorConditions": "None expected. Returns nil for an empty list."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:d881e4c3da5483afe58a31b6b61aeac8658d6d8bb00fdc48a0d1328cbddce2a3"
-  },
-  {
-    "spec": {
-      "name": "AddOverlay",
-      "groupname": "FDM.Plan",
-      "fullname": "tool.fdm.plan.addoverlay",
-      "description": "Adds an overlay to an ingest_plan, creating a new version of the plan.",
-      "args": [
-        {
-          "name": "planID",
-          "type": "string",
-          "description": "",
-          "required": true
-        },
-        {
-          "name": "overlayID",
-          "type": "string",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the NodeID of the new, updated ingest_plan node."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:a912367eb253dbc1a82154636634927d338f9ee24d53ad8e4f7272d84983aec8"
-  },
-  {
-    "spec": {
-      "name": "analyzeNSSyntax",
-      "groupname": "syntax",
-      "fullname": "tool.syntax.analyzenssyntax",
-      "description": "Analyzes a NeuroScript string for syntax errors. Returns a list of maps, where each map details an error. Returns an empty list if no errors are found.",
-      "category": "Syntax Utilities",
-      "args": [
-        {
-          "name": "nsScriptContent",
-          "type": "string",
-          "description": "The NeuroScript content to analyze.",
-          "required": true
-        }
-      ],
-      "returnType": "slice_map",
-      "returnHelp": "Returns a list (slice) of maps. Each map represents a syntax error and contains the following keys:\n- `Line`: number (1-based) - The line number of the error.\n- `Column`: number (0-based) - The character types.Position in the line where the error occurred.\n- `Msg`: string - The error message.\n- `OffendingSymbol`: string - The text of the token that caused the error (may be empty).\n- `SourceName`: string - Identifier for the source (e.g., 'nsSyntaxAnalysisToolInput').\nAn empty list is returned if no syntax errors are found.",
-      "example": "set script_to_check = `func myFunc means\n  set x = \nendfunc`\nset error_list = tool.analyzeNSSyntax(script_to_check)\nif tool.List.IsEmpty(error_list) == false\n  set first_error = tool.List.Get(error_list, 0)\n  emit \"First error on line \" + first_error[\"Line\"] + \": \" + first_error[\"Msg\"]\nendif",
-      "errorConditions": "Returns `ErrArgumentMismatch` if the wrong number of arguments is supplied. Returns `ErrInvalidArgument` if `nsScriptContent` is not a string, or if the interpreter instance is nil. The underlying call to `AnalyzeNSSyntaxInternal` might return an error (e.g. `ErrInternal`) if there's an unexpected issue during its processing, though it aims to return an error list."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:16c85ca4018ad1c88823874485b8f72e364429dbced346fd2cfa31d4e1b2ef0f"
-  },
-  {
-    "spec": {
-      "name": "RemoveNodeMetadata",
-      "groupname": "tree",
-      "fullname": "tool.tree.removenodemetadata",
-      "description": "Removes a metadata attribute from a node.",
-      "category": "Tree Manipulation",
-      "args": [
-        {
-          "name": "tree_handle",
-          "type": "string",
-          "description": "Handle to the tree structure.",
-          "required": true
-        },
-        {
-          "name": "node_id",
-          "type": "string",
-          "description": "ID of the node to remove metadata from.",
-          "required": true
-        },
-        {
-          "name": "metadata_key",
-          "type": "string",
-          "description": "The key of the metadata attribute to remove.",
-          "required": true
-        }
-      ],
-      "returnType": "nil",
-      "returnHelp": "Returns nil on success.",
-      "example": "tool.Tree.RemoveNodeMetadata(handle, \"my_node_id\", \"version\")",
-      "errorConditions": "Returns `ErrArgumentMismatch`, `ErrInvalidArgument`, `ErrTreeNotFound`, `ErrNodeNotFound`, `ErrAttributeNotFound`."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:0cb794ce745cd722d95c2b14158f758bdda53928a62d28e4dd9260cc2466b648"
-  },
-  {
-    "spec": {
-      "name": "LineCount",
-      "groupname": "fs",
-      "fullname": "tool.fs.linecount",
-      "description": "Counts lines in a specified file. Returns line count as an integer.",
-      "category": "Filesystem",
-      "args": [
-        {
-          "name": "filepath",
-          "type": "string",
-          "description": "Relative path to the file.",
-          "required": true
-        }
-      ],
-      "returnType": "int",
-      "returnHelp": "Returns the number of lines in the specified file. Returns 0 on error or if file is empty.",
-      "example": "TOOL.FS.LineCount(filepath: \"logs/app.log\")",
-      "errorConditions": "ErrArgumentMismatch if filepath is empty; ErrConfiguration if sandbox is not set; ErrSecurityPath for invalid paths; ErrFileNotFound; ErrPermissionDenied; ErrPathNotFile if path is a directory; ErrIOFailed for read errors."
-    },
-    "requiresTrust": true,
-    "requiredCaps": [
-      {
-        "Resource": "fs",
-        "Verbs": [
-          "read"
-        ],
-        "Scopes": null
-      }
-    ],
-    "effects": [
-      "readsFS"
-    ],
-    "signatureChecksum": "sha256:5b35ec6ef0d57bb7adfcccbd4a27714c09ac711464b45cf5f57260f5108c3a73"
-  },
-  {
-    "spec": {
-      "name": "SanitizeFilename",
-      "groupname": "fs",
-      "fullname": "tool.fs.sanitizefilename",
-      "description": "Cleans a string to make it suitable for use as part of a filename.",
-      "category": "Filesystem Utilities",
-      "args": [
-        {
-          "name": "name",
-          "type": "string",
-          "description": "The string to sanitize.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns a sanitized string suitable for use as a filename component.",
-      "example": "TOOL.FS.SanitizeFilename(name: \"My Report Final?.docx\")",
-      "errorConditions": "ErrArgumentMismatch if name is not provided or not a string."
-    },
-    "requiresTrust": false,
-    "effects": [
-      "idempotent"
-    ],
-    "signatureChecksum": "sha256:c2e044e028e1faf60fb87a89f2a2e91ce816128d0207e80e110a7e3b05498566"
-  },
-  {
-    "spec": {
-      "name": "Multiply",
-      "groupname": "math",
-      "fullname": "tool.math.multiply",
-      "description": "Calculates the product of two numbers. Strings convertible to numbers are accepted.",
-      "category": "Math Operations",
-      "args": [
-        {
-          "name": "num1",
-          "type": "float",
-          "description": "The first number.",
-          "required": true
-        },
-        {
-          "name": "num2",
-          "type": "float",
-          "description": "The second number.",
-          "required": true
-        }
-      ],
-      "returnType": "float",
-      "returnHelp": "Returns the product of num1 and num2 as a float64. Both inputs are expected to be (or be coercible to) numbers.",
-      "example": "tool.Multiply(6, 7.0) // returns 42.0",
-      "errorConditions": "Returns an 'ErrInternalTool' if arguments cannot be processed as float64 (should be caught by validation)."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:363aa2a294eb440741ed73acbb4cf4f9898d55c53cfc211a6ec8393e8ebc4da8"
-  },
-  {
-    "spec": {
-      "name": "ListPackages",
-      "groupname": "gotools",
-      "fullname": "tool.gotools.listpackages",
-      "description": "Runs 'go list -json' for specified patterns in a target directory. Returns a list of maps, each describing a package.",
-      "category": "Go Build Tools",
-      "args": [
-        {
-          "name": "target_directory",
-          "type": "string",
-          "description": "Optional. The directory relative to the sandbox root to run 'go list'. Defaults to '.' (sandbox root).",
-          "required": false
-        },
-        {
-          "name": "patterns",
-          "type": "slice_string",
-          "description": "Optional. A list of package patterns (e.g., './...', 'example.com/project/...'). Defaults to ['./...'].",
-          "required": false
-        }
-      ],
-      "returnType": "slice_map",
-      "returnHelp": "Returns a slice of maps, where each map is a JSON object representing a Go package as output by 'go list -json'. Returns an empty slice on command failure or if JSON decoding fails.",
-      "example": "tool.gotools.ListPackages(target_directory: \"pkg/core\", patterns: [\"./...\"])",
-      "errorConditions": "ErrValidationTypeMismatch if patterns arg contains non-string elements; ErrInternalTool if execution helper fails internally or JSON decoding fails; ErrConfiguration if sandbox is not set; ErrInternalSecurity for path validation issues. 'go list' command failures are reported in its output map rather than a Go error from the tool."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:61cecbcd19ad071dc9045ab752f6397680c24fa02a415b658b3effb469e6e7d9"
-  },
-  {
-    "spec": {
-      "name": "Rename",
-      "groupname": "FDM.FS",
-      "fullname": "tool.fdm.fs.rename",
-      "description": "Records a rename/move event for a file or directory.",
-      "args": [
-        {
-          "name": "srcPath",
-          "type": "string",
-          "description": "The original path of the file or directory.",
-          "required": true
-        },
-        {
-          "name": "dstPath",
-          "type": "string",
-          "description": "The new path for the file or directory.",
-          "required": true
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map representing the newly created fs_rename node."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:19c3dfa5dc0fd53bf52fee762a86bd29a413d75a6cfd53296fedf4d8be73fd64"
-  },
-  {
-    "spec": {
-      "name": "GetChildren",
-      "groupname": "tree",
-      "fullname": "tool.tree.getchildren",
-      "description": "Gets a list of node IDs of the children of a given 'array' type node.",
-      "category": "Tree Manipulation",
-      "args": [
-        {
-          "name": "tree_handle",
-          "type": "string",
-          "description": "Handle to the tree structure.",
-          "required": true
-        },
-        {
-          "name": "node_id",
-          "type": "string",
-          "description": "ID of the 'array' type parent node.",
-          "required": true
-        }
-      ],
-      "returnType": "slice_string",
-      "returnHelp": "Returns a slice of child node IDs.",
-      "example": "tool.Tree.GetChildren(handle, \"array_node_id\")",
-      "errorConditions": "Returns `ErrArgumentMismatch`, `ErrInvalidArgument`, `ErrTreeNotFound`, `ErrNodeNotFound`, `ErrNodeWrongType`."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:3c52aa75c966f80cc7ed654e2be50fd7188cc8dc3ebc2cf55d64ab9727c0fed8"
-  },
-  {
-    "spec": {
-      "name": "Mkdir",
-      "groupname": "fs",
-      "fullname": "tool.fs.mkdir",
-      "description": "Creates a directory (like mkdir -p). Returns a success message.",
-      "category": "Filesystem",
-      "args": [
-        {
-          "name": "path",
-          "type": "string",
-          "description": "Relative path of the directory to create.",
-          "required": true
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map indicating success. Returns nil on error.",
-      "example": "TOOL.FS.Mkdir(path: \"new/subdir\")",
-      "errorConditions": "ErrArgumentMismatch; ErrConfiguration; ErrSecurityPath; ErrPathNotDirectory; ErrPathExists; ErrPermissionDenied; ErrIOFailed; ErrCannotCreateDir."
-    },
-    "requiresTrust": true,
-    "requiredCaps": [
-      {
-        "Resource": "fs",
-        "Verbs": [
-          "write"
-        ],
-        "Scopes": null
-      }
-    ],
-    "effects": [
-      "writesFS",
-      "idempotent"
-    ],
-    "signatureChecksum": "sha256:1cb994aa1d42ef56f4dab7917cf2a484fcdd7a168795d9e9332f0e33ad2fe00f"
-  },
-  {
-    "spec": {
-      "name": "ListTools",
-      "groupname": "Meta",
-      "fullname": "tool.meta.listtools",
-      "description": "Provides a compact text list (sorted alphabetically) of all currently available tools, including basic parameter information. Each tool is listed on a new line, showing its name, parameters (name:type), and return type. Example: FS.Read(filepath:string) -\u003e string",
-      "category": "Introspection",
-      "returnType": "string",
-      "returnHelp": "A string containing a newline-separated list of tool names, their parameters (name:type), and return types.",
-      "example": "ListTools()",
-      "errorConditions": "Generally does not return errors, unless the ToolRegistry is uninitialized (which would be an ErrorCodeConfiguration if an attempt is made to call it in such a state)."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:9977d55177eb50eb4e460e8637270d5ceada1cd6997eff945cd404d338ffd116"
-  },
-  {
-    "spec": {
-      "name": "Build",
-      "groupname": "gotools",
-      "fullname": "tool.gotools.build",
-      "description": "Runs 'go build' for a specified target in the sandbox. Defaults to './...'.",
-      "category": "Go Build Tools",
-      "args": [
-        {
-          "name": "target",
-          "type": "string",
-          "description": "Optional. The build target (e.g., a package path or './...'). Defaults to './...'.",
-          "required": false
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map with 'stdout', 'stderr', 'exit_code' (int64), and 'success' (bool) from the 'go build \u003ctarget\u003e' command.",
-      "example": "tool.gotools.Build(target: \"./cmd/mytool\")",
-      "errorConditions": "ErrInvalidArgument if optional target is not a string; ErrConfiguration if sandbox is not set; ErrInternalSecurity for path validation issues. Command execution failures are reported within the returned map."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:22e6ac541df05214fb98ce238e2c456625b095a9f2b45e8e8e2f5b31ae54fe3a"
-  },
-  {
-    "spec": {
-      "name": "GetModuleInfo",
-      "groupname": "gotools",
-      "fullname": "tool.gotools.getmoduleinfo",
-      "description": "Finds and parses the go.mod file relevant to a directory by searching upwards. Returns a map with module path, go version, root directory, requires, and replaces, or nil if not found.",
-      "category": "Go Build Tools",
-      "args": [
-        {
-          "name": "directory",
-          "type": "string",
-          "description": "Directory (relative to sandbox) to start searching upwards for go.mod. Defaults to '.' (sandbox root).",
-          "required": false
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map containing 'modulePath', 'goVersion', 'rootDir' (absolute path to module root), 'requires' (list of maps), and 'replaces' (list of maps). Returns nil if no go.mod is found.",
-      "example": "tool.gotools.GetModuleInfo(directory: \"cmd/mytool\")",
-      "errorConditions": "ErrValidationTypeMismatch if directory arg is not a string; ErrInternalSecurity if sandbox is not set or for path validation errors; ErrInternalTool if FindAndParseGoMod fails for reasons other than os.ErrNotExist (e.g., parsing error, file read error). If go.mod is not found, returns nil result and nil error (not a Go-level tool error)."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:7f28cd28a41cfd481f27f2bc83eff9aff736a9e755b3424d2bee5fc5d3e2e907"
-  },
-  {
-    "spec": {
-      "name": "SplitWords",
-      "groupname": "str",
-      "fullname": "tool.str.splitwords",
-      "description": "Splits a string into words based on whitespace.",
-      "category": "String Operations",
-      "args": [
-        {
-          "name": "input_string",
-          "type": "string",
-          "description": "The string to split into words.",
-          "required": true
-        }
-      ],
-      "returnType": "slice_string",
-      "returnHelp": "Returns a slice of strings, where each string is a word from the input string, with whitespace removed. Multiple spaces are treated as a single delimiter.",
-      "example": "tool.SplitWords(\"hello world  example\") // Returns [\"hello\", \"world\", \"example\"]",
-      "errorConditions": "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `input_string` is not a string."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:1624511d301025733f498f979d7744896beb3e58b445fe0e4a386a275e9a2c64"
-  },
-  {
-    "spec": {
-      "name": "Tail",
-      "groupname": "list",
-      "fullname": "tool.list.tail",
-      "description": "Returns a *new* list containing the last 'count' elements. Returns an empty list if count \u003c= 0. Returns a copy of the whole list if count \u003e= list length.",
-      "category": "List Operations",
-      "args": [
-        {
-          "name": "list",
-          "type": "slice_any",
-          "description": "The list to get the tail from.",
-          "required": true
-        },
-        {
-          "name": "count",
-          "type": "int",
-          "description": "The number of elements to take from the end.",
-          "required": true
-        }
-      ],
-      "returnType": "slice_any",
-      "returnHelp": "Returns a new list containing the last 'count' elements from the input 'list'. If 'count' is less than or equal to 0, an empty list is returned. If 'count' is greater than or equal to the list length, a copy of the original list is returned. The original list is not modified.",
-      "example": "tool.List.Tail([1, 2, 3, 4, 5], 3) // returns [3, 4, 5]\\ntool.List.Tail([1, 2], 5) // returns [1, 2]",
-      "errorConditions": "None expected. Handles various 'count' values appropriately, returning an empty list or a copy of the whole list as applicable."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:909d61ff670c4e2e3f855c57c73f2f5fc3115d44bfa20eb7e3ea01183d47f73c"
+    "signatureChecksum": ""
   },
   {
     "spec": {
       "name": "Post",
       "groupname": "FDM.Forum",
-      "fullname": "tool.fdm.forum.post",
+      "fullname": "",
       "description": "Posts a new message to a discussion thread.",
       "args": [
         {
@@ -2080,274 +49,91 @@
       "returnHelp": "Returns the NodeID of the newly created disc_msg node."
     },
     "requiresTrust": false,
-    "signatureChecksum": "sha256:96de58d594e40c7e0e6e13e4d824e87eb376cf4a2514675777c37d97b709abe4"
+    "signatureChecksum": ""
   },
   {
     "spec": {
-      "name": "RegisterOverlay",
-      "groupname": "FDM",
-      "fullname": "tool.fdm.registeroverlay",
-      "description": "Creates and registers a standard, named overlay required by a script.",
+      "name": "Vote",
+      "groupname": "FDM.Forum",
+      "fullname": "",
+      "description": "Submits a unipolar (+1/support, 0/abstain) vote for a message.",
       "args": [
         {
-          "name": "overlayName",
+          "name": "msgID",
           "type": "string",
-          "description": "The name of the overlay to register (e.g., 'discussion_vote').",
-          "required": true
-        }
-      ],
-      "returnType": "bool",
-      "returnHelp": "Returns true on success."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:e4bcc425f4f1f472fa335bff3da30b951f4bec6456c244689715dc6c7c353a49"
-  },
-  {
-    "spec": {
-      "name": "ListDir",
-      "groupname": "FDM.FS",
-      "fullname": "tool.fdm.fs.listdir",
-      "description": "Lists the contents of a directory in the FDM.",
-      "args": [
-        {
-          "name": "dirPath",
-          "type": "string",
-          "description": "The path of the directory to list.",
-          "required": true
-        },
-        {
-          "name": "recursive",
-          "type": "bool",
-          "description": "If true, lists contents of all subdirectories recursively.",
-          "required": false
-        }
-      ],
-      "returnType": "slice_map",
-      "returnHelp": "Returns a list of maps, each representing a file or directory with its path and type."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:f145c585bf1753d79005f2dc40a6757ec886c183d441a4c4a90159342c9aac1d"
-  },
-  {
-    "spec": {
-      "name": "AddChildNode",
-      "groupname": "tree",
-      "fullname": "tool.tree.addchildnode",
-      "description": "Adds a new child node to an existing parent node.",
-      "category": "Tree Manipulation",
-      "args": [
-        {
-          "name": "tree_handle",
-          "type": "string",
-          "description": "Handle for the tree structure.",
-          "required": true
-        },
-        {
-          "name": "parent_node_id",
-          "type": "string",
-          "description": "ID of the node that will become the parent.",
-          "required": true
-        },
-        {
-          "name": "new_node_id_suggestion",
-          "type": "string",
-          "description": "Optional suggested unique ID for the new node.",
-          "required": false
-        },
-        {
-          "name": "node_type",
-          "type": "string",
-          "description": "Type of the new child (e.g., 'object', 'array', 'string').",
+          "description": "",
           "required": true
         },
         {
           "name": "value",
-          "type": "any",
-          "description": "Initial value for simple types.",
-          "required": false
+          "type": "float",
+          "description": "The vote value, typically 1.0 for 'yes' or 0.0 for 'no'.",
+          "required": true
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns the NodeID of the newly created disc_vote node."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "Rate",
+      "groupname": "FDM.Forum",
+      "fullname": "",
+      "description": "Submits a bipolar (-1..+1) quality rating for a message.",
+      "args": [
+        {
+          "name": "msgID",
+          "type": "string",
+          "description": "",
+          "required": true
         },
         {
-          "name": "key_for_object_parent",
+          "name": "rating",
+          "type": "float",
+          "description": "The rating value between -1.0 and 1.0.",
+          "required": true
+        },
+        {
+          "name": "reason",
           "type": "string",
-          "description": "Required if the parent is an 'object' node.",
+          "description": "An optional brief justification for the rating.",
           "required": false
         }
       ],
       "returnType": "string",
-      "returnHelp": "Returns the string ID of the newly created child node.",
-      "example": "tool.Tree.AddChildNode(handle, \"root_id\", \"newChild\", \"string\", \"hello\", \"message\")",
-      "errorConditions": "Returns `ErrArgumentMismatch`, `ErrInvalidArgument`, `ErrTreeNotFound`, `ErrNodeNotFound`, `ErrNodeWrongType`, `ErrNodeIDExists`."
+      "returnHelp": "Returns the NodeID of the newly created disc_feedback node."
     },
     "requiresTrust": false,
-    "signatureChecksum": "sha256:3021a97179a21119403b0fb4b9316822ec9edf788c26d153c2af800f3aaf850d"
+    "signatureChecksum": ""
   },
   {
     "spec": {
-      "name": "Fmt",
-      "groupname": "gotools",
-      "fullname": "tool.gotools.fmt",
-      "description": "Formats Go source code using 'go/format.Source'. Returns the formatted code or an error map.",
-      "category": "Go Formatting",
+      "name": "Summarize",
+      "groupname": "FDM.Forum",
+      "fullname": "",
+      "description": "Generates a summary node for a message using its aggregated vote and rating data.",
       "args": [
         {
-          "name": "content",
+          "name": "msgID",
           "type": "string",
-          "description": "The Go source code content to format.",
+          "description": "The NodeID of the message to summarize.",
           "required": true
         }
       ],
       "returnType": "string",
-      "returnHelp": "Returns the formatted Go source code as a string. If formatting fails (e.g., syntax error), returns a map {'formatted_content': \u003coriginal_content\u003e, 'error': \u003cerror_string\u003e, 'success': false} and a Go-level error.",
-      "example": "tool.gotools.Fmt(content: \"package main\\nfunc main(){}\")",
-      "errorConditions": "ErrInternalTool if formatting fails internally, wrapping the original Go error from format.Source. The specific formatting error (e.g. syntax error) is in the 'error' field of the returned map if applicable."
+      "returnHelp": "Returns the NodeID of the newly created disc_summary node."
     },
     "requiresTrust": false,
-    "signatureChecksum": "sha256:4becc995c3c6929181b9e5ad6b20bd109ee85651e34bf1d3521fb11970e9d235"
-  },
-  {
-    "spec": {
-      "name": "Create",
-      "groupname": "FDM.Plan",
-      "fullname": "tool.fdm.plan.create",
-      "description": "Creates a new, empty ingest_plan node for a given repository path.",
-      "args": [
-        {
-          "name": "repoPath",
-          "type": "string",
-          "description": "The local filesystem path to the repository to be ingested.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the NodeID of the newly created ingest_plan node."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:1683fb507db8837e0d0b9817865457a23d7d9d78137aa2a9f28e093a72a8b9a7"
-  },
-  {
-    "spec": {
-      "name": "LoadJSON",
-      "groupname": "tree",
-      "fullname": "tool.tree.loadjson",
-      "description": "Loads a JSON string into a new tree structure and returns a tree handle.",
-      "category": "Tree Manipulation",
-      "args": [
-        {
-          "name": "json_string",
-          "type": "string",
-          "description": "The JSON data as a string.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns a string handle representing the loaded tree.",
-      "example": "tool.Tree.LoadJSON(\"{\\\"name\\\": \\\"example\\\"}\")",
-      "errorConditions": "Returns `ErrArgumentMismatch`, `ErrInvalidArgument`, `ErrTreeJSONUnmarshal`, `ErrInternal`."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:20a9aee7efd17fce039e657908f5b0f9941bf04fca000d7534fb6a876c056150"
-  },
-  {
-    "spec": {
-      "name": "RenderText",
-      "groupname": "tree",
-      "fullname": "tool.tree.rendertext",
-      "description": "Renders a visual text representation of the entire tree structure.",
-      "category": "Tree Manipulation",
-      "args": [
-        {
-          "name": "tree_handle",
-          "type": "string",
-          "description": "Handle to the tree structure to render.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns a human-readable, indented text representation of the tree.",
-      "example": "tool.Tree.RenderText(handle)",
-      "errorConditions": "Returns `ErrArgumentMismatch`, `ErrInvalidArgument`, `ErrTreeNotFound`, `ErrInternal`."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:caeba1d9d45a77c9fef764a8be546d59d2c6f8abf843d92c28fdae601501ff00"
-  },
-  {
-    "spec": {
-      "name": "List",
-      "groupname": "agentmodel",
-      "fullname": "tool.agentmodel.list",
-      "description": "Lists the names of all available AgentModels.",
-      "returnType": "slice_string"
-    },
-    "requiresTrust": false,
-    "effects": [
-      "idempotent"
-    ],
-    "signatureChecksum": "sha256:f284a5780d47683932083793b25e28e3ca25631cae53d382cd56ed441e13e1f0"
-  },
-  {
-    "spec": {
-      "name": "Stat",
-      "groupname": "fs",
-      "fullname": "tool.fs.stat",
-      "description": "Gets information about a file or directory. Returns a map of file info.",
-      "category": "Filesystem",
-      "args": [
-        {
-          "name": "path",
-          "type": "string",
-          "description": "Relative path to the file or directory.",
-          "required": true
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map with file/directory info. Returns nil on error.",
-      "example": "TOOL.FS.Stat(path: \"my_file.go\")",
-      "errorConditions": "ErrArgumentMismatch; ErrConfiguration; ErrSecurityPath; ErrFileNotFound; ErrPermissionDenied; ErrIOFailed."
-    },
-    "requiresTrust": true,
-    "requiredCaps": [
-      {
-        "Resource": "fs",
-        "Verbs": [
-          "read"
-        ],
-        "Scopes": null
-      }
-    ],
-    "effects": [
-      "readsFS",
-      "idempotent"
-    ],
-    "signatureChecksum": "sha256:d96ffd26c0ff33dc62bda80f78866c3d37af3c4a9c5b17844af788b2ddb2d3a2"
-  },
-  {
-    "spec": {
-      "name": "Imports",
-      "groupname": "gotools",
-      "fullname": "tool.gotools.imports",
-      "description": "Formats Go source code and adjusts imports using 'golang.org/x/tools/imports'. Returns the processed code or an error map.",
-      "category": "Go Formatting",
-      "args": [
-        {
-          "name": "content",
-          "type": "string",
-          "description": "The Go source code content to process.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the processed Go source code (formatted and with adjusted imports) as a string. If processing fails, returns a map {'formatted_content': \u003coriginal_content\u003e, 'error': \u003cerror_string\u003e, 'success': false} and a Go-level error.",
-      "example": "tool.gotools.Imports(content: \"package main\\nimport \\\"fmt\\\"\\nfunc main(){fmt.Println(\\\"hello\\\")}\")",
-      "errorConditions": "ErrInternalTool if goimports processing fails, wrapping the original error from imports.Process. The specific processing error is in the 'error' field of the returned map if applicable."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:5e6e17a80840aa562ff40c5b2336e59f2db34ce1d19fe1e2513afa70fc0329ca"
+    "signatureChecksum": ""
   },
   {
     "spec": {
       "name": "ListThread",
       "groupname": "FDM.Forum",
-      "fullname": "tool.fdm.forum.listthread",
+      "fullname": "",
       "description": "Lists all messages in a discussion thread, sorted by timestamp.",
       "args": [
         {
@@ -2361,159 +147,13 @@
       "returnHelp": "Returns a list of maps, where each map is a full message node."
     },
     "requiresTrust": false,
-    "signatureChecksum": "sha256:0e86c9b0862db77b7346f8c3f17c1817008ce0bf6ce98e9a458743ec7ff99e20"
-  },
-  {
-    "spec": {
-      "name": "Walk",
-      "groupname": "fs",
-      "fullname": "tool.fs.walk",
-      "description": "Recursively walks a directory, returning a list of maps describing files/subdirectories found.",
-      "category": "Filesystem",
-      "args": [
-        {
-          "name": "path",
-          "type": "string",
-          "description": "Relative path to the directory to walk.",
-          "required": true
-        }
-      ],
-      "returnType": "slice_any",
-      "returnHelp": "Returns a slice of maps, each describing a file/subdir. Skips the root dir itself. Returns nil on error.",
-      "example": "TOOL.FS.Walk(path: \"src\")",
-      "errorConditions": "ErrArgumentMismatch; ErrConfiguration; ErrSecurityPath; ErrFileNotFound; ErrPathNotDirectory; ErrPermissionDenied; ErrIOFailed; ErrInternal."
-    },
-    "requiresTrust": true,
-    "requiredCaps": [
-      {
-        "Resource": "fs",
-        "Verbs": [
-          "read"
-        ],
-        "Scopes": null
-      }
-    ],
-    "effects": [
-      "readsFS",
-      "idempotent"
-    ],
-    "signatureChecksum": "sha256:8ab05b6d86a53f1b1462485959636a28af26729893c99ecf41ddffe2296e8f51"
-  },
-  {
-    "spec": {
-      "name": "Contains",
-      "groupname": "str",
-      "fullname": "tool.str.contains",
-      "description": "Checks if a string contains a substring.",
-      "category": "String Operations",
-      "args": [
-        {
-          "name": "input_string",
-          "type": "string",
-          "description": "The string to check.",
-          "required": true
-        },
-        {
-          "name": "substring",
-          "type": "string",
-          "description": "The substring to search for.",
-          "required": true
-        }
-      ],
-      "returnType": "bool",
-      "returnHelp": "Returns true if the input_string contains the substring, false otherwise.",
-      "example": "tool.Contains(\"hello world\", \"world\") // Returns true",
-      "errorConditions": "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `input_string` or `substring` are not strings."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:81f75e6ce77d9056431b769f7ae93c60aabe108bbc4e6f9f0057c71657c9e8a1"
-  },
-  {
-    "spec": {
-      "name": "Length",
-      "groupname": "list",
-      "fullname": "tool.list.length",
-      "description": "Returns the number of elements in a list.",
-      "category": "List Operations",
-      "args": [
-        {
-          "name": "list",
-          "type": "slice_any",
-          "description": "The list to measure.",
-          "required": true
-        }
-      ],
-      "returnType": "int",
-      "returnHelp": "Returns an integer representing the number of elements in the provided list.",
-      "example": "tool.List.Length([1, 2, 3]) // returns 3",
-      "errorConditions": "None expected, as input validation ensures 'list' is a slice. An empty list returns 0."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:b148c9d88bf4d9d5a2468cb490c70c1bf0614bc2dfcb93e2e87f392f002d5ded"
-  },
-  {
-    "spec": {
-      "name": "Slice",
-      "groupname": "list",
-      "fullname": "tool.list.slice",
-      "description": "Returns a *new* list containing elements from the start index (inclusive) up to the end index (exclusive). Follows Go slice semantics (indices are clamped, invalid range returns empty list).",
-      "category": "List Operations",
-      "args": [
-        {
-          "name": "list",
-          "type": "slice_any",
-          "description": "The list to slice.",
-          "required": true
-        },
-        {
-          "name": "start",
-          "type": "int",
-          "description": "The starting index (inclusive).",
-          "required": true
-        },
-        {
-          "name": "end",
-          "type": "int",
-          "description": "The ending index (exclusive).",
-          "required": true
-        }
-      ],
-      "returnType": "slice_any",
-      "returnHelp": "Returns a new list containing elements from the 'start' index (inclusive) up to the 'end' index (exclusive). Adheres to Go's slice semantics: indices are clamped to valid ranges (0 to list length). If 'start' \u003e 'end' after clamping, or if 'start' is out of bounds (e.g. beyond list length), an empty list is returned. The original list is not modified.",
-      "example": "tool.List.Slice([1, 2, 3, 4, 5], 1, 4) // returns [2, 3, 4]",
-      "errorConditions": "Returns an empty list for invalid or out-of-bounds start/end indices. Does not return an error for range issues."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:5cedefacda0a076ffd8ccde2a0f743a6462df04006fd88489914785073dd3384"
-  },
-  {
-    "spec": {
-      "name": "IsEmpty",
-      "groupname": "list",
-      "fullname": "tool.list.isempty",
-      "description": "Returns true if the list has zero elements, false otherwise.",
-      "category": "List Operations",
-      "args": [
-        {
-          "name": "list",
-          "type": "slice_any",
-          "description": "The list to check.",
-          "required": true
-        }
-      ],
-      "returnType": "bool",
-      "returnHelp": "Returns true if the 'list' contains zero elements, and false otherwise.",
-      "example": "tool.List.IsEmpty([]) // returns true\\ntool.List.IsEmpty([1]) // returns false",
-      "errorConditions": "None expected."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:7e422347a9177ef6b5012538fad2d950466e5959f24316c5008c2e91c1933371"
+    "signatureChecksum": ""
   },
   {
     "spec": {
       "name": "GetContextBundle",
       "groupname": "FDM.Forum",
-      "fullname": "tool.fdm.forum.getcontextbundle",
+      "fullname": "",
       "description": "Gets the last N messages of a thread as a single formatted string, suitable for an AI prompt.",
       "args": [
         {
@@ -2533,210 +173,45 @@
       "returnHelp": "Returns a single string with messages formatted as '[author]: content'."
     },
     "requiresTrust": false,
-    "signatureChecksum": "sha256:ab2f50ab20a621f5c75181b4f44d16fef75916b27bdf66f6e447ac6e9c601a4f"
+    "signatureChecksum": ""
   },
   {
     "spec": {
-      "name": "GetNode",
-      "groupname": "tree",
-      "fullname": "tool.tree.getnode",
-      "description": "Retrieves detailed information about a specific node within a tree, returned as a map.",
-      "category": "Tree Manipulation",
+      "name": "RegisterOverlay",
+      "groupname": "FDM",
+      "fullname": "",
+      "description": "Creates and registers a standard, named overlay required by a script.",
       "args": [
         {
-          "name": "tree_handle",
+          "name": "overlayName",
           "type": "string",
-          "description": "Handle to the tree structure.",
-          "required": true
-        },
-        {
-          "name": "node_id",
-          "type": "string",
-          "description": "The unique ID of the node to retrieve.",
+          "description": "The name of the overlay to register (e.g., 'discussion_vote').",
           "required": true
         }
       ],
-      "returnType": "map",
-      "returnHelp": "Returns a map containing details of the specified node.",
-      "example": "tool.Tree.GetNode(handle, \"node_id_123\")",
-      "errorConditions": "Returns `ErrArgumentMismatch`, `ErrInvalidArgument`, `ErrTreeNotFound`, `ErrNodeNotFound`."
+      "returnType": "bool",
+      "returnHelp": "Returns true on success."
     },
     "requiresTrust": false,
-    "signatureChecksum": "sha256:ec73e14c6b5ea022d6a585d95a275e78c6fbe82f0d91fbd83d503157e230aa4d"
+    "signatureChecksum": ""
   },
   {
     "spec": {
-      "name": "Hash",
-      "groupname": "fs",
-      "fullname": "tool.fs.hash",
-      "description": "Calculates the SHA256 hash of a specified file. Returns the hex-encoded hash string.",
-      "category": "Filesystem",
-      "args": [
-        {
-          "name": "filepath",
-          "type": "string",
-          "description": "Relative path (within the sandbox) of the file to hash.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns a hex-encoded SHA256 hash string of the file's content. Returns an empty string on error.",
-      "example": "TOOL.FS.Hash(filepath: \"data/my_document.txt\")",
-      "errorConditions": "ErrArgumentMismatch if filepath is empty; ErrConfiguration if sandbox is not set; ErrSecurityPath for invalid paths; ErrFileNotFound; ErrPermissionDenied; ErrPathNotFile if path is a directory; ErrIOFailed for I/O errors."
-    },
-    "requiresTrust": true,
-    "requiredCaps": [
-      {
-        "Resource": "fs",
-        "Verbs": [
-          "read"
-        ],
-        "Scopes": null
-      }
-    ],
-    "effects": [
-      "readsFS"
-    ],
-    "signatureChecksum": "sha256:1d8ac7d4f371b253b96c0581b777083e29a542444d550a8a15cc0fdd103ae4bf"
-  },
-  {
-    "spec": {
-      "name": "ToUpper",
-      "groupname": "str",
-      "fullname": "tool.str.toupper",
-      "description": "Converts a string to uppercase.",
-      "category": "String Operations",
-      "args": [
-        {
-          "name": "input_string",
-          "type": "string",
-          "description": "The string to convert.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the uppercase version of the input string.",
-      "example": "tool.ToUpper(\"hello\") // Returns \"HELLO\"",
-      "errorConditions": "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `input_string` is not a string."
+      "name": "ListMeta",
+      "groupname": "FDM.Overlays",
+      "fullname": "",
+      "description": "Lists metadata for all registered overlays.",
+      "returnType": "slice_map",
+      "returnHelp": "Returns a list of maps, where each map contains metadata about an overlay: id, label, kind"
     },
     "requiresTrust": false,
-    "signatureChecksum": "sha256:02a8a024ee7c47ceb0f3a5865309a5150bf1ebe5cb2ffcb558d0404e01d976ba"
-  },
-  {
-    "spec": {
-      "name": "Split",
-      "groupname": "str",
-      "fullname": "tool.str.split",
-      "description": "Splits a string by a delimiter.",
-      "category": "String Operations",
-      "args": [
-        {
-          "name": "input_string",
-          "type": "string",
-          "description": "The string to split.",
-          "required": true
-        },
-        {
-          "name": "delimiter",
-          "type": "string",
-          "description": "The delimiter string.",
-          "required": true
-        }
-      ],
-      "returnType": "slice_string",
-      "returnHelp": "Returns a slice of strings after splitting the input string by the delimiter.",
-      "example": "tool.Split(\"apple,banana,orange\", \",\") // Returns [\"apple\", \"banana\", \"orange\"]",
-      "errorConditions": "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `input_string` or `delimiter` are not strings."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:f9257b835f5a47f47c5f11f1156feef3735e1a32a4b38ebef7baea8615b772ab"
-  },
-  {
-    "spec": {
-      "name": "Replace",
-      "groupname": "str",
-      "fullname": "tool.str.replace",
-      "description": "Replaces occurrences of a substring with another, up to a specified count.",
-      "category": "String Operations",
-      "args": [
-        {
-          "name": "input_string",
-          "type": "string",
-          "description": "The string to perform replacements on.",
-          "required": true
-        },
-        {
-          "name": "old_substring",
-          "type": "string",
-          "description": "The substring to be replaced.",
-          "required": true
-        },
-        {
-          "name": "new_substring",
-          "type": "string",
-          "description": "The substring to replace with.",
-          "required": true
-        },
-        {
-          "name": "count",
-          "type": "int",
-          "description": "Maximum number of replacements. Use -1 for all.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the string with specified replacements made.",
-      "example": "tool.Replace(\"ababab\", \"ab\", \"cd\", 2) // Returns \"cdcdab\"",
-      "errorConditions": "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `input_string`, `old_substring`, or `new_substring` are not strings, or if `count` is not an integer."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:1754feb16e3a03e26908ed5def9c05b62317510d037a094c74dc651c78212e19"
-  },
-  {
-    "spec": {
-      "name": "Now",
-      "groupname": "time",
-      "fullname": "tool.time.now",
-      "description": "Returns the current system time as a 'timedate' value.",
-      "category": "Time",
-      "returnType": "timedate",
-      "returnHelp": "A 'timedate' value representing the moment the tool was called.",
-      "example": "`set right_now = tool.Time.Now()`"
-    },
-    "requiresTrust": false,
-    "effects": [
-      "readsClock"
-    ],
-    "signatureChecksum": "sha256:701a1240eda41354fce61081d7552aca5703cd06bcd167538d9ca5dba727a588"
-  },
-  {
-    "spec": {
-      "name": "Sort",
-      "groupname": "list",
-      "fullname": "tool.list.sort",
-      "description": "Returns a *new* list with elements sorted. Restricted to lists containing only numbers (int/float) or only strings. Throws error for mixed types or non-sortable types (nil, bool, list, map).",
-      "category": "List Operations",
-      "args": [
-        {
-          "name": "list",
-          "type": "slice_any",
-          "description": "The list to sort.",
-          "required": true
-        }
-      ],
-      "returnType": "slice_any",
-      "returnHelp": "Returns a new list with elements sorted. The list must contain either all numbers (integers or floats, which will be sorted numerically) or all strings (sorted lexicographically). The original list is not modified. Returns an empty list if the input list is empty.",
-      "example": "tool.List.Sort([3, 1, 2]) // returns [1, 2, 3]\\ntool.List.Sort([\"c\", \"a\", \"b\"]) // returns [\"a\", \"b\", \"c\"]",
-      "errorConditions": "Returns an error (ErrListCannotSortMixedTypes) if the list contains mixed types (e.g., numbers and strings), nil elements, or other non-sortable types like booleans, maps, or other lists."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:e5750e4ad9c31f2a119f4c995bfa223e2f22e8b7009e5155a5e4703bba6bd70a"
+    "signatureChecksum": ""
   },
   {
     "spec": {
       "name": "Find",
       "groupname": "FDM.Symbol",
-      "fullname": "tool.fdm.symbol.find",
+      "fullname": "",
       "description": "Finds all definitions of a given Go symbol.",
       "args": [
         {
@@ -2750,246 +225,183 @@
       "returnHelp": "Returns a list of maps, each detailing a symbol definition with keys: 'file', 'pos', 'kind', 'recv'."
     },
     "requiresTrust": false,
-    "signatureChecksum": "sha256:b8ddfe12b0b0c9be187ec33eb47652cb211e93862840e12b4bcfde314bc64b5e"
+    "signatureChecksum": ""
   },
   {
     "spec": {
-      "name": "History",
-      "groupname": "FDM.FS",
-      "fullname": "tool.fdm.fs.history",
-      "description": "Retrieves the rename/move history for a given path.",
+      "name": "Create",
+      "groupname": "FDM.Plan",
+      "fullname": "",
+      "description": "Creates a new, empty ingest_plan node for a given repository path.",
       "args": [
         {
-          "name": "path",
+          "name": "repoPath",
           "type": "string",
-          "description": "The current path of the file to trace.",
-          "required": true
-        }
-      ],
-      "returnType": "slice_map",
-      "returnHelp": "Returns a list of maps, each representing a rename event in the file's history."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:91dacaa102865080930cb1886666253c4acbc0123a960a553ba7688ffb480fe5"
-  },
-  {
-    "spec": {
-      "name": "LoadScript",
-      "groupname": "script",
-      "fullname": "tool.script.loadscript",
-      "description": "Parses a string of NeuroScript code and loads its functions and event handlers into the current interpreter's scope. Does not execute any code.",
-      "category": "Scripting",
-      "args": [
-        {
-          "name": "script_content",
-          "type": "string",
-          "description": "A string containing the NeuroScript code to load.",
-          "required": true
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map with keys 'functions_loaded', 'event_handlers_loaded', and 'metadata', which contains the file-level metadata from the script header.",
-      "example": "set result = tool.script.LoadScript(\":: purpose: example\\nfunc f()means\\nendfunc\")\\nemit result[\"metadata\"][\"purpose\"]",
-      "errorConditions": "ErrArgumentMismatch if script_content is not a string or is missing. ErrSyntax if the script has syntax errors. ErrExecutionFailed if a function or event handler conflicts with an existing one (e.g., duplicate function name)."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:e1887c2b15481d19a2d510330050de63c17d6b1b8cfd42a809958daff1f1e03e"
-  },
-  {
-    "spec": {
-      "name": "ModTidy",
-      "groupname": "gotools",
-      "fullname": "tool.gotools.modtidy",
-      "description": "Runs 'go mod tidy' in the sandbox to add missing and remove unused modules. Operates in the sandbox root.",
-      "category": "Go Build Tools",
-      "returnType": "map",
-      "returnHelp": "Returns a map with 'stdout', 'stderr', 'exit_code' (int64), and 'success' (bool) from the 'go mod tidy' command execution.",
-      "example": "tool.gotools.ModTidy()",
-      "errorConditions": "ErrConfiguration if sandbox is not set; ErrInternalSecurity for path validation issues. Command execution failures are reported within the returned map's 'success', 'stderr', and 'exit_code' fields."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:43beb30d41a22e861f3025890b61f3ad12e24445e8dbf69061310680202fcc77"
-  },
-  {
-    "spec": {
-      "name": "Test",
-      "groupname": "gotools",
-      "fullname": "tool.gotools.test",
-      "description": "Runs 'go test' for a specified target in the sandbox. Defaults to './...'.",
-      "category": "Go Build Tools",
-      "args": [
-        {
-          "name": "target",
-          "type": "string",
-          "description": "Optional. The test target (e.g., a package path or './...'). Defaults to './...'.",
-          "required": false
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map with 'stdout', 'stderr', 'exit_code' (int64), and 'success' (bool) from the 'go test \u003ctarget\u003e' command.",
-      "example": "tool.gotools.Test(target: \"./pkg/feature\")",
-      "errorConditions": "ErrInvalidArgument if optional target is not a string; ErrConfiguration if sandbox is not set; ErrInternalSecurity for path validation issues. Command execution failures are reported within the returned map."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:523dd1bd096b5753c4b454a7b3d7854771e77e1705281a6e9b03b916987dbe1c"
-  },
-  {
-    "spec": {
-      "name": "SetValue",
-      "groupname": "tree",
-      "fullname": "tool.tree.setvalue",
-      "description": "Sets the value of an existing leaf or simple-type node.",
-      "category": "Tree Manipulation",
-      "args": [
-        {
-          "name": "tree_handle",
-          "type": "string",
-          "description": "Handle to the tree structure.",
-          "required": true
-        },
-        {
-          "name": "node_id",
-          "type": "string",
-          "description": "ID of the leaf or simple-type node to modify.",
-          "required": true
-        },
-        {
-          "name": "value",
-          "type": "any",
-          "description": "The new value for the node.",
-          "required": true
-        }
-      ],
-      "returnType": "nil",
-      "returnHelp": "Returns nil on success.",
-      "example": "tool.Tree.SetValue(handle, \"id_of_keyNode\", \"new_value\")",
-      "errorConditions": "Returns `ErrArgumentMismatch`, `ErrInvalidArgument`, `ErrTreeNotFound`, `ErrNodeNotFound`, `ErrCannotSetValueOnType`."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:75b4fca0f59ad9db39c0008acd030d68544a7ae79126b902727110bacb2c7907"
-  },
-  {
-    "spec": {
-      "name": "RemoveNode",
-      "groupname": "tree",
-      "fullname": "tool.tree.removenode",
-      "description": "Removes a node and all its descendants from the tree.",
-      "category": "Tree Manipulation",
-      "args": [
-        {
-          "name": "tree_handle",
-          "type": "string",
-          "description": "Handle to the tree.",
-          "required": true
-        },
-        {
-          "name": "node_id",
-          "type": "string",
-          "description": "ID of the node to remove.",
-          "required": true
-        }
-      ],
-      "returnType": "nil",
-      "returnHelp": "Returns nil on success.",
-      "example": "tool.Tree.RemoveNode(handle, \"node_to_delete_id\")",
-      "errorConditions": "Returns `ErrArgumentMismatch`, `ErrInvalidArgument`, `ErrTreeNotFound`, `ErrNodeNotFound`, `ErrCannotRemoveRoot`, `ErrInternal`."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": "sha256:35b9f2b3ca68bef890f982d8a29b54898aba1ed91b0987e415932b5f84753e31"
-  },
-  {
-    "spec": {
-      "name": "List",
-      "groupname": "fs",
-      "fullname": "tool.fs.list",
-      "description": "Lists files and subdirectories at a given path. Returns a list of maps, each describing an entry.",
-      "category": "Filesystem",
-      "args": [
-        {
-          "name": "path",
-          "type": "string",
-          "description": "Relative path to the directory (use '.' for current).",
-          "required": true
-        },
-        {
-          "name": "recursive",
-          "type": "bool",
-          "description": "Whether to list recursively (default: false).",
-          "required": false
-        }
-      ],
-      "returnType": "slice_any",
-      "returnHelp": "Returns a slice of maps detailing files/directories. Returns nil on error.",
-      "example": "TOOL.FS.List(path: \"mydir\", recursive: true)",
-      "errorConditions": "ErrArgumentMismatch; ErrConfiguration; ErrSecurityPath; ErrFileNotFound; ErrPermissionDenied; ErrPathNotDirectory; ErrIOFailed."
-    },
-    "requiresTrust": true,
-    "requiredCaps": [
-      {
-        "Resource": "fs",
-        "Verbs": [
-          "read"
-        ],
-        "Scopes": null
-      }
-    ],
-    "effects": [
-      "readsFS",
-      "idempotent"
-    ],
-    "signatureChecksum": "sha256:f8f12ef804a8439d0f5aff37621856facc9da2c927d7b295d2ce39efff28d380"
-  },
-  {
-    "spec": {
-      "name": "TrimSpace",
-      "groupname": "str",
-      "fullname": "tool.str.trimspace",
-      "description": "Removes leading and trailing whitespace from a string.",
-      "category": "String Operations",
-      "args": [
-        {
-          "name": "input_string",
-          "type": "string",
-          "description": "The string to trim.",
+          "description": "The local filesystem path to the repository to be ingested.",
           "required": true
         }
       ],
       "returnType": "string",
-      "returnHelp": "Returns the string with leading and trailing whitespace removed.",
-      "example": "tool.TrimSpace(\"  hello  \") // Returns \"hello\"",
-      "errorConditions": "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `input_string` is not a string."
+      "returnHelp": "Returns the NodeID of the newly created ingest_plan node."
     },
     "requiresTrust": false,
-    "signatureChecksum": "sha256:e60ec88323f695e9bc209ca24f1627b293ee817984c6dc767df6c545ebe18e3a"
+    "signatureChecksum": ""
   },
   {
     "spec": {
-      "name": "Rest",
-      "groupname": "list",
-      "fullname": "tool.list.rest",
-      "description": "Returns a *new* list containing all elements except the first. Returns an empty list if the input list has 0 or 1 element.",
-      "category": "List Operations",
+      "name": "AddOverlay",
+      "groupname": "FDM.Plan",
+      "fullname": "",
+      "description": "Adds an overlay to an ingest_plan, creating a new version of the plan.",
       "args": [
         {
-          "name": "list",
-          "type": "slice_any",
-          "description": "The list to get the rest from.",
+          "name": "planID",
+          "type": "string",
+          "description": "",
+          "required": true
+        },
+        {
+          "name": "overlayID",
+          "type": "string",
+          "description": "",
           "required": true
         }
       ],
-      "returnType": "slice_any",
-      "returnHelp": "Returns a new list containing all elements of the input 'list' except the first. If the list has 0 or 1 element, it returns an empty list. The original list is not modified.",
-      "example": "tool.List.Rest([1, 2, 3]) // returns [2, 3]\\ntool.List.Rest([1]) // returns []",
-      "errorConditions": "None expected. Returns an empty list for lists with 0 or 1 element."
+      "returnType": "string",
+      "returnHelp": "Returns the NodeID of the new, updated ingest_plan node."
     },
     "requiresTrust": false,
-    "signatureChecksum": "sha256:dbfdfc57419bd99035972074e068fca6cd3aa046d2762e2621228e74f7981fbd"
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "AddIndex",
+      "groupname": "FDM.Plan",
+      "fullname": "",
+      "description": "Adds an index to an ingest_plan, creating a new version of the plan.",
+      "args": [
+        {
+          "name": "planID",
+          "type": "string",
+          "description": "",
+          "required": true
+        },
+        {
+          "name": "indexID",
+          "type": "string",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns the NodeID of the new, updated ingest_plan node."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "AddIgnorePatterns",
+      "groupname": "FDM.Plan",
+      "fullname": "",
+      "description": "Adds a list of glob patterns to an ingest_plan's ignore list.",
+      "args": [
+        {
+          "name": "planID",
+          "type": "string",
+          "description": "The NodeID of the ingest_plan to modify.",
+          "required": true
+        },
+        {
+          "name": "patterns",
+          "type": "slice_string",
+          "description": "A list of glob patterns to add (e.g., ['**/node_modules', '*.log']).",
+          "required": true
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns the NodeID of the new, updated ingest_plan node."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "SetRespectGitignore",
+      "groupname": "FDM.Plan",
+      "fullname": "",
+      "description": "Sets whether the ingestion plan should respect .gitignore files.",
+      "args": [
+        {
+          "name": "planID",
+          "type": "string",
+          "description": "The NodeID of the ingest_plan to modify.",
+          "required": true
+        },
+        {
+          "name": "respect",
+          "type": "bool",
+          "description": "Set to true to respect .gitignore, false to ignore it.",
+          "required": true
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns the NodeID of the new, updated ingest_plan node."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "AddExcludeMIMETypes",
+      "groupname": "FDM.Plan",
+      "fullname": "",
+      "description": "Adds a list of MIME types to the plan's exclusion list.",
+      "args": [
+        {
+          "name": "planID",
+          "type": "string",
+          "description": "The NodeID of the ingest_plan to modify.",
+          "required": true
+        },
+        {
+          "name": "mimeTypes",
+          "type": "slice_string",
+          "description": "A list of MIME type strings to exclude (e.g., ['image/png', 'application/pdf']).",
+          "required": true
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns the NodeID of the new, updated ingest_plan node."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "Ingest",
+      "groupname": "FDM.Repo",
+      "fullname": "",
+      "description": "Executes a full ingestion process by walking the entire repository based on a specified ingest_plan.",
+      "args": [
+        {
+          "name": "planID",
+          "type": "string",
+          "description": "The NodeID of the ingest_plan to execute.",
+          "required": true
+        }
+      ],
+      "returnType": "bool",
+      "returnHelp": "Returns true on successful completion of the ingestion."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
   },
   {
     "spec": {
       "name": "IngestChanges",
       "groupname": "FDM.Repo",
-      "fullname": "tool.fdm.repo.ingestchanges",
+      "fullname": "",
       "description": "Executes an incremental ingestion process for a specified list of changed files.",
       "args": [
         {
@@ -3009,87 +421,199 @@
       "returnHelp": "Returns true on successful completion of the incremental ingestion."
     },
     "requiresTrust": false,
-    "signatureChecksum": "sha256:927d81c1ee792dec02bdf01f334dee1d63885b57dc91332ba07447ccfd6eab68"
+    "signatureChecksum": ""
   },
   {
     "spec": {
-      "name": "Execute",
-      "groupname": "shell",
-      "fullname": "tool.shell.execute",
-      "description": "Executes an arbitrary shell command. WARNING: Use with extreme caution due to security risks. Command path validation is basic. Consider using specific tools (e.g., GoBuild, GitAdd) instead.",
-      "category": "Shell Operations",
+      "name": "CreateNode",
+      "groupname": "FDM",
+      "fullname": "",
+      "description": "Creates a new node in the FDM.",
       "args": [
         {
-          "name": "command",
+          "name": "type",
           "type": "string",
-          "description": "The command or executable path (must not contain path separators like '/' or '\\').",
+          "description": "",
           "required": true
         },
         {
-          "name": "args_list",
-          "type": "slice_string",
-          "description": "A list of string arguments for the command.",
-          "required": false
-        },
-        {
-          "name": "directory",
-          "type": "string",
-          "description": "Optional directory (relative to sandbox) to execute the command in. Defaults to sandbox root.",
+          "name": "fields",
+          "type": "map",
+          "description": "",
           "required": false
         }
       ],
       "returnType": "map",
-      "returnHelp": "Returns a map containing 'stdout' (string), 'stderr' (string), 'exit_code' (int), and 'success' (bool) of the executed command. 'success' is true if the command exits with code 0, false otherwise. The command is executed within the sandboxed environment.",
-      "example": "tool.shell.Execute(\"ls\", [\"-la\"], \"my_directory\")",
-      "errorConditions": "Returns `ErrArgumentMismatch` if an incorrect number of arguments is provided. Returns `ErrInvalidArgument` or `ErrorCodeType` if 'command' is not a string, 'args_list' is not a list of strings, or 'directory' is not a string. Returns `ErrSecurityViolation` if the 'command' path is deemed suspicious (e.g., contains path separators or shell metacharacters). Returns `ErrInternal` if the internal FileAPI is not available. May return path-related errors (e.g., `ErrFileNotFound`, `ErrPathNotDirectory`, `ErrPermissionDenied`) if the specified 'directory' is invalid or inaccessible. If the command itself executes but fails (non-zero exit code), 'success' in the result map will be false, and 'stderr' may contain error details. OS-level execution errors are also captured in 'stderr'."
-    },
-    "requiresTrust": true,
-    "requiredCaps": [
-      {
-        "Resource": "shell",
-        "Verbs": [
-          "execute"
-        ],
-        "Scopes": [
-          "*"
-        ]
-      }
-    ],
-    "effects": [
-      "readsFS",
-      "readsNet",
-      "readsClock",
-      "readsRand"
-    ],
-    "signatureChecksum": "sha256:3112daa1c473f63115ec07d83078fc6c5c2564892ede2ade46caf2314ddb8b3f"
-  },
-  {
-    "spec": {
-      "name": "GetParent",
-      "groupname": "tree",
-      "fullname": "tool.tree.getparent",
-      "description": "Gets the parent of a given node as a map.",
-      "category": "Tree Manipulation",
-      "args": [
-        {
-          "name": "tree_handle",
-          "type": "string",
-          "description": "Handle to the tree structure.",
-          "required": true
-        },
-        {
-          "name": "node_id",
-          "type": "string",
-          "description": "ID of the node whose parent is sought.",
-          "required": true
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map of the parent node, or nil if the node is the root.",
-      "example": "tool.Tree.GetParent(handle, \"child_node_id\")",
-      "errorConditions": "Returns `ErrArgumentMismatch`, `ErrInvalidArgument`, `ErrTreeNotFound`, `ErrNodeNotFound`."
+      "returnHelp": "Returns a map representing the newly created node, including its ID."
     },
     "requiresTrust": false,
-    "signatureChecksum": "sha256:746cf47afe3359fa602ba991b4da53b779f6c88c5e2c8a42a74d1adead43a2dd"
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "GetNode",
+      "groupname": "FDM",
+      "fullname": "",
+      "description": "Retrieves a node by its ID from the FDM.",
+      "args": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "map",
+      "returnHelp": "Returns a map representing the node's data, or nil if not found."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "DeleteNode",
+      "groupname": "FDM",
+      "fullname": "",
+      "description": "Deletes a node by its ID from the FDM.",
+      "args": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "bool",
+      "returnHelp": "Returns true on success."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "ListDir",
+      "groupname": "FDM.FS",
+      "fullname": "",
+      "description": "Lists the contents of a directory in the FDM.",
+      "args": [
+        {
+          "name": "dirPath",
+          "type": "string",
+          "description": "The path of the directory to list.",
+          "required": true
+        },
+        {
+          "name": "recursive",
+          "type": "bool",
+          "description": "If true, lists contents of all subdirectories recursively.",
+          "required": false
+        }
+      ],
+      "returnType": "slice_map",
+      "returnHelp": "Returns a list of maps, each representing a file or directory with its path and type."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "Lookup",
+      "groupname": "FDM.FS",
+      "fullname": "",
+      "description": "Looks up a specific path in the filesystem overlay.",
+      "args": [
+        {
+          "name": "path",
+          "type": "string",
+          "description": "The exact path of the file or directory to look up.",
+          "required": true
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns the NodeID of the fs_file or fs_dir node, or nil if not found."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "History",
+      "groupname": "FDM.FS",
+      "fullname": "",
+      "description": "Retrieves the rename/move history for a given path.",
+      "args": [
+        {
+          "name": "path",
+          "type": "string",
+          "description": "The current path of the file to trace.",
+          "required": true
+        }
+      ],
+      "returnType": "slice_map",
+      "returnHelp": "Returns a list of maps, each representing a rename event in the file's history."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "Rename",
+      "groupname": "FDM.FS",
+      "fullname": "",
+      "description": "Records a rename/move event for a file or directory.",
+      "args": [
+        {
+          "name": "srcPath",
+          "type": "string",
+          "description": "The original path of the file or directory.",
+          "required": true
+        },
+        {
+          "name": "dstPath",
+          "type": "string",
+          "description": "The new path for the file or directory.",
+          "required": true
+        }
+      ],
+      "returnType": "map",
+      "returnHelp": "Returns a map representing the newly created fs_rename node."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "patch",
+      "groupname": "FDM.File",
+      "fullname": "",
+      "description": "Applies a diff patch to a file, writes it to disk, and triggers a re-ingestion.",
+      "args": [
+        {
+          "name": "path",
+          "type": "string",
+          "description": "The repository-relative path to the file to patch.",
+          "required": true
+        },
+        {
+          "name": "patchText",
+          "type": "string",
+          "description": "The patch content in standard diff format.",
+          "required": true
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns a confirmation message on success."
+    },
+    "requiresTrust": false,
+    "requiredCaps": [
+      {
+        "Resource": "fs",
+        "Verbs": [
+          "write"
+        ],
+        "Scopes": null
+      }
+    ],
+    "signatureChecksum": ""
   }
 ]

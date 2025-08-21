@@ -8,8 +8,6 @@
 package parser
 
 import (
-	"fmt"
-	"os"
 	"strings"
 
 	"github.com/antlr4-go/antlr/v4"
@@ -92,25 +90,25 @@ func (l *neuroScriptListenerImpl) parseSingleMetadataLine(token antlr.Token) (ke
 
 // assignPendingMetadata is the centralized logic for assigning top-level metadata.
 func (l *neuroScriptListenerImpl) assignPendingMetadata(declarationToken antlr.Token, targetMap map[string]string) {
-	fmt.Fprintf(os.Stderr, "\n[DEBUG] ========= assignPendingMetadata (v3) =========\n")
-	fmt.Fprintf(os.Stderr, "[DEBUG] Pending Metadata Count: %d\n", len(l.pendingMetadata))
-	if len(l.pendingMetadata) == 0 {
-		fmt.Fprintf(os.Stderr, "[DEBUG] No pending metadata. Exiting.\n")
-		fmt.Fprintf(os.Stderr, "[DEBUG] =============================================\n")
-		return
-	}
+	//	fmt.Fprintf(os.Stderr, "\n[DEBUG] ========= assignPendingMetadata (v3) =========\n")
+	//	fmt.Fprintf(os.Stderr, "[DEBUG] Pending Metadata Count: %d\n", len(l.pendingMetadata))
+	// if len(l.pendingMetadata) == 0 {
+	// 	fmt.Fprintf(os.Stderr, "[DEBUG] No pending metadata. Exiting.\n")
+	// 	fmt.Fprintf(os.Stderr, "[DEBUG] =============================================\n")
+	// 	return
+	// }
 
 	if l.lastPendingMetadataToken != nil {
-		fmt.Fprintf(os.Stderr, "[DEBUG] Last Metadata Token: '%s' (Line: %d)\n", strings.TrimSpace(l.lastPendingMetadataToken.GetText()), l.lastPendingMetadataToken.GetLine())
+		//		fmt.Fprintf(os.Stderr, "[DEBUG] Last Metadata Token: '%s' (Line: %d)\n", strings.TrimSpace(l.lastPendingMetadataToken.GetText()), l.lastPendingMetadataToken.GetLine())
 	}
 	if declarationToken != nil {
-		fmt.Fprintf(os.Stderr, "[DEBUG] Declaration Token:   '%s' (Line: %d)\n", strings.TrimSpace(declarationToken.GetText()), declarationToken.GetLine())
+		//		fmt.Fprintf(os.Stderr, "[DEBUG] Declaration Token:   '%s' (Line: %d)\n", strings.TrimSpace(declarationToken.GetText()), declarationToken.GetLine())
 	} else {
-		fmt.Fprintf(os.Stderr, "[DEBUG] Declaration Token:   nil (end of file assignment)\n")
+		//		fmt.Fprintf(os.Stderr, "[DEBUG] Declaration Token:   nil (end of file assignment)\n")
 	}
 
 	isSeparatedByBlankLine := declarationToken == nil || l.hasBlankLineBetweenTokens(l.lastPendingMetadataToken, declarationToken)
-	fmt.Fprintf(os.Stderr, "[DEBUG] Call to hasBlankLineBetweenTokens returned: %v\n", isSeparatedByBlankLine)
+	//	fmt.Fprintf(os.Stderr, "[DEBUG] Call to hasBlankLineBetweenTokens returned: %v\n", isSeparatedByBlankLine)
 
 	if isSeparatedByBlankLine {
 		if l.program.Metadata == nil {
@@ -119,26 +117,26 @@ func (l *neuroScriptListenerImpl) assignPendingMetadata(declarationToken antlr.T
 		for k, v := range l.pendingMetadata {
 			l.program.Metadata[k] = v
 		}
-		fmt.Fprintf(os.Stderr, "[DEBUG] DECISION -> Assigned %d items to FILE scope.\n", len(l.pendingMetadata))
+		//		fmt.Fprintf(os.Stderr, "[DEBUG] DECISION -> Assigned %d items to FILE scope.\n", len(l.pendingMetadata))
 	} else if targetMap != nil {
 		for k, v := range l.pendingMetadata {
 			targetMap[k] = v
 		}
-		fmt.Fprintf(os.Stderr, "[DEBUG] DECISION -> Assigned %d items to BLOCK scope.\n", len(l.pendingMetadata))
+		//		fmt.Fprintf(os.Stderr, "[DEBUG] DECISION -> Assigned %d items to BLOCK scope.\n", len(l.pendingMetadata))
 	} else {
-		fmt.Fprintf(os.Stderr, "[DEBUG] DECISION -> Metadata DROPPED (not file-level and no target map).\n")
+		//		fmt.Fprintf(os.Stderr, "[DEBUG] DECISION -> Metadata DROPPED (not file-level and no target map).\n")
 	}
 
 	l.pendingMetadata = make(map[string]string)
 	l.lastPendingMetadataToken = nil
-	fmt.Fprintf(os.Stderr, "[DEBUG] Cleared pending metadata.\n")
-	fmt.Fprintf(os.Stderr, "[DEBUG] =============================================\n\n")
+	// fmt.Fprintf(os.Stderr, "[DEBUG] Cleared pending metadata.\n")
+	// fmt.Fprintf(os.Stderr, "[DEBUG] =============================================\n\n")
 }
 
 // hasBlankLineBetweenTokens checks for a semantic blank line between two tokens.
 func (l *neuroScriptListenerImpl) hasBlankLineBetweenTokens(start, end antlr.Token) bool {
 	if start == nil || end == nil {
-		fmt.Fprintf(os.Stderr, "  [DEBUG/hasBlankLine] called with nil token, returning false.\n")
+		//		fmt.Fprintf(os.Stderr, "  [DEBUG/hasBlankLine] called with nil token, returning false.\n")
 		return false
 	}
 
@@ -150,8 +148,8 @@ func (l *neuroScriptListenerImpl) hasBlankLineBetweenTokens(start, end antlr.Tok
 	// If end is on line 4 and start is on line 3, (4-3) is 1. No blank line.
 	isSeparated := (endLine - startLine) >= 2
 
-	fmt.Fprintf(os.Stderr, "  [DEBUG/hasBlankLine] Start Line: %d | End Line: %d | Calculation: (end - start >= 2) -> (%d >= 2) -> %v\n",
-		startLine, endLine, (endLine - startLine), isSeparated)
+	//	fmt.Fprintf(os.Stderr, "  [DEBUG/hasBlankLine] Start Line: %d | End Line: %d | Calculation: (end - start >= 2) -> (%d >= 2) -> %v\n",
+	//		startLine, endLine, (endLine - startLine), isSeparated)
 
 	return isSeparated
 }
