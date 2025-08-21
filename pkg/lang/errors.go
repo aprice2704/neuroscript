@@ -118,6 +118,7 @@ const (
 	ErrorCodeResourceExhaustion   ErrorCode = 37
 	ErrorCodeNestingDepthExceeded ErrorCode = 38
 	ErrorCodeControlFlow          ErrorCode = 39
+	ErrProviderNotFound           ErrorCode = 40
 
 	// --- SECURITY codes (99 900-99 999).  Stable for signing / IR play-books. ----
 	securityBase ErrorCode = 99900

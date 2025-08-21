@@ -354,10 +354,47 @@ func init() {
 	log.Println("Custom NeuroScript critical error handler registered.")
 }
 ```
+Section 9: Handling Errors
+The API re-exports key sentinel errors, allowing you to write robust error-handling logic without importing internal packages. You can check for specific, well-known error conditions using the standard errors.Is() function.
+
+Go
+
+import (
+    "errors"
+    "github.com/aprice2704/neuroscript/pkg/api"
+)
+
+func main() {
+    // ...
+    _, err := api.RunProcedure(ctx, interp, "a_procedure_that_is_missing")
+
+    if err != nil {
+        if errors.Is(err, api.ErrProcedureNotFound) {
+            fmt.Println("Caught expected error: The procedure was not found!")
+        } else if errors.Is(err, api.ErrToolNotAllowed) {
+            fmt.Println("A security policy prevented a tool from running.")
+        } else {
+            fmt.Printf("An unexpected error occurred: %v\n", err)
+        }
+    }
+}
+Available Sentinel Errors include:
+
+api.ErrProcedureNotFound
+
+api.ErrArgumentMismatch
+
+api.ErrMustConditionFailed
+
+api.ErrToolNotAllowed
+
+api.ErrSecurityViolation
+
+api.ErrToolNotFound
 
 ---
 
-## 9. Core Types Reference
+## 10. Core Types Reference
 
 The `api` package re-exports all necessary types so you don't need to import internal packages.
 
@@ -373,7 +410,7 @@ The `api` package re-exports all necessary types so you don't need to import int
 
 ---
 
-## 10. Important “Don’ts”
+## 11. Important “Don’ts”
 
 -   **Do not** use filesystem tools without configuring a sandbox via `api.WithSandboxDir`.
 -   **Do not** import `pkg/parser`, `pkg/interpreter`, etc., directly. Use the `api` package.

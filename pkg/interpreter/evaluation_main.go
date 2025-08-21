@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.6.0
-// File version: 62
+// File version: 63
 // Purpose: Integrated the ExecPolicy security gate into the tool call evaluation path, as per the design specification.
 // filename: pkg/interpreter/evaluation_main.go
 // nlines: 280
@@ -192,13 +192,13 @@ func (e *evaluation) evaluateCall(n *ast.CallableExprNode) (lang.Value, error) {
 		// --- POLICY GATE ---
 		if e.i.ExecPolicy != nil {
 			meta := runtime.ToolMeta{
-				Name:          string(toolImpl.FullName),
+				Name:          strings.ToLower(string(toolImpl.FullName)),
 				RequiresTrust: toolImpl.RequiresTrust,
 				RequiredCaps:  toolImpl.RequiredCaps,
 				Effects:       toolImpl.Effects,
 			}
 			if err := e.i.ExecPolicy.CanCall(meta); err != nil {
-				return nil, lang.NewRuntimeError(lang.ErrorCodePolicy, fmt.Sprintf("tool call '%s' rejected by policy", meta.Name), err).WithPosition(n.StartPos)
+				return nil, lang.NewRuntimeError(lang.ErrorCodePolicy, fmt.Sprintf("tool call '%s' rejected by policy", toolImpl.FullName), err).WithPosition(n.StartPos)
 			}
 		}
 		// --- END POLICY GATE ---
