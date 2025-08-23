@@ -41,6 +41,8 @@ Follow these **CORE RULES** **very strictly** for all Go code contributions to t
 10. **Request Missing Information:**
     * If you need files (e.g., `.g4`, fixtures, other source code) or clarification that you don't have, **ask for them immediately.** Do not guess contents or specifications.
 12. **Beware stubbing** The go compiler is a great resource, preventing one from making a half program; stubbing neutralizes this advantage. Use stubbing sparingly.
+13. Do not use struct fields with string or int types unless truly necessary. Always make a clear type for them, e.g. Status string -> Status Status. For enum types, define the possible values too.
+14.
 ---
 
 ## OTHER KEY GUIDELINES
