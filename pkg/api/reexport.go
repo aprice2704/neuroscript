@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.6.0
-// File version: 21
-// Purpose: Re-exported capability constants and builder functions for the public API.
+// NeuroScript Version: 0.7.0
+// File version: 23
+// Purpose: Re-exported tool argument types (ArgType) for the public API.
 // filename: pkg/api/reexport.go
-// nlines: 110
+// nlines: 130
 // risk_rating: MEDIUM
 
 package api
@@ -58,6 +58,7 @@ type (
 	FullName           = types.FullName
 	ToolName           = types.ToolName
 	ToolGroup          = types.ToolGroup
+	ArgType            = tool.ArgType
 )
 
 // Standard capability resources and verbs, re-exported for convenience.
@@ -69,12 +70,31 @@ const (
 	ResTool   = capability.ResTool
 	ResSecret = capability.ResSecret
 	ResBudget = capability.ResBudget
+	ResBus    = capability.ResBus
 
 	VerbRead  = capability.VerbRead
 	VerbWrite = capability.VerbWrite
 	VerbAdmin = capability.VerbAdmin
 	VerbUse   = capability.VerbUse
 	VerbExec  = capability.VerbExec
+)
+
+// Standard tool argument types, re-exported for convenience.
+const (
+	ArgTypeAny         = tool.ArgTypeAny
+	ArgTypeString      = tool.ArgTypeString
+	ArgTypeInt         = tool.ArgTypeInt
+	ArgTypeFloat       = tool.ArgTypeFloat
+	ArgTypeBool        = tool.ArgTypeBool
+	ArgTypeMap         = tool.ArgTypeMap
+	ArgTypeSlice       = tool.ArgTypeSlice
+	ArgTypeSliceString = tool.ArgTypeSliceString
+	ArgTypeSliceInt    = tool.ArgTypeSliceInt
+	ArgTypeSliceFloat  = tool.ArgTypeSliceFloat
+	ArgTypeSliceBool   = tool.ArgTypeSliceBool
+	ArgTypeSliceMap    = tool.ArgTypeSliceMap
+	ArgTypeSliceAny    = tool.ArgTypeSliceAny
+	ArgTypeNil         = tool.ArgTypeNil
 )
 
 // Capability construction and parsing helpers.

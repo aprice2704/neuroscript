@@ -116,6 +116,7 @@ Use `api.New()` with functional options to configure the interpreter.
 -   **`api.WithLogger(logger api.Logger) api.Option`**: Provides a custom logger that conforms to the `interfaces.Logger` interface.
 -   **`api.WithStdout(w io.Writer) api.Option`**: Sets the standard output stream for the `emit` command.
 -   **`api.WithStderr(w io.Writer) api.Option`**: Sets the standard error stream.
+-   **`api.WithGlobals(globals map[string]any) api.Option`**: Sets initial global variables that can be accessed by the script.
 -   **`api.WithTool(tool api.ToolImplementation) api.Option`**: Registers a custom Go function as a tool (see Section 6).
 
 ### Standard Tool and Provider Registration
@@ -393,6 +394,69 @@ api.ErrSecurityViolation
 api.ErrToolNotFound
 
 ---
+
+---
+
+## 9. Handling Events
+
+NeuroScript includes a powerful event-driven model that allows your Go application to trigger behavior within a loaded script. This is ideal for building reactive systems where the script needs to respond to asynchronous events from the host.
+
+The flow is straightforward:
+1.  **Declare Handlers**: Your NeuroScript code defines one or more `on event` blocks that listen for specific event names.
+2.  **Emit Events**: Your Go application calls the `EmitEvent` method on an interpreter instance to trigger these handlers.
+
+Handlers are executed in a **sandboxed clone** of the interpreter. This is a critical security and stability feature: it means that any variables set or state changes made within an `on event` block are discarded after the handler completes and will **not** affect the main interpreter's state.
+
+### Step-by-Step Example
+
+This example demonstrates how to register a handler for a `user:login` event and trigger it from the host application.
+
+```go
+package main
+
+import (
+	"context"
+	"os"
+
+	"github.com/aprice2704/neuroscript/pkg/api"
+	"github.com/aprice2704/neuroscript/pkg/lang"
+)
+
+func main() {
+	// 1. Define a script with an 'on event' handler.
+	// The handler expects a payload and uses the 'emit' command to print a message.
+	script := `
+on event "user:login" as data do
+  set user_id = data["payload"]["id"]
+  emit "EVENT: User " + user_id + " has logged in."
+endon
+`
+
+	// 2. Create an interpreter and load the script. This automatically
+	// registers the 'on event' handler.
+	interp := api.New(api.WithStdout(os.Stdout))
+	tree, _ := api.Parse([]byte(script), api.ParseSkipComments)
+	if _, err := api.ExecWithInterpreter(context.Background(), interp, tree); err != nil {
+		panic(err)
+	}
+
+	// 3. From your application, create a payload for the event.
+	// Payloads are maps of NeuroScript values.
+	payloadData := map[string]lang.Value{
+		"id":    lang.StringValue{Value: "usr_f81b"},
+		"level": lang.NumberValue{Value: 3},
+	}
+	payload := lang.NewMapValue(payloadData)
+
+	// 4. Call EmitEvent to trigger all registered handlers for "user:login".
+	// The 'source' argument is for logging and traceability.
+	interp.EmitEvent("user:login", "AuthService", payload)
+}
+
+// Expected output:
+// EVENT: User usr_f81b has logged in.
+```
+
 
 ## 10. Core Types Reference
 

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 19
-// Purpose: Correctly initializes a default 'normal' context ExecPolicy by constructing the struct directly.
+// File version: 20
+// Purpose: Added WithGlobals option to the public API for setting initial variables.
 // filename: pkg/api/interpreter.go
-// nlines: 115
+// nlines: 125
 // risk_rating: MEDIUM
 
 package api
@@ -65,6 +65,11 @@ func WithStderr(w io.Writer) interpreter.InterpreterOption {
 // WithLogger creates an interpreter option to set a custom logger.
 func WithLogger(logger Logger) Option {
 	return interpreter.WithLogger(logger)
+}
+
+// WithGlobals creates an interpreter option to set initial global variables from a map.
+func WithGlobals(globals map[string]any) Option {
+	return interpreter.WithGlobals(globals)
 }
 
 // SetStdout sets the standard output writer for the interpreter instance.

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 39.0.0
-// Purpose: Adds an exported RegisterProvider method for direct, programmatic provider registration by the host.
+// File version: 40.0.0
+// Purpose: Corrected the clone method to properly copy global variables, fixing a scoping bug with WithGlobals.
 // filename: pkg/interpreter/interpreter.go
-// nlines: 255
+// nlines: 265
 // risk_rating: HIGH
 
 package interpreter
@@ -103,14 +103,27 @@ func (i *Interpreter) clone() *Interpreter {
 	// Point clone's root to the original interpreter's root, or to the
 	// original if it is the root. This ensures access to shared state
 	// like AgentModels and providers.
+	rootInterpreter := i
 	if i.root != nil {
-		clone.root = i.root
-	} else {
-		clone.root = i
+		rootInterpreter = i.root
 	}
+	clone.root = rootInterpreter
 
 	// The clone gets its own variable map, but inherits known procedures.
 	clone.state.knownProcedures = i.state.knownProcedures
+
+	// Copy global variables from the root interpreter for read-only access.
+	rootInterpreter.state.variablesMu.RLock()
+	defer rootInterpreter.state.variablesMu.RUnlock()
+
+	for name := range rootInterpreter.state.globalVarNames {
+		if val, ok := rootInterpreter.state.variables[name]; ok {
+			// This sets the variable on the clone's independent variable map.
+			clone.SetVariable(name, val)
+			// Mark it as a global in the clone as well.
+			clone.state.globalVarNames[name] = true
+		}
+	}
 
 	return clone
 }
@@ -201,20 +214,7 @@ func (i *Interpreter) ToolRegistry() tool.ToolRegistry {
 
 // CloneForEventHandler creates a sandboxed clone for event handling.
 func (i *Interpreter) CloneForEventHandler() *Interpreter {
-	clone := i.clone() // Use the centralized, corrected clone method.
-
-	// Copy global variables for read-only access, as per the spec.
-	// We lock the parent's variables for reading.
-	i.state.variablesMu.RLock()
-	defer i.state.variablesMu.RUnlock()
-
-	for name := range i.state.globalVarNames {
-		if val, ok := i.state.variables[name]; ok {
-			// This sets the variable on the clone's independent variable map.
-			clone.SetVariable(name, val)
-		}
-	}
-	return clone
+	return i.clone() // The corrected clone method already handles globals.
 }
 
 // CloneWithNewVariables creates a clone with a fresh set of variables for procedure calls.
@@ -252,7 +252,7 @@ func (i *Interpreter) Run(procName string, args ...lang.Value) (lang.Value, erro
 	if err == nil {
 		i.lastCallResult = result
 	}
-	fmt.Printf(">>>> [DEBUG] interpreter.Run: Value being RETURNED to API FACADE is: %#v\n", result)
+	//fmt.Printf(">>>> [DEBUG] interpreter.Run: Value being RETURNED to API FACADE is: %#v\n", result)
 	return result, err
 }
 

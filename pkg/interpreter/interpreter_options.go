@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.6.0
-// File version: 4
-// Purpose: Adds WithExecPolicy option for host-provided runtime security gating.
-// filename: pkg/interpreter/options.go
+// File version: 5
+// Purpose: Renamed WithInitialGlobals to WithGlobals for API consistency.
+// filename: pkg/interpreter/interpreter_options.go
 // nlines: 62
 // risk_rating: LOW
 
@@ -64,8 +64,8 @@ func WithStderr(w io.Writer) InterpreterOption {
 	}
 }
 
-// WithInitialGlobals sets the initial global variables.
-func WithInitialGlobals(globals map[string]interface{}) InterpreterOption {
+// WithGlobals sets the initial global variables.
+func WithGlobals(globals map[string]interface{}) InterpreterOption {
 	return func(i *Interpreter) {
 		for key, val := range globals {
 			if err := i.SetInitialVariable(key, val); err != nil {

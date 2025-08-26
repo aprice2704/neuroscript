@@ -29,10 +29,11 @@
 ### [5. Fundamental Statements](#5-fundamental-statements)
 * [5.1. The `must` Statement: Asserting Truth](#51-the-must-statement-asserting-truth)
 * [5.2. The `call` Statement: Invoking Functions and Tools](#52-the-call-statement-invoking-functions-and-tools)
-* [5.3. The `ask` Statement: Prompting for Input](#53-the-ask-statement-prompting-for-input)
-* [5.4. The `emit` Statement: Firing Events](#54-the-emit-statement-firing-events)
-* [5.5. The `fail` Statement: Halting with an Error](#55-the-fail-statement-halting-with-an-error)
-* [5.6. State Clearing Statements](#56-state-clearing-statements)
+* [5.3. The `ask` Statement: Querying AI Models](#53-the-ask-statement-querying-ai-models)
+* [5.4. The `promptuser` Statement: Getting User Input](#54-the-promptuser-statement-getting-user-input)
+* [5.5. The `emit` Statement: Firing Events](#55-the-emit-statement-firing-events)
+* [5.6. The `fail` Statement: Halting with an Error](#56-the-fail-statement-halting-with-an-error)
+* [5.7. State Clearing Statements](#57-state-clearing-statements)
 
 ### [6. Control Flow Structures](#6-control-flow-structures)
 * [6.1. Conditional Logic: `if`/`else`/`endif`](#61-conditional-logic-ifelseendif)
@@ -216,7 +217,7 @@ set FunctionName = 3
 
 Keywords are reserved words that have special meaning in NeuroScript and cannot be used as identifiers. All keywords are lowercase.
 
-The full list of keywords includes: `acos`, `and`, `as`, `asin`, `ask`, `atan`, `break`, `call`, `clear`, `clear_error`, `command`, `continue`, `cos`, `do`, `each`, `else`, `emit`, `endcommand`, `endfor`, `endfunc`, `endif`, `endon`, `endwhile`, `error`, `eval`, `event`, `fail`, `false`, `for`, `func`, `fuzzy`, `if`, `in`, `into`, `last`, `len`, `ln`, `log`, `means`, `must`, `mustbe`, `named`, `needs`, `nil`, `no`, `not`, `on`, `optional`, `or`, `return`, `returns`, `set`, `sin`, `some`, `tan`, `timedate`, `tool`, `true`, `typeof`, `while`.
+The full list of keywords includes: `acos`, `and`, `as`, `asin`, `ask`, `atan`, `break`, `call`, `clear`, `clear_error`, `command`, `continue`, `cos`, `do`, `each`, `else`, `emit`, `endcommand`, `endfor`, `endfunc`, `endif`, `endon`, `endwhile`, `error`, `eval`, `event`, `fail`, `false`, `for`, `func`, `fuzzy`, `if`, `in`, `into`, `last`, `len`, `ln`, `log`, `means`, `must`, `mustbe`, `named`, `needs`, `nil`, `no`, `not`, `on`, `optional`, `or`, `promptuser`, `return`, `returns`, `set`, `sin`, `some`, `tan`, `timedate`, `tool`, `true`, `typeof`, `while`.
 
 ---
 
@@ -577,16 +578,49 @@ call cleanup_temporary_files()
 
 ---
 
-### 5.3. The `ask` Statement: Prompting for Input
+### 5.3. The `ask` Statement: Querying AI Models
 
-The `ask` statement is used to prompt for user input. It sends an expression (typically a question string) to the host environment and can optionally store the user's response in a variable.
+The `ask` statement is the primary interface for interacting with pre-configured AI models. It sends a prompt to a specified model and can store the model's response in a variable. This statement is dedicated to AI interaction, not general user input.
 
-**Syntax:** `ask <expression> [into <identifier>]`
+**Syntax:** `ask <model_expression>, <prompt_expression> [into <l-value>]`
+
+Before using `ask`, models must be configured and registered with the host environment, typically using a tool. This involves defining the model's properties (like provider and name) in a map and then registering it with a human-friendly name.
+
+```neuroscript
+command
+  # 1. Define the configuration for an AI model as a map.
+  # The 'api_key_ref' points to the name of an environment variable.
+  set codey_config = {\
+    "provider": "google",\
+    "model": "gemini-2.5-flash",\
+    "api_key_ref": "GOOGLE_API_KEY"\
+  }
+
+  # 2. Register the model with the system using a tool,
+  # giving it a friendly name to use with 'ask'.
+  must tool.agentmodel.Register("code_assistant", codey_config)
+
+  # 3. Use 'ask' to send a prompt to the registered model
+  # and store the response in the 'answer' variable.
+  ask "code_assistant", "please write the sieve of Eratosthenes in forth" into answer
+
+  emit "AI Response:"
+  emit answer
+endcommand
+```
+
+---
+
+### 5.4. The `promptuser` Statement: Getting User Input
+
+The `promptuser` statement is used to prompt a human user for text input. It sends an expression (typically a question string) to the host environment and stores the user's response in a variable.
+
+**Syntax:** `promptuser <expression> into <l-value>`
 
 ```neuroscript
 command
   # Ask a question and store the answer in the 'user_name' variable.
-  ask "What is your name?" into user_name
+  promptuser "What is your name?" into user_name
 
   emit "Hello, " + user_name
 endcommand
@@ -594,7 +628,7 @@ endcommand
 
 ---
 
-### 5.4. The `emit` Statement: Firing Events
+### 5.5. The `emit` Statement: Firing Events
 
 The `emit` statement is the primary way for a script to output data or signal that something has happened. The host system determines how to handle an emitted value—it could be printed to the console, logged to a file, or broadcast as an event to other parts of an application. For sending data to multiple specific outputs, it is recommended to use tools (e.g., `tool.log.info`, `tool.network.send`).
 
@@ -615,7 +649,7 @@ emit {"user": user_name, "status": "active"}
 
 ---
 
-### 5.5. The `fail` Statement: Halting with an Error
+### 5.6. The `fail` Statement: Halting with an Error
 
 The `fail` statement immediately stops the execution of the script and raises an error. You can optionally provide an expression (like an error message) to give more context about the failure. This is often used in `else` blocks or when validation checks do not pass.
 
@@ -634,17 +668,17 @@ endfunc
 
 ---
 
-### 5.6. State Clearing Statements
+### 5.7. State Clearing Statements
 
 These statements are used to reset specific states within the interpreter.
 
-#### 5.6.1. `clear_error`
+#### 5.7.1. `clear_error`
 
 Used inside an `on error` block, `clear_error` resets the script's error state, allowing execution to continue normally after the error handler finishes. If the error is not cleared, the script will terminate after the handler completes.
 
 **Syntax:** `clear_error`
 
-#### 5.6.2. `clear event`
+#### 5.7.2. `clear event`
 
 The `clear event` statement removes event handlers that were previously registered with `on event`. You can clear a handler by its event name expression or by a specific handler name.
 
@@ -1175,11 +1209,11 @@ Metadata
 ::schema: spec
 ::serialization: md
 ::langVersion: neuroscript@0.4.6
-::fileVersion: 2
+::fileVersion: 3
 ::description: A comprehensive guide to the NeuroScript language, covering syntax, data types, control flow, and advanced features.
 ::author: Gemini and Andrew Price
 ::created: 2025-07-13
-::modified: 2025-07-26
+::modified: 2025-08-23
 ::license: Proprietary
 ::tags: neuroscript,guide,documentation,spec,language
 ::type: documentation

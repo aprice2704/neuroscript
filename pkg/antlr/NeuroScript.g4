@@ -1,6 +1,6 @@
-// Grammar: NeuroScript Version: 0.5.0
-// File version: 81
-// Purpose: Renamed the user input command to 'promptuser' to distinguish it from the 'ask' statement for AI.
+// Grammar: NeuroScript Version: 0.8.99
+// File version: 82
+// Purpose: Resolved lexer ambiguity between a placeholder end '}}' and two closing braces '}'.
 // filename: NeuroScript.g4
 grammar NeuroScript;
 
@@ -8,7 +8,6 @@ grammar NeuroScript;
 // (Lexer rules are unchanged)
 LINE_ESCAPE_GLOBAL:
 	'\\' ('\r'? '\n' | '\r') -> channel(HIDDEN);
-
 // Keywords
 KW_ACOS: 'acos';
 KW_AND: 'and';
@@ -115,7 +114,7 @@ RBRACE: '}';
 COLON: ':';
 DOT: '.';
 PLACEHOLDER_START: '{{';
-PLACEHOLDER_END: '}}';
+// REMOVED: PLACEHOLDER_END rule to prevent lexer ambiguity
 EQ: '==';
 NEQ: '!=';
 GT: '>';
@@ -190,7 +189,6 @@ non_empty_statement_list:
 
 statement_list: body_line*;
 body_line: statement NEWLINE | NEWLINE;
-
 statement: simple_statement | block_statement | on_stmt;
 
 // General statements for functions/handlers
@@ -240,7 +238,6 @@ ask_stmt:
 promptuser_stmt: KW_PROMPTUSER expression KW_INTO lvalue;
 break_statement: KW_BREAK;
 continue_statement: KW_CONTINUE;
-
 if_statement:
 	KW_IF expression NEWLINE non_empty_statement_list (
 		KW_ELSE NEWLINE non_empty_statement_list
@@ -291,8 +288,11 @@ callable_expr: (
 		| KW_ATAN
 		| KW_LEN
 	) LPAREN expression_list_opt RPAREN;
+
+// FIX: Changed placeholder to use two RBRACE tokens instead of a custom token.
 placeholder:
-	PLACEHOLDER_START (IDENTIFIER | KW_LAST) PLACEHOLDER_END;
+	PLACEHOLDER_START (IDENTIFIER | KW_LAST) RBRACE RBRACE;
+
 literal:
 	STRING_LIT
 	| TRIPLE_BACKTICK_STRING

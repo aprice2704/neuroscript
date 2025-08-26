@@ -121,11 +121,11 @@ const (
 	ErrProviderNotFound           ErrorCode = 40
 
 	// --- SECURITY codes (99 900-99 999).  Stable for signing / IR play-books. ----
-	securityBase ErrorCode = 99900
+	SecurityBase ErrorCode = 99900
 )
 
 const (
-	_                             ErrorCode = securityBase + iota // 99900 reserved (placeholder)
+	_                             ErrorCode = SecurityBase + iota // 99900 reserved (placeholder)
 	ErrorCodeAttackPossible                                       // 99901
 	ErrorCodeAttackProbable                                       // 99902
 	ErrorCodeAttackCertain                                        // 99903

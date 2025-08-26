@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.3
-// File version: 12
-// Purpose: Corrects a critical signature verification bug and updates to use the new registry-based decoder.
+// File version: 13
+// Purpose: Returns a structured, security-specific error on signature verification failure.
 // filename: pkg/api/loader.go
-// nlines: 65
+// nlines: 68
 // risk_rating: HIGH
 
 package api
@@ -15,6 +15,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/api/analysis"
 	"github.com/aprice2704/neuroscript/pkg/canon"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -48,7 +49,10 @@ func DetectRunMode(tree *interfaces.Tree) RunMode {
 func Load(ctx context.Context, s *SignedAST, cfg LoaderConfig, pubKey ed25519.PublicKey) (*LoadedUnit, error) {
 	// 1. Verify that the signature is valid for the given hash.
 	if !ed25519.Verify(pubKey, s.Sum[:], s.Sig) {
-		return nil, fmt.Errorf("signature verification failed: invalid signature")
+		return nil, &lang.RuntimeError{
+			Code:    lang.ErrorCode(ErrorCodeAttackPossible),
+			Message: "signature verification failed: invalid signature",
+		}
 	}
 
 	// 2. Verify that the hash is the correct hash of the blob.

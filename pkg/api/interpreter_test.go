@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 7
-// Purpose: Adds tests for the logger option and the Unwrap function, with a complete mock logger.
+// File version: 9
+// Purpose: Corrected a typo in the mockLogger's Infof method receiver.
 // filename: pkg/api/interpreter_test.go
-// nlines: 85
+// nlines: 110
 // risk_rating: LOW
 
 package api_test
@@ -20,7 +20,6 @@ import (
 )
 
 // mockLogger is a simple thread-safe logger for testing.
-// FIX: Added all methods required by the interfaces.Logger interface.
 type mockLogger struct {
 	mu     sync.Mutex
 	output bytes.Buffer
@@ -76,6 +75,39 @@ func TestInterpreter_WithLogger(t *testing.T) {
 
 	if !strings.Contains(logOutput, "failed to register tool") {
 		t.Errorf("Expected logger to capture tool registration failure, but log was: %q", logOutput)
+	}
+}
+
+func TestInterpreter_WithGlobals(t *testing.T) {
+	src := `
+func get_global_agent_id(returns string) means
+	return agent_id
+endfunc
+`
+	tree, err := api.Parse([]byte(src), api.ParseSkipComments)
+	if err != nil {
+		t.Fatalf("api.Parse failed: %v", err)
+	}
+
+	// Create an interpreter with a global variable.
+	globals := map[string]any{"agent_id": "agent-007"}
+	interp := api.New(api.WithGlobals(globals))
+
+	// Load the script.
+	if _, err := api.ExecWithInterpreter(context.Background(), interp, tree); err != nil {
+		t.Fatalf("api.ExecWithInterpreter failed: %v", err)
+	}
+
+	// Run the procedure that accesses the global.
+	result, err := api.RunProcedure(context.Background(), interp, "get_global_agent_id")
+	if err != nil {
+		t.Fatalf("api.RunProcedure failed: %v", err)
+	}
+
+	// Verify the result.
+	unwrapped, _ := api.Unwrap(result)
+	if val, ok := unwrapped.(string); !ok || val != "agent-007" {
+		t.Errorf("Expected result 'agent-007', got %v (type %T)", unwrapped, unwrapped)
 	}
 }
 
