@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.6.0
-// File version: 9.1.0
-// Purpose: Corrected toolSelectAgentModel to properly type-assert to the canonical types.AgentModel.
+// NeuroScript Version: 0.7.0
+// File version: 10.0.0
+// Purpose: Updated Register tool to populate strongly-typed fields on the AgentModel from the provided config map.
 // filename: pkg/tool/agentmodel/tools_agentmodel.go
-// nlines: 150
+// nlines: 155
 // risk_rating: HIGH
 
 package agentmodel
@@ -54,10 +54,15 @@ func toolRegisterAgentModel(rt tool.Runtime, args []interface{}) (interface{}, e
 		return nil, fmt.Errorf("argument 'config' must be a map[string]interface{}")
 	}
 
+	// Basic validation for core fields.
+	if _, ok := config["provider"]; !ok {
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "config map must contain 'provider' field", lang.ErrInvalidArgument)
+	}
 	if _, ok := config["model"]; !ok {
-		return nil, lang.ErrInvalidArgument
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "config map must contain 'model' field", lang.ErrInvalidArgument)
 	}
 
+	// The admin.Register function is now responsible for the detailed mapping.
 	err = admin.Register(types.AgentModelName(name), config)
 	if err != nil {
 		return nil, err

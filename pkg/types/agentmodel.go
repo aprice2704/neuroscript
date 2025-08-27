@@ -1,9 +1,9 @@
-// NeuroScript Version: 0.6.0
-// File version: 2
-// Purpose: Provides the canonical, shared definition for the AgentModel struct to break import cycles.
+// NeuroScript Version: 0.7.0
+// File version: 5
+// Purpose: Removed the generic 'Config' map, as the registration process will now populate the explicit fields directly.
 // filename: pkg/types/agentmodel.go
-// nlines: 48
-// risk_rating: MEDIUM
+// nlines: 50
+// risk_rating: LOW
 
 package types
 
@@ -41,6 +41,11 @@ type AgentModel struct {
 	MaxReqPerDay    int
 	MaxTokPerSec    int
 	MaxTokPerMinute int
+
+	// Ask Loop Control
+	ToolLoopPermitted bool
+	MaxTurns          int
+	MaxRetries        int
 
 	// Fields migrated from agentmodel.Info
 	Notes    string

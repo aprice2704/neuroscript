@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 1
-// Purpose: Guarantees that all standard toolsets are registered by importing them for their side effects (init() functions).
+// File version: 2
+// Purpose: Adds the new aeiou toolset to the standard registration list.
 // filename: pkg/api/toolsets.go
-// nlines: 20
+// nlines: 21
 // risk_rating: LOW
 
 package api
@@ -13,6 +13,7 @@ import (
 	// The api.New() function then adds these registered tools to each new
 	// interpreter instance.
 
+	_ "github.com/aprice2704/neuroscript/pkg/tool/aeiou_proto"
 	_ "github.com/aprice2704/neuroscript/pkg/tool/fs"
 	_ "github.com/aprice2704/neuroscript/pkg/tool/gotools"
 	_ "github.com/aprice2704/neuroscript/pkg/tool/io"

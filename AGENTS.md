@@ -13,6 +13,9 @@ We use **Go 1.24+**. These rules emphasize correctness, minimalism, and context 
 - Always review `.md` docs and relevant Go code **before** making changes.  
 - Fix compiler/test failures with **minimal, targeted edits**. Do not “tidy up” unrelated code.  
 
+### 1b. DEBUG OUTPUT
+- If you don't fix all related bugs in a file in **two** attempts, you **do NOT** understand the problem, however confident you feel. **IMMEDIATELY** add debug output. Given enough debug output, all bugs are shallow.
+
 ### 2. Import Hygiene
 - Never output `github.comcom`. It must always be `github.com`.  
 - In `.md` files, do **not** wrap Go import paths in markdown links.

@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.6.0
-// File version: 2
-// Purpose: Implements a real AIProvider for Google AI models that makes live API calls.
+// NeuroScript Version: 0.7.0
+// File version: 3
+// Purpose: Enforces a strict contract where incoming prompts MUST be valid AEIOU envelopes by parsing them before making an API call.
 // filename: pkg/api/providers/google/google.go
-// nlines: 116
+// nlines: 125
 // risk_rating: MEDIUM
 
 package google
@@ -15,6 +15,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/provider"
 )
 
@@ -56,10 +57,17 @@ type geminiError struct {
 	Message string `json:"message"`
 }
 
-// Chat sends a request to a Google AI model.
+// Chat sends a request to a Google AI model. It requires the prompt to be
+// a valid AEIOU envelope and will fail if it cannot be parsed.
 func (p *Provider) Chat(ctx context.Context, req provider.AIRequest) (*provider.AIResponse, error) {
 	if req.APIKey == "" {
 		return nil, fmt.Errorf("Google provider requires an API key")
+	}
+
+	// The provider contract requires a valid AEIOU envelope. Parse it first.
+	_, err := aeiou.RobustParse(req.Prompt)
+	if err != nil {
+		return nil, fmt.Errorf("google provider requires a valid AEIOU envelope prompt, but parsing failed: %w", err)
 	}
 
 	// 1. Construct the API endpoint URL.

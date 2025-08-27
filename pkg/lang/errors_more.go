@@ -1,11 +1,13 @@
 // NeuroScript Version: 0.6.0
-// File version: 2.0.0
-// Purpose: Defines additional error codes for the lang package, including Policy and Provider errors.
+// File version: 3
+// Purpose: Defines additional error codes and adds a sentinel error for policy violations.
 // filename: pkg/lang/errors_more.go
-// nlines: 15
+// nlines: 20
 // risk_rating: LOW
 
 package lang
+
+import "errors"
 
 const (
 	// ErrorCodeConfig indicates an error related to configuration.
@@ -17,4 +19,9 @@ const (
 	ErrorCodePolicy ErrorCode = 1003
 	// ErrorCodeProviderNotFound indicates a configured AI provider could not be found.
 	ErrorCodeProviderNotFound ErrorCode = 1004
+)
+
+var (
+	// ErrPolicyViolation is returned when a call is rejected by a security or execution policy.
+	ErrPolicyViolation = errors.New("policy violation")
 )

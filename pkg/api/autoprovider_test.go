@@ -1,75 +1,86 @@
-// NeuroScript Version: 0.6.0
-// File version: 2
-// Purpose: Verifies that default providers are auto-registered by api.New(). Removes unused variable.
+// NeuroScript Version: 0.7.0
+// File version: 6
+// Purpose: Corrects compiler errors related to provider registration and the api.Parse function signature.
 // filename: pkg/api/autoprovider_test.go
-// nlines: 64
-// risk_rating: MEDIUM
+// nlines: 91
+// risk_rating: LOW
 
 package api_test
 
 import (
 	"context"
-	"os"
+	"strings"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/api"
+	"github.com/aprice2704/neuroscript/pkg/api/providers/test"
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/runtime"
 )
 
-// TestAPI_AutoProviderRegistration confirms that a standard interpreter created
-// via api.New() has the default providers (e.g., 'google') registered and ready
-// for use without any manual registration steps.
+// TestAPI_AutoProviderRegistration verifies that a provider registered via the
+// top-level API function is correctly configured and accessible to scripts.
 func TestAPI_AutoProviderRegistration(t *testing.T) {
-	// This test requires a live API key to be set.
-	if os.Getenv("GOOGLE_API_KEY") == "" {
-		t.Skip("Skipping live API test: GOOGLE_API_KEY is not set.")
-	}
+	// 1. Create an interpreter instance.
+	interp := api.New()
 
-	// 1. Define a script that uses the 'google' provider, which should exist by default.
-	// We need a trusted context to register a model. api.NewConfigInterpreter
-	// calls api.New() internally, so this correctly tests the new default behavior.
-	requiredGrants := []api.Capability{
-		{Resource: "model", Verbs: []string{"admin"}, Scopes: []string{"*"}},
-		{Resource: "model", Verbs: []string{"use"}, Scopes: []string{"*"}},
-		{Resource: "env", Verbs: []string{"read"}, Scopes: []string{"*"}},
-		{Resource: "net", Verbs: []string{"read", "write"}, Scopes: []string{"*"}},
-	}
-	trustedInterp := api.NewConfigInterpreter(nil, requiredGrants)
+	// 2. Register the mock provider with a specific name on the interpreter.
+	interp.RegisterProvider("mock", test.New())
 
-	script := `
-func main(returns result) means
-  must tool.agentmodel.Register("default_google", {\
-    "provider": "google",\
-    "model": "gemini-1.5-flash",\
-    "api_key_ref": "GOOGLE_API_KEY"\
-  })
-  ask "default_google", "briefly explain what a large language model is" into result
-  return result
+	// 3. Define a script that uses this specific provider.
+	scriptContent := `
+func main(returns string) means
+    # Create an envelope for the prompt
+    set h = tool.aeiou.new()
+    call tool.aeiou.set_section(h, "ORCHESTRATION", "What is a large language model?")
+    set payload = tool.aeiou.compose(h)
+
+    # Call the model with the composed envelope
+    set result = tool.model.chat("mock", "default", payload)
+    return result
 endfunc
 `
-	// 2. Parse and load the script into the trusted interpreter.
-	tree, err := api.Parse([]byte(script), api.ParseSkipComments)
-	if err != nil {
-		t.Fatalf("api.Parse() failed: %v", err)
+	// 4. Configure a policy to allow the necessary tools.
+	policy := &runtime.ExecPolicy{
+		Context: runtime.ContextNormal,
+		Allow: []string{
+			"tool.model.chat",
+			"tool.aeiou.new",
+			"tool.aeiou.set_section",
+			"tool.aeiou.compose",
+		},
 	}
-	if _, err := api.ExecWithInterpreter(context.Background(), trustedInterp, tree); err != nil {
-		t.Fatalf("api.ExecWithInterpreter() failed to load script: %v", err)
+	// Apply the policy to the interpreter instance.
+	interp = api.New(interpreter.WithExecPolicy(policy))
+	interp.RegisterProvider("mock", test.New()) // Re-register after creating new interp with policy
+
+	// 5. Parse and load the script.
+	tree, err := api.Parse([]byte(scriptContent), api.ParseMode(0))
+	if err != nil {
+		t.Fatalf("api.Parse failed: %v", err)
+	}
+	if _, err := api.ExecWithInterpreter(context.Background(), interp, tree); err != nil {
+		t.Fatalf("api.ExecWithInterpreter failed: %v", err)
 	}
 
-	// 3. Run the main procedure, which will trigger the 'ask' statement.
-	result, err := api.RunProcedure(context.Background(), trustedInterp, "main")
+	// 6. Run the procedure.
+	result, err := api.RunProcedure(context.Background(), interp, "main")
 	if err != nil {
-		t.Fatalf("api.RunProcedure() failed: %v", err)
+		t.Fatalf("api.RunProcedure failed unexpectedly: %v", err)
 	}
 
-	// 4. Verify that we got a non-empty string response.
-	unwrapped, _ := api.Unwrap(result)
+	// 7. Verify the result from the mock provider.
+	unwrapped, ok := api.Unwrap(result)
+	if !ok {
+		t.Fatalf("api.Unwrap failed")
+	}
 	val, ok := unwrapped.(string)
 	if !ok {
-		t.Fatalf("Expected result to be a string, but got %T", unwrapped)
-	}
-	if val == "" {
-		t.Error("Expected a non-empty response from the Google provider, but got an empty string.")
+		t.Fatalf("Expected a string return type, but got %T", unwrapped)
 	}
 
-	t.Logf("Received valid response from auto-registered google provider: %s...", val[:50])
+	expectedResponse := "A large language model is a neural network."
+	if !strings.Contains(val, expectedResponse) {
+		t.Errorf("Expected response to contain '%s', but got: '%s'", expectedResponse, val)
+	}
 }

@@ -1,8 +1,8 @@
 // filename: pkg/lang/errors.go
 // NeuroScript Version: 0.5.2
-// File version: 6
-// Purpose: Added the ErrSyntax sentinel error.
-// nlines: 231
+// File version: 7
+// Purpose: Added the ErrInvalidUTF8 sentinel error for centralization.
+// nlines: 232
 // risk_rating: LOW
 
 package lang
@@ -174,6 +174,7 @@ var (
 	ErrMissingArgument              = errors.New("required argument missing")
 	ErrInvalidArgument              = errors.New("invalid argument")
 	ErrInvalidInput                 = errors.New("invalid input")
+	ErrInvalidUTF8                  = errors.New("invalid utf-8 encoding")
 	ErrNullByteInArgument           = errors.New("argument contains null byte")
 	ErrIncorrectArgCount            = errors.New("incorrect function argument count")
 	ErrValidationRequired           = errors.New("validation error: missing required argument")

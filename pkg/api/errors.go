@@ -1,8 +1,8 @@
 // filename: pkg/api/errors.go
 // NeuroScript Version: 0.7.0
-// File version: 2
-// Purpose: Re-exports key sentinel errors from the lang package for the public API.
-// nlines: 38
+// File version: 3
+// Purpose: Re-exports additional key sentinel errors for handles, validation, and policy.
+// nlines: 50
 // risk_rating: LOW
 
 package api
@@ -23,8 +23,10 @@ import "github.com/aprice2704/neuroscript/pkg/lang"
 type ErrorCode lang.ErrorCode
 
 var (
-	// --- Parsing Errors ---
-	ErrSyntax = lang.ErrSyntax
+	// --- Parsing & Validation Errors ---
+	ErrSyntax       = lang.ErrSyntax
+	ErrInvalidInput = lang.ErrInvalidInput
+	ErrInvalidUTF8  = lang.ErrInvalidUTF8
 
 	// --- Execution & Procedure Errors ---
 	ErrProcedureNotFound   = lang.ErrProcedureNotFound
@@ -38,10 +40,16 @@ var (
 	ErrToolDenied        = lang.ErrToolDenied
 	ErrSecurityViolation = lang.ErrSecurityViolation
 	ErrPathViolation     = lang.ErrPathViolation
+	ErrPolicyViolation   = lang.ErrPolicyViolation
 
 	// --- Tool & Provider Errors ---
 	ErrToolNotFound     = lang.ErrToolNotFound
 	ErrProviderNotFound = lang.ErrProviderNotFound
+
+	// --- Handle Errors ---
+	ErrHandleInvalid   = lang.ErrHandleInvalid
+	ErrHandleNotFound  = lang.ErrHandleNotFound
+	ErrHandleWrongType = lang.ErrHandleWrongType
 
 	// --- Filesystem Errors ---
 	ErrFileNotFound = lang.ErrFileNotFound
