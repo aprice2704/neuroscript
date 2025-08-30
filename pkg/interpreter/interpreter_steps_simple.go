@@ -1,13 +1,14 @@
-// NeuroScript Version: 0.5.2
-// File version: 35
-// Purpose: Replaced all direct access to the removed 'Position' field with calls to the GetPos() method.
+// NeuroScript Version: 0.7.0
+// File version: 36
+// Purpose: Modified executeEmit to support a custom emit handler for capturing output during 'ask' loops.
 // filename: pkg/interpreter/interpreter_steps_simple.go
+// nlines: 184
+// risk_rating: HIGH
 
 package interpreter
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -46,40 +47,6 @@ func (i *Interpreter) executeReturn(step ast.Step) (lang.Value, bool, error) {
 		results[idx] = evaluatedValue
 	}
 	return lang.ListValue{Value: results}, true, nil
-}
-
-// executeEmit handles the "emit" step.
-func (i *Interpreter) executeEmit(step ast.Step) (lang.Value, error) {
-	if len(step.Values) == 0 {
-		fmt.Fprintln(i.stdout)
-		return &lang.NilValue{}, nil
-	}
-
-	var lastVal lang.Value = &lang.NilValue{}
-	var outputParts []string
-
-	for _, expr := range step.Values {
-		valToEmit, evalErr := i.evaluate.Expression(expr)
-		if evalErr != nil {
-			errMsg := fmt.Sprintf("evaluating value for EMIT at %s", step.GetPos().String())
-			return nil, lang.WrapErrorWithPosition(evalErr, expr.GetPos(), errMsg)
-		}
-		lastVal = valToEmit
-		formattedOutput, _ := lang.ToString(valToEmit)
-		outputParts = append(outputParts, formattedOutput)
-	}
-
-	if i.stdout == nil {
-		i.Logger().Error("executeEmit: Interpreter stdout is nil! This is a critical setup error.")
-		fmt.Println(strings.Join(outputParts, " "))
-	} else {
-		if _, err := fmt.Fprintln(i.stdout, strings.Join(outputParts, " ")); err != nil {
-			i.Logger().Error("Failed to write EMIT output via i.stdout", "error", err)
-			return nil, lang.NewRuntimeError(lang.ErrorCodeIOFailed, "failed to emit output", err).WithPosition(step.GetPos())
-		}
-	}
-
-	return lastVal, nil
 }
 
 // executeMust handles "must" and "mustbe" steps.

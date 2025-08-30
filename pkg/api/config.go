@@ -9,8 +9,8 @@ package api
 
 import (
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/policy/capability"
-	"github.com/aprice2704/neuroscript/pkg/runtime"
 )
 
 // WithTrustedPolicy creates an interpreter option that applies a pre-configured
@@ -19,8 +19,8 @@ import (
 // specified tool allow-list and capability grants.
 func WithTrustedPolicy(allowedTools []string, grants ...capability.Capability) interpreter.InterpreterOption {
 	return func(i *interpreter.Interpreter) {
-		policy := &runtime.ExecPolicy{
-			Context: runtime.ContextConfig,
+		policy := &policy.ExecPolicy{
+			Context: policy.ContextConfig,
 			Allow:   allowedTools,
 			Deny:    []string{}, // Start with no denials
 			Grants:  capability.NewGrantSet(grants, capability.Limits{}),

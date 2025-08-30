@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 23
-// Purpose: Re-exported tool argument types (ArgType) for the public API.
+// File version: 24
+// Purpose: Re-exported types for the Ask-Loop control mechanism.
 // filename: pkg/api/reexport.go
-// nlines: 130
+// nlines: 145
 // risk_rating: MEDIUM
 
 package api
@@ -11,45 +11,33 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/policy/capability"
 	"github.com/aprice2704/neuroscript/pkg/provider"
-	"github.com/aprice2704/neuroscript/pkg/runtime"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // Re-exported types for the public API, as per the v0.7 contract.
 type (
-	// Foundational types from pkg/types, ensuring a stable AST contract.
-	Kind     = types.Kind
-	Position = types.Position
-	Node     = interfaces.Node
-	Tree     = interfaces.Tree
-
-	// Logging and error types.
+	// ... (other types unchanged) ...
+	Kind         = types.Kind
+	Position     = types.Position
+	Node         = interfaces.Node
+	Tree         = interfaces.Tree
 	Logger       = interfaces.Logger
 	LogLevel     = interfaces.LogLevel
 	RuntimeError = lang.RuntimeError
-
-	// SignedAST is the transport wrapper for a canonicalized and signed tree.
-	SignedAST struct {
+	SignedAST    struct {
 		Blob []byte
 		Sum  [32]byte
 		Sig  []byte
 	}
-
-	Value  any
-	Option = interpreter.InterpreterOption
-
-	// --- POLICY & CAPABILITY TYPES ---
-	// Re-exported for building trusted interpreter configurations.
-	ExecPolicy = runtime.ExecPolicy
-	Capability = capability.Capability
-
-	// --- PROVIDER TYPES ---
-	AIProvider = provider.AIProvider
-
-	// Tool-related types needed to define custom tools.
+	Value              any
+	Option             = interpreter.InterpreterOption
+	ExecPolicy         = policy.ExecPolicy
+	Capability         = capability.Capability
+	AIProvider         = provider.AIProvider
 	ToolImplementation = tool.ToolImplementation
 	ArgSpec            = tool.ArgSpec
 	Runtime            = tool.Runtime
@@ -59,9 +47,16 @@ type (
 	ToolName           = types.ToolName
 	ToolGroup          = types.ToolGroup
 	ArgType            = tool.ArgType
+
+	// LoopControl holds the parsed result of an AEIOU LOOP signal.
+	LoopControl struct {
+		Control string // "continue", "done", or "abort"
+		Notes   string
+		Reason  string
+	}
 )
 
-// Standard capability resources and verbs, re-exported for convenience.
+// ... (consts unchanged) ...
 const (
 	ResFS     = capability.ResFS
 	ResNet    = capability.ResNet
@@ -78,8 +73,6 @@ const (
 	VerbUse   = capability.VerbUse
 	VerbExec  = capability.VerbExec
 )
-
-// Standard tool argument types, re-exported for convenience.
 const (
 	ArgTypeAny         = tool.ArgTypeAny
 	ArgTypeString      = tool.ArgTypeString
@@ -97,7 +90,7 @@ const (
 	ArgTypeNil         = tool.ArgTypeNil
 )
 
-// Capability construction and parsing helpers.
+// ... (vars unchanged) ...
 var (
 	NewCapability   = capability.New
 	ParseCapability = capability.Parse
@@ -113,6 +106,16 @@ func WithTool(t ToolImplementation) Option {
 				logger.Error("failed to register tool via WithTool option", "tool", t.Spec.Name, "error", err)
 			}
 		}
+	}
+}
+
+// WithEmitFunc creates an interpreter option to set a custom emit handler.
+func WithEmitFunc(f func(Value)) Option {
+	return func(i *interpreter.Interpreter) {
+		// We wrap the api.Value in the function signature to avoid exposing lang.Value.
+		i.SetEmitFunc(func(v lang.Value) {
+			f(v)
+		})
 	}
 }
 

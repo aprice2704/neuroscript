@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.0
-// File version: 1
-// Purpose: Contains policy gate tests for resource limits and budget enforcement.
+// File version: 2
+// Purpose: Corrected variable shadowing to resolve compiler errors.
 // filename: pkg/interpreter/policy_gate_limits_test.go
 // nlines: 150
 // risk_rating: MEDIUM
@@ -11,32 +11,32 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/policy/capability"
-	"github.com/aprice2704/neuroscript/pkg/runtime"
 )
 
 func TestPolicyGate_Limits(t *testing.T) {
 	// --- Per-Tool Call Limit ---
 	t.Run("[Limits] Tool call count", func(t *testing.T) {
-		policy := &runtime.ExecPolicy{
-			Context: runtime.ContextNormal,
+		p := &policy.ExecPolicy{
+			Context: policy.ContextNormal,
 			Allow:   []string{"*"},
 			Grants: capability.NewGrantSet(nil, capability.Limits{
 				ToolMaxCalls: map[string]int{"tool.limited.call": 2},
 			}),
 		}
-		tool := runtime.ToolMeta{Name: "tool.limited.call"}
+		tool := policy.ToolMeta{Name: "tool.limited.call"}
 
 		// First two calls should succeed
-		if err := policy.CanCall(tool); err != nil {
+		if err := p.CanCall(tool); err != nil {
 			t.Fatalf("Expected 1st call to succeed, got %v", err)
 		}
-		if err := policy.CanCall(tool); err != nil {
+		if err := p.CanCall(tool); err != nil {
 			t.Fatalf("Expected 2nd call to succeed, got %v", err)
 		}
 
 		// Third call should fail
-		err := policy.CanCall(tool)
+		err := p.CanCall(tool)
 		if !errors.Is(err, capability.ErrToolExceeded) {
 			t.Errorf("Expected 3rd call to fail with ErrToolExceeded, got %v", err)
 		}

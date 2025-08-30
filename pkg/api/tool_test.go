@@ -14,7 +14,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/api"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
-	"github.com/aprice2704/neuroscript/pkg/runtime"
+	"github.com/aprice2704/neuroscript/pkg/policy"
 )
 
 // TestAPI_BuiltinToolExecution verifies that a standard, built-in tool can be
@@ -27,8 +27,8 @@ func do_math(returns number) means
 endfunc
 `
 	// 2. Create an interpreter with a policy that explicitly allows the 'Add' tool.
-	policy := &runtime.ExecPolicy{
-		Context: runtime.ContextNormal,
+	policy := &policy.ExecPolicy{
+		Context: policy.ContextNormal,
 		Allow:   []string{"tool.math.Add"},
 	}
 	interp := api.New(interpreter.WithExecPolicy(policy))
@@ -77,8 +77,8 @@ func TestAPI_CustomToolWithDottedGroup(t *testing.T) {
 	}
 
 	// 3. Create an interpreter with the custom tool and a policy to allow it.
-	policy := &runtime.ExecPolicy{
-		Context: runtime.ContextNormal,
+	policy := &policy.ExecPolicy{
+		Context: policy.ContextNormal,
 		Allow:   []string{"tool.xx.bleat"},
 	}
 	interp := api.New(api.WithTool(echoToolImpl), interpreter.WithExecPolicy(policy))

@@ -23,7 +23,7 @@ const (
 	LHS_LIST
 )
 
-// executeSet handles a `set … = …` step at runtime.
+// executeSet handles a `set … = …` step at policy.
 func (i *Interpreter) executeSet(step ast.Step) (lang.Value, error) {
 	if len(step.LValues) == 0 {
 		return nil, lang.NewRuntimeError(

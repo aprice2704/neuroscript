@@ -1,8 +1,8 @@
-// filename: pkg/parser/ast_builder_statements.go
 // NeuroScript Version: 0.6.0
-// File version: 26
-// Purpose: Corrected field names used for constructing the AskStmt to align with the canonical AST definition, resolving a compiler mismatch.
-// nlines: 230
+// File version: 27
+// Purpose: Adds ExitWhisper_stmt to build the AST for the 'whisper' command.
+// filename: pkg/parser/ast_builder_statements.go
+// nlines: 250+
 // risk_rating: HIGH
 
 package parser
@@ -40,6 +40,45 @@ func (l *neuroScriptListenerImpl) ExitEmit_statement(c *gen.Emit_statementContex
 		Type:     "emit",
 		Values:   []ast.Expression{expr},
 	}
+	step.Comments = l.associateCommentsToNode(&step)
+	SetEndPos(&step, c.GetStop())
+	l.addStep(step)
+}
+
+func (l *neuroScriptListenerImpl) ExitWhisper_stmt(c *gen.Whisper_stmtContext) {
+	l.logDebugAST("ExitWhisper_stmt: Building whisper step.")
+
+	// Pop the two mandatory expressions (handle and value).
+	values, ok := l.popN(2)
+	if !ok {
+		l.addError(c, "internal error in whisper_statement: stack underflow popping handle and value expressions")
+		return
+	}
+
+	handleExpr, ok := values[0].(ast.Expression)
+	if !ok {
+		l.addError(c, "internal error in whisper_statement: handle expression is not an ast.Expression, but %T", values[0])
+		return
+	}
+
+	valueExpr, ok := values[1].(ast.Expression)
+	if !ok {
+		l.addError(c, "internal error in whisper_statement: value expression is not an ast.Expression, but %T", values[1])
+		return
+	}
+
+	whisperStmt := &ast.WhisperStmt{}
+	newNode(whisperStmt, c.GetStart(), types.KindWhisperStmt)
+	whisperStmt.Handle = handleExpr
+	whisperStmt.Value = valueExpr
+
+	pos := tokenToPosition(c.GetStart())
+	step := ast.Step{
+		BaseNode:    ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:        "whisper",
+		WhisperStmt: whisperStmt,
+	}
+
 	step.Comments = l.associateCommentsToNode(&step)
 	SetEndPos(&step, c.GetStop())
 	l.addStep(step)

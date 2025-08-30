@@ -15,7 +15,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/runtime"
+	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
@@ -191,7 +191,7 @@ func (e *evaluation) evaluateCall(n *ast.CallableExprNode) (lang.Value, error) {
 
 		// --- POLICY GATE ---
 		if e.i.ExecPolicy != nil {
-			meta := runtime.ToolMeta{
+			meta := policy.ToolMeta{
 				Name:          strings.ToLower(string(toolImpl.FullName)),
 				RequiresTrust: toolImpl.RequiresTrust,
 				RequiredCaps:  toolImpl.RequiredCaps,

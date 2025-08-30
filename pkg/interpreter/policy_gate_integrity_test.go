@@ -14,7 +14,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/runtime"
+	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
@@ -37,15 +37,15 @@ func TestPolicyGate_IntegrityChecks(t *testing.T) {
 
 	testCases := []struct {
 		name        string
-		policy      *runtime.ExecPolicy
-		tool        runtime.ToolMeta
+		policy      *policy.ExecPolicy
+		tool        policy.ToolMeta
 		expectErrIs error
 		description string
 	}{
 		{
 			name:   "Success: Valid checksum matches",
-			policy: &runtime.ExecPolicy{Context: runtime.ContextNormal, Allow: []string{"*"}},
-			tool: runtime.ToolMeta{
+			policy: &policy.ExecPolicy{Context: policy.ContextNormal, Allow: []string{"*"}},
+			tool: policy.ToolMeta{
 				Name:              "tool.fs.read",
 				SignatureChecksum: validChecksum,
 			},
@@ -54,8 +54,8 @@ func TestPolicyGate_IntegrityChecks(t *testing.T) {
 		},
 		{
 			name:   "Failure: Corrupted checksum",
-			policy: &runtime.ExecPolicy{Context: runtime.ContextNormal, Allow: []string{"*"}},
-			tool: runtime.ToolMeta{
+			policy: &policy.ExecPolicy{Context: policy.ContextNormal, Allow: []string{"*"}},
+			tool: policy.ToolMeta{
 				Name:              "tool.fs.read",
 				SignatureChecksum: "sha256:tampered",
 			},
@@ -64,8 +64,8 @@ func TestPolicyGate_IntegrityChecks(t *testing.T) {
 		},
 		{
 			name:   "Failure: Malformed tool name with invalid characters",
-			policy: &runtime.ExecPolicy{Context: runtime.ContextNormal, Allow: []string{"*"}},
-			tool: runtime.ToolMeta{
+			policy: &policy.ExecPolicy{Context: policy.ContextNormal, Allow: []string{"*"}},
+			tool: policy.ToolMeta{
 				Name: "tool.fs;read", // Invalid character ';'
 			},
 			expectErrIs: lang.ErrSubsystemCompromised,
@@ -73,8 +73,8 @@ func TestPolicyGate_IntegrityChecks(t *testing.T) {
 		},
 		{
 			name:   "Failure: Empty tool name",
-			policy: &runtime.ExecPolicy{Context: runtime.ContextNormal, Allow: []string{"*"}},
-			tool: runtime.ToolMeta{
+			policy: &policy.ExecPolicy{Context: policy.ContextNormal, Allow: []string{"*"}},
+			tool: policy.ToolMeta{
 				Name: "",
 			},
 			expectErrIs: lang.ErrSubsystemCompromised,

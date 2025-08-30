@@ -25,7 +25,7 @@ type SecurityLayer struct {
 	allowlist    map[types.FullName]bool
 	denylist     map[types.FullName]bool
 	sandboxRoot  string            // Unexported field storing the validated path
-	toolRegistry tool.ToolRegistry // FIXED: Changed from runtime.ToolRegistry
+	toolRegistry tool.ToolRegistry // FIXED: Changed from policy.ToolRegistry
 	logger       interfaces.Logger
 }
 

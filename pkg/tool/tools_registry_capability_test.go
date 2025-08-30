@@ -70,13 +70,13 @@ func TestCallFromInterpreter_CapabilityCheck_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to register tool: %v", err)
 	}
-	mockRuntime.registry = registry
+	mockpolicy.registry = registry
 
 	// 2. Configure the mock runtime with a policy that GRANTS the required capability.
 	grantedCaps := []capability.Capability{
 		{Resource: "fs", Verbs: []string{"write"}, Scopes: []string{"/data/*"}}, // Grant with wildcard
 	}
-	mockRuntime.grantSet = &capability.GrantSet{
+	mockpolicy.grantSet = &capability.GrantSet{
 		Grants: grantedCaps,
 	}
 
@@ -99,13 +99,13 @@ func TestCallFromInterpreter_CapabilityCheck_Failure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to register tool: %v", err)
 	}
-	mockRuntime.registry = registry
+	mockpolicy.registry = registry
 
 	// 2. Configure a policy that DOES NOT grant the required capability.
 	grantedCaps := []capability.Capability{
 		{Resource: "fs", Verbs: []string{"read"}, Scopes: []string{"*"}},
 	}
-	mockRuntime.grantSet = &capability.GrantSet{
+	mockpolicy.grantSet = &capability.GrantSet{
 		Grants: grantedCaps,
 	}
 
@@ -136,10 +136,10 @@ func TestCallFromInterpreter_CapabilityCheck_NoRequirements(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to register tool: %v", err)
 	}
-	mockRuntime.registry = registry
+	mockpolicy.registry = registry
 
 	// 2. Policy is empty (default).
-	mockRuntime.grantSet = &capability.GrantSet{}
+	mockpolicy.grantSet = &capability.GrantSet{}
 
 	// 3. Execute
 	result, execErr := registry.ExecuteTool("tool.math.add", map[string]lang.Value{})
@@ -200,8 +200,8 @@ func TestCallFromInterpreter_CapabilityCheck_MultipleRequirements(t *testing.T) 
 			if err != nil {
 				t.Fatalf("Failed to register tool: %v", err)
 			}
-			mockRuntime.registry = registry
-			mockRuntime.grantSet = &capability.GrantSet{Grants: tc.grantedCaps}
+			mockpolicy.registry = registry
+			mockpolicy.grantSet = &capability.GrantSet{Grants: tc.grantedCaps}
 
 			_, execErr := registry.ExecuteTool("tool.cloud.deployApp", map[string]lang.Value{})
 
@@ -225,10 +225,10 @@ func TestCallFromInterpreter_CapabilityCheck_VerbAndScopeMismatch(t *testing.T) 
 	if err != nil {
 		t.Fatalf("Failed to register tool: %v", err)
 	}
-	mockRuntime.registry = registry
+	mockpolicy.registry = registry
 
 	// 2. Configure a policy that grants READ access, not WRITE.
-	mockRuntime.grantSet = &capability.GrantSet{
+	mockpolicy.grantSet = &capability.GrantSet{
 		Grants: []capability.Capability{{Resource: "fs", Verbs: []string{"read"}, Scopes: []string{"/data/*"}}},
 	}
 
@@ -239,7 +239,7 @@ func TestCallFromInterpreter_CapabilityCheck_VerbAndScopeMismatch(t *testing.T) 
 	}
 
 	// 4. Configure a policy that grants access to a different directory.
-	mockRuntime.grantSet = &capability.GrantSet{
+	mockpolicy.grantSet = &capability.GrantSet{
 		Grants: []capability.Capability{{Resource: "fs", Verbs: []string{"write"}, Scopes: []string{"/tmp/*"}}},
 	}
 
@@ -260,10 +260,10 @@ func TestCallFromInterpreter_CapabilityCheck_CaseInsensitive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to register tool: %v", err)
 	}
-	mockRuntime.registry = registry
+	mockpolicy.registry = registry
 
 	// 2. Grant the capability using different casing.
-	mockRuntime.grantSet = &capability.GrantSet{
+	mockpolicy.grantSet = &capability.GrantSet{
 		Grants: []capability.Capability{{Resource: "FS", Verbs: []string{"WRITE"}, Scopes: []string{"/data/*"}}},
 	}
 

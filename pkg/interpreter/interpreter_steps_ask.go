@@ -1,43 +1,24 @@
 // NeuroScript Version: 0.7.0
-// File version: 36.0.0
-// Purpose: Updated to use explicit fields (e.g., ToolLoopPermitted) from the AgentModel struct instead of a generic map.
+// File version: 48.0.0
+// Purpose: Refactored to correctly use the llmconn.Connector interface, fixing the ask loop logic and test failures.
 // filename: pkg/interpreter/interpreter_steps_ask.go
-// nlines: 220
+// nlines: 191
 // risk_rating: HIGH
 
 package interpreter
 
 import (
-	"bufio"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/parser"
-	"github.com/aprice2704/neuroscript/pkg/provider"
+	"github.com/aprice2704/neuroscript/pkg/llmconn"
 	"github.com/aprice2704/neuroscript/pkg/types"
-)
-
-const (
-	loopContinueMarker = "[[loop:continue]]"
-	loopDoneMarker     = "[[loop:done]]"
-	loopAbortMarker    = "[[loop:abort" // Prefix match
-	defaultMaxTurns    = 1
-	maxTurnsCap        = 10 // A hard safety cap
-)
-
-type loopControlState int
-
-const (
-	stateContinue loopControlState = iota
-	stateDone
-	stateAbort
 )
 
 // executeAsk handles the "ask" statement by orchestrating the AEIOU protocol,
@@ -60,20 +41,32 @@ func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
 	}
 	initialPrompt, _ := lang.ToString(promptVal)
 
-	agentModelObj, found := i.GetAgentModel(types.AgentModelName(agentName))
+	agentModelObj, found := i.AgentModels().Get(types.AgentModelName(agentName))
 	if !found {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("AgentModel '%s' is not registered", agentName), lang.ErrMapKeyNotFound).WithPosition(node.AgentModelExpr.GetPos())
+		return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("AgentModel '%s' is not registered", agentName), nil).WithPosition(node.AgentModelExpr.GetPos())
 	}
 	agentModel, ok := agentModelObj.(types.AgentModel)
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("internal error: retrieved AgentModel for '%s' is not of type types.AgentModel, but %T", agentName, agentModelObj), nil).WithPosition(node.AgentModelExpr.GetPos())
 	}
 
-	// Access loop parameters from direct, strongly-typed fields.
-	toolLoopPermitted := agentModel.ToolLoopPermitted
+	// Get the provider for the agent model.
+	prov, provExists := i.GetProvider(agentModel.Provider)
+	if !provExists {
+		return nil, lang.NewRuntimeError(lang.ErrorCodeProviderNotFound, fmt.Sprintf("provider '%s' for AgentModel '%s' not found", agentModel.Provider, agentModel.Name), nil).WithPosition(node.GetPos())
+	}
+
+	// ** ARCHITECTURAL FIX **
+	// Instantiate the LLMConn to manage the conversation state and provider interaction.
+	conn, err := llmconn.New(&agentModel, prov)
+	if err != nil {
+		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "failed to create LLM connection", err).WithPosition(node.GetPos())
+	}
+
+	toolLoopPermitted := agentModel.Tools.ToolLoopPermitted
 	maxTurns := agentModel.MaxTurns
 	if maxTurns <= 0 || !toolLoopPermitted {
-		maxTurns = defaultMaxTurns
+		maxTurns = 1
 	}
 	if maxTurns > maxTurnsCap {
 		maxTurns = maxTurnsCap
@@ -81,76 +74,90 @@ func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
 
 	// --- ASK LOOP START ---
 	var finalResult lang.Value = &lang.NilValue{}
-	currentOutput := initialPrompt
 	var prevOutputHash string
 
+	// Initial envelope with the user's prompt in the Orchestration section.
+	turnEnvelope := &aeiou.Envelope{
+		Orchestration: initialPrompt,
+		// In a real host, UserData would be populated with richer context.
+		// For now, Orchestration carries the primary goal.
+	}
+
 	for turn := 1; turn <= maxTurns; turn++ {
-		i.logger.Debug("Executing ask loop turn", "turn", turn, "max_turns", maxTurns)
+		i.logger.Debug("Executing ask loop turn", "turn", turn)
 
-		turnEnvelope := &aeiou.Envelope{Orchestration: currentOutput}
-		composedRequest, err := turnEnvelope.Compose()
+		aiResp, err := conn.Converse(context.Background(), turnEnvelope)
 		if err != nil {
-			return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "failed to compose turn envelope", err)
+			return nil, lang.NewRuntimeError(lang.ErrorCodeExternal, "AI provider call failed", err).WithPosition(node.GetPos())
 		}
 
-		aiResp, err := callAIProvider(i, agentModel, composedRequest, step.GetPos())
+		i.logger.Debug("Raw AI Response", "turn", turn, "response", aiResp.TextContent)
+
+		responseEnvelope, err := aeiou.RobustParse(aiResp.TextContent)
 		if err != nil {
-			return nil, err
+			i.logger.Debug("Failed to parse AEIOU response, treating as raw final answer", "error", err)
+			finalResult = lang.StringValue{Value: strings.TrimSpace(aiResp.TextContent)}
+			break // Exit the loop with the raw response.
 		}
 
-		responseEnvelope, err := aeiou.Parse(aiResp.TextContent)
-		if err != nil {
-			return nil, lang.NewRuntimeError(lang.ErrorCodeSyntax, "failed to parse AEIOU response from model", err)
-		}
+		i.logger.Debug("Successfully parsed AEIOU envelope", "actions", responseEnvelope.Actions)
 
 		execInterp := i.clone()
 		var actionEmits []string
-		if err := executeAeiouTurn(execInterp, responseEnvelope, &actionEmits); err != nil {
+		actionWhispers := make(map[string]lang.Value)
+		if err := executeAeiouTurn(execInterp, responseEnvelope, &actionEmits, &actionWhispers); err != nil {
 			return nil, err
 		}
 
-		nextOutput := strings.Join(actionEmits, "\n")
+		// The final result is the combined output of all non-signal emits.
+		nextOutput, loopControlSignal := extractEmits(actionEmits)
 		finalResult = lang.StringValue{Value: nextOutput}
 
+		// If no loop is permitted, we are done after the first turn.
 		if !toolLoopPermitted {
-			i.logger.Debug("Ask loop terminating: tool loop not permitted for this agent.")
+			i.logger.Debug("Ask loop terminating: tool loop not permitted.")
 			break
 		}
 
-		control := parseLoopControl(nextOutput)
-		if control == stateAbort {
-			i.logger.Warn("Ask loop terminating: received 'abort' marker from AI.")
+		// Check the loop control signal to see if we should continue.
+		control, err := aeiou.ParseLoopControl(loopControlSignal)
+		if err != nil {
+			// If there's no valid LOOP signal, the conversation is over.
+			i.logger.Debug("Ask loop terminating: no valid LOOP signal found.")
 			break
 		}
 
-		if control == stateDone {
-			i.logger.Debug("Ask loop terminating: received 'done' marker from AI.")
+		if control.Control == "abort" || control.Control == "done" {
+			i.logger.Debug("Ask loop terminating: received 'done' or 'abort' signal.", "signal", control.Control)
 			break
 		}
 
+		// Anti-Stall Guard: Check if the AI is making progress.
 		h := sha256.Sum256([]byte(nextOutput))
 		currentHash := hex.EncodeToString(h[:])
-		if currentHash == prevOutputHash {
+		if turn > 1 && currentHash == prevOutputHash {
 			i.logger.Warn("Ask loop terminating: no progress detected between turns.")
-			finalResult = lang.StringValue{Value: nextOutput + "\n[[loop:halt:reason=no-progress]]"}
 			break
 		}
 		prevOutputHash = currentHash
 
-		if control != stateContinue {
-			i.logger.Debug("Ask loop terminating: no explicit 'continue' marker from AI.")
-			break
-		}
-
+		// If we've hit the turn limit, stop.
 		if turn == maxTurns {
 			i.logger.Warn("Ask loop terminating: max turns reached.")
-			finalResult = lang.StringValue{Value: nextOutput + "\n[[loop:halt:reason=max-turns]]"}
 			break
 		}
 
-		currentOutput = nextOutput
+		// Prepare the envelope for the next turn. The output of this turn becomes
+		// the primary context (Orchestration/Output) for the next.
+		turnEnvelope = &aeiou.Envelope{
+			Header:        responseEnvelope.Header,
+			Orchestration: nextOutput,
+			// TODO: Populate scratchpad from 'actionWhispers'
+		}
 	}
 	// --- ASK LOOP END ---
+
+	i.logger.Debug("Final Result Assigned to Variable", "result", fmt.Sprintf("%#v", finalResult))
 
 	if node.IntoTarget != nil {
 		if err := i.setSingleLValue(node.IntoTarget, finalResult); err != nil {
@@ -159,88 +166,4 @@ func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
 	}
 
 	return finalResult, nil
-}
-
-func parseLoopControl(output string) loopControlState {
-	if strings.Contains(output, loopAbortMarker) {
-		return stateAbort
-	}
-	if strings.Contains(output, loopDoneMarker) {
-		return stateDone
-	}
-	if strings.Contains(output, loopContinueMarker) {
-		return stateContinue
-	}
-	return stateDone
-}
-
-func callAIProvider(i *Interpreter, model types.AgentModel, prompt string, pos *types.Position) (*provider.AIResponse, error) {
-	apiKey := ""
-	if model.SecretRef != "" {
-		apiKey = os.Getenv(model.SecretRef)
-	}
-	prov, provExists := i.GetProvider(model.Provider)
-	if !provExists {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeProviderNotFound, fmt.Sprintf("provider '%s' for AgentModel '%s' not found", model.Provider, model.Name), nil).WithPosition(pos)
-	}
-	req := provider.AIRequest{ModelName: model.Model, Prompt: prompt, APIKey: apiKey}
-	resp, err := prov.Chat(context.Background(), req)
-	if err != nil {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeExternal, "AI provider call failed", err).WithPosition(pos)
-	}
-	return resp, nil
-}
-
-func executeAeiouTurn(i *Interpreter, envelope *aeiou.Envelope, emits *[]string) error {
-	originalStdout := i.stdout
-	r, w, _ := os.Pipe()
-	i.SetStdout(w)
-	defer func() {
-		i.SetStdout(originalStdout)
-		w.Close()
-	}()
-	go func() {
-		scanner := bufio.NewScanner(r)
-		for scanner.Scan() {
-			*emits = append(*emits, scanner.Text())
-		}
-	}()
-
-	if envelope.Implementations != "" {
-		if err := executeAeiouSection(i, envelope.Implementations, "IMPLEMENTATIONS"); err != nil {
-			return err
-		}
-	}
-	if envelope.Events != "" {
-		if err := executeAeiouSection(i, envelope.Events, "EVENTS"); err != nil {
-			return err
-		}
-	}
-	if envelope.Actions != "" {
-		if _, err := executeAeiouActionSection(i, envelope.Actions); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func executeAeiouSection(i *Interpreter, content, sectionName string) error {
-	parserAPI := parser.NewParserAPI(i.GetLogger())
-	antlrTree, stream, err := parserAPI.ParseAndGetStream(fmt.Sprintf("aeiou_%s", sectionName), content)
-	if err != nil {
-		return lang.NewRuntimeError(lang.ErrorCodeSyntax, fmt.Sprintf("failed to parse %s section", sectionName), err)
-	}
-	builder := parser.NewASTBuilder(i.GetLogger())
-	program, _, err := builder.BuildFromParseResult(antlrTree, stream)
-	if err != nil {
-		return lang.NewRuntimeError(lang.ErrorCodeSyntax, fmt.Sprintf("failed to build AST for %s section", sectionName), err)
-	}
-	return i.Load(program)
-}
-
-func executeAeiouActionSection(i *Interpreter, content string) (lang.Value, error) {
-	if err := executeAeiouSection(i, content, "ACTIONS"); err != nil {
-		return nil, err
-	}
-	return i.ExecuteCommands()
 }

@@ -13,8 +13,8 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/policy/capability"
-	"github.com/aprice2704/neuroscript/pkg/runtime"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/tool/os"
 	"github.com/aprice2704/neuroscript/pkg/types"
@@ -36,8 +36,8 @@ func newOsTestInterpreter(t *testing.T) *interpreter.Interpreter {
 	t.Helper()
 
 	// Define a policy that allows the os tools to run.
-	testPolicy := &runtime.ExecPolicy{
-		Context: runtime.ContextConfig, // Use 'config' to enable trusted tools.
+	testPolicy := &policy.ExecPolicy{
+		Context: policy.ContextConfig,  // Use 'config' to enable trusted tools.
 		Allow:   []string{"tool.os.*"}, // Allow the toolset.
 		Grants: capability.NewGrantSet(
 			[]capability.Capability{

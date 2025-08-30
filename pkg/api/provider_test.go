@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 5
-// Purpose: Corrects compiler errors related to function signatures and return value handling.
+// File version: 6
+// Purpose: Fixes incorrect error handling for the api.Unwrap function call.
 // filename: pkg/api/provider_test.go
-// nlines: 85
+// nlines: 87
 // risk_rating: LOW
 
 package api_test
@@ -13,9 +13,9 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/api"
-	"github.com/aprice2704/neuroscript/pkg/api/providers/test"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
-	"github.com/aprice2704/neuroscript/pkg/runtime"
+	"github.com/aprice2704/neuroscript/pkg/policy"
+	"github.com/aprice2704/neuroscript/pkg/provider/test"
 )
 
 func TestAPI_RegisterAndUseProvider(t *testing.T) {
@@ -38,8 +38,8 @@ func main(returns string) means
 endfunc
 `
 	// 3. Create an interpreter with a policy that allows the necessary tools.
-	policy := &runtime.ExecPolicy{
-		Context: runtime.ContextNormal,
+	policy := &policy.ExecPolicy{
+		Context: policy.ContextNormal,
 		Allow: []string{
 			"tool.model.chat",
 			"tool.aeiou.new",
@@ -53,7 +53,7 @@ endfunc
 	interp.RegisterProvider(providerName, test.New())
 
 	// 4. Parse and load the script.
-	tree, err := api.Parse([]byte(scriptContent), api.ParseMode(0))
+	tree, err := api.Parse([]byte(scriptContent), api.ParseSkipComments)
 	if err != nil {
 		t.Fatalf("api.Parse failed: %v", err)
 	}
@@ -68,9 +68,9 @@ endfunc
 	}
 
 	// 6. Verify the final result.
-	unwrapped, ok := api.Unwrap(result)
-	if !ok {
-		t.Fatalf("api.Unwrap failed")
+	unwrapped, err := api.Unwrap(result)
+	if err != nil {
+		t.Fatalf("api.Unwrap failed: %v", err)
 	}
 
 	val, ok := unwrapped.(string)

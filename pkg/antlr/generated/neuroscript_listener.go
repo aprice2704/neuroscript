@@ -109,6 +109,9 @@ type NeuroScriptListener interface {
 	// EnterEmit_statement is called when entering the emit_statement production.
 	EnterEmit_statement(c *Emit_statementContext)
 
+	// EnterWhisper_stmt is called when entering the whisper_stmt production.
+	EnterWhisper_stmt(c *Whisper_stmtContext)
+
 	// EnterMust_statement is called when entering the must_statement production.
 	EnterMust_statement(c *Must_statementContext)
 
@@ -324,6 +327,9 @@ type NeuroScriptListener interface {
 
 	// ExitEmit_statement is called when exiting the emit_statement production.
 	ExitEmit_statement(c *Emit_statementContext)
+
+	// ExitWhisper_stmt is called when exiting the whisper_stmt production.
+	ExitWhisper_stmt(c *Whisper_stmtContext)
 
 	// ExitMust_statement is called when exiting the must_statement production.
 	ExitMust_statement(c *Must_statementContext)

@@ -1,9 +1,9 @@
-// filename: pkg/ast/ast_statements.go
 // NeuroScript Version: 0.6.0
-// File version: 27
-// Purpose: Adds expressionNode method to Step to satisfy the Expression interface and resolve a panic.
-// nlines: 125+
-// risk_rating: MEDIUM
+// File version: 28
+// Purpose: Adds WhisperStmt for the new 'whisper' command.
+// filename: pkg/ast/ast_statements.go
+// nlines: 135+
+// risk_rating: LOW
 
 package ast
 
@@ -91,8 +91,9 @@ type Step struct {
 	Collection       Expression
 	Call             *CallableExprNode
 	OnEvent          *OnEventDecl
-	AskStmt          *AskStmt        // For 'ask' statement
-	PromptUserStmt   *PromptUserStmt // For 'promptuser' statement
+	AskStmt          *AskStmt
+	PromptUserStmt   *PromptUserStmt
+	WhisperStmt      *WhisperStmt // Added for 'whisper' statement
 	IsFinal          bool
 	ErrorName        string
 	tool             interfaces.Tool
@@ -123,6 +124,13 @@ type PromptUserStmt struct {
 	BaseNode
 	PromptExpr Expression
 	IntoTarget *LValueNode
+}
+
+// WhisperStmt represents the structured components of a 'whisper' statement.
+type WhisperStmt struct {
+	BaseNode
+	Handle Expression // The handle or channel to whisper to
+	Value  Expression // The value to be whispered
 }
 
 // ExpressionStatementNode represents a statement that consists of a single expression,

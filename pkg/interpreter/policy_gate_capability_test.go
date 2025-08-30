@@ -11,27 +11,27 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/policy/capability"
-	"github.com/aprice2704/neuroscript/pkg/runtime"
 )
 
 var (
 	// Mock tools with different capability requirements
-	capTestReadEnvTool = runtime.ToolMeta{
+	capTestReadEnvTool = policy.ToolMeta{
 		Name:          "tool.os.getenv",
 		RequiresTrust: true,
 		RequiredCaps: []capability.Capability{
 			{Resource: "env", Verbs: []string{"read"}, Scopes: []string{"API_KEY"}},
 		},
 	}
-	capTestWriteFileTool = runtime.ToolMeta{
+	capTestWriteFileTool = policy.ToolMeta{
 		Name:          "tool.fs.write",
 		RequiresTrust: false,
 		RequiredCaps: []capability.Capability{
 			{Resource: "fs", Verbs: []string{"write"}, Scopes: []string{"/tmp/output.log"}},
 		},
 	}
-	capTestComplexTool = runtime.ToolMeta{
+	capTestComplexTool = policy.ToolMeta{
 		Name:          "tool.complex.process",
 		RequiresTrust: false,
 		RequiredCaps: []capability.Capability{
@@ -45,7 +45,7 @@ func TestPolicyGate_Capabilities(t *testing.T) {
 	testCases := []struct {
 		name        string
 		grants      []capability.Capability
-		tool        runtime.ToolMeta
+		tool        policy.ToolMeta
 		expectErrIs error
 	}{
 		// --- Basic Scenarios ---
@@ -53,7 +53,7 @@ func TestPolicyGate_Capabilities(t *testing.T) {
 			name:        "[Caps] Failure on empty grants",
 			grants:      []capability.Capability{},
 			tool:        capTestWriteFileTool,
-			expectErrIs: runtime.ErrCapability,
+			expectErrIs: policy.ErrCapability,
 		},
 		{
 			name: "[Caps] Success with exact grant match",
@@ -69,7 +69,7 @@ func TestPolicyGate_Capabilities(t *testing.T) {
 				{Resource: "fs", Verbs: []string{"read"}, Scopes: []string{"/tmp/output.log"}},
 			},
 			tool:        capTestWriteFileTool,
-			expectErrIs: runtime.ErrCapability,
+			expectErrIs: policy.ErrCapability,
 		},
 		{
 			name: "[Caps] Failure with wrong scope",
@@ -77,7 +77,7 @@ func TestPolicyGate_Capabilities(t *testing.T) {
 				{Resource: "fs", Verbs: []string{"write"}, Scopes: []string{"/home/user/doc.txt"}},
 			},
 			tool:        capTestWriteFileTool,
-			expectErrIs: runtime.ErrCapability,
+			expectErrIs: policy.ErrCapability,
 		},
 
 		// --- Wildcard Scenarios ---
@@ -122,7 +122,7 @@ func TestPolicyGate_Capabilities(t *testing.T) {
 				{Resource: "fs", Verbs: []string{"read"}, Scopes: []string{"/configs/*"}},
 			},
 			tool:        capTestComplexTool,
-			expectErrIs: runtime.ErrCapability,
+			expectErrIs: policy.ErrCapability,
 		},
 		{
 			name: "[Caps] Complex tool failure with one grant missing (fs)",
@@ -130,7 +130,7 @@ func TestPolicyGate_Capabilities(t *testing.T) {
 				{Resource: "net", Verbs: []string{"read"}, Scopes: []string{"*"}},
 			},
 			tool:        capTestComplexTool,
-			expectErrIs: runtime.ErrCapability,
+			expectErrIs: policy.ErrCapability,
 		},
 		{
 			name: "[Caps] Success with superfluous grants",
@@ -146,8 +146,8 @@ func TestPolicyGate_Capabilities(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			policy := &runtime.ExecPolicy{
-				Context: runtime.ContextConfig, // Use config to bypass trust checks
+			policy := &policy.ExecPolicy{
+				Context: policy.ContextConfig, // Use config to bypass trust checks
 				Allow:   []string{"*"},
 				Grants:  capability.NewGrantSet(tc.grants, capability.Limits{}),
 			}

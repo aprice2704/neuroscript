@@ -124,6 +124,7 @@ func TestComprehensiveGrammarRoundtrip(t *testing.T) {
 		scriptFile string
 	}{
 		{"Library Script", filepath.Join("..", "antlr", "comprehensive_grammar.ns")},
+		{"Whisper", filepath.Join("..", "antlr", "whisper_feature.ns")},
 		{"Command Script", filepath.Join("..", "antlr", "command_block.ns")},
 		{"Additional Features Library Script", filepath.Join("..", "antlr", "additional_features.ns")},
 		{"Additional Features Command Script", filepath.Join("..", "antlr", "additional_command_block.ns")},

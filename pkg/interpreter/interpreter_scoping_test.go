@@ -1,11 +1,16 @@
 // filename: pkg/interpreter/interpreter_scoping_test.go
+// NeuroScript Version: 0.7.0
+// File version: 2
+// Purpose: Corrected tests to use SetEmitFunc for capturing output, aligning with the interpreter's design.
 package interpreter
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/parser"
 )
@@ -53,18 +58,19 @@ func main() means
 endfunc
 `
 
-	var stdout bytes.Buffer
-	// FIX: Use exported NewInterpreter with options.
-	interp := NewInterpreter(WithStdout(&stdout), WithLogger(logging.NewTestLogger(t)))
+	var outputBuffer bytes.Buffer
+	// FIX: Use SetEmitFunc to correctly capture the output from 'emit' statements.
+	interp := NewInterpreter(WithLogger(logging.NewTestLogger(t)))
+	interp.SetEmitFunc(func(v lang.Value) {
+		fmt.Fprintln(&outputBuffer, v.String())
+	})
 
-	// FIX: Use the actual parser API.
 	parserAPI := parser.NewParserAPI(logging.NewTestLogger(t))
 	antlrTree, antlrParseErr := parserAPI.Parse(scriptContent)
 	if antlrParseErr != nil {
 		t.Fatalf("Failed to parse script: %v", antlrParseErr)
 	}
 
-	// FIX: Use the actual AST builder.
 	astBuilder := parser.NewASTBuilder(logging.NewTestLogger(t))
 	programAST, _, buildErr := astBuilder.Build(antlrTree)
 	if buildErr != nil {
@@ -77,10 +83,10 @@ endfunc
 
 	_, execErr := interp.Run("main")
 	if execErr != nil {
-		t.Fatalf("ExecuteProc returned an unexpected error: %v\nOutput:\n%s", execErr, stdout.String())
+		t.Fatalf("ExecuteProc returned an unexpected error: %v\nOutput:\n%s", execErr, outputBuffer.String())
 	}
 
-	output := stdout.String()
+	output := outputBuffer.String()
 	t.Logf("--- SCRIPT OUTPUT (Success Test) ---\n%s\n---------------------", output)
 
 	expectedPassMessage := "[PASS] 'on error' handlers are correctly scoped."
@@ -128,8 +134,12 @@ func main() means
 endfunc
 `
 
-	var stdout bytes.Buffer
-	interp := NewInterpreter(WithStdout(&stdout), WithLogger(logging.NewTestLogger(t)))
+	var outputBuffer bytes.Buffer
+	// FIX: Use SetEmitFunc to correctly capture the output from 'emit' statements.
+	interp := NewInterpreter(WithLogger(logging.NewTestLogger(t)))
+	interp.SetEmitFunc(func(v lang.Value) {
+		fmt.Fprintln(&outputBuffer, v.String())
+	})
 
 	parserAPI := parser.NewParserAPI(logging.NewTestLogger(t))
 	antlrTree, antlrParseErr := parserAPI.Parse(scriptContent)
@@ -149,10 +159,10 @@ endfunc
 
 	_, execErr := interp.Run("main")
 	if execErr != nil {
-		t.Fatalf("ExecuteProc returned an unexpected error: %v\nOutput:\n%s", execErr, stdout.String())
+		t.Fatalf("ExecuteProc returned an unexpected error: %v\nOutput:\n%s", execErr, outputBuffer.String())
 	}
 
-	output := stdout.String()
+	output := outputBuffer.String()
 	t.Logf("--- SCRIPT OUTPUT (Failure Simulation Test) ---\n%s\n---------------------", output)
 
 	// In this test, we EXPECT to find the simulated leak message.

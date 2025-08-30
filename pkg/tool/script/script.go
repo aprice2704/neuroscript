@@ -16,7 +16,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
-// scriptHost defines the methods the script tools need from the runtime.
+// scriptHost defines the methods the script tools need from the policy.
 // This is necessary because the standard tool.Runtime is too restrictive
 // for tools that need to inspect or modify the program's structure.
 // The underlying interpreter must implement these methods.

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.0
 // File version: 6.0.2
-// Purpose: Fixed a test-only import cycle issue by changing MockRuntime.Registry to type any and using a type assertion.
+// Purpose: Fixed a test-only import cycle issue by changing Mockpolicy.Registry to type any and using a type assertion.
 // filename: pkg/tool/internal/tools_helpers.go
 // nlines: 247
 // risk_rating: MEDIUM

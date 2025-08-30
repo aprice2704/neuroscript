@@ -109,6 +109,9 @@ type NeuroScriptVisitor interface {
 	// Visit a parse tree produced by NeuroScriptParser#emit_statement.
 	VisitEmit_statement(ctx *Emit_statementContext) interface{}
 
+	// Visit a parse tree produced by NeuroScriptParser#whisper_stmt.
+	VisitWhisper_stmt(ctx *Whisper_stmtContext) interface{}
+
 	// Visit a parse tree produced by NeuroScriptParser#must_statement.
 	VisitMust_statement(ctx *Must_statementContext) interface{}
 

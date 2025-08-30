@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 2
-// Purpose: Adds a placeholder for PromptUserStmt tests.
+// File version: 3
+// Purpose: Adds a placeholder for WhisperStmt tests.
 // filename: pkg/ast/ast_statements_test.go
-// nlines: 30
+// nlines: 30+
 // risk_rating: LOW
 
 package ast
@@ -25,6 +25,6 @@ func TestLValueNode_String(t *testing.T) {
 	// when that functionality is fully required.
 }
 
-// Note: Tests for the 'Step', 'AskStmt', and 'PromptUserStmt' structs
-// will be added as the interpreter's usage of these structs solidifies.
+// Note: Tests for the 'Step', 'AskStmt', 'PromptUserStmt', and 'WhisperStmt'
+// structs will be added as the interpreter's usage of these structs solidifies.
 // This file establishes the initial test structure for the package.

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.0
-// File version: 1
-// Purpose: Provides comprehensive, table-driven unit tests for the runtime.ExecPolicy gate, covering trust, allow/deny, capabilities, and limits.
+// File version: 2
+// Purpose: Corrected variable shadowing and updated function calls to fix compiler errors.
 // filename: pkg/interpreter/policy_gate_extended_test.go
 // nlines: 250
 // risk_rating: HIGH
@@ -11,36 +11,37 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/agentmodel"
+	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/policy/capability"
-	"github.com/aprice2704/neuroscript/pkg/runtime"
 )
 
 // --- Test Suite Setup ---
 
 var (
 	// Mock Tools for Testing
-	trustedAdminTool = runtime.ToolMeta{
+	trustedAdminTool = policy.ToolMeta{
 		Name:          "tool.agentmodel.register",
 		RequiresTrust: true,
 		RequiredCaps: []capability.Capability{
 			{Resource: "model", Verbs: []string{"admin"}, Scopes: []string{"*"}},
 		},
 	}
-	normalReadTool = runtime.ToolMeta{
+	normalReadTool = policy.ToolMeta{
 		Name:          "tool.fs.read",
 		RequiresTrust: false,
 		RequiredCaps: []capability.Capability{
 			{Resource: "fs", Verbs: []string{"read"}, Scopes: []string{"/data/input.txt"}},
 		},
 	}
-	networkTool = runtime.ToolMeta{
+	networkTool = policy.ToolMeta{
 		Name:          "tool.http.get",
 		RequiresTrust: false,
 		RequiredCaps: []capability.Capability{
 			{Resource: "net", Verbs: []string{"read"}, Scopes: []string{"api.example.com:443"}},
 		},
 	}
-	untrustedDangerousTool = runtime.ToolMeta{
+	untrustedDangerousTool = policy.ToolMeta{
 		Name:          "tool.debug.run_command",
 		RequiresTrust: true,
 	}
@@ -49,15 +50,15 @@ var (
 func TestExecPolicy_CanCall(t *testing.T) {
 	testCases := []struct {
 		name        string
-		policy      *runtime.ExecPolicy
-		tool        runtime.ToolMeta
+		policy      *policy.ExecPolicy
+		tool        policy.ToolMeta
 		expectErrIs error
 	}{
 		// --- Trust Context Tests ---
 		{
 			name: "Success: Trusted tool in config context",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextConfig,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextConfig,
 				Allow:   []string{"*"},
 				Grants: capability.NewGrantSet([]capability.Capability{
 					{Resource: "model", Verbs: []string{"admin"}, Scopes: []string{"*"}},
@@ -68,20 +69,20 @@ func TestExecPolicy_CanCall(t *testing.T) {
 		},
 		{
 			name: "Failure: Trusted tool in normal context",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextNormal,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 				Grants: capability.NewGrantSet([]capability.Capability{
 					{Resource: "model", Verbs: []string{"admin"}, Scopes: []string{"*"}},
 				}, capability.Limits{}),
 			},
 			tool:        trustedAdminTool,
-			expectErrIs: runtime.ErrTrust,
+			expectErrIs: policy.ErrTrust,
 		},
 		{
 			name: "Success: Normal tool in normal context",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextNormal,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 				Grants: capability.NewGrantSet([]capability.Capability{
 					{Resource: "fs", Verbs: []string{"read"}, Scopes: []string{"/data/*"}},
@@ -94,29 +95,29 @@ func TestExecPolicy_CanCall(t *testing.T) {
 		// --- Allow/Deny Pattern Tests ---
 		{
 			name: "Failure: Deny rule overrides allow rule",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextConfig,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextConfig,
 				Allow:   []string{"tool.agentmodel.*"},
 				Deny:    []string{"tool.agentmodel.register"},
 				Grants:  capability.NewGrantSet(nil, capability.Limits{}),
 			},
 			tool:        trustedAdminTool,
-			expectErrIs: runtime.ErrPolicy,
+			expectErrIs: policy.ErrPolicy,
 		},
 		{
 			name: "Failure: Not in allow list",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextNormal,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextNormal,
 				Allow:   []string{"tool.fs.*"},
 				Grants:  capability.NewGrantSet(nil, capability.Limits{}),
 			},
 			tool:        networkTool,
-			expectErrIs: runtime.ErrPolicy,
+			expectErrIs: policy.ErrPolicy,
 		},
 		{
 			name: "Success: Allow list with wildcard",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextNormal,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextNormal,
 				Allow:   []string{"tool.http.*"},
 				Grants: capability.NewGrantSet([]capability.Capability{
 					{Resource: "net", Verbs: []string{"read"}, Scopes: []string{"*"}},
@@ -127,30 +128,30 @@ func TestExecPolicy_CanCall(t *testing.T) {
 		},
 		{
 			name: "Failure: Deny all",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextNormal,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextNormal,
 				Deny:    []string{"*"},
 				Grants:  capability.NewGrantSet(nil, capability.Limits{}),
 			},
 			tool:        normalReadTool,
-			expectErrIs: runtime.ErrPolicy,
+			expectErrIs: policy.ErrPolicy,
 		},
 
 		// --- Capability Grant Tests ---
 		{
 			name: "Failure: Missing required capability",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextNormal,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 				Grants:  capability.NewGrantSet(nil, capability.Limits{}),
 			},
 			tool:        normalReadTool,
-			expectErrIs: runtime.ErrCapability,
+			expectErrIs: policy.ErrCapability,
 		},
 		{
 			name: "Success: Exact capability grant",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextNormal,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 				Grants: capability.NewGrantSet([]capability.Capability{
 					{Resource: "fs", Verbs: []string{"read"}, Scopes: []string{"/data/input.txt"}},
@@ -161,8 +162,8 @@ func TestExecPolicy_CanCall(t *testing.T) {
 		},
 		{
 			name: "Success: Wildcard scope grant satisfies specific need",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextNormal,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 				Grants: capability.NewGrantSet([]capability.Capability{
 					{Resource: "net", Verbs: []string{"read"}, Scopes: []string{"*.example.com:443"}},
@@ -173,22 +174,22 @@ func TestExecPolicy_CanCall(t *testing.T) {
 		},
 		{
 			name: "Failure: Correct resource, wrong verb",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextNormal,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 				Grants: capability.NewGrantSet([]capability.Capability{
 					{Resource: "fs", Verbs: []string{"write"}, Scopes: []string{"/data/input.txt"}},
 				}, capability.Limits{}),
 			},
 			tool:        normalReadTool,
-			expectErrIs: runtime.ErrCapability,
+			expectErrIs: policy.ErrCapability,
 		},
 
 		// --- Limits and Counters Tests ---
 		{
 			name: "Failure: Per-tool call limit exceeded",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextNormal,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 				Grants: capability.NewGrantSet(
 					[]capability.Capability{{Resource: "net", Verbs: []string{"read"}, Scopes: []string{"*"}}},
@@ -224,14 +225,14 @@ func TestExecPolicy_CanCall(t *testing.T) {
 func TestAgentModelEnvelopeValidation(t *testing.T) {
 	testCases := []struct {
 		name        string
-		policy      *runtime.ExecPolicy
-		envelope    runtime.AgentModelEnvelope
+		policy      *policy.ExecPolicy
+		envelope    agentmodel.AgentModelEnvelope
 		expectErrIs error
 	}{
 		{
 			name: "Success: All grants and budget sufficient",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextNormal,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextNormal,
 				Grants: capability.NewGrantSet(
 					[]capability.Capability{
 						{Resource: "model", Verbs: []string{"use"}, Scopes: []string{"gpt-4"}},
@@ -244,7 +245,7 @@ func TestAgentModelEnvelopeValidation(t *testing.T) {
 					},
 				),
 			},
-			envelope: runtime.AgentModelEnvelope{
+			envelope: agentmodel.AgentModelEnvelope{
 				Name:            "gpt-4",
 				Hosts:           []string{"api.openai.com:443"},
 				SecretEnvKeys:   []string{"OPENAI_API_KEY"},
@@ -256,8 +257,8 @@ func TestAgentModelEnvelopeValidation(t *testing.T) {
 		},
 		{
 			name: "Failure: Missing model:use grant",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextNormal,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextNormal,
 				Grants: capability.NewGrantSet(
 					[]capability.Capability{
 						{Resource: "env", Verbs: []string{"read"}, Scopes: []string{"openai_api_key"}},
@@ -266,40 +267,40 @@ func TestAgentModelEnvelopeValidation(t *testing.T) {
 					capability.Limits{},
 				),
 			},
-			envelope: runtime.AgentModelEnvelope{
+			envelope: agentmodel.AgentModelEnvelope{
 				Name: "gpt-4",
 			},
-			expectErrIs: runtime.ErrCapability,
+			expectErrIs: policy.ErrCapability,
 		},
 		{
 			name: "Failure: Insufficient per-call budget",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextNormal,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextNormal,
 				Grants: capability.NewGrantSet(
 					[]capability.Capability{{Resource: "model", Verbs: []string{"use"}, Scopes: []string{"*"}}},
 					capability.Limits{BudgetPerCallCents: map[string]int{"CAD": 10}},
 				),
 			},
-			envelope: runtime.AgentModelEnvelope{
+			envelope: agentmodel.AgentModelEnvelope{
 				Name:            "gpt-4",
 				BudgetCurrency:  "CAD",
 				MinPerCallCents: 50,
 			},
-			expectErrIs: runtime.ErrCapability,
+			expectErrIs: policy.ErrCapability,
 		},
 		{
 			name:   "Failure: Policy is nil",
 			policy: nil,
-			envelope: runtime.AgentModelEnvelope{
+			envelope: agentmodel.AgentModelEnvelope{
 				Name: "gpt-4",
 			},
-			expectErrIs: runtime.ErrPolicy,
+			expectErrIs: policy.ErrPolicy,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := tc.policy.ValidateAgentModelEnvelope(tc.envelope)
+			err := agentmodel.ValidateAgentModelEnvelope(tc.policy, tc.envelope)
 			if !errors.Is(err, tc.expectErrIs) {
 				t.Errorf("Expected error '%v', but got '%v'", tc.expectErrIs, err)
 			}

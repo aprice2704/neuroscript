@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.0
 // File version: 1.0.0
-// Purpose: Registers the 'agentmodel' toolset with the NeuroScript runtime.
+// Purpose: Registers the 'agentmodel' toolset with the NeuroScript policy.
 // filename: pkg/tool/agentmodel/register.go
 // nlines: 15
 // risk_rating: LOW

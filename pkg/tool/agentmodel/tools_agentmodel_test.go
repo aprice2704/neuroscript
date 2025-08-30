@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 5
-// Purpose: Updated tests to use strongly-typed AgentModel fields and a valid config map for registration.
+// File version: 6
+// Purpose: Updated newValidModelConfig to include new generation and tool control fields.
 // filename: pkg/tool/agentmodel/tools_agentmodel_test.go
-// nlines: 200
+// nlines: 205
 // risk_rating: MEDIUM
 
 package agentmodel_test
@@ -12,10 +12,11 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/policy/capability"
-	"github.com/aprice2704/neuroscript/pkg/runtime"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/tool/agentmodel"
 	"github.com/aprice2704/neuroscript/pkg/types"
@@ -36,8 +37,8 @@ type agentModelTestCase struct {
 func newAgentModelTestInterpreter(t *testing.T) *interpreter.Interpreter {
 	t.Helper()
 
-	testPolicy := &runtime.ExecPolicy{
-		Context: runtime.ContextConfig,
+	testPolicy := &policy.ExecPolicy{
+		Context: policy.ContextConfig,
 		Allow:   []string{"tool.agentmodel.*"},
 		Grants: capability.NewGrantSet(
 			[]capability.Capability{
@@ -106,6 +107,13 @@ func newValidModelConfig(provider, model string) map[string]interface{} {
 		"model":               model,
 		"tool_loop_permitted": true,
 		"max_turns":           5.0, // Use float64 as ns numbers are floats
+		"temperature":         0.8,
+		"top_p":               0.9,
+		"top_k":               40.0,
+		"max_output_tokens":   2048.0,
+		"response_format":     "json_object",
+		"tool_choice":         "auto",
+		"safe_prompt":         true,
 	}
 }
 
@@ -116,6 +124,31 @@ func TestToolAgentModel_Register(t *testing.T) {
 			toolName:   "Register",
 			args:       []interface{}{"test_model_1", newValidModelConfig("p1", "m1")},
 			wantResult: true,
+			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error) {
+				if err != nil {
+					t.Fatalf("Unexpected registration error: %v", err)
+				}
+				reader := interp.(interface {
+					AgentModels() interfaces.AgentModelReader
+				}).AgentModels()
+				modelAny, found := reader.Get("test_model_1")
+				if !found {
+					t.Fatal("Registered model not found")
+				}
+				model, ok := modelAny.(types.AgentModel)
+				if !ok {
+					t.Fatalf("Retrieved model is not of type types.AgentModel")
+				}
+				if model.Generation.Temperature != 0.8 {
+					t.Errorf("Expected temperature 0.8, got %f", model.Generation.Temperature)
+				}
+				if model.Tools.ToolChoice != types.ToolChoiceAuto {
+					t.Errorf("Expected tool_choice 'auto', got %q", model.Tools.ToolChoice)
+				}
+				if !model.Safety.SafePrompt {
+					t.Error("Expected safe_prompt to be true")
+				}
+			},
 		},
 		{
 			name:          "Fail: Missing required provider field",
@@ -144,7 +177,7 @@ func TestToolAgentModel_Update(t *testing.T) {
 		{
 			name:       "Success: Update existing model",
 			toolName:   "Update",
-			args:       []interface{}{"model_to_update", map[string]interface{}{"provider": "updated_provider"}},
+			args:       []interface{}{"model_to_update", map[string]interface{}{"provider": "updated_provider", "temperature": 0.5}},
 			setupFunc:  setup,
 			wantResult: true,
 		},

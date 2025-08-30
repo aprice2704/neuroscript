@@ -1,7 +1,7 @@
 // filename: pkg/interpreter/evaluation_event_handler_test.go
 // NeuroScript Version: 0.5.2
-// File version: 11
-// Purpose: Corrected tests to check emitted output rather than asserting state changes in the parent interpreter, thus respecting the sandbox.
+// File version: 12
+// Purpose: Corrected test setup to use SetEmitFunc for capturing output, which is the correct mechanism for observing 'emit' statements.
 // nlines: 135+
 // risk_rating: LOW
 
@@ -9,6 +9,7 @@ package interpreter
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -22,10 +23,14 @@ func setupEventHandlerTest(t *testing.T, script string) (*Interpreter, *bytes.Bu
 	t.Helper()
 
 	logger := logging.NewTestLogger(t)
-	var stdout bytes.Buffer
+	var outputBuffer bytes.Buffer
 
-	// Pass the buffer to the interpreter.
-	interp := NewInterpreter(WithLogger(logger), WithStdout(&stdout))
+	// FIX: Use SetEmitFunc to capture the output of 'emit' statements.
+	// The 'emit' statement does not write to the interpreter's stdout by default.
+	interp := NewInterpreter(WithLogger(logger))
+	interp.SetEmitFunc(func(v lang.Value) {
+		fmt.Fprintln(&outputBuffer, v.String())
+	})
 
 	parserAPI := parser.NewParserAPI(logger)
 	parseTree, parseErr := parserAPI.Parse(script)
@@ -43,7 +48,7 @@ func setupEventHandlerTest(t *testing.T, script string) (*Interpreter, *bytes.Bu
 		t.Fatalf("Failed to load program into interpreter: %v", err)
 	}
 
-	return interp, &stdout, nil
+	return interp, &outputBuffer, nil
 }
 
 func TestOnEventHandling(t *testing.T) {

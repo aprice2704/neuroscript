@@ -1,24 +1,29 @@
-// NeuroScript Version: 0.6.0
-// File version: 20
-// Purpose: Added WithGlobals option to the public API for setting initial variables.
+// NeuroScript Version: 0.7.0
+// File version: 21
+// Purpose: Added SetEmitFunc and ParseLoopControl to support the host-driven Ask-Loop.
 // filename: pkg/api/interpreter.go
-// nlines: 125
+// nlines: 150
 // risk_rating: MEDIUM
 
 package api
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
+	"regexp"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/runtime"
+	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 
-	// Import default providers to make them available for registration.
-	"github.com/aprice2704/neuroscript/pkg/api/providers/google"
+	"github.com/aprice2704/neuroscript/pkg/provider/google"
 )
+
+var loopControlRegex = regexp.MustCompile(`<<<NSENVELOPE_MAGIC_[A-F0-9]+:V2:LOOP:(.*?)>>>`)
 
 // Interpreter is a facade over the internal interpreter, providing a stable,
 // high-level API for embedding NeuroScript.
@@ -27,47 +32,32 @@ type Interpreter struct {
 }
 
 // New creates a new, persistent NeuroScript interpreter instance.
-// It now automatically registers a default set of AI providers and a default
-// non-privileged execution policy.
 func New(opts ...Option) *Interpreter {
 	i := interpreter.NewInterpreter(opts...)
-
-	// If no policy was set by an option, install the default 'normal' context policy.
 	if i.ExecPolicy == nil {
-		// This ensures interpreters are non-privileged and deny tools by default.
-		i.ExecPolicy = &runtime.ExecPolicy{
-			Context: runtime.ContextNormal,
-			Allow:   []string{}, // A non-nil, empty list denies all tools.
+		i.ExecPolicy = &policy.ExecPolicy{
+			Context: policy.ContextNormal,
+			Allow:   []string{},
 		}
 	}
-
 	googleProvider := google.New()
 	i.RegisterProvider("google", googleProvider)
-
 	return &Interpreter{internal: i}
 }
 
-// WithSandboxDir returns an option to set the secure directory for file operations.
+// ... (With... options are unchanged) ...
 func WithSandboxDir(path string) interpreter.InterpreterOption {
 	return interpreter.WithSandboxDir(path)
 }
-
-// WithStdout returns an option to set the standard output for the interpreter.
 func WithStdout(w io.Writer) interpreter.InterpreterOption {
 	return interpreter.WithStdout(w)
 }
-
-// WithStderr returns an option to set the standard error for the interpreter.
 func WithStderr(w io.Writer) interpreter.InterpreterOption {
 	return interpreter.WithStderr(w)
 }
-
-// WithLogger creates an interpreter option to set a custom logger.
 func WithLogger(logger Logger) Option {
 	return interpreter.WithLogger(logger)
 }
-
-// WithGlobals creates an interpreter option to set initial global variables from a map.
 func WithGlobals(globals map[string]any) Option {
 	return interpreter.WithGlobals(globals)
 }
@@ -80,6 +70,13 @@ func (i *Interpreter) SetStdout(w io.Writer) {
 // SetStderr sets the standard error writer for the interpreter instance.
 func (i *Interpreter) SetStderr(w io.Writer) {
 	i.internal.SetStderr(w)
+}
+
+// SetEmitFunc sets a custom handler for the 'emit' statement.
+func (i *Interpreter) SetEmitFunc(f func(Value)) {
+	i.internal.SetEmitFunc(func(v lang.Value) {
+		f(v)
+	})
 }
 
 // RegisterProvider allows the host application to register a concrete AIProvider implementation.
@@ -119,4 +116,21 @@ func Unwrap(v Value) (any, error) {
 		return lang.Unwrap(val), nil
 	}
 	return v, nil
+}
+
+// ParseLoopControl scans a string (like the captured output from an emit stream)
+// and extracts the first valid AEIOU LOOP control signal it finds.
+func ParseLoopControl(output string) (*LoopControl, error) {
+	matches := loopControlRegex.FindStringSubmatch(output)
+	if len(matches) < 2 {
+		return nil, errors.New("no valid LOOP control signal found in output")
+	}
+
+	jsonPayload := matches[1]
+	var control LoopControl
+	if err := json.Unmarshal([]byte(jsonPayload), &control); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal LOOP signal payload: %w", err)
+	}
+
+	return &control, nil
 }

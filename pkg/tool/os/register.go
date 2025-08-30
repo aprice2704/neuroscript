@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
 // File version: 1
-// Purpose: Registers the 'os' toolset with the NeuroScript runtime.
+// Purpose: Registers the 'os' toolset with the NeuroScript policy.
 // filename: pkg/tool/os/register.go
 // nlines: 15
 // risk_rating: LOW

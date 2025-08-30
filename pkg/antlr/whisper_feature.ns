@@ -1,0 +1,24 @@
+// filename: pkg/antlr/whisper_feature.ns
+// purpose: A script exercising the new 'whisper' command feature.
+// used_by: pkg/canon/testdata/comprehensive_e2e_test.go
+// howto_update: You **must** update this whenever you add new features to ns
+// depends_on: NeuroScript.g4
+
+:: title: Whisper Command Test
+:: version: 1.0
+
+command
+    :: description: This block demonstrates the whisper command.
+
+    # The 'whisper' command requires a handle as its first argument
+    # and the text to send as its second. We will assume that
+    # 'stdout' and 'stderr' are predefined global variables
+    # representing I/O channels.
+
+    whisper stdout, "This message is whispered to the primary output channel."
+    
+    set status = "System is nominal."
+    whisper stderr, status
+
+    emit "This is a normal emit, for comparison."
+endcommand

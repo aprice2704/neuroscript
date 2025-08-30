@@ -1,58 +1,59 @@
-// NeuroScript Version: 0.6.0
-// File version: 40.0.0
-// Purpose: Corrected the clone method to properly copy global variables, fixing a scoping bug with WithGlobals.
+// NeuroScript Version: 0.7.0
+// File version: 48
+// Purpose: Corrected the clone method to properly propagate custom emit and whisper functions, fixing multiple test failures.
 // filename: pkg/interpreter/interpreter.go
-// nlines: 265
+// nlines: 190
 // risk_rating: HIGH
 
 package interpreter
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"io"
 	"os"
-	"strings"
+	"sync"
 
+	"github.com/aprice2704/neuroscript/pkg/agentmodel"
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/policy/capability"
-	"github.com/aprice2704/neuroscript/pkg/provider"
-	"github.com/aprice2704/neuroscript/pkg/runtime"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
+// DefaultSelfHandle is the internal handle for the default whisper buffer.
+const DefaultSelfHandle = "default_self_buffer"
+
 // Interpreter holds the state for a NeuroScript runtime environment.
 type Interpreter struct {
-	logger             interfaces.Logger
-	fileAPI            interfaces.FileAPI
-	state              *interpreterState
-	tools              tool.ToolRegistry
-	eventManager       *EventManager
-	evaluate           *evaluation
-	aiWorker           interfaces.LLMClient
-	shouldExit         bool
-	exitCode           int
-	returnValue        lang.Value
-	lastCallResult     lang.Value
-	stdout             io.Writer
-	stdin              io.Reader
-	stderr             io.Writer
-	maxLoopIterations  int
-	ToolCallTimestamps map[string]interface{}
-	rateLimitCount     int
-	rateLimitDuration  interface{}
-	externalHandler    interface{}
-	objectCache        map[string]interface{}
-	objectCacheMu      interface{}
-	llmclient          interfaces.LLMClient
-	skipStdTools       bool
-	modelStore         *runtime.AgentModelStore
-	ExecPolicy         *runtime.ExecPolicy
-	root               *Interpreter // Points to the top-level interpreter instance.
+	logger            interfaces.Logger
+	fileAPI           interfaces.FileAPI
+	state             *interpreterState
+	tools             tool.ToolRegistry
+	eventManager      *EventManager
+	evaluate          *evaluation
+	aiWorker          interfaces.LLMClient
+	shouldExit        bool
+	exitCode          int
+	returnValue       lang.Value
+	lastCallResult    lang.Value
+	stdout            io.Writer
+	stdin             io.Reader
+	stderr            io.Writer
+	maxLoopIterations int
+	bufferManager     *BufferManager
+	objectCache       map[string]interface{}
+	objectCacheMu     sync.Mutex
+	llmclient         interfaces.LLMClient
+	skipStdTools      bool
+	modelStore        *agentmodel.AgentModelStore
+	ExecPolicy        *policy.ExecPolicy
+	root              *Interpreter
+	customEmitFunc    func(lang.Value)
+	customWhisperFunc func(handle, data lang.Value)
 }
 
 func NewInterpreter(opts ...InterpreterOption) *Interpreter {
@@ -64,12 +65,16 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 		stdout:            os.Stdout,
 		stdin:             os.Stdin,
 		stderr:            os.Stderr,
+		bufferManager:     NewBufferManager(),
 		objectCache:       make(map[string]interface{}),
 	}
 	i.evaluate = &evaluation{i: i}
 	i.tools = tool.NewToolRegistry(i)
-	i.root = nil // The new interpreter is its own root.
-	i.modelStore = runtime.NewAgentModelStore()
+	i.root = nil
+	i.modelStore = agentmodel.NewAgentModelStore()
+
+	i.bufferManager.Create(DefaultSelfHandle)
+	i.customWhisperFunc = i.defaultWhisperFunc
 
 	for _, opt := range opts {
 		opt(i)
@@ -81,12 +86,17 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 		}
 	}
 
+	i.SetInitialVariable("self", lang.StringValue{Value: DefaultSelfHandle})
+
 	return i
 }
 
+// defaultWhisperFunc is the built-in whisper implementation.
+func (i *Interpreter) defaultWhisperFunc(handle, data lang.Value) {
+	i.bufferManager.Write(handle.String(), data.String()+"\n")
+}
+
 // clone creates a new interpreter instance for sandboxing.
-// It inherits shared state like tools and agent models via the root pointer,
-// but gets its own variable scope to prevent state leakage.
 func (i *Interpreter) clone() *Interpreter {
 	clone := NewInterpreter(
 		WithLogger(i.logger),
@@ -95,93 +105,33 @@ func (i *Interpreter) clone() *Interpreter {
 		WithStderr(i.stderr),
 		WithSandboxDir(i.state.sandboxDir),
 	)
-	// Share the same tool registry, execution policy, and agent model store.
 	clone.tools = i.tools
 	clone.ExecPolicy = i.ExecPolicy
 	clone.modelStore = i.modelStore
 
-	// Point clone's root to the original interpreter's root, or to the
-	// original if it is the root. This ensures access to shared state
-	// like AgentModels and providers.
+	// Propagate custom handlers to the clone.
+	clone.customEmitFunc = i.customEmitFunc
+	clone.customWhisperFunc = i.customWhisperFunc
+
 	rootInterpreter := i
 	if i.root != nil {
 		rootInterpreter = i.root
 	}
 	clone.root = rootInterpreter
 
-	// The clone gets its own variable map, but inherits known procedures.
 	clone.state.knownProcedures = i.state.knownProcedures
 
-	// Copy global variables from the root interpreter for read-only access.
 	rootInterpreter.state.variablesMu.RLock()
 	defer rootInterpreter.state.variablesMu.RUnlock()
 
 	for name := range rootInterpreter.state.globalVarNames {
 		if val, ok := rootInterpreter.state.variables[name]; ok {
-			// This sets the variable on the clone's independent variable map.
 			clone.SetVariable(name, val)
-			// Mark it as a global in the clone as well.
 			clone.state.globalVarNames[name] = true
 		}
 	}
 
 	return clone
-}
-
-func (i *Interpreter) AgentModels() interfaces.AgentModelReader {
-	return runtime.NewAgentModelReader(i.modelStore)
-}
-func (i *Interpreter) AgentModelsAdmin() interfaces.AgentModelAdmin {
-	return runtime.NewAgentModelAdmin(i.modelStore, i.ExecPolicy)
-}
-
-// PromptUser satisfies the tool.Runtime interface.
-func (i *Interpreter) PromptUser(prompt string) (string, error) {
-	if _, err := fmt.Fprint(i.Stdout(), prompt+" "); err != nil {
-		return "", fmt.Errorf("failed to write prompt to stdout: %w", err)
-	}
-	reader := bufio.NewReader(i.Stdin())
-	response, err := reader.ReadString('\n')
-	if err != nil {
-		return "", fmt.Errorf("failed to read from stdin: %w", err)
-	}
-	return strings.TrimSpace(response), nil
-}
-
-// RegisterProvider allows the host application to register a concrete AIProvider implementation.
-// If the current interpreter is a clone, it delegates registration to the root interpreter.
-func (i *Interpreter) RegisterProvider(name string, p provider.AIProvider) {
-	if i.root != nil {
-		i.root.RegisterProvider(name, p)
-		return
-	}
-	i.state.providersMu.Lock()
-	defer i.state.providersMu.Unlock()
-	if i.state.providers == nil {
-		i.state.providers = make(map[string]provider.AIProvider)
-	}
-	i.state.providers[name] = p
-}
-
-// GetProvider retrieves a registered AIProvider by name.
-func (i *Interpreter) GetProvider(name string) (provider.AIProvider, bool) {
-	if i.root != nil {
-		return i.root.GetProvider(name)
-	}
-	i.state.providersMu.RLock()
-	defer i.state.providersMu.RUnlock()
-	p, found := i.state.providers[name]
-	return p, found
-}
-
-// NTools returns the number of registered tools.
-func (i *Interpreter) NTools() (ntools int) {
-	return i.tools.NTools()
-}
-
-// LLM returns the configured LLM client.
-func (i *Interpreter) LLM() interfaces.LLMClient {
-	return i.llmclient
 }
 
 // AddProcedure programmatically adds a single procedure to the interpreter's registry.
@@ -197,33 +147,6 @@ func (i *Interpreter) AddProcedure(proc ast.Procedure) error {
 	}
 	i.state.knownProcedures[proc.Name()] = &proc
 	return nil
-}
-
-// KnownProcedures returns the map of known procedures.
-func (i *Interpreter) KnownProcedures() map[string]*ast.Procedure {
-	if i.state.knownProcedures == nil {
-		return make(map[string]*ast.Procedure)
-	}
-	return i.state.knownProcedures
-}
-
-// ToolRegistry returns the interpreter's tool registry.
-func (i *Interpreter) ToolRegistry() tool.ToolRegistry {
-	return i.tools
-}
-
-// CloneForEventHandler creates a sandboxed clone for event handling.
-func (i *Interpreter) CloneForEventHandler() *Interpreter {
-	return i.clone() // The corrected clone method already handles globals.
-}
-
-// CloneWithNewVariables creates a clone with a fresh set of variables for procedure calls.
-func (i *Interpreter) CloneWithNewVariables() *Interpreter {
-	return i.clone() // The corrected clone method already creates a fresh variable map.
-}
-
-func (i *Interpreter) GetLogger() interfaces.Logger {
-	return i.logger
 }
 
 func (i *Interpreter) GetAllVariables() (map[string]lang.Value, error) {
@@ -252,7 +175,6 @@ func (i *Interpreter) Run(procName string, args ...lang.Value) (lang.Value, erro
 	if err == nil {
 		i.lastCallResult = result
 	}
-	//fmt.Printf(">>>> [DEBUG] interpreter.Run: Value being RETURNED to API FACADE is: %#v\n", result)
 	return result, err
 }
 
@@ -264,10 +186,6 @@ func (i *Interpreter) SetInitialVariable(name string, value any) error {
 	i.state.setVariable(name, wrappedValue)
 	i.state.globalVarNames[name] = true
 	return nil
-}
-
-func (i *Interpreter) SetLastResult(v lang.Value) {
-	i.lastCallResult = v
 }
 
 func (i *Interpreter) Load(program *ast.Program) error {
@@ -302,16 +220,9 @@ func (i *Interpreter) setSandboxDir(path string) {
 	i.state.sandboxDir = path
 }
 
-func (i *Interpreter) RegisterEvent(decl *ast.OnEventDecl) error {
-	return i.eventManager.register(decl, i)
-}
-
-// Add this method to the *interpreter.Interpreter type
-
 // GetGrantSet returns the currently active capability grant set for policy enforcement.
 func (i *Interpreter) GetGrantSet() *capability.GrantSet {
 	if i.ExecPolicy == nil {
-		// Return a default, empty grant set if no policy is attached.
 		return &capability.GrantSet{}
 	}
 	return &i.ExecPolicy.Grants

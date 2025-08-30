@@ -14,8 +14,8 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/policy/capability"
-	"github.com/aprice2704/neuroscript/pkg/runtime"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
@@ -56,8 +56,8 @@ func TestApp_RunScriptMode_BreakContinue(t *testing.T) {
 	}
 
 	// FIX: Add a permissive policy for testing to grant necessary capabilities.
-	policy := &runtime.ExecPolicy{
-		Context: runtime.ContextNormal,
+	policy := &policy.ExecPolicy{
+		Context: policy.ContextNormal,
 		Allow:   []string{"*"}, // Allow all tools by name for testing.
 		Grants: capability.GrantSet{
 			Grants: []capability.Capability{

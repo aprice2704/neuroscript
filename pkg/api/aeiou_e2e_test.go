@@ -13,7 +13,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/api"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
-	"github.com/aprice2704/neuroscript/pkg/runtime"
+	"github.com/aprice2704/neuroscript/pkg/policy"
 )
 
 // TestE2E_AeiouWorkflow verifies that the standard aeiou tool workflow
@@ -43,8 +43,8 @@ endfunc
 `
 	// 2. Create an interpreter with a policy that explicitly allows the aeiou tools.
 	// Since these tools are now standard, api.New() will have them registered.
-	policy := &runtime.ExecPolicy{
-		Context: runtime.ContextNormal,
+	policy := &policy.ExecPolicy{
+		Context: policy.ContextNormal,
 		Allow: []string{
 			"tool.aeiou.new",
 			"tool.aeiou.set_section",

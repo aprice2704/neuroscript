@@ -1,6 +1,6 @@
 // Grammar: NeuroScript Version: 0.8.99
-// File version: 82
-// Purpose: Resolved lexer ambiguity between a placeholder end '}}' and two closing braces '}'.
+// File version: 83
+// Purpose: Added the 'whisper' command.
 // filename: NeuroScript.g4
 grammar NeuroScript;
 
@@ -8,6 +8,7 @@ grammar NeuroScript;
 // (Lexer rules are unchanged)
 LINE_ESCAPE_GLOBAL:
 	'\\' ('\r'? '\n' | '\r') -> channel(HIDDEN);
+
 // Keywords
 KW_ACOS: 'acos';
 KW_AND: 'and';
@@ -58,7 +59,7 @@ KW_NOT: 'not';
 KW_ON: 'on';
 KW_OPTIONAL: 'optional';
 KW_OR: 'or';
-KW_PROMPTUSER: 'promptuser'; // Added keyword
+KW_PROMPTUSER: 'promptuser';
 KW_RETURN: 'return';
 KW_RETURNS: 'returns';
 KW_SET: 'set';
@@ -70,6 +71,7 @@ KW_TOOL: 'tool';
 KW_TRUE: 'true';
 KW_TYPEOF: 'typeof';
 KW_WHILE: 'while';
+KW_WHISPER: 'whisper'; // Added keyword
 KW_WITH: 'with';
 
 // --- Other Tokens ---
@@ -132,6 +134,7 @@ fragment UNICODE_ESC:
 fragment HEX_ESC: 'x' HEX_DIGIT HEX_DIGIT;
 fragment OCTAL_ESC: [0-3]? [0-7] [0-7];
 fragment HEX_DIGIT: [0-9a-fA-F];
+
 // --- PARSER RULES ---
 
 program: file_header (library_script | command_script)? EOF;
@@ -140,6 +143,7 @@ file_header: (METADATA_LINE | NEWLINE)*;
 
 library_script: library_block+;
 command_script: command_block+;
+
 library_block: (procedure_definition | KW_ON event_handler) NEWLINE*;
 
 command_block:
@@ -162,6 +166,7 @@ simple_command_statement:
 	set_statement
 	| call_statement
 	| emit_statement
+	| whisper_stmt // Added
 	| must_statement
 	| fail_statement
 	| clearEventStmt
@@ -181,6 +186,7 @@ signature_part:
 needs_clause: KW_NEEDS param_list;
 optional_clause: KW_OPTIONAL param_list;
 returns_clause: KW_RETURNS param_list;
+
 param_list: IDENTIFIER (COMMA IDENTIFIER)*;
 metadata_block: (METADATA_LINE NEWLINE)*;
 
@@ -189,6 +195,7 @@ non_empty_statement_list:
 
 statement_list: body_line*;
 body_line: statement NEWLINE | NEWLINE;
+
 statement: simple_statement | block_statement | on_stmt;
 
 // General statements for functions/handlers
@@ -197,6 +204,7 @@ simple_statement:
 	| call_statement
 	| return_statement
 	| emit_statement
+	| whisper_stmt // Added
 	| must_statement
 	| fail_statement
 	| clearErrorStmt
@@ -214,20 +222,25 @@ block_statement:
 	if_statement
 	| while_statement
 	| for_each_statement;
+
 on_stmt: KW_ON ( error_handler | event_handler);
 error_handler:
 	KW_ERROR KW_DO NEWLINE non_empty_statement_list KW_ENDON;
 event_handler:
 	KW_EVENT expression (KW_NAMED STRING_LIT)? (KW_AS IDENTIFIER)? KW_DO NEWLINE
 		non_empty_statement_list KW_ENDON;
+
 clearEventStmt:
 	KW_CLEAR KW_EVENT (expression | KW_NAMED STRING_LIT);
 lvalue: IDENTIFIER ( LBRACK expression RBRACK | DOT IDENTIFIER)*;
 lvalue_list: lvalue (COMMA lvalue)*;
+
 set_statement: KW_SET lvalue_list ASSIGN expression;
 call_statement: KW_CALL callable_expr;
 return_statement: KW_RETURN expression_list?;
 emit_statement: KW_EMIT expression;
+whisper_stmt:
+	KW_WHISPER expression COMMA expression; // Added statement rule
 must_statement: KW_MUST expression;
 fail_statement: KW_FAIL expression?;
 clearErrorStmt: KW_CLEAR_ERROR;
@@ -238,6 +251,7 @@ ask_stmt:
 promptuser_stmt: KW_PROMPTUSER expression KW_INTO lvalue;
 break_statement: KW_BREAK;
 continue_statement: KW_CONTINUE;
+
 if_statement:
 	KW_IF expression NEWLINE non_empty_statement_list (
 		KW_ELSE NEWLINE non_empty_statement_list
@@ -246,6 +260,7 @@ while_statement:
 	KW_WHILE expression NEWLINE non_empty_statement_list KW_ENDWHILE;
 for_each_statement:
 	KW_FOR KW_EACH IDENTIFIER KW_IN expression NEWLINE non_empty_statement_list KW_ENDFOR;
+
 // --- Expression Rules ---
 qualified_identifier: IDENTIFIER (DOT IDENTIFIER)*;
 call_target: IDENTIFIER | KW_TOOL DOT qualified_identifier;

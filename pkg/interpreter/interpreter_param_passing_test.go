@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 3.0.0
-// Purpose: Moved the test into the 'interpreter' package to resolve access errors for NewInterpreter and its options.
+// File version: 4.0.0
+// Purpose: Corrected test setup to use SetEmitFunc for capturing output, resolving the core test failure.
 // filename: pkg/interpreter/interpreter_param_passing_test.go
 // nlines: 275
 // risk_rating: MEDIUM
@@ -119,8 +119,10 @@ func TestInterpreter_ParameterPassingFuzz(t *testing.T) {
 			var capturedOutput bytes.Buffer
 			iterLogger := logging.NewTestLogger(t)
 
-			// FIX: Now that this test is in the 'interpreter' package, it can access these.
-			interp := NewInterpreter(WithLogger(iterLogger), WithStdout(&capturedOutput))
+			interp := NewInterpreter(WithLogger(iterLogger))
+			interp.SetEmitFunc(func(v lang.Value) {
+				fmt.Fprintln(&capturedOutput, v.String())
+			})
 
 			if err := interp.Load(program); err != nil {
 				t.Fatalf("Iteration %d: Failed to load program: %v", iteration, err)

@@ -20,11 +20,12 @@
 
 ### [4. Variables, State, and Expressions](#4-variables-state-and-expressions)
 * [4.1. Variable Scope and Lifetime](#41-variable-scope-and-lifetime)
-* [4.2. L-Values: The Targets of Assignment](#42-l-values-the-targets-of-assignment)
-* [4.3. Assigning State with the `set` Statement](#43-assigning-state-with-the-set-statement)
-* [4.4. Placeholders for String Interpolation](#44-placeholders-for-string-interpolation)
-* [4.5. Operator Precedence](#45-operator-precedence)
-* [4.6. Detailed Operator Guide](#46-detailed-operator-guide)
+* [4.2. Predefined Variables: `self`](#42-predefined-variables-self)
+* [4.3. L-Values: The Targets of Assignment](#43-l-values-the-targets-of-assignment)
+* [4.4. Assigning State with the `set` Statement](#44-assigning-state-with-the-set-statement)
+* [4.5. Placeholders for String Interpolation](#45-placeholders-for-string-interpolation)
+* [4.6. Operator Precedence](#46-operator-precedence)
+* [4.7. Detailed Operator Guide](#47-detailed-operator-guide)
 
 ### [5. Fundamental Statements](#5-fundamental-statements)
 * [5.1. The `must` Statement: Asserting Truth](#51-the-must-statement-asserting-truth)
@@ -32,8 +33,9 @@
 * [5.3. The `ask` Statement: Querying AI Models](#53-the-ask-statement-querying-ai-models)
 * [5.4. The `promptuser` Statement: Getting User Input](#54-the-promptuser-statement-getting-user-input)
 * [5.5. The `emit` Statement: Firing Events](#55-the-emit-statement-firing-events)
-* [5.6. The `fail` Statement: Halting with an Error](#56-the-fail-statement-halting-with-an-error)
-* [5.7. State Clearing Statements](#57-state-clearing-statements)
+* [5.6. The `whisper` Statement: Providing Context](#56-the-whisper-statement-providing-context)
+* [5.7. The `fail` Statement: Halting with an Error](#57-the-fail-statement-halting-with-an-error)
+* [5.8. State Clearing Statements](#58-state-clearing-statements)
 
 ### [6. Control Flow Structures](#6-control-flow-structures)
 * [6.1. Conditional Logic: `if`/`else`/`endif`](#61-conditional-logic-ifelseendif)
@@ -217,7 +219,7 @@ set FunctionName = 3
 
 Keywords are reserved words that have special meaning in NeuroScript and cannot be used as identifiers. All keywords are lowercase.
 
-The full list of keywords includes: `acos`, `and`, `as`, `asin`, `ask`, `atan`, `break`, `call`, `clear`, `clear_error`, `command`, `continue`, `cos`, `do`, `each`, `else`, `emit`, `endcommand`, `endfor`, `endfunc`, `endif`, `endon`, `endwhile`, `error`, `eval`, `event`, `fail`, `false`, `for`, `func`, `fuzzy`, `if`, `in`, `into`, `last`, `len`, `ln`, `log`, `means`, `must`, `mustbe`, `named`, `needs`, `nil`, `no`, `not`, `on`, `optional`, `or`, `promptuser`, `return`, `returns`, `set`, `sin`, `some`, `tan`, `timedate`, `tool`, `true`, `typeof`, `while`.
+The full list of keywords includes: `acos`, `and`, `as`, `asin`, `ask`, `atan`, `break`, `call`, `clear`, `clear_error`, `command`, `continue`, `cos`, `do`, `each`, `else`, `emit`, `endcommand`, `endfor`, `endfunc`, `endif`, `endon`, `endwhile`, `error`, `eval`, `event`, `fail`, `false`, `for`, `func`, `fuzzy`, `if`, `in`, `into`, `last`, `len`, `ln`, `log`, `means`, `must`, `mustbe`, `named`, `needs`, `nil`, `no`, `not`, `on`, `optional`, `or`, `promptuser`, `return`, `returns`, `set`, `sin`, `some`, `tan`, `timedate`, `tool`, `true`, `typeof`, `while`, `whisper`.
 
 ---
 
@@ -377,7 +379,15 @@ endfunc
 
 ---
 
-### 4.2. L-Values: The Targets of Assignment
+### 4.2. Predefined Variables: `self`
+
+NeuroScript provides a small number of predefined global variables. The most important is `self`.
+
+- **`self`**: This variable holds the handle to the interpreter's default internal text buffer. Its primary purpose is to serve as a channel for providing contextual information to the `ask` statement via the `whisper` command.
+
+---
+
+### 4.3. L-Values: The Targets of Assignment
 
 An **l-value** (short for "left-hand-side value") is anything that can appear on the left side of an assignment (`=`) statement. It represents a memory location where a value can be stored. In NeuroScript, an l-value can be a simple variable or a more complex path that accesses elements within lists or maps.
 
@@ -400,7 +410,7 @@ set data.users[1].email = "a@b.com"   # Mixed access
 
 ---
 
-### 4.3. Assigning State with the `set` Statement
+### 4.4. Assigning State with the `set` Statement
 
 The `set` statement is the fundamental way to create or modify variables in NeuroScript. It evaluates the expression on the right side of the `=` and assigns the result to the l-value on the left.
 
@@ -422,7 +432,7 @@ set a, b, c = [1, 2, 3]
 
 ---
 
-### 4.4. Placeholders for String Interpolation
+### 4.5. Placeholders for String Interpolation
 
 Placeholders allow you to embed the value of an identifier directly inside a string literal. This is a convenient alternative to string concatenation. A placeholder is an identifier enclosed in double curly braces `{{...}}`.
 
@@ -438,7 +448,7 @@ emit raw_string
 
 ---
 
-### 4.5. Operator Precedence
+### 4.6. Operator Precedence
 
 NeuroScript has a well-defined order of operations to ensure that complex expressions are evaluated predictably. Operators with higher precedence are evaluated before operators with lower precedence.
 
@@ -461,9 +471,9 @@ You can use parentheses `()` to override the default precedence and force an exp
 
 ---
 
-### 4.6. Detailed Operator Guide
+### 4.7. Detailed Operator Guide
 
-#### 4.6.1. Arithmetic Operators
+#### 4.7.1. Arithmetic Operators
 
 | Operator | Description      | Example         |
 | :------- | :--------------- | :-------------- |
@@ -474,7 +484,7 @@ You can use parentheses `()` to override the default precedence and force an exp
 | `%`      | Modulo/Remainder | `5 % 3`         |
 | `**`     | Power/Exponent   | `5 ** 3`        |
 
-#### 4.6.2. Comparison Operators
+#### 4.7.2. Comparison Operators
 
 | Operator | Description          | Example      |
 | :------- | :------------------- | :----------- |
@@ -485,14 +495,14 @@ You can use parentheses `()` to override the default precedence and force an exp
 | `>=`     | Greater than or equal to | `a >= b`     |
 | `<=`     | Less than or equal to    | `a <= b`     |
 
-#### 4.6.3. Logical Operators
+#### 4.7.3. Logical Operators
 
 | Operator | Description                                       | Example        |
 | :------- | :------------------------------------------------ | :------------- |
 | `and`    | Returns `true` if both operands are true          | `a and b`      |
 | `or`     | Returns `true` if at least one operand is true    | `a or b`       |
 
-#### 4.6.4. Bitwise Operators
+#### 4.7.4. Bitwise Operators
 
 | Operator | Description      |
 | :------- | :--------------- |
@@ -503,7 +513,7 @@ You can use parentheses `()` to override the default precedence and force an exp
 
 > The language does not currently support bit-shifting operators (`<<`, `>>`).
 
-#### 4.6.5. Unary Operators
+#### 4.7.5. Unary Operators
 
 | Operator | Description                                   | Example         |
 | :------- | :-------------------------------------------- | :-------------- |
@@ -513,7 +523,7 @@ You can use parentheses `()` to override the default precedence and force an exp
 | `some`   | Checks if a list contains at least one element | `some my_list`  |
 | `typeof` | Returns the data type of its operand as a string | `typeof 123`  |
 
-#### 4.6.6. Fuzzy Operators
+#### 4.7.6. Fuzzy Operators
 
 NeuroScript supports fuzzy logic, which deals with reasoning that is approximate rather than precise. A `fuzzy` value represents a degree of truth, typically between 0.0 (completely false) and 1.0 (completely true).
 
@@ -649,7 +659,33 @@ emit {"user": user_name, "status": "active"}
 
 ---
 
-### 5.6. The `fail` Statement: Halting with an Error
+### 5.6. The `whisper` Statement: Providing Context
+
+The `whisper` statement is a specialized way to send information to a specific "handle" without it being part of the main `emit` stream. Its primary purpose is to provide contextual "observations" to the `ask` statement.
+
+**Syntax:** `whisper <handle_expression>, <value_expression>`
+
+- `<handle_expression>`: An expression that resolves to a handle identifying the destination. The host application determines what each handle means.
+- `<value_expression>`: The data to be sent.
+
+While applications can define many custom handles, NeuroScript provides one special, predefined handle through the global variable `self`. Anything whispered to `self` is automatically collected and included as context in the next `ask` call.
+
+```neuroscript
+# Get the current state of a file
+set file_state = tool.fs.stat("config.txt")
+
+# Whisper this state to 'self' so the AI knows about it.
+# This text will not appear in the normal 'emit' stream.
+whisper self, "The current state of config.txt is: " + file_state
+
+# Now, ask the AI a question. The whispered text will be
+# included in the prompt context automatically.
+ask "default_agent", "Should I update config.txt?" into decision
+```
+
+---
+
+### 5.7. The `fail` Statement: Halting with an Error
 
 The `fail` statement immediately stops the execution of the script and raises an error. You can optionally provide an expression (like an error message) to give more context about the failure. This is often used in `else` blocks or when validation checks do not pass.
 
@@ -668,17 +704,17 @@ endfunc
 
 ---
 
-### 5.7. State Clearing Statements
+### 5.8. State Clearing Statements
 
 These statements are used to reset specific states within the interpreter.
 
-#### 5.7.1. `clear_error`
+#### 5.8.1. `clear_error`
 
 Used inside an `on error` block, `clear_error` resets the script's error state, allowing execution to continue normally after the error handler finishes. If the error is not cleared, the script will terminate after the handler completes.
 
 **Syntax:** `clear_error`
 
-#### 5.7.2. `clear event`
+#### 5.8.2. `clear event`
 
 The `clear event` statement removes event handlers that were previously registered with `on event`. You can clear a handler by its event name expression or by a specific handler name.
 

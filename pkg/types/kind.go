@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.5.2
-// File version: 2
-// Purpose: Defines the core, foundational Kind enum for all AST nodes and adds a String() method for debugging.
+// NeuroScript Version: 0.7.0
+// File version: 3
+// Purpose: Adds the KindWhisperStmt constant for the new 'whisper' command.
 // filename: pkg/types/kind.go
-// nlines: 70
+// nlines: 75+
 // risk_rating: LOW
 
 package types
@@ -52,6 +52,7 @@ const (
 	KindMapEntry
 	KindAskStmt
 	KindPromptUserStmt
+	KindWhisperStmt // Added
 
 	// ^^^^^^ add new kinds above this ^^^^^^^
 	// KindMarker is not a real kind. It is a sentinel value used in tests to
@@ -123,6 +124,8 @@ func (k Kind) String() string {
 		return "AskStmt"
 	case KindPromptUserStmt:
 		return "PromptUserStmt"
+	case KindWhisperStmt:
+		return "WhisperStmt"
 	case KindMarker:
 		return "Marker"
 	default:

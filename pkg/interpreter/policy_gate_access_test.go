@@ -11,20 +11,20 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/runtime"
+	"github.com/aprice2704/neuroscript/pkg/policy"
 )
 
 var (
 	// Mock tools with different trust levels
-	accessTestTrustedTool = runtime.ToolMeta{
+	accessTestTrustedTool = policy.ToolMeta{
 		Name:          "tool.os.setenv",
 		RequiresTrust: true,
 	}
-	accessTestNormalTool = runtime.ToolMeta{
+	accessTestNormalTool = policy.ToolMeta{
 		Name:          "tool.str.contains",
 		RequiresTrust: false,
 	}
-	accessTestAnotherNormalTool = runtime.ToolMeta{
+	accessTestAnotherNormalTool = policy.ToolMeta{
 		Name:          "tool.math.add",
 		RequiresTrust: false,
 	}
@@ -33,15 +33,15 @@ var (
 func TestPolicyGate_AccessControl(t *testing.T) {
 	testCases := []struct {
 		name        string
-		policy      *runtime.ExecPolicy
-		tool        runtime.ToolMeta
+		policy      *policy.ExecPolicy
+		tool        policy.ToolMeta
 		expectErrIs error
 	}{
 		// --- Trust Context Scenarios ---
 		{
 			name: "[Trust] Trusted tool succeeds in config context",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextConfig,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextConfig,
 				Allow:   []string{"*"},
 			},
 			tool:        accessTestTrustedTool,
@@ -49,26 +49,26 @@ func TestPolicyGate_AccessControl(t *testing.T) {
 		},
 		{
 			name: "[Trust] Trusted tool fails in normal context",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextNormal,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 			},
 			tool:        accessTestTrustedTool,
-			expectErrIs: runtime.ErrTrust,
+			expectErrIs: policy.ErrTrust,
 		},
 		{
 			name: "[Trust] Trusted tool fails in test context",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextTest,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextTest,
 				Allow:   []string{"*"},
 			},
 			tool:        accessTestTrustedTool,
-			expectErrIs: runtime.ErrTrust,
+			expectErrIs: policy.ErrTrust,
 		},
 		{
 			name: "[Trust] Normal tool succeeds in normal context",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextNormal,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 			},
 			tool:        accessTestNormalTool,
@@ -76,8 +76,8 @@ func TestPolicyGate_AccessControl(t *testing.T) {
 		},
 		{
 			name: "[Trust] Normal tool succeeds in config context",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextConfig,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextConfig,
 				Allow:   []string{"*"},
 			},
 			tool:        accessTestNormalTool,
@@ -87,48 +87,48 @@ func TestPolicyGate_AccessControl(t *testing.T) {
 		// --- Allow/Deny Pattern Scenarios ---
 		{
 			name: "[Allow/Deny] Deny all overrides everything",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextConfig,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextConfig,
 				Allow:   []string{"*"},
 				Deny:    []string{"*"},
 			},
 			tool:        accessTestTrustedTool,
-			expectErrIs: runtime.ErrPolicy,
+			expectErrIs: policy.ErrPolicy,
 		},
 		{
 			name: "[Allow/Deny] Exact deny matches",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextNormal,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 				Deny:    []string{"tool.str.contains"},
 			},
 			tool:        accessTestNormalTool,
-			expectErrIs: runtime.ErrPolicy,
+			expectErrIs: policy.ErrPolicy,
 		},
 		{
 			name: "[Allow/Deny] Wildcard deny matches",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextNormal,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextNormal,
 				Allow:   []string{"tool.*"},
 				Deny:    []string{"tool.str.*"},
 			},
 			tool:        accessTestNormalTool,
-			expectErrIs: runtime.ErrPolicy,
+			expectErrIs: policy.ErrPolicy,
 		},
 		{
 			name: "[Allow/Deny] Deny overrides specific allow",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextNormal,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextNormal,
 				Allow:   []string{"tool.str.contains"},
 				Deny:    []string{"tool.str.contains"},
 			},
 			tool:        accessTestNormalTool,
-			expectErrIs: runtime.ErrPolicy,
+			expectErrIs: policy.ErrPolicy,
 		},
 		{
 			name: "[Allow/Deny] Success with specific allow and no deny",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextNormal,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextNormal,
 				Allow:   []string{"tool.math.add"},
 			},
 			tool:        accessTestAnotherNormalTool,
@@ -136,21 +136,21 @@ func TestPolicyGate_AccessControl(t *testing.T) {
 		},
 		{
 			name: "[Allow/Deny] Failure because not in specific allow list",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextNormal,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextNormal,
 				Allow:   []string{"tool.math.add"}, // str.contains is not in this list
 			},
 			tool:        accessTestNormalTool,
-			expectErrIs: runtime.ErrPolicy,
+			expectErrIs: policy.ErrPolicy,
 		},
 		{
 			name: "[Allow/Deny] Default deny when allow list is empty",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextNormal,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextNormal,
 				Allow:   []string{}, // Empty allow list means deny everything
 			},
 			tool:        accessTestNormalTool,
-			expectErrIs: runtime.ErrPolicy,
+			expectErrIs: policy.ErrPolicy,
 		},
 	}
 

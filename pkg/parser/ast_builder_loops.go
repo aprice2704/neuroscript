@@ -1,7 +1,7 @@
 // filename: pkg/parser/ast_builder_loops.go
 // NeuroScript Version: 0.6.1
 // File version: 9
-// Purpose: Corrected a bug where the collection expression for a 'for each' loop was being popped from the stack but not assigned to the AST node, causing a nil pointer at runtime.
+// Purpose: Corrected a bug where the collection expression for a 'for each' loop was being popped from the stack but not assigned to the AST node, causing a nil pointer at policy.
 
 package parser
 

@@ -13,8 +13,8 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/policy/capability"
-	"github.com/aprice2704/neuroscript/pkg/runtime"
 )
 
 // RunSteps is an exported wrapper for the unexported executeSteps method, allowing it to be called by external test packages.
@@ -66,8 +66,8 @@ func NewTestInterpreter(t *testing.T, initialVars map[string]lang.Value, lastRes
 	}
 
 	if privileged {
-		policy := &runtime.ExecPolicy{
-			Context: runtime.ContextConfig, // Allows trusted tools
+		policy := &policy.ExecPolicy{
+			Context: policy.ContextConfig, // Allows trusted tools
 			Allow:   []string{"*"},
 			Grants: capability.NewGrantSet(
 				[]capability.Capability{

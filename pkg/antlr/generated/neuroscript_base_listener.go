@@ -228,6 +228,12 @@ func (s *BaseNeuroScriptListener) EnterEmit_statement(ctx *Emit_statementContext
 // ExitEmit_statement is called when production emit_statement is exited.
 func (s *BaseNeuroScriptListener) ExitEmit_statement(ctx *Emit_statementContext) {}
 
+// EnterWhisper_stmt is called when production whisper_stmt is entered.
+func (s *BaseNeuroScriptListener) EnterWhisper_stmt(ctx *Whisper_stmtContext) {}
+
+// ExitWhisper_stmt is called when production whisper_stmt is exited.
+func (s *BaseNeuroScriptListener) ExitWhisper_stmt(ctx *Whisper_stmtContext) {}
+
 // EnterMust_statement is called when production must_statement is entered.
 func (s *BaseNeuroScriptListener) EnterMust_statement(ctx *Must_statementContext) {}
 

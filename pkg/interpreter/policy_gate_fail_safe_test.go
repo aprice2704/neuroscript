@@ -11,24 +11,24 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/policy/capability"
-	"github.com/aprice2704/neuroscript/pkg/runtime"
 )
 
 var (
 	// A harmless tool that requires no special permissions.
-	failSafeNoReqsTool = runtime.ToolMeta{
+	failSafeNoReqsTool = policy.ToolMeta{
 		Name:          "tool.math.add",
 		RequiresTrust: false,
 		RequiredCaps:  nil,
 	}
 	// A tool that requires a trusted context to run.
-	failSafeTrustReqTool = runtime.ToolMeta{
+	failSafeTrustReqTool = policy.ToolMeta{
 		Name:          "tool.os.setenv",
 		RequiresTrust: true,
 	}
 	// A tool that requires a specific filesystem capability.
-	failSafeCapsReqTool = runtime.ToolMeta{
+	failSafeCapsReqTool = policy.ToolMeta{
 		Name:          "tool.fs.read",
 		RequiresTrust: false,
 		RequiredCaps: []capability.Capability{
@@ -40,8 +40,8 @@ var (
 func TestPolicyGate_FailSafeBehavior(t *testing.T) {
 	testCases := []struct {
 		name        string
-		policy      *runtime.ExecPolicy
-		toolToCall  runtime.ToolMeta
+		policy      *policy.ExecPolicy
+		toolToCall  policy.ToolMeta
 		expectErrIs error
 		description string
 	}{
@@ -54,50 +54,50 @@ func TestPolicyGate_FailSafeBehavior(t *testing.T) {
 		},
 		{
 			name:        "Empty Policy - NoReqs Tool",
-			policy:      &runtime.ExecPolicy{Allow: []string{}}, // An empty policy is the most restrictive.
+			policy:      &policy.ExecPolicy{Allow: []string{}}, // An empty policy is the most restrictive.
 			toolToCall:  failSafeNoReqsTool,
-			expectErrIs: runtime.ErrPolicy,
+			expectErrIs: policy.ErrPolicy,
 			description: "An empty policy has no 'Allow' list, so it should deny all calls.",
 		},
 		{
 			name:        "Empty Policy - Trust Tool",
-			policy:      &runtime.ExecPolicy{Allow: []string{}},
+			policy:      &policy.ExecPolicy{Allow: []string{}},
 			toolToCall:  failSafeTrustReqTool,
-			expectErrIs: runtime.ErrTrust,
+			expectErrIs: policy.ErrTrust,
 			description: "The trust check runs first; an untrusted context with a trusted tool should fail.",
 		},
 		{
 			name:        "Empty Policy - Caps Tool",
-			policy:      &runtime.ExecPolicy{Allow: []string{}},
+			policy:      &policy.ExecPolicy{Allow: []string{}},
 			toolToCall:  failSafeCapsReqTool,
-			expectErrIs: runtime.ErrPolicy, // Fails on the allow list check before the capability check.
+			expectErrIs: policy.ErrPolicy, // Fails on the allow list check before the capability check.
 			description: "An empty policy denies the tool before the capability check is even reached.",
 		},
 		{
 			name: "Normal Context - Trust Tool",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextNormal,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 			},
 			toolToCall:  failSafeTrustReqTool,
-			expectErrIs: runtime.ErrTrust,
+			expectErrIs: policy.ErrTrust,
 			description: "A normal context must block trusted tools, even if they are allowed.",
 		},
 		{
 			name: "Allow All, No Grants - Caps Tool",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextNormal,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 				Grants:  capability.NewGrantSet(nil, capability.Limits{}), // No grants provided.
 			},
 			toolToCall:  failSafeCapsReqTool,
-			expectErrIs: runtime.ErrCapability,
+			expectErrIs: policy.ErrCapability,
 			description: "Even if allowed, a tool must fail if its capability requirements are not met.",
 		},
 		{
 			name: "Allow All, No Grants - NoReqs Tool",
-			policy: &runtime.ExecPolicy{
-				Context: runtime.ContextNormal,
+			policy: &policy.ExecPolicy{
+				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 				Grants:  capability.NewGrantSet(nil, capability.Limits{}),
 			},

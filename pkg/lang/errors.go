@@ -329,7 +329,7 @@ type ErrorDetails struct {
 	Severity    Severity
 }
 
-// errorCatalogue holds the built-ins; tools can register more at runtime.
+// errorCatalogue holds the built-ins; tools can register more at policy.
 var errorCatalogue = map[ErrorCode]ErrorDetails{
 	//  -- runtime samples
 	ErrorCodeProcNotFound: {

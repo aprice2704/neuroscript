@@ -15,8 +15,8 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/api"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/policy/capability"
-	"github.com/aprice2704/neuroscript/pkg/runtime"
 )
 
 // TestE2E_LimitEnforcement_ToolCalls verifies that the interpreter stops execution
@@ -34,8 +34,8 @@ func main() means
     call tool.test.count()
 endfunc
 `
-	policy := &runtime.ExecPolicy{
-		Context: runtime.ContextNormal,
+	policy := &policy.ExecPolicy{
+		Context: policy.ContextNormal,
 		Allow:   []string{"tool.test.count"},
 		Deny:    []string{},
 		Grants: capability.GrantSet{

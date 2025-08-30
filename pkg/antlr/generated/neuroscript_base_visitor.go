@@ -143,6 +143,10 @@ func (v *BaseNeuroScriptVisitor) VisitEmit_statement(ctx *Emit_statementContext)
 	return v.VisitChildren(ctx)
 }
 
+func (v *BaseNeuroScriptVisitor) VisitWhisper_stmt(ctx *Whisper_stmtContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
 func (v *BaseNeuroScriptVisitor) VisitMust_statement(ctx *Must_statementContext) interface{} {
 	return v.VisitChildren(ctx)
 }

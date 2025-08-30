@@ -1,4 +1,4 @@
-# NeuroScript Integration Guide (v0.7 — 2025-07-26)
+# NeuroScript Integration Guide (v0.7 — 2025-08-28)
 
 This guide provides a comprehensive overview of how to embed and interact with the NeuroScript engine in an external Go application using **only** the public `neuroscript/pkg/api` package. The `api` package is a stable facade that wraps the underlying parser, interpreter, and cryptographic components.
 
@@ -355,49 +355,106 @@ func init() {
 	log.Println("Custom NeuroScript critical error handler registered.")
 }
 ```
-Section 9: Handling Errors
-The API re-exports key sentinel errors, allowing you to write robust error-handling logic without importing internal packages. You can check for specific, well-known error conditions using the standard errors.Is() function.
 
-Go
+---
+
+## 9. Implementing the Ask-Loop
+
+The `ask` statement is designed for single-turn AI queries, but it is also the foundation of multi-turn "agentic" workflows. The **Ask-Loop** is a pattern, controlled by the host Go application, that orchestrates these conversations according to the `askloop_spec_v2.md` protocol.
+
+The core principle is that the host application is in complete control. It runs a loop that repeatedly executes a NeuroScript `command` block. The agent's script uses the `emit` stream to send back both its results and a special `LOOP` control signal. The host captures this output, parses the signal, and decides whether to continue, stop, or abort the loop.
+
+### Host Responsibilities
+
+1.  **Manage the Loop**: Use a standard Go `for` loop to manage turns and enforce limits like `MaxTurns`.
+2.  **Capture `emit` Output**: Use the `api.WithEmitFunc` option or `interp.SetEmitFunc` method to redirect all output from `emit` statements into a buffer.
+3.  **Provide `OUTPUT` as Context**: The captured output from the previous turn serves as the `OUTPUT` section of the next turn's prompt. This is typically passed to the agent using `whisper self`.
+4.  **Parse Control Signals**: After each turn, use the `api.ParseLoopControl` helper to scan the captured output for the agent's `LOOP` signal.
+
+### Step-by-Step Example
+
+This example shows how a Go application can manage a simple, two-turn interaction with an agent.
+
+```go
+package main
 
 import (
-    "errors"
-    "github.com/aprice2704/neuroscript/pkg/api"
+	"bytes"
+	"context"
+	"fmt"
+	"os"
+
+	"github.com/aprice2704/neuroscript/pkg/api"
+	"[github.com/aprice2704/neuroscript/pkg/lang](https://github.com/aprice2704/neuroscript/pkg/lang)"
 )
 
+const MAX_TURNS = 5
+
 func main() {
-    // ...
-    _, err := api.RunProcedure(ctx, interp, "a_procedure_that_is_missing")
+	// 1. Create an interpreter.
+	interp := api.New()
 
-    if err != nil {
-        if errors.Is(err, api.ErrProcedureNotFound) {
-            fmt.Println("Caught expected error: The procedure was not found!")
-        } else if errors.Is(err, api.ErrToolNotAllowed) {
-            fmt.Println("A security policy prevented a tool from running.")
-        } else {
-            fmt.Printf("An unexpected error occurred: %v\n", err)
-        }
-    }
+	// This would typically be a more complex prompt.
+	initialPrompt := "Create a plan to add a user."
+	lastOutput := "" // There is no output before the first turn.
+
+	// 2. The host application runs the loop.
+	for turn := 0; turn < MAX_TURNS; turn++ {
+		fmt.Printf("--- Turn %d ---\n", turn+1)
+		var outputBuffer bytes.Buffer
+
+		// 3. Configure the interpreter to capture this turn's emit stream.
+		interp.SetEmitFunc(func(v api.Value) {
+			// This captures the raw output from the agent's script.
+			fmt.Fprintln(&outputBuffer, v.(lang.Value).String())
+		})
+
+		// 4. Construct the script for this turn.
+		// The `lastOutput` from the previous turn is whispered as context.
+		script := fmt.Sprintf(`
+command
+    whisper self, %q
+    ask "default_agent", %q into result
+    emit result
+endcommand`, lastOutput, initialPrompt)
+
+		// 5. Execute the script.
+		tree, _ := api.Parse([]byte(script))
+		_, err := api.ExecWithInterpreter(context.Background(), interp, tree)
+		if err != nil {
+			fmt.Printf("Turn failed: %v\n", err)
+			return
+		}
+
+		lastOutput = outputBuffer.String()
+		fmt.Printf("Agent Output:\n%s\n", lastOutput)
+
+		// 6. Parse the control signal from the output.
+		loopControl, err := api.ParseLoopControl(lastOutput)
+		if err != nil {
+			fmt.Printf("Could not parse loop control: %v. Halting.\n", err)
+			return
+		}
+
+		// 7. Act on the signal.
+		if loopControl.Control == "done" {
+			fmt.Println("--- Loop Finished: Agent signaled done. ---")
+			return
+		}
+		if loopControl.Control == "abort" {
+			fmt.Printf("--- Loop Aborted by Agent: %s ---\n", loopControl.Reason)
+			return
+		}
+		// Otherwise, continue to the next turn.
+	}
+
+	fmt.Println("--- Loop Terminated: Max turns exceeded. ---")
 }
-Available Sentinel Errors include:
-
-api.ErrProcedureNotFound
-
-api.ErrArgumentMismatch
-
-api.ErrMustConditionFailed
-
-api.ErrToolNotAllowed
-
-api.ErrSecurityViolation
-
-api.ErrToolNotFound
+```
 
 ---
 
----
-
-## 9. Handling Events
+## 10. Handling Events
 
 NeuroScript includes a powerful event-driven model that allows your Go application to trigger behavior within a loaded script. This is ideal for building reactive systems where the script needs to respond to asynchronous events from the host.
 
@@ -419,7 +476,7 @@ import (
 	"os"
 
 	"github.com/aprice2704/neuroscript/pkg/api"
-	"github.com/aprice2704/neuroscript/pkg/lang"
+	"[github.com/aprice2704/neuroscript/pkg/lang](https://github.com/aprice2704/neuroscript/pkg/lang)"
 )
 
 func main() {
@@ -458,7 +515,7 @@ endon
 ```
 
 
-## 10. Core Types Reference
+## 11. Core Types Reference
 
 The `api` package re-exports all necessary types so you don't need to import internal packages.
 
@@ -474,7 +531,7 @@ The `api` package re-exports all necessary types so you don't need to import int
 
 ---
 
-## 11. Important “Don’ts”
+## 12. Important “Don’ts”
 
 -   **Do not** use filesystem tools without configuring a sandbox via `api.WithSandboxDir`.
 -   **Do not** import `pkg/parser`, `pkg/interpreter`, etc., directly. Use the `api` package.

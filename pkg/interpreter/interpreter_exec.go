@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.6.0
-// File version: 73.0.0
-// Purpose: Corrected implicit return logic for 'must' statements by including them in the set of statements that update the final result.
+// NeuroScript Version: 0.7.0
+// File version: 79
+// Purpose: Refactored 'ask' logic into interpreter_ask.go to reduce file size.
 // filename: pkg/interpreter/interpreter_exec.go
-// nlines: 300
+// nlines: 250
 // risk_rating: HIGH
 
 package interpreter
@@ -14,15 +14,22 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/types"
 )
+
+// Execute runs the command blocks from a given AST program.
+func (i *Interpreter) Execute(program *ast.Program) (lang.Value, error) {
+	if program == nil {
+		return &lang.NilValue{}, nil
+	}
+	i.state.commands = program.Commands
+	return i.ExecuteCommands()
+}
 
 func (i *Interpreter) executeSteps(steps []ast.Step, isInHandler bool, activeError *lang.RuntimeError) (lang.Value, bool, bool, error) {
 	return i.recExecuteSteps(steps, isInHandler, activeError, 0)
 }
 
 func getStepSubjectForLogging(step ast.Step) string {
-	// ... (function content unchanged)
 	switch strings.ToLower(step.Type) {
 	case "set", "assign":
 		if len(step.LValues) > 0 {
@@ -94,7 +101,6 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 		stepTypeLower := strings.ToLower(step.Type)
 
 		switch stepTypeLower {
-		// ... (cases unchanged)
 		case "set", "assign":
 			stepResult, stepErr = i.executeSet(step)
 		case "call":
@@ -113,6 +119,8 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 			}
 		case "emit":
 			stepResult, stepErr = i.executeEmit(step)
+		case "whisper":
+			stepResult, stepErr = i.executeWhisper(step)
 		case "if":
 			var ifReturned, ifCleared bool
 			var ifBlockResult lang.Value
@@ -197,25 +205,18 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 			if !isInHandler && len(i.state.errorHandlerStack) > 0 {
 				handlerBlock := i.state.errorHandlerStack[len(i.state.errorHandlerStack)-1]
 				handlerToExecute := handlerBlock[0]
-
-				// FIX: Execute the handler in the CURRENT interpreter scope, not a sandbox.
-				// This allows 'set' and 'clear_error' to affect the procedure's state.
 				i.SetVariable("system_error_message", lang.StringValue{Value: rtErr.Message})
-
 				_, _, handlerCleared, handlerErr := i.executeSteps(handlerToExecute.Body, true, rtErr)
-
 				if handlerErr != nil {
 					return nil, false, false, ensureRuntimeError(handlerErr, handlerToExecute.GetPos(), "ON_ERROR_HANDLER")
 				}
 				if handlerCleared {
 					stepErr = nil
-					continue // Resume execution in the current loop.
+					continue
 				} else {
-					// If the error was not cleared, propagate it up.
 					return nil, false, false, rtErr
 				}
 			} else {
-				// No handler available, or we are already in one, so propagate the error.
 				return nil, false, wasCleared, rtErr
 			}
 		}
@@ -229,42 +230,4 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 	}
 
 	return finalResult, false, wasCleared, nil
-}
-
-func (i *Interpreter) executeCall(step ast.Step) (lang.Value, error) {
-	if step.Call == nil {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "call step is missing call expression", nil).WithPosition(step.GetPos())
-	}
-	return i.evaluate.Expression(step.Call)
-}
-
-func (i *Interpreter) executeBlock(blockValue interface{}, parentPos *types.Position, blockType string, isInHandler bool, activeError *lang.RuntimeError, depth int) (result lang.Value, wasReturn bool, wasCleared bool, err error) {
-	steps, ok := blockValue.([]ast.Step)
-	if !ok {
-		if blockValue == nil {
-			return &lang.NilValue{}, false, false, nil
-		}
-		errMsg := fmt.Sprintf("internal error: invalid block format for %s - expected []Step, got %T", blockType, blockValue)
-		return nil, false, false, lang.NewRuntimeError(lang.ErrorCodeInternal, errMsg, lang.ErrInternal).WithPosition(parentPos)
-	}
-	return i.recExecuteSteps(steps, isInHandler, activeError, depth)
-}
-
-func shouldUpdateLastResult(stepTypeLower string) bool {
-	switch stepTypeLower {
-	case "set", "assign", "emit", "ask", "promptuser", "call", "expression_statement", "must", "mustbe":
-		return true
-	default:
-		return false
-	}
-}
-
-func ensureRuntimeError(err error, pos *types.Position, context string) *lang.RuntimeError {
-	if rtErr, ok := err.(*lang.RuntimeError); ok {
-		if rtErr.Position == nil && pos != nil {
-			return rtErr.WithPosition(pos)
-		}
-		return rtErr
-	}
-	return lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("internal error during %s", context), err).WithPosition(pos)
 }
