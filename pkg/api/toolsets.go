@@ -1,10 +1,9 @@
-// NeuroScript Version: 0.6.0
-// File version: 2
-// Purpose: Adds the new aeiou toolset to the standard registration list.
+// NeuroScript Version: 0.7.0
+// File version: 5
+// Purpose: Removed non-existent 'capsule' toolset to fix build.
 // filename: pkg/api/toolsets.go
 // nlines: 21
 // risk_rating: LOW
-
 package api
 
 import (

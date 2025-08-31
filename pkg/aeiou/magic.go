@@ -1,31 +1,56 @@
-// NeuroScript Version: 0.3.0
+// NeuroScript Version: 0.7.0
 // File version: 1
-// Purpose: Provides a centralized helper function to create V2 magic strings, abstracting the constant and format.
-// filename: neuroscript/pkg/aeiou/magic.go
-// nlines: 36
+// Purpose: Defines the structures and constants for AEIOU v3 magic control tokens.
+// filename: aeiou/magic.go
+// nlines: 48
 // risk_rating: LOW
 
 package aeiou
 
-import (
-	"encoding/json"
-	"fmt"
+import "encoding/json"
+
+const (
+	// TokenMarkerPrefix is the start of a V3 control token.
+	TokenMarkerPrefix = "<<<NSMAG:V3"
+	// TokenMarkerSuffix is the end of a V3 control token.
+	TokenMarkerSuffix = ">>>"
 )
 
-const magicConstant = "NSENVELOPE_MAGIC_9E3B6F2D"
-const protocolVersion = "V2"
+// ControlKind defines the type of control being requested (e.g., "LOOP").
+type ControlKind string
 
-// Wrap formats a string according to the NeuroScript V2 envelope protocol.
-// The type should be a standard section type like "START", "END", "ACTIONS", etc.
-// If a payload is provided, it must be a struct that can be marshaled to JSON.
-func Wrap(sectionType SectionType, payload interface{}) (string, error) {
-	// The new format is <<<MAGIC:VERSION:TYPE>>> or <<<MAGIC:VERSION:TYPE:JSON_PAYLOAD>>>
-	if payload != nil {
-		payloadBytes, err := json.Marshal(payload)
-		if err != nil {
-			return "", fmt.Errorf("failed to marshal payload for section %s: %w", sectionType, err)
-		}
-		return fmt.Sprintf("<<<%s:%s:%s:%s>>>", magicConstant, protocolVersion, sectionType, string(payloadBytes)), nil
-	}
-	return fmt.Sprintf("<<<%s:%s:%s>>>", magicConstant, protocolVersion, sectionType), nil
+const (
+	// KindLoop is the standard control kind for loop management.
+	KindLoop ControlKind = "LOOP"
+)
+
+// LoopAction defines the specific action for a LOOP control token.
+type LoopAction string
+
+const (
+	ActionContinue LoopAction = "continue"
+	ActionDone     LoopAction = "done"
+	ActionAbort    LoopAction = "abort"
+)
+
+// ControlPayload is the agent-supplied portion of the token's payload.
+type ControlPayload struct {
+	Action    LoopAction      `json:"action"`
+	Request   json.RawMessage `json:"request,omitempty"`
+	Telemetry json.RawMessage `json:"telemetry,omitempty"`
+}
+
+// TokenPayload is the full, canonical payload that gets signed.
+// It includes host-stitched context and the agent's control payload.
+type TokenPayload struct {
+	Version   int            `json:"v"`
+	Kind      ControlKind    `json:"kind"`
+	JTI       string         `json:"jti"`
+	SessionID string         `json:"session_id"`
+	TurnIndex int            `json:"turn_index"`
+	TurnNonce string         `json:"turn_nonce"`
+	IssuedAt  int64          `json:"issued_at"`
+	TTL       int            `json:"ttl,omitempty"`
+	KeyID     string         `json:"kid"`
+	Payload   ControlPayload `json:"payload"`
 }

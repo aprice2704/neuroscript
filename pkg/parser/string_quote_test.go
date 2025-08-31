@@ -1,14 +1,13 @@
 // NeuroScript Version: 0.7.0
-// File version: 2
-// Purpose: Expands test coverage for string literals to include raw strings and various quote combinations.
-// filename: pkg/parser/string_quotes_test.go
+// File version: 3
+// Purpose: Corrected test case logic to no longer double-wrap expressions in a function block, which was causing parser failures.
+// filename: pkg/parser/string_quote_test.go
 // nlines: 80
 // risk_rating: LOW
 
 package parser
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
@@ -84,9 +83,10 @@ func TestStringLiteralParsing(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Using fmt.Sprintf to avoid complex Go string literal escaping in the test setup itself.
-			script := fmt.Sprintf("func t() means\n set x = %s\nendfunc", tc.scriptLiteral)
-			expr := parseExpression(t, script)
+			// FIX: The parseExpression helper already wraps the expression in a valid
+			// function and set statement. The script variable should ONLY be the literal itself.
+			// The previous code was creating a nested function, causing the syntax error.
+			expr := parseExpression(t, tc.scriptLiteral)
 			strNode, ok := expr.(*ast.StringLiteralNode)
 			if !ok {
 				t.Fatalf("Expected a StringLiteralNode, but got %T", expr)

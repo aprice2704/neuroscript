@@ -1,10 +1,9 @@
 // NeuroScript Version: 0.7.0
-// File version: 21
-// Purpose: Added SetEmitFunc and ParseLoopControl to support the host-driven Ask-Loop.
+// File version: 26
+// Purpose: Added WithAITranscript option for logging AI prompts.
 // filename: pkg/api/interpreter.go
-// nlines: 150
-// risk_rating: MEDIUM
-
+// nlines: 170+
+// risk_rating: LOW
 package api
 
 import (
@@ -18,9 +17,9 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/policy"
-	"github.com/aprice2704/neuroscript/pkg/tool"
-
 	"github.com/aprice2704/neuroscript/pkg/provider/google"
+	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 var loopControlRegex = regexp.MustCompile(`<<<NSENVELOPE_MAGIC_[A-F0-9]+:V2:LOOP:(.*?)>>>`)
@@ -62,6 +61,19 @@ func WithGlobals(globals map[string]any) Option {
 	return interpreter.WithGlobals(globals)
 }
 
+// WithAITranscript provides a writer to log the full, composed prompts sent to AI providers.
+func WithAITranscript(w io.Writer) interpreter.InterpreterOption {
+	return func(i *interpreter.Interpreter) {
+		i.SetAITranscript(w)
+	}
+}
+
+// SetSandboxDir sets the secure root directory for all subsequent file operations
+// for this interpreter instance.
+func (i *Interpreter) SetSandboxDir(path string) {
+	i.internal.SetSandboxDir(path)
+}
+
 // SetStdout sets the standard output writer for the interpreter instance.
 func (i *Interpreter) SetStdout(w io.Writer) {
 	i.internal.SetStdout(w)
@@ -82,6 +94,12 @@ func (i *Interpreter) SetEmitFunc(f func(Value)) {
 // RegisterProvider allows the host application to register a concrete AIProvider implementation.
 func (i *Interpreter) RegisterProvider(name string, p AIProvider) {
 	i.internal.RegisterProvider(name, p)
+}
+
+// RegisterAgentModel allows the host application to register an AgentModel configuration.
+// It now correctly accepts a map of native Go types.
+func (i *Interpreter) RegisterAgentModel(name string, config map[string]any) error {
+	return i.internal.AgentModelsAdmin().Register(types.AgentModelName(name), config)
 }
 
 // Load injects a verified and parsed program into the interpreter's memory.

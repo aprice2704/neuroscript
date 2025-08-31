@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 2
-// Purpose: A scenario-based mock LLMConn for testing multi-turn 'ask' loops.
+// File version: 3
+// Purpose: Changed t.Errorf to t.Logf to prevent the mock from prematurely failing tests that expect an error.
 // filename: pkg/llmconn/mock.go
 // nlines: 105
 // risk_rating: LOW
@@ -46,7 +46,9 @@ func (m *MockConn) Converse(ctx context.Context, input *aeiou.Envelope) (*provid
 	defer m.mu.Unlock()
 
 	if m.turn >= len(m.scenario) {
-		m.t.Errorf("MockConn: Converse called more times than there are turns in the scenario (called %d times for a %d-turn scenario)", m.turn+1, len(m.scenario))
+		// Use Logf instead of Errorf. This allows the calling test to correctly
+		// assert that an error was returned, without this helper causing a premature failure.
+		m.t.Logf("MockConn: Converse called more times than there are turns in the scenario (called %d times for a %d-turn scenario)", m.turn+1, len(m.scenario))
 		return nil, fmt.Errorf("mockconn: scenario ended")
 	}
 

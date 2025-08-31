@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.3
-// File version: 14
-// Purpose: FIX: Corrects the normalizeAST helper to set the correct NodeKind on AskStmt and PromptUserStmt.
+// File version: 16
+// Purpose: FIX: Corrects compiler error by instantiating the correct ASTBuilder. Also normalizes WhisperStmt.
 // filename: pkg/canon/comprehensive_e2e_test.go
 // nlines: 120+
 // risk_rating: HIGH
@@ -51,6 +51,15 @@ func normalizeAST(p *ast.Program) {
 				s.Values = nil
 				s.LValues = nil
 			}
+			// FIX: Add normalization for WhisperStmt
+			if s.Type == "whisper" && s.WhisperStmt == nil {
+				s.WhisperStmt = &ast.WhisperStmt{
+					BaseNode: ast.BaseNode{NodeKind: types.KindWhisperStmt},
+					Handle:   s.Values[0],
+					Value:    s.Values[1],
+				}
+				s.Values = nil
+			}
 			if len(s.Body) > 0 {
 				walkSteps(s.Body)
 			}
@@ -65,6 +74,12 @@ func normalizeAST(p *ast.Program) {
 		for _, handler := range proc.ErrorHandlers {
 			walkSteps(handler.Body)
 		}
+	}
+	for _, cmd := range p.Commands {
+		walkSteps(cmd.Body)
+	}
+	for _, ev := range p.Events {
+		walkSteps(ev.Body)
 	}
 }
 
@@ -84,6 +99,7 @@ func runRoundtripComparison(t *testing.T, scriptPath string) {
 	if pErr != nil {
 		t.Fatalf("parser.Parse() failed unexpectedly: %v", pErr)
 	}
+	// FIX: Instantiate an ASTBuilder, not a ParserAPI.
 	builder := parser.NewASTBuilder(logging.NewNoOpLogger())
 	program, _, bErr := builder.Build(antlrTree)
 	if bErr != nil {

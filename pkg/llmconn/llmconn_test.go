@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 1
-// Purpose: Provides unit tests for the LLMConn stateful connection manager.
+// File version: 2
+// Purpose: Removed the obsolete test case for loop permissions, which are now checked at runtime by the interpreter, not by the connection constructor.
 // filename: pkg/llmconn/llmconn_test.go
-// nlines: 105
+// nlines: 91
 // risk_rating: LOW
 
 package llmconn
@@ -19,21 +19,12 @@ import (
 
 func TestNewLLMConn(t *testing.T) {
 	mockProvider := test.New()
-	loopableModel := &types.AgentModel{
+	model := &types.AgentModel{
 		Name: "test-model",
-		Tools: types.ToolConfig{
-			ToolLoopPermitted: true,
-		},
-	}
-	nonLoopableModel := &types.AgentModel{
-		Name: "test-model-no-loop",
-		Tools: types.ToolConfig{
-			ToolLoopPermitted: false,
-		},
 	}
 
 	t.Run("Successful creation", func(t *testing.T) {
-		conn, err := New(loopableModel, mockProvider)
+		conn, err := New(model, mockProvider)
 		if err != nil {
 			t.Fatalf("Expected no error, got %v", err)
 		}
@@ -50,16 +41,9 @@ func TestNewLLMConn(t *testing.T) {
 	})
 
 	t.Run("Fails with nil provider", func(t *testing.T) {
-		_, err := New(loopableModel, nil)
+		_, err := New(model, nil)
 		if !errors.Is(err, ErrProviderNotSet) {
 			t.Errorf("Expected error %v, got %v", ErrProviderNotSet, err)
-		}
-	})
-
-	t.Run("Fails if loops are not permitted", func(t *testing.T) {
-		_, err := New(nonLoopableModel, mockProvider)
-		if !errors.Is(err, ErrLoopNotPermitted) {
-			t.Errorf("Expected error %v, got %v", ErrLoopNotPermitted, err)
 		}
 	})
 }

@@ -42,7 +42,7 @@ func WithLLMClient(client interfaces.LLMClient) InterpreterOption {
 
 func WithSandboxDir(path string) InterpreterOption {
 	return func(i *Interpreter) {
-		i.setSandboxDir(path)
+		i.SetSandboxDir(path)
 	}
 }
 

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.3
-// File version: 3
-// Purpose: Implements encoders/decoders for various statement and miscellaneous AST nodes.
+// File version: 4
+// Purpose: Implements encoders/decoders for various statement and miscellaneous AST nodes, now including WhisperStmt.
 // filename: pkg/canon/codec_statements.go
-// nlines: 200
+// nlines: 200+
 // risk_rating: MEDIUM
 
 package canon
@@ -14,7 +14,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
-// Note: AskStmt and PromptUserStmt are not standalone nodes, so their
+// Note: AskStmt, PromptUserStmt, and WhisperStmt are not standalone nodes, so their
 // encoders/decoders are helpers called by the Step codec, not registered
 // in the main codec registry.
 
@@ -136,6 +136,40 @@ func decodePromptUserStmt(r *canonReader) (*ast.PromptUserStmt, error) {
 		return nil, err
 	}
 	stmt.IntoTarget = intoTarget.(*ast.LValueNode)
+	return stmt, nil
+}
+
+func encodeWhisperStmt(v *canonVisitor, stmt *ast.WhisperStmt) error {
+	if stmt == nil {
+		v.writeBool(false)
+		return nil
+	}
+	v.writeBool(true)
+	if err := v.visitor(stmt.Handle); err != nil {
+		return err
+	}
+	return v.visitor(stmt.Value)
+}
+
+func decodeWhisperStmt(r *canonReader) (*ast.WhisperStmt, error) {
+	isNotNil, err := r.readBool()
+	if err != nil {
+		return nil, err
+	}
+	if !isNotNil {
+		return nil, nil
+	}
+	stmt := &ast.WhisperStmt{BaseNode: ast.BaseNode{NodeKind: types.KindWhisperStmt}}
+	handle, err := r.visitor()
+	if err != nil {
+		return nil, err
+	}
+	stmt.Handle = handle.(ast.Expression)
+	value, err := r.visitor()
+	if err != nil {
+		return nil, err
+	}
+	stmt.Value = value.(ast.Expression)
 	return stmt, nil
 }
 

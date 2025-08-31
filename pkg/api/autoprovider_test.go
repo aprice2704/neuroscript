@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 7
-// Purpose: Fixes incorrect error handling for the api.Unwrap function call.
+// File version: 10
+// Purpose: Corrected the agent configuration to use native Go types instead of lang.Value wrappers, fixing the final test failure.
 // filename: pkg/api/autoprovider_test.go
-// nlines: 93
+// nlines: 99
 // risk_rating: LOW
 
 package api_test
@@ -19,40 +19,34 @@ import (
 )
 
 // TestAPI_AutoProviderRegistration verifies that a provider registered via the
-// top-level API function is correctly configured and accessible to scripts.
+// top-level API function is correctly configured and accessible to scripts via 'ask'.
 func TestAPI_AutoProviderRegistration(t *testing.T) {
-	// 1. Create an interpreter instance.
-	interp := api.New()
-
-	// 2. Register the mock provider with a specific name on the interpreter.
-	interp.RegisterProvider("mock", test.New())
-
-	// 3. Define a script that uses this specific provider.
+	// 1. Define a script that uses an AgentModel.
 	scriptContent := `
 func main(returns string) means
-    # Create an envelope for the prompt
-    set h = tool.aeiou.new()
-    call tool.aeiou.set_section(h, "ORCHESTRATION", "What is a large language model?")
-    set payload = tool.aeiou.compose(h)
-
-    # Call the model with the composed envelope
-    set result = tool.model.chat("mock", "default", payload)
+    # The 'ask' statement uses an AgentModel, which in turn uses our registered provider.
+    ask "test_agent", "What is a large language model?" into result
     return result
 endfunc
 `
-	// 4. Configure a policy to allow the necessary tools.
-	policy := &policy.ExecPolicy{
-		Context: policy.ContextNormal,
-		Allow: []string{
-			"tool.model.chat",
-			"tool.aeiou.new",
-			"tool.aeiou.set_section",
-			"tool.aeiou.compose",
-		},
+	// 2. Configure a policy that allows running in a trusted 'config' context.
+	// This is required to call RegisterAgentModel.
+	configPolicy := &policy.ExecPolicy{
+		Context: policy.ContextConfig,
 	}
-	// Apply the policy to the interpreter instance.
-	interp = api.New(interpreter.WithExecPolicy(policy))
-	interp.RegisterProvider("mock", test.New()) // Re-register after creating new interp with policy
+	interp := api.New(interpreter.WithExecPolicy(configPolicy))
+
+	// 3. Register the mock provider.
+	interp.RegisterProvider("mock", test.New())
+
+	// 4. Register an AgentModel using native Go types.
+	agentConfig := map[string]any{
+		"provider": "mock",
+		"model":    "test-model",
+	}
+	if err := interp.RegisterAgentModel("test_agent", agentConfig); err != nil {
+		t.Fatalf("Failed to register agent model: %v", err)
+	}
 
 	// 5. Parse and load the script.
 	tree, err := api.Parse([]byte(scriptContent), api.ParseSkipComments)

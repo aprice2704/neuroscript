@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.7.0
-// File version: 6
-// Purpose: Corrected mock providers to return full, valid AEIOU envelopes, allowing the interpreter's parser to succeed.
+// File version: 13
+// Purpose: Corrected agent model configuration keys to use snake_case (e.g., 'tool_loop_permitted').
 // filename: pkg/interpreter/interpreter_ask_loop_test.go
 // nlines: 155
-// risk_rating: HIGH
+// risk_rating: LOW
 
 package interpreter_test
 
@@ -21,7 +21,6 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/provider"
 )
 
-// mockLoopingProvider simulates a multi-turn agent for testing the auto-loop.
 type mockLoopingProvider struct {
 	turnCount int32
 }
@@ -39,13 +38,10 @@ func (m *mockLoopingProvider) Chat(ctx context.Context, req provider.AIRequest) 
 	}
 
 	loopSignal, _ := aeiou.Wrap(aeiou.SectionLoop, aeiou.LoopControl{Control: control, Notes: notes})
-	actionsScript := fmt.Sprintf(`
-command
-    emit "This is the result from turn %d."
-    emit "%s"
-endcommand`, turn, loopSignal)
+	actionsScript := fmt.Sprintf(
+		"command\n    emit \"This is the result from turn %d.\"\n    emit '%s'\nendcommand",
+		turn, loopSignal)
 
-	// FIX: Return a full AEIOU envelope, not just the ACTIONS script.
 	env := &aeiou.Envelope{Actions: actionsScript}
 	respText, _ := env.Compose()
 
@@ -61,13 +57,13 @@ func TestAutoLoop_Success(t *testing.T) {
 	}
 	interp.RegisterProvider("mock_looper", &mockLoopingProvider{})
 
-	modelConfig := map[string]any{
-		"provider":          "mock_looper",
-		"model":             "looper_model",
-		"toolLoopPermitted": true,
-		"maxTurns":          5,
+	modelConfig := map[string]lang.Value{
+		"provider":            lang.StringValue{Value: "mock_looper"},
+		"model":               lang.StringValue{Value: "looper_model"},
+		"tool_loop_permitted": lang.BoolValue{Value: true},
+		"max_turns":           lang.NumberValue{Value: 5},
 	}
-	_ = interp.AgentModelsAdmin().Register("test_agent", modelConfig)
+	_ = interp.RegisterAgentModel("test_agent", modelConfig)
 
 	script := `command ask "test_agent", "start" into final_result endcommand`
 
@@ -94,13 +90,13 @@ func TestAutoLoop_MaxTurnsExceeded(t *testing.T) {
 	}
 	interp.RegisterProvider("mock_looper", &mockLoopingProvider{})
 
-	modelConfig := map[string]any{
-		"provider":          "mock_looper",
-		"model":             "looper_model",
-		"toolLoopPermitted": true,
-		"maxTurns":          2,
+	modelConfig := map[string]lang.Value{
+		"provider":            lang.StringValue{Value: "mock_looper"},
+		"model":               lang.StringValue{Value: "looper_model"},
+		"tool_loop_permitted": lang.BoolValue{Value: true},
+		"max_turns":           lang.NumberValue{Value: 2},
 	}
-	_ = interp.AgentModelsAdmin().Register("test_agent", modelConfig)
+	_ = interp.RegisterAgentModel("test_agent", modelConfig)
 
 	script := `command ask "test_agent", "start" into result endcommand`
 
@@ -120,14 +116,12 @@ func TestAutoLoop_MaxTurnsExceeded(t *testing.T) {
 	}
 }
 
-// mockAbortingProvider simulates an agent that aborts the loop.
 type mockAbortingProvider struct{}
 
 func (m *mockAbortingProvider) Chat(ctx context.Context, req provider.AIRequest) (*provider.AIResponse, error) {
 	loopSignal, _ := aeiou.Wrap(aeiou.SectionLoop, aeiou.LoopControl{Control: "abort", Reason: "precondition_failed"})
-	actionsScript := fmt.Sprintf(`command emit "%s" endcommand`, loopSignal)
+	actionsScript := fmt.Sprintf("command\n  emit '%s'\nendcommand", loopSignal)
 
-	// FIX: Return a full AEIOU envelope.
 	env := &aeiou.Envelope{Actions: actionsScript}
 	respText, _ := env.Compose()
 	return &provider.AIResponse{TextContent: respText}, nil
@@ -139,13 +133,13 @@ func TestAutoLoop_Abort(t *testing.T) {
 		t.Fatalf("Failed to create test interpreter: %v", err)
 	}
 	interp.RegisterProvider("mock_aborter", &mockAbortingProvider{})
-	modelConfig := map[string]any{
-		"provider":          "mock_aborter",
-		"model":             "aborter_model",
-		"toolLoopPermitted": true,
-		"maxTurns":          5,
+	modelConfig := map[string]lang.Value{
+		"provider":            lang.StringValue{Value: "mock_aborter"},
+		"model":               lang.StringValue{Value: "aborter_model"},
+		"tool_loop_permitted": lang.BoolValue{Value: true},
+		"max_turns":           lang.NumberValue{Value: 5},
 	}
-	_ = interp.AgentModelsAdmin().Register("test_agent", modelConfig)
+	_ = interp.RegisterAgentModel("test_agent", modelConfig)
 
 	script := `command ask "test_agent", "start" endcommand`
 	p := parser.NewParserAPI(nil)

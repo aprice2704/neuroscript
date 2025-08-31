@@ -1,42 +1,101 @@
 // NeuroScript Version: 0.7.0
 // File version: 1
-// Purpose: Provides a helper for parsing Ask-Loop control signals.
-// filename: neuroscript/pkg/aeiou/loop.go
-// nlines: 40
-// risk_rating: LOW
+// Purpose: Implements the AEIOU v3 host-side loop controller.
+// filename: aeiou/loop.go
+// nlines: 90
+// risk_rating: HIGH
 
 package aeiou
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
-	"regexp"
+	"bufio"
+	"strings"
 )
 
-// loopControlRegex finds the first V2 LOOP magic marker and captures its JSON payload.
-var loopControlRegex = regexp.MustCompile(`<<<NSENVELOPE_MAGIC_[A-F0-9]+:V2:LOOP:(.*?)>>>`)
-
-// LoopControl holds the parsed result of an AEIOU LOOP signal.
-type LoopControl struct {
-	Control string `json:"control"` // "continue", "done", or "abort"
-	Notes   string `json:"notes"`
-	Reason  string `json:"reason"`
+// Decision represents the outcome of a turn after processing the agent's output.
+type Decision struct {
+	Action LoopAction
+	Notes  string
+	Reason string
 }
 
-// ParseLoopControl scans a string (like the captured output from an emit stream)
-// and extracts the first valid AEIOU LOOP control signal it finds.
-func ParseLoopControl(output string) (*LoopControl, error) {
-	matches := loopControlRegex.FindStringSubmatch(output)
-	if len(matches) < 2 {
-		return nil, errors.New("no valid LOOP control signal found in output")
+// LoopController orchestrates the host's decision-making process for each turn.
+// It uses a MagicVerifier to validate control tokens from the agent's output.
+type LoopController struct {
+	verifier *MagicVerifier
+}
+
+// NewLoopController creates a new loop controller.
+func NewLoopController(verifier *MagicVerifier) *LoopController {
+	return &LoopController{verifier: verifier}
+}
+
+// ProcessOutput scans the agent's raw output, finds all valid control tokens,
+// and selects a final decision based on the "precedence + last-wins" rule.
+func (lc *LoopController) ProcessOutput(output string, hostCtx HostContext, replayCache *ReplayCache) (*Decision, error) {
+	var validTokens []*TokenPayload
+
+	scanner := bufio.NewScanner(strings.NewReader(output))
+	for scanner.Scan() {
+		line := scanner.Text()
+		if !strings.HasPrefix(line, TokenMarkerPrefix) {
+			continue
+		}
+
+		payload, err := lc.verifier.ParseAndVerify(line, hostCtx)
+		if err != nil {
+			// Ignore invalid tokens as per spec (they are just inert text).
+			// A real host would log these failures.
+			continue
+		}
+
+		// Check for replay before considering the token valid for this turn.
+		if err := replayCache.CheckAndAdd(payload.JTI); err != nil {
+			// This is a validly signed token that has been replayed.
+			// The host should log this as a security event but treat it as inert.
+			continue
+		}
+
+		validTokens = append(validTokens, payload)
 	}
 
-	jsonPayload := matches[1]
-	var control LoopControl
-	if err := json.Unmarshal([]byte(jsonPayload), &control); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal LOOP signal payload: %w", err)
+	if len(validTokens) == 0 {
+		// No valid control token was found. The host should HALT.
+		// We return a nil decision to signal this.
+		return nil, nil
 	}
 
-	return &control, nil
+	// Apply "precedence + last-wins" rule.
+	return selectDecision(validTokens), nil
+}
+
+// selectDecision applies the precedence rules (abort > done > continue)
+// and last-wins for ties.
+func selectDecision(tokens []*TokenPayload) *Decision {
+	var bestToken *TokenPayload
+
+	for _, token := range tokens {
+		if bestToken == nil {
+			bestToken = token
+			continue
+		}
+
+		// Precedence: abort > done > continue
+		currentAction := bestToken.Payload.Action
+		newAction := token.Payload.Action
+
+		if newAction == ActionAbort {
+			bestToken = token
+		} else if newAction == ActionDone && currentAction != ActionAbort {
+			bestToken = token
+		} else if newAction == ActionContinue && currentAction != ActionAbort && currentAction != ActionDone {
+			bestToken = token
+		}
+	}
+
+	return &Decision{
+		Action: bestToken.Payload.Action,
+		Notes:  string(bestToken.Payload.Telemetry), // Simplification for now
+		Reason: string(bestToken.Payload.Request),   // Simplification for now
+	}
 }

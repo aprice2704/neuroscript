@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.3.0
+// NeuroScript Version: 0.7.0
 // File version: 1
-// Purpose: Adds unit tests for the aeiou.Wrap helper function.
-// filename: neuroscript/pkg/aeiou/magic_test.go
-// nlines: 48
+// Purpose: Defines tests for the AEIOU v3 magic control token structures.
+// filename: aeiou/magic_test.go
+// nlines: 40
 // risk_rating: LOW
 
 package aeiou
@@ -10,47 +10,28 @@ package aeiou
 import (
 	"encoding/json"
 	"testing"
+	"time"
 )
 
-func TestWrap(t *testing.T) {
-	testCases := []struct {
-		name        string
-		sectionType SectionType
-		payload     interface{}
-		want        string
-		wantErr     bool
-	}{
-		{
-			name:        "Simple no payload",
-			sectionType: SectionStart,
-			payload:     nil,
-			want:        "<<<NSENVELOPE_MAGIC_9E3B6F2D:V2:START>>>",
-			wantErr:     false,
-		},
-		{
-			name:        "With JSON payload",
-			sectionType: SectionHeader,
-			payload:     json.RawMessage(`{"v":2}`),
-			want:        `<<<NSENVELOPE_MAGIC_9E3B6F2D:V2:HEADER:{"v":2}>>>`,
-			wantErr:     false,
-		},
-		{
-			name:        "With unmarshallable payload",
-			sectionType: SectionHeader,
-			payload:     make(chan int), // Cannot be marshaled
-			wantErr:     true,
+func TestTokenPayload_JSONMarshalling(t *testing.T) {
+	payload := TokenPayload{
+		Version:   3,
+		Kind:      KindLoop,
+		JTI:       "test-jti",
+		SessionID: "test-sid",
+		TurnIndex: 1,
+		TurnNonce: "test-nonce",
+		IssuedAt:  time.Now().Unix(),
+		TTL:       120,
+		KeyID:     "ed25519-main-2025-08",
+		Payload: ControlPayload{
+			Action:  ActionContinue,
+			Request: json.RawMessage(`{"min_tokens":1024}`),
 		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			got, err := Wrap(tc.sectionType, tc.payload)
-			if (err != nil) != tc.wantErr {
-				t.Fatalf("Wrap() error = %v, wantErr %v", err, tc.wantErr)
-			}
-			if !tc.wantErr && got != tc.want {
-				t.Errorf("Wrap() = %v, want %v", got, tc.want)
-			}
-		})
+	_, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("Failed to marshal TokenPayload to JSON: %v", err)
 	}
 }

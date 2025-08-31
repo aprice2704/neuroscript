@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.7.0
-// File version: 48
-// Purpose: Corrected the clone method to properly propagate custom emit and whisper functions, fixing multiple test failures.
+// File version: 49
+// Purpose: Exported the SetSandboxDir method to make it accessible to the public API facade.
 // filename: pkg/interpreter/interpreter.go
 // nlines: 190
-// risk_rating: HIGH
+// risk_rating: LOW
 
 package interpreter
 
@@ -216,7 +216,8 @@ func (i *Interpreter) Load(program *ast.Program) error {
 	return nil
 }
 
-func (i *Interpreter) setSandboxDir(path string) {
+// SetSandboxDir sets the secure root directory for file operations.
+func (i *Interpreter) SetSandboxDir(path string) {
 	i.state.sandboxDir = path
 }
 

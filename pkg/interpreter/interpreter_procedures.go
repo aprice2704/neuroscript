@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.0
-// File version: 49.0.0
-// Purpose: Corrected procedure execution to use the new centralized clone method, ensuring sandboxed interpreters inherit all required state like the tool registry.
+// File version: 50.0.0
+// Purpose: Removed debug prints to clean up test logs.
 // filename: pkg/interpreter/interpreter_procedures.go
 // nlines: 120
 // risk_rating: HIGH
@@ -30,7 +30,6 @@ func (i *Interpreter) RunProcedure(procName string, args ...lang.Value) (lang.Va
 		)
 	}
 
-	// FIX: Use the new centralized clone method to ensure all state is copied correctly.
 	procInterpreter := i.clone()
 	procInterpreter.state.currentProcName = procName
 	procInterpreter.state.stackFrames = append(i.state.stackFrames, procName)
@@ -48,10 +47,6 @@ func (i *Interpreter) RunProcedure(procName string, args ...lang.Value) (lang.Va
 	}
 
 	result, _, _, err := procInterpreter.executeSteps(proc.Steps, false, nil)
-
-	// =========================================================================
-	fmt.Printf(">>>> [DEBUG] RunProcedure ('%s'): Value coming OUT of executeSteps is: %#v\n", procName, result)
-	// =========================================================================
 
 	if err == nil {
 		i.lastCallResult = result

@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.7.0
-// File version: 24
-// Purpose: Re-exported types for the Ask-Loop control mechanism.
+// File version: 26
+// Purpose: Re-exported policy context constants (e.g., ContextConfig).
 // filename: pkg/api/reexport.go
-// nlines: 145
-// risk_rating: MEDIUM
+// nlines: 161
+// risk_rating: LOW
 
 package api
 
@@ -36,6 +36,7 @@ type (
 	Value              any
 	Option             = interpreter.InterpreterOption
 	ExecPolicy         = policy.ExecPolicy
+	ExecContext        = policy.ExecContext // Re-export the type
 	Capability         = capability.Capability
 	AIProvider         = provider.AIProvider
 	ToolImplementation = tool.ToolImplementation
@@ -56,7 +57,7 @@ type (
 	}
 )
 
-// ... (consts unchanged) ...
+// ... (resource/verb consts unchanged) ...
 const (
 	ResFS     = capability.ResFS
 	ResNet    = capability.ResNet
@@ -73,6 +74,14 @@ const (
 	VerbUse   = capability.VerbUse
 	VerbExec  = capability.VerbExec
 )
+
+// Re-exported constants for policy contexts
+const (
+	ContextConfig ExecContext = policy.ContextConfig
+	ContextNormal ExecContext = policy.ContextNormal
+	ContextTest   ExecContext = policy.ContextTest
+)
+
 const (
 	ArgTypeAny         = tool.ArgTypeAny
 	ArgTypeString      = tool.ArgTypeString
@@ -133,4 +142,14 @@ func MakeToolFullName(group, name string) types.FullName {
 // WithExecPolicy applies a runtime execution policy to the interpreter.
 func WithExecPolicy(policy *ExecPolicy) Option {
 	return interpreter.WithExecPolicy(policy)
+}
+
+// WithInterpreter creates an option to reuse the internal state of an existing
+// interpreter. This is useful for the host-managed ask-loop pattern.
+func WithInterpreter(existing *Interpreter) Option {
+	return func(i *interpreter.Interpreter) {
+		if existing != nil && existing.internal != nil {
+			*i = *existing.internal
+		}
+	}
 }

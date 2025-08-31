@@ -1,7 +1,7 @@
-// filename: pkg/parser/ast_builder_test_helpers.go
 // NeuroScript Version: 0.5.2
-// File version: 3
-// Purpose: Added the parseExpression helper to the consolidated test helpers file.
+// File version: 4
+// Purpose: Corrected the parseExpression helper to wrap expressions in a valid 'set' statement, fixing the string literal parsing tests.
+// filename: pkg/parser/ast_builder_test_helpers.go
 // nlines: 120
 // risk_rating: LOW
 
@@ -31,7 +31,7 @@ func parseStringToProcedureBodyNodes(t *testing.T, scriptContent string, procNam
 
 	syntaxTree, err := parserAPI.Parse(scriptContent)
 	if err != nil {
-		t.Fatalf("parseStringToProcedureBodyNodes: script parsing failed for procedure '%s': %v", procName, err)
+		t.Fatalf("parseStringToProcedureBodyNodes: script parsing failed for procedure '%s': %v\n\nSCRIPT:\n%s", procName, err, scriptContent)
 	}
 	if syntaxTree == nil {
 		t.Fatalf("parseStringToProcedureBodyNodes: parserAPI.Parse returned a nil tree without an error for procedure '%s'", procName)
@@ -72,6 +72,8 @@ func parseStringToProcedureBodyNodes(t *testing.T, scriptContent string, procNam
 // parseExpression is a helper to parse an expression string and return the top-level AST node
 func parseExpression(t *testing.T, exprStr string) ast.Expression {
 	t.Helper()
+	// FIX: An expression is not a valid statement on its own. It must be part of
+	// another statement, like 'set'. We wrap it here to make the parse valid.
 	script := fmt.Sprintf("func t() means\n set x = %s\nendfunc", exprStr)
 	bodyNodes := parseStringToProcedureBodyNodes(t, script, "t")
 	if len(bodyNodes) < 1 {

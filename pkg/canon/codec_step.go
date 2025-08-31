@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.3
-// File version: 6
-// Purpose: Implements comprehensive encoders/decoders for Step and LValue AST nodes, fixing ask/promptuser data loss.
+// File version: 7
+// Purpose: Implements comprehensive encoders/decoders for Step and LValue AST nodes, now with whisper support.
 // filename: pkg/canon/codec_step.go
-// nlines: 200
+// nlines: 200+
 // risk_rating: HIGH
 
 package canon
@@ -103,6 +103,8 @@ func encodeStep(v *canonVisitor, n ast.Node) error {
 			}
 		}
 		return encodePromptUserStmt(v, stmt)
+	case "whisper":
+		return encodeWhisperStmt(v, node.WhisperStmt)
 	}
 	return nil
 }
@@ -236,6 +238,11 @@ func decodeStep(r *canonReader) (ast.Node, error) {
 		}
 	case "promptuser":
 		step.PromptUserStmt, err = decodePromptUserStmt(r)
+		if err != nil {
+			return nil, err
+		}
+	case "whisper":
+		step.WhisperStmt, err = decodeWhisperStmt(r)
 		if err != nil {
 			return nil, err
 		}

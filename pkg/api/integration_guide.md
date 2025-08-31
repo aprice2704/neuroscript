@@ -215,6 +215,125 @@ result, err := api.ExecInNewInterpreter(context.Background(), src, api.WithStdou
 
 ---
 
+## 5b. Agentic Features: `ask`, `whisper`, and the Ask-Loop
+
+NeuroScript's most powerful features are for building AI agents. This involves a partnership between NeuroScript code (the agent's "mind") and the host Go application (the "body" that provides tools and controls the execution flow).
+
+### The `ask` Statement
+
+The `ask` statement is the primary way a script communicates with an AI model. It takes an `AgentModel` name and a prompt, and returns the model's response. An `AgentModel` is a configuration, registered via a trusted script using `tool.agentmodel.Register`, that specifies the AI provider, model ID, and permissions (like `tool_loop_permitted`).
+
+```neuroscript
+# Simple, single-turn query
+set user_summary = ask "summarizer_agent", "Summarize this text: ..."
+```
+
+### The `whisper` Command
+
+The `whisper` command is how the host application provides context to the script. It's a key-value store that is private to the script's execution and is not sent to the AI model unless the script explicitly includes it in a prompt. This is the primary mechanism for passing state between turns in an Ask-Loop.
+
+### The Host-Managed Ask-Loop
+
+When an agent with `tool_loop_permitted: true` wants to perform a multi-turn task, it doesn't loop internally. Instead, it **emits a control signal** to the host. The host application is responsible for running the actual loop, capturing the signal, and deciding whether to execute the next turn. This gives the host full control over agent execution, resource usage, and security.
+
+#### Host Responsibilities
+
+1.  **Manage the Loop**: Use a standard Go `for` loop to manage turns and enforce limits like `MaxTurns`.
+2.  **Capture `emit` Output**: Use the `interp.SetEmitFunc` method to redirect all output from `emit` statements into a buffer.
+3.  **Provide Context**: Pass information (like the previous turn's output) back to the script using the `whisper` command.
+4.  **Parse Control Signals**: After each turn, use the `api.ParseLoopControl` helper to scan the captured output for the agent's `LOOP` signal (`continue`, `done`, or `abort`).
+
+#### Ask-Loop Example
+
+This example shows how a Go application can manage a simple, multi-turn interaction with an agent.
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"strings"
+
+	"github.com/aprice2704/neuroscript/pkg/api"
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
+)
+
+func main() {
+	// 1. Create an interpreter and register a looping agent.
+	// In a real app, this would be done via a trusted setup script.
+	interp := api.New()
+	// ... setup code to register a mock provider ...
+	agentConfig := map[string]api.Value{
+		"provider":            "mock_provider",
+		"model":               "looper",
+		"tool_loop_permitted": true,
+		"max_turns":           5,
+	}
+	// This is a simplified registration for the example.
+	// A real app would use a trusted script with tool.agentmodel.Register.
+	_ = interp.RegisterAgentModel("looper_agent", agentConfig)
+
+	// 2. The host application runs the loop.
+	lastOutput := "Initial task: plan a party."
+	const MAX_TURNS = 5
+
+	for turn := 1; turn <= MAX_TURNS; turn++ {
+		fmt.Printf("--- Turn %d ---\n", turn)
+		var outputCollector strings.Builder
+		interp.SetEmitFunc(func(v api.Value) {
+			val, _ := api.Unwrap(v)
+			fmt.Fprintln(&outputCollector, val)
+		})
+
+		// 3. Construct and execute the script for this turn.
+		// The `lastOutput` from the previous turn is whispered as context.
+		script := fmt.Sprintf(`
+command
+    whisper self, "last_turn_output", %q
+    ask "looper_agent", "Continue the plan based on the last output." into result
+    emit result
+endcommand`, lastOutput)
+
+		// Re-use the same interpreter instance for each turn.
+		if _, err := api.ExecInNewInterpreter(context.Background(), script, WithInterpreter(interp)); err != nil {
+			fmt.Printf("Turn failed: %v\n", err); return
+		}
+
+		lastOutput = outputCollector.String()
+		fmt.Printf("Agent Output:\n%s\n", lastOutput)
+
+		// 4. Parse the control signal from the agent's output.
+		loopControl, err := api.ParseLoopControl(lastOutput)
+		if err != nil {
+			fmt.Println("No loop signal found. Halting."); break
+		}
+
+		// 5. Act on the signal.
+		if loopControl.Control == "done" {
+			fmt.Println("--- Loop Finished: Agent signaled done. ---"); return
+		}
+		if loopControl.Control == "abort" {
+			fmt.Printf("--- Loop Aborted by Agent: %s ---\n", loopControl.Reason); return
+		}
+	}
+	fmt.Println("--- Loop Terminated: Max turns exceeded. ---")
+}
+
+// Helper to reuse an interpreter instance with the one-shot executor.
+func WithInterpreter(existing *api.Interpreter) api.Option {
+    return func(i *interpreter.Interpreter) { *i = *existing.internal }
+}
+```
+
+
+
+
+
+
+
+
+
 ## 6. Custom Tools
 
 You can extend NeuroScript with custom Go functions by registering them as "tools".
