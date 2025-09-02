@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 9
-// Purpose: Corrected the agent configuration to use native Go types, fixing the final test failure.
+// File version: 10
+// Purpose: Corrected the agent configuration to use native Go types and a valid JSON structure for the UserData prompt, fixing the final test failure.
 // filename: pkg/api/provider_test.go
-// nlines: 85
+// nlines: 86
 // risk_rating: LOW
 
 package api_test
@@ -54,6 +54,8 @@ endfunc
 	}
 
 	// Run the procedure.
+	// The 'ask' statement will internally create a V3 envelope with a USERDATA
+	// section like: {"subject":"ask","fields":{"prompt":"ping"}}
 	result, err := api.RunProcedure(context.Background(), interp, "main")
 	if err != nil {
 		t.Fatalf("api.RunProcedure() failed: %v", err)

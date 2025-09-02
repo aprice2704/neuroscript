@@ -1,0 +1,3264 @@
+Analyzing dependencies for module: github.com/aprice2704/neuroscript
+(Paths relative to: /home/aprice/dev/neuroscript/pkg)
+
+account
+├─ interfaces
+│  └─ types
+├─ lang
+│  ├─ interfaces
+│  │  └─ types
+│  └─ types
+└─ policy
+   ├─ lang
+   │  ├─ interfaces
+   │  │  └─ types
+   │  └─ types
+   ├─ policy/capability
+   └─ tool
+      ├─ interfaces
+      │  └─ types
+      ├─ lang
+      │  ├─ interfaces
+      │  │  └─ types
+      │  └─ types
+      ├─ policy/capability
+      ├─ types
+      └─ utils
+         ├─ interfaces
+         │  └─ types
+         └─ lang
+            ├─ interfaces
+            │  └─ types
+            └─ types
+
+analysis
+├─ ast
+│  ├─ interfaces
+│  │  └─ types
+│  ├─ lang
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  └─ types
+│  └─ types
+├─ interfaces
+│  └─ types
+└─ types
+
+api/secret
+
+api/toolsmeta
+└─ tool
+   ├─ interfaces
+   │  └─ types
+   ├─ lang
+   │  ├─ interfaces
+   │  │  └─ types
+   │  └─ types
+   ├─ policy/capability
+   ├─ types
+   └─ utils
+      ├─ interfaces
+      │  └─ types
+      └─ lang
+         ├─ interfaces
+         │  └─ types
+         └─ types
+
+core
+
+interpreter/internal/prompts
+
+livetest
+
+neurogo
+├─ adapters
+│  └─ interfaces
+│     └─ types
+├─ interfaces
+│  └─ types
+├─ interpreter
+│  ├─ aeiou
+│  ├─ agentmodel
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  └─ tool
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     ├─ lang
+│  │  │     │  ├─ interfaces
+│  │  │     │  │  └─ types
+│  │  │     │  └─ types
+│  │  │     ├─ policy/capability
+│  │  │     ├─ types
+│  │  │     └─ utils
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ lang
+│  │  │           ├─ interfaces
+│  │  │           │  └─ types
+│  │  │           └─ types
+│  │  ├─ policy/capability
+│  │  ├─ tool
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  └─ types
+│  ├─ ast
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ interfaces
+│  │  └─ types
+│  ├─ lang
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ llmconn
+│  │  ├─ aeiou
+│  │  ├─ capsule
+│  │  │  └─ metadata
+│  │  ├─ provider
+│  │  └─ types
+│  ├─ logging
+│  │  └─ interfaces
+│  │     └─ types
+│  ├─ parser
+│  │  ├─ antlr/generated
+│  │  ├─ ast
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ logging
+│  │  │  └─ interfaces
+│  │  │     └─ types
+│  │  ├─ nsio
+│  │  │  └─ lang
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ types
+│  │  ├─ tool
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  └─ types
+│  ├─ policy
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy/capability
+│  │  └─ tool
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ types
+│  │     └─ utils
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ lang
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ types
+│  ├─ policy/capability
+│  ├─ provider
+│  ├─ tool
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy/capability
+│  │  ├─ types
+│  │  └─ utils
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     └─ lang
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ types
+│  ├─ toolbundles/all
+│  │  ├─ tool/agentmodel
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ tool
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ policy/capability
+│  │  │  │  ├─ types
+│  │  │  │  └─ utils
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ lang
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ types
+│  │  │  └─ types
+│  │  ├─ tool/fs
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ security
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ tool
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  ├─ lang
+│  │  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  │  └─ types
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  ├─ policy/capability
+│  │  │  │  │  ├─ types
+│  │  │  │  │  └─ utils
+│  │  │  │  │     ├─ interfaces
+│  │  │  │  │     │  └─ types
+│  │  │  │  │     └─ lang
+│  │  │  │  │        ├─ interfaces
+│  │  │  │  │        │  └─ types
+│  │  │  │  │        └─ types
+│  │  │  │  ├─ types
+│  │  │  │  └─ utils
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ lang
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ types
+│  │  │  └─ tool
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     ├─ lang
+│  │  │     │  ├─ interfaces
+│  │  │     │  │  └─ types
+│  │  │     │  └─ types
+│  │  │     ├─ policy/capability
+│  │  │     ├─ types
+│  │  │     └─ utils
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ lang
+│  │  │           ├─ interfaces
+│  │  │           │  └─ types
+│  │  │           └─ types
+│  │  └─ tool/os
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     └─ tool
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        ├─ lang
+│  │        │  ├─ interfaces
+│  │        │  │  └─ types
+│  │        │  └─ types
+│  │        ├─ policy/capability
+│  │        ├─ types
+│  │        └─ utils
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ lang
+│  │              ├─ interfaces
+│  │              │  └─ types
+│  │              └─ types
+│  └─ types
+├─ lang
+│  ├─ interfaces
+│  │  └─ types
+│  └─ types
+├─ llm
+│  ├─ interfaces
+│  │  └─ types
+│  ├─ lang
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ parser
+│  │  ├─ antlr/generated
+│  │  ├─ ast
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ logging
+│  │  │  └─ interfaces
+│  │  │     └─ types
+│  │  ├─ nsio
+│  │  │  └─ lang
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ types
+│  │  ├─ tool
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  └─ types
+│  ├─ tool
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy/capability
+│  │  ├─ types
+│  │  └─ utils
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     └─ lang
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ types
+│  └─ types
+├─ logging
+│  └─ interfaces
+│     └─ types
+├─ parser
+│  ├─ antlr/generated
+│  ├─ ast
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ interfaces
+│  │  └─ types
+│  ├─ lang
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ logging
+│  │  └─ interfaces
+│  │     └─ types
+│  ├─ nsio
+│  │  └─ lang
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     └─ types
+│  ├─ tool
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy/capability
+│  │  ├─ types
+│  │  └─ utils
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     └─ lang
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ types
+│  └─ types
+├─ security
+│  ├─ interfaces
+│  │  └─ types
+│  ├─ lang
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ tool
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy/capability
+│  │  ├─ types
+│  │  └─ utils
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     └─ lang
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ types
+│  ├─ types
+│  └─ utils
+│     ├─ interfaces
+│     │  └─ types
+│     └─ lang
+│        ├─ interfaces
+│        │  └─ types
+│        └─ types
+├─ tool
+│  ├─ interfaces
+│  │  └─ types
+│  ├─ lang
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ policy/capability
+│  ├─ types
+│  └─ utils
+│     ├─ interfaces
+│     │  └─ types
+│     └─ lang
+│        ├─ interfaces
+│        │  └─ types
+│        └─ types
+├─ toolbundles/all
+│  ├─ tool/agentmodel
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy/capability
+│  │  ├─ tool
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  └─ types
+│  ├─ tool/fs
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy/capability
+│  │  ├─ security
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ tool
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ policy/capability
+│  │  │  │  ├─ types
+│  │  │  │  └─ utils
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ lang
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ types
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  └─ tool
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ types
+│  │     └─ utils
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ lang
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ types
+│  └─ tool/os
+│     ├─ lang
+│     │  ├─ interfaces
+│     │  │  └─ types
+│     │  └─ types
+│     ├─ policy/capability
+│     └─ tool
+│        ├─ interfaces
+│        │  └─ types
+│        ├─ lang
+│        │  ├─ interfaces
+│        │  │  └─ types
+│        │  └─ types
+│        ├─ policy/capability
+│        ├─ types
+│        └─ utils
+│           ├─ interfaces
+│           │  └─ types
+│           └─ lang
+│              ├─ interfaces
+│              │  └─ types
+│              └─ types
+└─ types
+
+nsfmt
+├─ ast
+│  ├─ interfaces
+│  │  └─ types
+│  ├─ lang
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  └─ types
+│  └─ types
+└─ types
+
+nslsp
+├─ antlr/generated
+├─ api
+│  ├─ aeiou
+│  ├─ api/analysis
+│  │  ├─ ast
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ ast
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ canon
+│  │  ├─ ast
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ capsule
+│  │  └─ metadata
+│  ├─ interfaces
+│  │  └─ types
+│  ├─ interpreter
+│  │  ├─ aeiou
+│  │  ├─ agentmodel
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ policy/capability
+│  │  │  │  └─ tool
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     ├─ lang
+│  │  │  │     │  ├─ interfaces
+│  │  │  │     │  │  └─ types
+│  │  │  │     │  └─ types
+│  │  │  │     ├─ policy/capability
+│  │  │  │     ├─ types
+│  │  │  │     └─ utils
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ lang
+│  │  │  │           ├─ interfaces
+│  │  │  │           │  └─ types
+│  │  │  │           └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ tool
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ policy/capability
+│  │  │  │  ├─ types
+│  │  │  │  └─ utils
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ lang
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ types
+│  │  │  └─ types
+│  │  ├─ ast
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ llmconn
+│  │  │  ├─ aeiou
+│  │  │  ├─ capsule
+│  │  │  │  └─ metadata
+│  │  │  ├─ provider
+│  │  │  └─ types
+│  │  ├─ logging
+│  │  │  └─ interfaces
+│  │  │     └─ types
+│  │  ├─ parser
+│  │  │  ├─ antlr/generated
+│  │  │  ├─ ast
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ logging
+│  │  │  │  └─ interfaces
+│  │  │  │     └─ types
+│  │  │  ├─ nsio
+│  │  │  │  └─ lang
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ types
+│  │  │  ├─ tool
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ policy/capability
+│  │  │  │  ├─ types
+│  │  │  │  └─ utils
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ lang
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ types
+│  │  │  └─ types
+│  │  ├─ policy
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  └─ tool
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     ├─ lang
+│  │  │     │  ├─ interfaces
+│  │  │     │  │  └─ types
+│  │  │     │  └─ types
+│  │  │     ├─ policy/capability
+│  │  │     ├─ types
+│  │  │     └─ utils
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ lang
+│  │  │           ├─ interfaces
+│  │  │           │  └─ types
+│  │  │           └─ types
+│  │  ├─ policy/capability
+│  │  ├─ provider
+│  │  ├─ tool
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  ├─ toolbundles/all
+│  │  │  ├─ tool/agentmodel
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ policy/capability
+│  │  │  │  ├─ tool
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  ├─ lang
+│  │  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  │  └─ types
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  ├─ policy/capability
+│  │  │  │  │  ├─ types
+│  │  │  │  │  └─ utils
+│  │  │  │  │     ├─ interfaces
+│  │  │  │  │     │  └─ types
+│  │  │  │  │     └─ lang
+│  │  │  │  │        ├─ interfaces
+│  │  │  │  │        │  └─ types
+│  │  │  │  │        └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ tool/fs
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ policy/capability
+│  │  │  │  ├─ security
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  ├─ lang
+│  │  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  │  └─ types
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  ├─ tool
+│  │  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  │  └─ types
+│  │  │  │  │  │  ├─ lang
+│  │  │  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  │  │  └─ types
+│  │  │  │  │  │  │  └─ types
+│  │  │  │  │  │  ├─ policy/capability
+│  │  │  │  │  │  ├─ types
+│  │  │  │  │  │  └─ utils
+│  │  │  │  │  │     ├─ interfaces
+│  │  │  │  │  │     │  └─ types
+│  │  │  │  │  │     └─ lang
+│  │  │  │  │  │        ├─ interfaces
+│  │  │  │  │  │        │  └─ types
+│  │  │  │  │  │        └─ types
+│  │  │  │  │  ├─ types
+│  │  │  │  │  └─ utils
+│  │  │  │  │     ├─ interfaces
+│  │  │  │  │     │  └─ types
+│  │  │  │  │     └─ lang
+│  │  │  │  │        ├─ interfaces
+│  │  │  │  │        │  └─ types
+│  │  │  │  │        └─ types
+│  │  │  │  └─ tool
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     ├─ lang
+│  │  │  │     │  ├─ interfaces
+│  │  │  │     │  │  └─ types
+│  │  │  │     │  └─ types
+│  │  │  │     ├─ policy/capability
+│  │  │  │     ├─ types
+│  │  │  │     └─ utils
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ lang
+│  │  │  │           ├─ interfaces
+│  │  │  │           │  └─ types
+│  │  │  │           └─ types
+│  │  │  └─ tool/os
+│  │  │     ├─ lang
+│  │  │     │  ├─ interfaces
+│  │  │     │  │  └─ types
+│  │  │     │  └─ types
+│  │  │     ├─ policy/capability
+│  │  │     └─ tool
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        ├─ lang
+│  │  │        │  ├─ interfaces
+│  │  │        │  │  └─ types
+│  │  │        │  └─ types
+│  │  │        ├─ policy/capability
+│  │  │        ├─ types
+│  │  │        └─ utils
+│  │  │           ├─ interfaces
+│  │  │           │  └─ types
+│  │  │           └─ lang
+│  │  │              ├─ interfaces
+│  │  │              │  └─ types
+│  │  │              └─ types
+│  │  └─ types
+│  ├─ lang
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ logging
+│  │  └─ interfaces
+│  │     └─ types
+│  ├─ parser
+│  │  ├─ antlr/generated
+│  │  ├─ ast
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ logging
+│  │  │  └─ interfaces
+│  │  │     └─ types
+│  │  ├─ nsio
+│  │  │  └─ lang
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ types
+│  │  ├─ tool
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  └─ types
+│  ├─ policy
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy/capability
+│  │  └─ tool
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ types
+│  │     └─ utils
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ lang
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ types
+│  ├─ policy/capability
+│  ├─ provider
+│  ├─ provider/google
+│  │  ├─ aeiou
+│  │  └─ provider
+│  ├─ tool
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy/capability
+│  │  ├─ types
+│  │  └─ utils
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     └─ lang
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ types
+│  ├─ tool/fs
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy/capability
+│  │  ├─ security
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ tool
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ policy/capability
+│  │  │  │  ├─ types
+│  │  │  │  └─ utils
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ lang
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ types
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  └─ tool
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ types
+│  │     └─ utils
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ lang
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ types
+│  ├─ tool/gotools
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ security
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ tool
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ policy/capability
+│  │  │  │  ├─ types
+│  │  │  │  └─ utils
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ lang
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ types
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  ├─ tool
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  └─ tool/shell
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ security
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  ├─ lang
+│  │     │  │  ├─ interfaces
+│  │     │  │  │  └─ types
+│  │     │  │  └─ types
+│  │     │  ├─ tool
+│  │     │  │  ├─ interfaces
+│  │     │  │  │  └─ types
+│  │     │  │  ├─ lang
+│  │     │  │  │  ├─ interfaces
+│  │     │  │  │  │  └─ types
+│  │     │  │  │  └─ types
+│  │     │  │  ├─ policy/capability
+│  │     │  │  ├─ types
+│  │     │  │  └─ utils
+│  │     │  │     ├─ interfaces
+│  │     │  │     │  └─ types
+│  │     │  │     └─ lang
+│  │     │  │        ├─ interfaces
+│  │     │  │        │  └─ types
+│  │     │  │        └─ types
+│  │     │  ├─ types
+│  │     │  └─ utils
+│  │     │     ├─ interfaces
+│  │     │     │  └─ types
+│  │     │     └─ lang
+│  │     │        ├─ interfaces
+│  │     │        │  └─ types
+│  │     │        └─ types
+│  │     └─ tool
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        ├─ lang
+│  │        │  ├─ interfaces
+│  │        │  │  └─ types
+│  │        │  └─ types
+│  │        ├─ policy/capability
+│  │        ├─ types
+│  │        └─ utils
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ lang
+│  │              ├─ interfaces
+│  │              │  └─ types
+│  │              └─ types
+│  ├─ tool/io
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  └─ tool
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ types
+│  │     └─ utils
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ lang
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ types
+│  ├─ tool/list
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  └─ tool
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ types
+│  │     └─ utils
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ lang
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ types
+│  ├─ tool/maths
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  └─ tool
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ types
+│  │     └─ utils
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ lang
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ types
+│  ├─ tool/meta
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ tool
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  └─ types
+│  ├─ tool/script
+│  │  ├─ ast
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ parser
+│  │  │  ├─ antlr/generated
+│  │  │  ├─ ast
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ logging
+│  │  │  │  └─ interfaces
+│  │  │  │     └─ types
+│  │  │  ├─ nsio
+│  │  │  │  └─ lang
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ types
+│  │  │  ├─ tool
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ policy/capability
+│  │  │  │  ├─ types
+│  │  │  │  └─ utils
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ lang
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ types
+│  │  │  └─ types
+│  │  └─ tool
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ types
+│  │     └─ utils
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ lang
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ types
+│  ├─ tool/shell
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy/capability
+│  │  ├─ security
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ tool
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ policy/capability
+│  │  │  │  ├─ types
+│  │  │  │  └─ utils
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ lang
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ types
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  └─ tool
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ types
+│  │     └─ utils
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ lang
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ types
+│  ├─ tool/strtools
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  └─ tool
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ types
+│  │     └─ utils
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ lang
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ types
+│  ├─ tool/syntax
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ logging
+│  │  │  └─ interfaces
+│  │  │     └─ types
+│  │  ├─ parser
+│  │  │  ├─ antlr/generated
+│  │  │  ├─ ast
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ logging
+│  │  │  │  └─ interfaces
+│  │  │  │     └─ types
+│  │  │  ├─ nsio
+│  │  │  │  └─ lang
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ types
+│  │  │  ├─ tool
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ policy/capability
+│  │  │  │  ├─ types
+│  │  │  │  └─ utils
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ lang
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ types
+│  │  │  └─ types
+│  │  └─ tool
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ types
+│  │     └─ utils
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ lang
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ types
+│  ├─ tool/time
+│  │  └─ tool
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ types
+│  │     └─ utils
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ lang
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ types
+│  ├─ tool/tree
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ tool
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  └─ utils
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     └─ lang
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ types
+│  └─ types
+├─ parser
+│  ├─ antlr/generated
+│  ├─ ast
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ interfaces
+│  │  └─ types
+│  ├─ lang
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ logging
+│  │  └─ interfaces
+│  │     └─ types
+│  ├─ nsio
+│  │  └─ lang
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     └─ types
+│  ├─ tool
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy/capability
+│  │  ├─ types
+│  │  └─ utils
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     └─ lang
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ types
+│  └─ types
+├─ tool
+│  ├─ interfaces
+│  │  └─ types
+│  ├─ lang
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ policy/capability
+│  ├─ types
+│  └─ utils
+│     ├─ interfaces
+│     │  └─ types
+│     └─ lang
+│        ├─ interfaces
+│        │  └─ types
+│        └─ types
+└─ types
+
+provider/test
+├─ aeiou
+└─ provider
+
+secret
+└─ ast
+   ├─ interfaces
+   │  └─ types
+   ├─ lang
+   │  ├─ interfaces
+   │  │  └─ types
+   │  └─ types
+   └─ types
+
+sign
+├─ canon
+│  ├─ ast
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ lang
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  └─ types
+│  └─ types
+└─ interfaces
+   └─ types
+
+testing/testhelpers
+├─ interpreter
+│  ├─ aeiou
+│  ├─ agentmodel
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  └─ tool
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     ├─ lang
+│  │  │     │  ├─ interfaces
+│  │  │     │  │  └─ types
+│  │  │     │  └─ types
+│  │  │     ├─ policy/capability
+│  │  │     ├─ types
+│  │  │     └─ utils
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ lang
+│  │  │           ├─ interfaces
+│  │  │           │  └─ types
+│  │  │           └─ types
+│  │  ├─ policy/capability
+│  │  ├─ tool
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  └─ types
+│  ├─ ast
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ interfaces
+│  │  └─ types
+│  ├─ lang
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ llmconn
+│  │  ├─ aeiou
+│  │  ├─ capsule
+│  │  │  └─ metadata
+│  │  ├─ provider
+│  │  └─ types
+│  ├─ logging
+│  │  └─ interfaces
+│  │     └─ types
+│  ├─ parser
+│  │  ├─ antlr/generated
+│  │  ├─ ast
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ logging
+│  │  │  └─ interfaces
+│  │  │     └─ types
+│  │  ├─ nsio
+│  │  │  └─ lang
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ types
+│  │  ├─ tool
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  └─ types
+│  ├─ policy
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy/capability
+│  │  └─ tool
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ types
+│  │     └─ utils
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ lang
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ types
+│  ├─ policy/capability
+│  ├─ provider
+│  ├─ tool
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy/capability
+│  │  ├─ types
+│  │  └─ utils
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     └─ lang
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ types
+│  ├─ toolbundles/all
+│  │  ├─ tool/agentmodel
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ tool
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ policy/capability
+│  │  │  │  ├─ types
+│  │  │  │  └─ utils
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ lang
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ types
+│  │  │  └─ types
+│  │  ├─ tool/fs
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ security
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ tool
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  ├─ lang
+│  │  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  │  └─ types
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  ├─ policy/capability
+│  │  │  │  │  ├─ types
+│  │  │  │  │  └─ utils
+│  │  │  │  │     ├─ interfaces
+│  │  │  │  │     │  └─ types
+│  │  │  │  │     └─ lang
+│  │  │  │  │        ├─ interfaces
+│  │  │  │  │        │  └─ types
+│  │  │  │  │        └─ types
+│  │  │  │  ├─ types
+│  │  │  │  └─ utils
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ lang
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ types
+│  │  │  └─ tool
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     ├─ lang
+│  │  │     │  ├─ interfaces
+│  │  │     │  │  └─ types
+│  │  │     │  └─ types
+│  │  │     ├─ policy/capability
+│  │  │     ├─ types
+│  │  │     └─ utils
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ lang
+│  │  │           ├─ interfaces
+│  │  │           │  └─ types
+│  │  │           └─ types
+│  │  └─ tool/os
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     └─ tool
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        ├─ lang
+│  │        │  ├─ interfaces
+│  │        │  │  └─ types
+│  │        │  └─ types
+│  │        ├─ policy/capability
+│  │        ├─ types
+│  │        └─ utils
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ lang
+│  │              ├─ interfaces
+│  │              │  └─ types
+│  │              └─ types
+│  └─ types
+└─ tool
+   ├─ interfaces
+   │  └─ types
+   ├─ lang
+   │  ├─ interfaces
+   │  │  └─ types
+   │  └─ types
+   ├─ policy/capability
+   ├─ types
+   └─ utils
+      ├─ interfaces
+      │  └─ types
+      └─ lang
+         ├─ interfaces
+         │  └─ types
+         └─ types
+
+testutil
+├─ api
+│  ├─ aeiou
+│  ├─ api/analysis
+│  │  ├─ ast
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ ast
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ canon
+│  │  ├─ ast
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ capsule
+│  │  └─ metadata
+│  ├─ interfaces
+│  │  └─ types
+│  ├─ interpreter
+│  │  ├─ aeiou
+│  │  ├─ agentmodel
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ policy/capability
+│  │  │  │  └─ tool
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     ├─ lang
+│  │  │  │     │  ├─ interfaces
+│  │  │  │     │  │  └─ types
+│  │  │  │     │  └─ types
+│  │  │  │     ├─ policy/capability
+│  │  │  │     ├─ types
+│  │  │  │     └─ utils
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ lang
+│  │  │  │           ├─ interfaces
+│  │  │  │           │  └─ types
+│  │  │  │           └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ tool
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ policy/capability
+│  │  │  │  ├─ types
+│  │  │  │  └─ utils
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ lang
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ types
+│  │  │  └─ types
+│  │  ├─ ast
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ llmconn
+│  │  │  ├─ aeiou
+│  │  │  ├─ capsule
+│  │  │  │  └─ metadata
+│  │  │  ├─ provider
+│  │  │  └─ types
+│  │  ├─ logging
+│  │  │  └─ interfaces
+│  │  │     └─ types
+│  │  ├─ parser
+│  │  │  ├─ antlr/generated
+│  │  │  ├─ ast
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ logging
+│  │  │  │  └─ interfaces
+│  │  │  │     └─ types
+│  │  │  ├─ nsio
+│  │  │  │  └─ lang
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ types
+│  │  │  ├─ tool
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ policy/capability
+│  │  │  │  ├─ types
+│  │  │  │  └─ utils
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ lang
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ types
+│  │  │  └─ types
+│  │  ├─ policy
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  └─ tool
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     ├─ lang
+│  │  │     │  ├─ interfaces
+│  │  │     │  │  └─ types
+│  │  │     │  └─ types
+│  │  │     ├─ policy/capability
+│  │  │     ├─ types
+│  │  │     └─ utils
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ lang
+│  │  │           ├─ interfaces
+│  │  │           │  └─ types
+│  │  │           └─ types
+│  │  ├─ policy/capability
+│  │  ├─ provider
+│  │  ├─ tool
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  ├─ toolbundles/all
+│  │  │  ├─ tool/agentmodel
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ policy/capability
+│  │  │  │  ├─ tool
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  ├─ lang
+│  │  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  │  └─ types
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  ├─ policy/capability
+│  │  │  │  │  ├─ types
+│  │  │  │  │  └─ utils
+│  │  │  │  │     ├─ interfaces
+│  │  │  │  │     │  └─ types
+│  │  │  │  │     └─ lang
+│  │  │  │  │        ├─ interfaces
+│  │  │  │  │        │  └─ types
+│  │  │  │  │        └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ tool/fs
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ policy/capability
+│  │  │  │  ├─ security
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  ├─ lang
+│  │  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  │  └─ types
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  ├─ tool
+│  │  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  │  └─ types
+│  │  │  │  │  │  ├─ lang
+│  │  │  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  │  │  └─ types
+│  │  │  │  │  │  │  └─ types
+│  │  │  │  │  │  ├─ policy/capability
+│  │  │  │  │  │  ├─ types
+│  │  │  │  │  │  └─ utils
+│  │  │  │  │  │     ├─ interfaces
+│  │  │  │  │  │     │  └─ types
+│  │  │  │  │  │     └─ lang
+│  │  │  │  │  │        ├─ interfaces
+│  │  │  │  │  │        │  └─ types
+│  │  │  │  │  │        └─ types
+│  │  │  │  │  ├─ types
+│  │  │  │  │  └─ utils
+│  │  │  │  │     ├─ interfaces
+│  │  │  │  │     │  └─ types
+│  │  │  │  │     └─ lang
+│  │  │  │  │        ├─ interfaces
+│  │  │  │  │        │  └─ types
+│  │  │  │  │        └─ types
+│  │  │  │  └─ tool
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     ├─ lang
+│  │  │  │     │  ├─ interfaces
+│  │  │  │     │  │  └─ types
+│  │  │  │     │  └─ types
+│  │  │  │     ├─ policy/capability
+│  │  │  │     ├─ types
+│  │  │  │     └─ utils
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ lang
+│  │  │  │           ├─ interfaces
+│  │  │  │           │  └─ types
+│  │  │  │           └─ types
+│  │  │  └─ tool/os
+│  │  │     ├─ lang
+│  │  │     │  ├─ interfaces
+│  │  │     │  │  └─ types
+│  │  │     │  └─ types
+│  │  │     ├─ policy/capability
+│  │  │     └─ tool
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        ├─ lang
+│  │  │        │  ├─ interfaces
+│  │  │        │  │  └─ types
+│  │  │        │  └─ types
+│  │  │        ├─ policy/capability
+│  │  │        ├─ types
+│  │  │        └─ utils
+│  │  │           ├─ interfaces
+│  │  │           │  └─ types
+│  │  │           └─ lang
+│  │  │              ├─ interfaces
+│  │  │              │  └─ types
+│  │  │              └─ types
+│  │  └─ types
+│  ├─ lang
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ logging
+│  │  └─ interfaces
+│  │     └─ types
+│  ├─ parser
+│  │  ├─ antlr/generated
+│  │  ├─ ast
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ logging
+│  │  │  └─ interfaces
+│  │  │     └─ types
+│  │  ├─ nsio
+│  │  │  └─ lang
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ types
+│  │  ├─ tool
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  └─ types
+│  ├─ policy
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy/capability
+│  │  └─ tool
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ types
+│  │     └─ utils
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ lang
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ types
+│  ├─ policy/capability
+│  ├─ provider
+│  ├─ provider/google
+│  │  ├─ aeiou
+│  │  └─ provider
+│  ├─ tool
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy/capability
+│  │  ├─ types
+│  │  └─ utils
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     └─ lang
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ types
+│  ├─ tool/fs
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy/capability
+│  │  ├─ security
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ tool
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ policy/capability
+│  │  │  │  ├─ types
+│  │  │  │  └─ utils
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ lang
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ types
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  └─ tool
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ types
+│  │     └─ utils
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ lang
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ types
+│  ├─ tool/gotools
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ security
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ tool
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ policy/capability
+│  │  │  │  ├─ types
+│  │  │  │  └─ utils
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ lang
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ types
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  ├─ tool
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  └─ tool/shell
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ security
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  ├─ lang
+│  │     │  │  ├─ interfaces
+│  │     │  │  │  └─ types
+│  │     │  │  └─ types
+│  │     │  ├─ tool
+│  │     │  │  ├─ interfaces
+│  │     │  │  │  └─ types
+│  │     │  │  ├─ lang
+│  │     │  │  │  ├─ interfaces
+│  │     │  │  │  │  └─ types
+│  │     │  │  │  └─ types
+│  │     │  │  ├─ policy/capability
+│  │     │  │  ├─ types
+│  │     │  │  └─ utils
+│  │     │  │     ├─ interfaces
+│  │     │  │     │  └─ types
+│  │     │  │     └─ lang
+│  │     │  │        ├─ interfaces
+│  │     │  │        │  └─ types
+│  │     │  │        └─ types
+│  │     │  ├─ types
+│  │     │  └─ utils
+│  │     │     ├─ interfaces
+│  │     │     │  └─ types
+│  │     │     └─ lang
+│  │     │        ├─ interfaces
+│  │     │        │  └─ types
+│  │     │        └─ types
+│  │     └─ tool
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        ├─ lang
+│  │        │  ├─ interfaces
+│  │        │  │  └─ types
+│  │        │  └─ types
+│  │        ├─ policy/capability
+│  │        ├─ types
+│  │        └─ utils
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ lang
+│  │              ├─ interfaces
+│  │              │  └─ types
+│  │              └─ types
+│  ├─ tool/io
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  └─ tool
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ types
+│  │     └─ utils
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ lang
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ types
+│  ├─ tool/list
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  └─ tool
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ types
+│  │     └─ utils
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ lang
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ types
+│  ├─ tool/maths
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  └─ tool
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ types
+│  │     └─ utils
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ lang
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ types
+│  ├─ tool/meta
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ tool
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  └─ types
+│  ├─ tool/script
+│  │  ├─ ast
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ parser
+│  │  │  ├─ antlr/generated
+│  │  │  ├─ ast
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ logging
+│  │  │  │  └─ interfaces
+│  │  │  │     └─ types
+│  │  │  ├─ nsio
+│  │  │  │  └─ lang
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ types
+│  │  │  ├─ tool
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ policy/capability
+│  │  │  │  ├─ types
+│  │  │  │  └─ utils
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ lang
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ types
+│  │  │  └─ types
+│  │  └─ tool
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ types
+│  │     └─ utils
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ lang
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ types
+│  ├─ tool/shell
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy/capability
+│  │  ├─ security
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ tool
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ policy/capability
+│  │  │  │  ├─ types
+│  │  │  │  └─ utils
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ lang
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ types
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  └─ tool
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ types
+│  │     └─ utils
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ lang
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ types
+│  ├─ tool/strtools
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  └─ tool
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ types
+│  │     └─ utils
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ lang
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ types
+│  ├─ tool/syntax
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ logging
+│  │  │  └─ interfaces
+│  │  │     └─ types
+│  │  ├─ parser
+│  │  │  ├─ antlr/generated
+│  │  │  ├─ ast
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ logging
+│  │  │  │  └─ interfaces
+│  │  │  │     └─ types
+│  │  │  ├─ nsio
+│  │  │  │  └─ lang
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ types
+│  │  │  ├─ tool
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ policy/capability
+│  │  │  │  ├─ types
+│  │  │  │  └─ utils
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ lang
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ types
+│  │  │  └─ types
+│  │  └─ tool
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ types
+│  │     └─ utils
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ lang
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ types
+│  ├─ tool/time
+│  │  └─ tool
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ types
+│  │     └─ utils
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ lang
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ types
+│  ├─ tool/tree
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ tool
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  └─ utils
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     └─ lang
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ types
+│  └─ types
+├─ ast
+│  ├─ interfaces
+│  │  └─ types
+│  ├─ lang
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  └─ types
+│  └─ types
+├─ interpreter
+│  ├─ aeiou
+│  ├─ agentmodel
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  └─ tool
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     ├─ lang
+│  │  │     │  ├─ interfaces
+│  │  │     │  │  └─ types
+│  │  │     │  └─ types
+│  │  │     ├─ policy/capability
+│  │  │     ├─ types
+│  │  │     └─ utils
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ lang
+│  │  │           ├─ interfaces
+│  │  │           │  └─ types
+│  │  │           └─ types
+│  │  ├─ policy/capability
+│  │  ├─ tool
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  └─ types
+│  ├─ ast
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ interfaces
+│  │  └─ types
+│  ├─ lang
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ llmconn
+│  │  ├─ aeiou
+│  │  ├─ capsule
+│  │  │  └─ metadata
+│  │  ├─ provider
+│  │  └─ types
+│  ├─ logging
+│  │  └─ interfaces
+│  │     └─ types
+│  ├─ parser
+│  │  ├─ antlr/generated
+│  │  ├─ ast
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ logging
+│  │  │  └─ interfaces
+│  │  │     └─ types
+│  │  ├─ nsio
+│  │  │  └─ lang
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ types
+│  │  ├─ tool
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  └─ types
+│  ├─ policy
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy/capability
+│  │  └─ tool
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ types
+│  │     └─ utils
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ lang
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ types
+│  ├─ policy/capability
+│  ├─ provider
+│  ├─ tool
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy/capability
+│  │  ├─ types
+│  │  └─ utils
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     └─ lang
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ types
+│  ├─ toolbundles/all
+│  │  ├─ tool/agentmodel
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ tool
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ policy/capability
+│  │  │  │  ├─ types
+│  │  │  │  └─ utils
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ lang
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ types
+│  │  │  └─ types
+│  │  ├─ tool/fs
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ security
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ tool
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  ├─ lang
+│  │  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  │  └─ types
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  ├─ policy/capability
+│  │  │  │  │  ├─ types
+│  │  │  │  │  └─ utils
+│  │  │  │  │     ├─ interfaces
+│  │  │  │  │     │  └─ types
+│  │  │  │  │     └─ lang
+│  │  │  │  │        ├─ interfaces
+│  │  │  │  │        │  └─ types
+│  │  │  │  │        └─ types
+│  │  │  │  ├─ types
+│  │  │  │  └─ utils
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ lang
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ types
+│  │  │  └─ tool
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     ├─ lang
+│  │  │     │  ├─ interfaces
+│  │  │     │  │  └─ types
+│  │  │     │  └─ types
+│  │  │     ├─ policy/capability
+│  │  │     ├─ types
+│  │  │     └─ utils
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ lang
+│  │  │           ├─ interfaces
+│  │  │           │  └─ types
+│  │  │           └─ types
+│  │  └─ tool/os
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     └─ tool
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        ├─ lang
+│  │        │  ├─ interfaces
+│  │        │  │  └─ types
+│  │        │  └─ types
+│  │        ├─ policy/capability
+│  │        ├─ types
+│  │        └─ utils
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ lang
+│  │              ├─ interfaces
+│  │              │  └─ types
+│  │              └─ types
+│  └─ types
+├─ lang
+│  ├─ interfaces
+│  │  └─ types
+│  └─ types
+├─ logging
+│  └─ interfaces
+│     └─ types
+├─ tool
+│  ├─ interfaces
+│  │  └─ types
+│  ├─ lang
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ policy/capability
+│  ├─ types
+│  └─ utils
+│     ├─ interfaces
+│     │  └─ types
+│     └─ lang
+│        ├─ interfaces
+│        │  └─ types
+│        └─ types
+├─ toolbundles/all
+│  ├─ tool/agentmodel
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy/capability
+│  │  ├─ tool
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ policy/capability
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  └─ types
+│  ├─ tool/fs
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy/capability
+│  │  ├─ security
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  ├─ lang
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  └─ types
+│  │  │  ├─ tool
+│  │  │  │  ├─ interfaces
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ lang
+│  │  │  │  │  ├─ interfaces
+│  │  │  │  │  │  └─ types
+│  │  │  │  │  └─ types
+│  │  │  │  ├─ policy/capability
+│  │  │  │  ├─ types
+│  │  │  │  └─ utils
+│  │  │  │     ├─ interfaces
+│  │  │  │     │  └─ types
+│  │  │  │     └─ lang
+│  │  │  │        ├─ interfaces
+│  │  │  │        │  └─ types
+│  │  │  │        └─ types
+│  │  │  ├─ types
+│  │  │  └─ utils
+│  │  │     ├─ interfaces
+│  │  │     │  └─ types
+│  │  │     └─ lang
+│  │  │        ├─ interfaces
+│  │  │        │  └─ types
+│  │  │        └─ types
+│  │  └─ tool
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     ├─ lang
+│  │     │  ├─ interfaces
+│  │     │  │  └─ types
+│  │     │  └─ types
+│  │     ├─ policy/capability
+│  │     ├─ types
+│  │     └─ utils
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ lang
+│  │           ├─ interfaces
+│  │           │  └─ types
+│  │           └─ types
+│  └─ tool/os
+│     ├─ lang
+│     │  ├─ interfaces
+│     │  │  └─ types
+│     │  └─ types
+│     ├─ policy/capability
+│     └─ tool
+│        ├─ interfaces
+│        │  └─ types
+│        ├─ lang
+│        │  ├─ interfaces
+│        │  │  └─ types
+│        │  └─ types
+│        ├─ policy/capability
+│        ├─ types
+│        └─ utils
+│           ├─ interfaces
+│           │  └─ types
+│           └─ lang
+│              ├─ interfaces
+│              │  └─ types
+│              └─ types
+└─ types
+
+tool/ai
+├─ json_lite
+│  └─ lang
+│     ├─ interfaces
+│     │  └─ types
+│     └─ types
+├─ lang
+│  ├─ interfaces
+│  │  └─ types
+│  └─ types
+└─ tool
+   ├─ interfaces
+   │  └─ types
+   ├─ lang
+   │  ├─ interfaces
+   │  │  └─ types
+   │  └─ types
+   ├─ policy/capability
+   ├─ types
+   └─ utils
+      ├─ interfaces
+      │  └─ types
+      └─ lang
+         ├─ interfaces
+         │  └─ types
+         └─ types
+
+tool/errtools
+├─ lang
+│  ├─ interfaces
+│  │  └─ types
+│  └─ types
+└─ tool
+   ├─ interfaces
+   │  └─ types
+   ├─ lang
+   │  ├─ interfaces
+   │  │  └─ types
+   │  └─ types
+   ├─ policy/capability
+   ├─ types
+   └─ utils
+      ├─ interfaces
+      │  └─ types
+      └─ lang
+         ├─ interfaces
+         │  └─ types
+         └─ types
+
+tool/git
+├─ lang
+│  ├─ interfaces
+│  │  └─ types
+│  └─ types
+├─ policy/capability
+├─ security
+│  ├─ interfaces
+│  │  └─ types
+│  ├─ lang
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ tool
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  ├─ lang
+│  │  │  ├─ interfaces
+│  │  │  │  └─ types
+│  │  │  └─ types
+│  │  ├─ policy/capability
+│  │  ├─ types
+│  │  └─ utils
+│  │     ├─ interfaces
+│  │     │  └─ types
+│  │     └─ lang
+│  │        ├─ interfaces
+│  │        │  └─ types
+│  │        └─ types
+│  ├─ types
+│  └─ utils
+│     ├─ interfaces
+│     │  └─ types
+│     └─ lang
+│        ├─ interfaces
+│        │  └─ types
+│        └─ types
+└─ tool
+   ├─ interfaces
+   │  └─ types
+   ├─ lang
+   │  ├─ interfaces
+   │  │  └─ types
+   │  └─ types
+   ├─ policy/capability
+   ├─ types
+   └─ utils
+      ├─ interfaces
+      │  └─ types
+      └─ lang
+         ├─ interfaces
+         │  └─ types
+         └─ types
+
+tool/internal
+├─ interfaces
+│  └─ types
+├─ lang
+│  ├─ interfaces
+│  │  └─ types
+│  └─ types
+├─ policy/capability
+├─ tool
+│  ├─ interfaces
+│  │  └─ types
+│  ├─ lang
+│  │  ├─ interfaces
+│  │  │  └─ types
+│  │  └─ types
+│  ├─ policy/capability
+│  ├─ types
+│  └─ utils
+│     ├─ interfaces
+│     │  └─ types
+│     └─ lang
+│        ├─ interfaces
+│        │  └─ types
+│        └─ types
+└─ types
+

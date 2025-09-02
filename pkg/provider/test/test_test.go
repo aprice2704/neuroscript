@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.7.0
-// File version: 4
-// Purpose: Adds a comprehensive, table-driven test for the Chat function to ensure it strictly rejects non-envelope prompts.
-// filename: pkg/api/providers/test/test_test.go
+// File version: 5
+// Purpose: Corrected tests to use the V3 'UserData' field instead of the obsolete 'Orchestration' field and replaced 'aeiou.RobustParse' with the correct 'aeiou.Parse' call.
+// filename: pkg/provider/test/test_test.go
 // nlines: 89
 // risk_rating: LOW
 
@@ -18,14 +18,14 @@ import (
 
 // TestTestProvider_Chat verifies the core logic of the mock provider.
 // It ensures that the provider strictly requires valid AEIOU envelopes
-// and correctly handles different orchestration content.
+// and correctly handles different user data content.
 func TestTestProvider_Chat(t *testing.T) {
 	p := New()
 	ctx := context.Background()
 
 	// Helper to create a valid prompt envelope
 	createPrompt := func(content string) string {
-		env := &aeiou.Envelope{Orchestration: content}
+		env := &aeiou.Envelope{UserData: content, Actions: "command endcommand"}
 		payload, _ := env.Compose()
 		return payload
 	}
@@ -61,7 +61,7 @@ func TestTestProvider_Chat(t *testing.T) {
 		},
 		{
 			name:      "Strictly fails on incomplete envelope",
-			prompt:    "<<<NSENVELOPE_MAGIC_9E3B6F2D:V2:START>>>",
+			prompt:    "<<<NSENV:V3:START>>>",
 			expectErr: true,
 		},
 	}
@@ -104,9 +104,9 @@ func TestTestProvider_WrapResponseInAEIOU(t *testing.T) {
 	}
 
 	// 2. Parse the generated envelope to ensure it's valid.
-	parsed, err := aeiou.RobustParse(wrapped)
+	parsed, _, err := aeiou.Parse(strings.NewReader(wrapped))
 	if err != nil {
-		t.Fatalf("aeiou.RobustParse failed to parse the wrapped response: %v\n---Envelope---\n%s", err, wrapped)
+		t.Fatalf("aeiou.Parse failed to parse the wrapped response: %v\n---Envelope---\n%s", err, wrapped)
 	}
 
 	// 3. Verify the content was correctly placed in the ACTIONS section.

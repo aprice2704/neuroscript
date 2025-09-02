@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.7.0
-// File version: 3
-// Purpose: Enforces a strict contract where incoming prompts MUST be valid AEIOU envelopes by parsing them before making an API call.
-// filename: pkg/api/providers/google/google.go
+// File version: 4
+// Purpose: Replaced the call to the non-existent 'aeiou.RobustParse' with the correct 'aeiou.Parse' function to resolve compiler errors.
+// filename: pkg/provider/google/google.go
 // nlines: 125
 // risk_rating: MEDIUM
 
@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/provider"
@@ -65,7 +66,7 @@ func (p *Provider) Chat(ctx context.Context, req provider.AIRequest) (*provider.
 	}
 
 	// The provider contract requires a valid AEIOU envelope. Parse it first.
-	_, err := aeiou.RobustParse(req.Prompt)
+	_, _, err := aeiou.Parse(strings.NewReader(req.Prompt))
 	if err != nil {
 		return nil, fmt.Errorf("google provider requires a valid AEIOU envelope prompt, but parsing failed: %w", err)
 	}

@@ -1,13 +1,14 @@
 // NeuroScript Version: 0.7.0
-// File version: 26
-// Purpose: Re-exported policy context constants (e.g., ContextConfig).
+// File version: 27
+// Purpose: Re-exported AEIOU v3 loop controller components.
 // filename: pkg/api/reexport.go
-// nlines: 161
+// nlines: 175
 // risk_rating: LOW
 
 package api
 
 import (
+	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -33,7 +34,7 @@ type (
 		Sum  [32]byte
 		Sig  []byte
 	}
-	Value              any
+	//Value              any
 	Option             = interpreter.InterpreterOption
 	ExecPolicy         = policy.ExecPolicy
 	ExecContext        = policy.ExecContext // Re-export the type
@@ -49,12 +50,27 @@ type (
 	ToolGroup          = types.ToolGroup
 	ArgType            = tool.ArgType
 
-	// LoopControl holds the parsed result of an AEIOU LOOP signal.
+	// --- AEIOU v3 Host Components ---
+	// LoopControl holds the parsed result of an AEIOU LOOP signal. (DEPRECATED)
 	LoopControl struct {
-		Control string // "continue", "done", or "abort"
+		Control string
 		Notes   string
 		Reason  string
 	}
+	// HostContext provides the necessary host-side information for a turn.
+	HostContext = aeiou.HostContext
+	// Decision represents the outcome of a turn.
+	Decision = aeiou.Decision
+	// LoopController orchestrates the host's decision-making process.
+	LoopController = aeiou.LoopController
+	// ReplayCache detects and prevents token replay attacks.
+	ReplayCache = aeiou.ReplayCache
+	// ProgressTracker detects repetitive, non-progressing loops.
+	ProgressTracker = aeiou.ProgressTracker
+	// KeyProvider is an interface for looking up public keys.
+	KeyProvider = aeiou.KeyProvider
+	// MagicVerifier parses and validates AEIOU v3 control tokens.
+	MagicVerifier = aeiou.MagicVerifier
 )
 
 // ... (resource/verb consts unchanged) ...
@@ -101,10 +117,16 @@ const (
 
 // ... (vars unchanged) ...
 var (
-	NewCapability   = capability.New
-	ParseCapability = capability.Parse
-	MustParse       = capability.MustParse
-	NewWithVerbs    = capability.NewWithVerbs
+	NewCapability          = capability.New
+	ParseCapability        = capability.Parse
+	MustParse              = capability.MustParse
+	NewWithVerbs           = capability.NewWithVerbs
+	NewLoopController      = aeiou.NewLoopController
+	NewReplayCache         = aeiou.NewReplayCache
+	NewProgressTracker     = aeiou.NewProgressTracker
+	NewMagicVerifier       = aeiou.NewMagicVerifier
+	ComputeHostDigest      = aeiou.ComputeHostDigest
+	NewRotatingKeyProvider = aeiou.NewRotatingKeyProvider
 )
 
 // WithTool creates an interpreter option to register a custom tool.

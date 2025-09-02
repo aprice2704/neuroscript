@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 1
-// Purpose: Unit tests for the scenario-based mock LLMConn.
+// File version: 2
+// Purpose: Replaced calls to the non-existent 'aeiou.RobustParse' with the correct V3 'aeiou.Parse' function.
 // filename: pkg/llmconn/mock_test.go
 // nlines: 75
 // risk_rating: LOW
@@ -63,7 +63,7 @@ func TestMockConn_ScenarioHelpers(t *testing.T) {
 		if turn.Err != nil {
 			t.Fatal("Continue() helper returned an error")
 		}
-		env, err := aeiou.RobustParse(turn.Response.TextContent)
+		env, _, err := aeiou.Parse(strings.NewReader(turn.Response.TextContent))
 		if err != nil {
 			t.Fatalf("Failed to parse envelope from Continue(): %v", err)
 		}
@@ -77,7 +77,7 @@ func TestMockConn_ScenarioHelpers(t *testing.T) {
 		if turn.Err != nil {
 			t.Fatal("Done() helper returned an error")
 		}
-		env, err := aeiou.RobustParse(turn.Response.TextContent)
+		env, _, err := aeiou.Parse(strings.NewReader(turn.Response.TextContent))
 		if err != nil {
 			t.Fatalf("Failed to parse envelope from Done(): %v", err)
 		}

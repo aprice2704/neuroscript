@@ -11,6 +11,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/parser"
 )
@@ -34,7 +35,7 @@ func runControlFlowTest(t *testing.T, script string) (lang.Value, error) {
 		return nil, bErr
 	}
 
-	if err := interp.Load(program); err != nil {
+	if err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: program}}}}); err != nil {
 		return nil, err
 	}
 

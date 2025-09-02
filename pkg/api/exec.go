@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 9
-// Purpose: Adds high-level functions for loading from a unit and running specific procedures with Go-native arguments.
+// File version: 11
+// Purpose: Corrected Load calls to wrap the *ast.Program in an *interfaces.Tree, conforming to the dependency-injected API.
 // filename: pkg/api/exec.go
-// nlines: 88
+// nlines: 95
 // risk_rating: HIGH
 
 package api
@@ -13,13 +13,12 @@ import (
 	"io"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
-// ExecInNewInterpreter provides a stateless, one-shot execution. It will parse,
-// load, and ONLY execute top-level 'command' blocks. It does NOT automatically
-// run any function, including 'main'.
+// ExecInNewInterpreter provides a stateless, one-shot execution.
 func ExecInNewInterpreter(ctx context.Context, src string, opts ...interpreter.InterpreterOption) (Value, error) {
 	tree, err := Parse([]byte(src), ParseSkipComments)
 	if err != nil {
@@ -30,9 +29,7 @@ func ExecInNewInterpreter(ctx context.Context, src string, opts ...interpreter.I
 	return ExecWithInterpreter(ctx, interp, tree)
 }
 
-// ExecWithInterpreter executes any top-level 'command' blocks from a given Tree
-// using a persistent interpreter. It does NOT automatically run any function.
-// Its primary role in a library context is to load the program.
+// ExecWithInterpreter executes top-level 'command' blocks using a persistent interpreter.
 func ExecWithInterpreter(ctx context.Context, interp *Interpreter, tree *Tree) (Value, error) {
 	if interp == nil || interp.internal == nil {
 		return nil, fmt.Errorf("ExecWithInterpreter requires a non-nil interpreter")
@@ -46,14 +43,12 @@ func ExecWithInterpreter(ctx context.Context, interp *Interpreter, tree *Tree) (
 		return nil, fmt.Errorf("internal error: tree root is not a runnable *ast.Program, but %T", tree.Root)
 	}
 
-	// 1. Load the program. This registers all function definitions.
-	if err := interp.Load(program); err != nil {
+	// 1. Load the program by wrapping the ast.Program in an interfaces.Tree.
+	if err := interp.Load(&interfaces.Tree{Root: program}); err != nil {
 		return nil, fmt.Errorf("failed to load program into interpreter: %w", err)
 	}
 
-	// 2. ONLY execute top-level command blocks.
-	// If there are no command blocks, this is a no-op, which is the
-	// correct behavior for loading a library of functions.
+	// 2. Execute top-level command blocks.
 	finalValue, err := interp.ExecuteCommands()
 	if err != nil {
 		return nil, err
@@ -71,7 +66,7 @@ func ExecScript(ctx context.Context, script string, stdout io.Writer) (Value, er
 	return ExecInNewInterpreter(ctx, script, opts...)
 }
 
-// LoadFromUnit loads the definitions from a verified LoadedUnit into an interpreter instance.
+// LoadFromUnit loads definitions from a verified LoadedUnit.
 func LoadFromUnit(interp *Interpreter, unit *LoadedUnit) error {
 	if interp == nil || interp.internal == nil {
 		return fmt.Errorf("LoadFromUnit requires a non-nil interpreter")
@@ -83,10 +78,10 @@ func LoadFromUnit(interp *Interpreter, unit *LoadedUnit) error {
 	if !ok {
 		return fmt.Errorf("internal error: loaded unit root is not a runnable *ast.Program, but %T", unit.Tree.Root)
 	}
-	return interp.Load(program)
+	return interp.Load(&interfaces.Tree{Root: program})
 }
 
-// RunProcedure executes a named procedure with the given Go-native arguments.
+// RunProcedure executes a named procedure with Go-native arguments.
 func RunProcedure(ctx context.Context, interp *Interpreter, name string, args ...any) (Value, error) {
 	if interp == nil {
 		return nil, fmt.Errorf("RunProcedure requires a non-nil interpreter")
@@ -94,7 +89,6 @@ func RunProcedure(ctx context.Context, interp *Interpreter, name string, args ..
 	wrappedArgs := make([]lang.Value, len(args))
 	for i, arg := range args {
 		var err error
-		// FIX: Corrected function call from NewValueFromGo to Wrap
 		wrappedArgs[i], err = lang.Wrap(arg)
 		if err != nil {
 			return nil, fmt.Errorf("error converting argument %d for procedure '%s': %w", i, name, err)

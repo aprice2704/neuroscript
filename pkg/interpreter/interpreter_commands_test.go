@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
@@ -60,7 +61,7 @@ func TestCommandExecution(t *testing.T) {
 			},
 		}
 
-		if err := interp.Load(program); err != nil {
+		if err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: program}}}}); err != nil {
 			t.Fatalf("Load() returned an unexpected error: %v", err)
 		}
 

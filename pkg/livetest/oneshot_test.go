@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 5
-// Purpose: Simplified the prompt, relying on the bootstrap capsule for formatting rules.
+// File version: 9
+// Purpose: Corrected the agent configuration key to 'secretRef' to match the expected map key for proper API key resolution.
 // filename: pkg/livetest/oneshot_test.go
 // nlines: 88
 // risk_rating: HIGH
@@ -33,9 +33,10 @@ func setupOneShotTest(t *testing.T) *api.Interpreter {
 
 	// Configure the agent to use the API key from the environment.
 	agentConfig := map[string]any{
-		"provider":            "google",
-		"model":               "gemini-1.5-flash",
-		"api_key_ref":         "GEMINI_API_KEY",
+		"provider": "google",
+		"model":    "gemini-1.5-flash",
+		// FIX: The correct key is 'secretRef' (camelCase).
+		"secretRef":           "GEMINI_API_KEY",
 		"tool_loop_permitted": false, // This is a one-shot agent.
 	}
 

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 6
-// Purpose: Corrects oversize tests to use the refactored parseWithScanner.
+// File version: 7
+// Purpose: Updates tests for new lint-reporting parser signature.
 // filename: aeiou/parser_test.go
-// nlines: 167
+// nlines: 184
 // risk_rating: MEDIUM
 
 package aeiou
@@ -16,10 +16,11 @@ import (
 
 func TestParse(t *testing.T) {
 	testCases := []struct {
-		name        string
-		input       string
-		expectedEnv *Envelope
-		expectErrIs error
+		name          string
+		input         string
+		expectedEnv   *Envelope
+		expectedLints []Lint
+		expectErrIs   error
 	}{
 		{
 			name: "Minimal valid envelope",
@@ -58,7 +59,7 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
-			name: "Duplicate section is ignored (first wins)",
+			name: "Duplicate section is ignored and linted",
 			input: strings.Join([]string{
 				Wrap(SectionStart),
 				Wrap(SectionUserData),
@@ -72,6 +73,9 @@ func TestParse(t *testing.T) {
 			expectedEnv: &Envelope{
 				UserData: "first user data",
 				Actions:  "actions content",
+			},
+			expectedLints: []Lint{
+				{Code: LintCodeDuplicateSection, Message: "duplicate section 'USERDATA' ignored (first instance is used)"},
 			},
 		},
 		{
@@ -149,12 +153,10 @@ func TestParse(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			r := strings.NewReader(tc.input)
-			parsedEnv, err := Parse(r) // Use the public Parse function
+			parsedEnv, lints, err := Parse(r)
 
 			if tc.expectErrIs != nil {
 				if !errors.Is(err, tc.expectErrIs) {
-					// For oversize errors, the scanner itself might return an error
-					// which wraps bufio.ErrTooLong. We check for our specific error.
 					if !errors.Is(err, ErrPayloadTooLarge) {
 						t.Fatalf("Parse() expected error target %v, got %v", tc.expectErrIs, err)
 					}
@@ -168,6 +170,9 @@ func TestParse(t *testing.T) {
 			if !reflect.DeepEqual(tc.expectedEnv, parsedEnv) {
 				t.Errorf("Parse() mismatch:\n- want: %+v\n- got:  %+v", tc.expectedEnv, parsedEnv)
 			}
+			if !reflect.DeepEqual(tc.expectedLints, lints) {
+				t.Errorf("Parse() lints mismatch:\n- want: %+v\n- got:  %+v", tc.expectedLints, lints)
+			}
 
 			// Round Trip Test
 			if tc.expectedEnv != nil {
@@ -176,7 +181,7 @@ func TestParse(t *testing.T) {
 					t.Fatalf("Compose() failed unexpectedly: %v", err)
 				}
 
-				reParsedEnv, err := Parse(strings.NewReader(composedString))
+				reParsedEnv, _, err := Parse(strings.NewReader(composedString))
 				if err != nil {
 					t.Fatalf("Failed to re-parse composed payload: %v", err)
 				}

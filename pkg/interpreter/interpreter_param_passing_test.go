@@ -14,6 +14,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/parser"
@@ -124,7 +125,7 @@ func TestInterpreter_ParameterPassingFuzz(t *testing.T) {
 				fmt.Fprintln(&capturedOutput, v.String())
 			})
 
-			if err := interp.Load(program); err != nil {
+			if err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: program}}}}); err != nil {
 				t.Fatalf("Iteration %d: Failed to load program: %v", iteration, err)
 			}
 

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 3
-// Purpose: Changed t.Errorf to t.Logf to prevent the mock from prematurely failing tests that expect an error.
+// File version: 5
+// Purpose: Updated scenario helpers to generate V3-compliant ACTION blocks using 'tool.aeiou.magic' instead of the obsolete V2 'aeiou.Wrap' function. Adds a UserData section to conform to V3 spec.
 // filename: pkg/llmconn/mock.go
-// nlines: 105
+// nlines: 106
 // risk_rating: LOW
 
 package llmconn
@@ -46,8 +46,6 @@ func (m *MockConn) Converse(ctx context.Context, input *aeiou.Envelope) (*provid
 	defer m.mu.Unlock()
 
 	if m.turn >= len(m.scenario) {
-		// Use Logf instead of Errorf. This allows the calling test to correctly
-		// assert that an error was returned, without this helper causing a premature failure.
 		m.t.Logf("MockConn: Converse called more times than there are turns in the scenario (called %d times for a %d-turn scenario)", m.turn+1, len(m.scenario))
 		return nil, fmt.Errorf("mockconn: scenario ended")
 	}
@@ -66,7 +64,8 @@ func (m *MockConn) Converse(ctx context.Context, input *aeiou.Envelope) (*provid
 // composeAction creates a valid AEIOU envelope with a given action string.
 func composeAction(action string) (string, error) {
 	env := &aeiou.Envelope{
-		Actions: action,
+		UserData: "{}", // V3 requires a UserData section.
+		Actions:  action,
 	}
 	return env.Compose()
 }
@@ -74,12 +73,13 @@ func composeAction(action string) (string, error) {
 // Continue creates a scenario turn that emits a message and signals the loop to continue.
 func Continue(message string) ScenarioTurn {
 	sanitized := strings.ReplaceAll(message, "\"", "\\\"")
-	loopSignal, _ := aeiou.Wrap(aeiou.SectionLoop, aeiou.LoopControl{
-		Control: "continue",
-		Notes:   "Continuing mock scenario.",
-	})
+	action := fmt.Sprintf(`
+	command
+		emit "%s"
+		set p = {"action": "continue", "notes": "Continuing mock scenario."}
+		emit tool.aeiou.magic("LOOP", p)
+	endcommand`, sanitized)
 
-	action := fmt.Sprintf("command\n  emit \"%s\"\n  emit \"%s\"\nendcommand", sanitized, loopSignal)
 	envelope, err := composeAction(action)
 	if err != nil {
 		panic(fmt.Sprintf("failed to build 'Continue' scenario turn: %v", err))
@@ -90,12 +90,13 @@ func Continue(message string) ScenarioTurn {
 // Done creates a final scenario turn that emits a message and signals the loop is done.
 func Done(message string) ScenarioTurn {
 	sanitized := strings.ReplaceAll(message, "\"", "\\\"")
-	loopSignal, _ := aeiou.Wrap(aeiou.SectionLoop, aeiou.LoopControl{
-		Control: "done",
-		Notes:   "Completing mock scenario.",
-	})
+	action := fmt.Sprintf(`
+	command
+		emit "%s"
+		set p = {"action": "done", "notes": "Completing mock scenario."}
+		emit tool.aeiou.magic("LOOP", p)
+	endcommand`, sanitized)
 
-	action := fmt.Sprintf("command\n  emit \"%s\"\n  emit \"%s\"\nendcommand", sanitized, loopSignal)
 	envelope, err := composeAction(action)
 	if err != nil {
 		panic(fmt.Sprintf("failed to build 'Done' scenario turn: %v", err))

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 2
-// Purpose: Removed the obsolete test case for loop permissions, which are now checked at runtime by the interpreter, not by the connection constructor.
+// File version: 3
+// Purpose: Updated test cases to use the AEIOU v3 envelope structure with the 'UserData' field, removing the obsolete V2 'Orchestration' field.
 // filename: pkg/llmconn/llmconn_test.go
 // nlines: 91
 // risk_rating: LOW
@@ -65,7 +65,7 @@ func TestLLMConn_Converse(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		inputEnv := &aeiou.Envelope{Orchestration: "ping"}
+		inputEnv := &aeiou.Envelope{UserData: "ping", Actions: "command endcommand"}
 		resp, err := conn.Converse(ctx, inputEnv)
 		if err != nil {
 			t.Fatalf("Converse() failed: %v", err)
@@ -83,7 +83,7 @@ func TestLLMConn_Converse(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		inputEnv := &aeiou.Envelope{Orchestration: "ping"}
+		inputEnv := &aeiou.Envelope{UserData: "ping", Actions: "command endcommand"}
 
 		// First two turns should succeed
 		_, _ = conn.Converse(ctx, inputEnv)

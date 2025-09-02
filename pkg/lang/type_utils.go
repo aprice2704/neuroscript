@@ -1,7 +1,7 @@
 // filename: pkg/lang/type_utils.go
 // NeuroScript Version: 0.4.1
-// File version: 10
-// Purpose: Updated ToFloat64 to no longer convert booleans to numbers.
+// File version: 11
+// Purpose: Removed unused import of 'interfaces' package to break an import cycle.
 
 package lang
 
@@ -10,8 +10,6 @@ import (
 	"reflect"
 	"strconv"
 	"time"
-
-	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 // TypeOf returns the NeuroScriptType name for any given value, whether wrapped or raw.
@@ -22,17 +20,29 @@ func TypeOf(value interface{}) NeuroScriptType {
 
 	/* ---------- concrete non-Value types that appear unwrapped ---------- */
 
-	switch value.(type) {
+	switch v := value.(type) {
 	case Callable, *Callable:
 		return TypeFunction
-	case interfaces.Tool, *interfaces.Tool:
-		return TypeTool
+	// Case for interfaces.Tool removed to break import cycle
 	case time.Time, *time.Time: // native Go time value
 		return TypeTimedate
 	case []byte: // raw byte slice
 		return TypeBytes
 	case error: // plain Go error
 		return TypeError
+	default:
+		// Check for tool using reflection to avoid direct dependency
+		if v != nil {
+			t := reflect.TypeOf(v)
+			if t.Kind() == reflect.Ptr {
+				t = t.Elem()
+			}
+			if t.Kind() == reflect.Struct {
+				if _, ok := t.MethodByName("IsTool"); ok {
+					return TypeTool
+				}
+			}
+		}
 	}
 
 	/* ---------- custom wrapper types that implement the Value interface ---------- */

@@ -1,19 +1,16 @@
 // NeuroScript Version: 0.7.0
-// File version: 26
-// Purpose: Added WithAITranscript option for logging AI prompts.
+// File version: 28
+// Purpose: Corrected the Load method to wrap the *ast.Program in an *interfaces.Tree before passing it to the internal interpreter.
 // filename: pkg/api/interpreter.go
-// nlines: 170+
+// nlines: 165
 // risk_rating: LOW
 package api
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
-	"regexp"
 
-	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/policy"
@@ -21,8 +18,6 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
-
-var loopControlRegex = regexp.MustCompile(`<<<NSENVELOPE_MAGIC_[A-F0-9]+:V2:LOOP:(.*?)>>>`)
 
 // Interpreter is a facade over the internal interpreter, providing a stable,
 // high-level API for embedding NeuroScript.
@@ -102,9 +97,9 @@ func (i *Interpreter) RegisterAgentModel(name string, config map[string]any) err
 	return i.internal.AgentModelsAdmin().Register(types.AgentModelName(name), config)
 }
 
-// Load injects a verified and parsed program into the interpreter's memory.
-func (i *Interpreter) Load(p *ast.Program) error {
-	return i.internal.Load(p)
+// Load injects a parsed program into the interpreter via the interface.
+func (i *Interpreter) Load(tree *interfaces.Tree) error {
+	return i.internal.Load(tree)
 }
 
 // ExecuteCommands runs any unnamed 'command' blocks found in the loaded program.
@@ -136,19 +131,8 @@ func Unwrap(v Value) (any, error) {
 	return v, nil
 }
 
-// ParseLoopControl scans a string (like the captured output from an emit stream)
-// and extracts the first valid AEIOU LOOP control signal it finds.
+// ParseLoopControl is deprecated and will be removed. Use the re-exported
+// aeiou.LoopController for V3-compliant loop management.
 func ParseLoopControl(output string) (*LoopControl, error) {
-	matches := loopControlRegex.FindStringSubmatch(output)
-	if len(matches) < 2 {
-		return nil, errors.New("no valid LOOP control signal found in output")
-	}
-
-	jsonPayload := matches[1]
-	var control LoopControl
-	if err := json.Unmarshal([]byte(jsonPayload), &control); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal LOOP signal payload: %w", err)
-	}
-
-	return &control, nil
+	return nil, errors.New("ParseLoopControl is deprecated; use the AEIOU v3 LoopController")
 }

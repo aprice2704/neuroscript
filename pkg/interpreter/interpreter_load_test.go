@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/parser"
 )
 
@@ -37,7 +38,7 @@ func TestInterpreterLoad(t *testing.T) {
 			t.Fatalf("Failed to build AST: %v", bErr)
 		}
 
-		err := interp.Load(program)
+		err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: program}}}})
 		if err != nil {
 			t.Fatalf("Load() returned an unexpected error: %v", err)
 		}
@@ -68,7 +69,7 @@ func TestInterpreterLoad(t *testing.T) {
 				Body:          []ast.Step{},
 			}},
 		}
-		if err := interp.Load(program1); err != nil {
+		if err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: program1}}}}); err != nil {
 			t.Fatalf("Initial load failed: %v", err)
 		}
 
@@ -82,7 +83,7 @@ func TestInterpreterLoad(t *testing.T) {
 			Procedures: map[string]*ast.Procedure{"proc2": {}, "proc3": {}},
 			Events:     []*ast.OnEventDecl{},
 		}
-		if err := interp.Load(program2); err != nil {
+		if err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: program2}}}}); err != nil {
 			t.Fatalf("Reload failed: %v", err)
 		}
 
@@ -101,7 +102,7 @@ func TestInterpreterLoad(t *testing.T) {
 	t.Run("Load Nil Program", func(t *testing.T) {
 		interp, _ := NewTestInterpreter(t, nil, nil, false)
 		// This should not panic
-		err := interp.Load(nil)
+		err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: nil}}}})
 		if err != nil {
 			t.Fatalf("Load(nil) returned an error: %v", err)
 		}
@@ -113,7 +114,7 @@ func TestInterpreterLoad(t *testing.T) {
 			Procedures: make(map[string]*ast.Procedure),
 			Events:     []*ast.OnEventDecl{},
 		}
-		err := interp.Load(program)
+		err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: program}}}})
 		if err != nil {
 			t.Fatalf("Load(empty) returned an error: %v", err)
 		}

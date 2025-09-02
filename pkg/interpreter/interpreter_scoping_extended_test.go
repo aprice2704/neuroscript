@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/parser"
 )
@@ -110,7 +111,7 @@ func TestVariableScopingExtended(t *testing.T) {
 		parserAPI := parser.NewParserAPI(interp.GetLogger())
 		ast, _ := parserAPI.Parse(script)
 		prog, _, _ := parser.NewASTBuilder(interp.GetLogger()).Build(ast)
-		interp.Load(prog)
+		interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: prog}}}})
 
 		interp.SetVariable("a", lang.StringValue{Value: "original"})
 

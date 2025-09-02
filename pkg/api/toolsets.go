@@ -12,7 +12,6 @@ import (
 	// The api.New() function then adds these registered tools to each new
 	// interpreter instance.
 
-	_ "github.com/aprice2704/neuroscript/pkg/tool/aeiou_proto"
 	_ "github.com/aprice2704/neuroscript/pkg/tool/fs"
 	_ "github.com/aprice2704/neuroscript/pkg/tool/gotools"
 	_ "github.com/aprice2704/neuroscript/pkg/tool/io"

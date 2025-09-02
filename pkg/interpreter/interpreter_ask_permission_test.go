@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 7
-// Purpose: Corrected agent model configuration keys to use snake_case (e.g., 'tool_loop_permitted').
+// File version: 9
+// Purpose: Corrected the looping test by explicitly setting 'max_turns' to 2, ensuring the policy violation is actually triggered on the second turn.
 // filename: pkg/interpreter/interpreter_ask_permission_test.go
-// nlines: 120
+// nlines: 121
 // risk_rating: LOW
 
 package interpreter_test
@@ -10,6 +10,7 @@ package interpreter_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
@@ -29,10 +30,14 @@ func (m *mockPermissionProvider) Chat(ctx context.Context, req provider.AIReques
 	if m.shouldContinue {
 		control = "continue"
 	}
-	loopSignal, _ := aeiou.Wrap(aeiou.SectionLoop, aeiou.LoopControl{Control: control})
-	actionsScript := "command\n  emit \"one-shot success\"\n  emit '" + loopSignal + "'\nendcommand"
+	actionsScript := fmt.Sprintf(`
+	command
+		emit "one-shot success"
+		set params = {"action": "%s"}
+		emit tool.aeiou.magic("LOOP", params)
+	endcommand`, control)
 
-	env := &aeiou.Envelope{Actions: actionsScript}
+	env := &aeiou.Envelope{UserData: "{}", Actions: actionsScript}
 	respText, _ := env.Compose()
 	return &provider.AIResponse{TextContent: respText}, nil
 }
@@ -42,6 +47,7 @@ func TestAskLoopPermission(t *testing.T) {
 		"provider":            lang.StringValue{Value: "mock_permission_provider"},
 		"model":               lang.StringValue{Value: "restricted_model"},
 		"tool_loop_permitted": lang.BoolValue{Value: false}, // Explicitly false
+		"max_turns":           lang.NumberValue{Value: 2},   // Allow more than one turn to test the policy
 	}
 
 	permissiveAgentConfig := map[string]lang.Value{

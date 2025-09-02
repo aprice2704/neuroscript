@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/parser"
@@ -44,7 +45,7 @@ func setupEventHandlerTest(t *testing.T, script string) (*Interpreter, *bytes.Bu
 		t.Fatalf("Failed to build AST: %v", err)
 	}
 
-	if err := interp.Load(prog); err != nil {
+	if err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: prog}}}}); err != nil {
 		t.Fatalf("Failed to load program into interpreter: %v", err)
 	}
 

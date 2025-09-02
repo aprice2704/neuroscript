@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 13
-// Purpose: Corrected agent model configuration keys to use snake_case (e.g., 'tool_loop_permitted').
+// File version: 15
+// Purpose: Corrected mock providers to include a mandatory UserData section in composed envelopes, fixing the 'invalid envelope marker' parsing errors.
 // filename: pkg/interpreter/interpreter_ask_loop_test.go
-// nlines: 155
+// nlines: 160
 // risk_rating: LOW
 
 package interpreter_test
@@ -37,12 +37,15 @@ func (m *mockLoopingProvider) Chat(ctx context.Context, req provider.AIRequest) 
 		notes = fmt.Sprintf("Continuing to turn %d.", turn+1)
 	}
 
-	loopSignal, _ := aeiou.Wrap(aeiou.SectionLoop, aeiou.LoopControl{Control: control, Notes: notes})
-	actionsScript := fmt.Sprintf(
-		"command\n    emit \"This is the result from turn %d.\"\n    emit '%s'\nendcommand",
-		turn, loopSignal)
+	actionsScript := fmt.Sprintf(`
+	command
+		emit "This is the result from turn %d."
+		set params = {"action": "%s", "notes": "%s"}
+		emit tool.aeiou.magic("LOOP", params)
+	endcommand
+	`, turn, control, notes)
 
-	env := &aeiou.Envelope{Actions: actionsScript}
+	env := &aeiou.Envelope{UserData: "{}", Actions: actionsScript}
 	respText, _ := env.Compose()
 
 	return &provider.AIResponse{
@@ -119,10 +122,13 @@ func TestAutoLoop_MaxTurnsExceeded(t *testing.T) {
 type mockAbortingProvider struct{}
 
 func (m *mockAbortingProvider) Chat(ctx context.Context, req provider.AIRequest) (*provider.AIResponse, error) {
-	loopSignal, _ := aeiou.Wrap(aeiou.SectionLoop, aeiou.LoopControl{Control: "abort", Reason: "precondition_failed"})
-	actionsScript := fmt.Sprintf("command\n  emit '%s'\nendcommand", loopSignal)
-
-	env := &aeiou.Envelope{Actions: actionsScript}
+	actionsScript := `
+	command
+		set params = {"action": "abort", "reason": "precondition_failed"}
+		emit tool.aeiou.magic("LOOP", params)
+	endcommand
+	`
+	env := &aeiou.Envelope{UserData: "{}", Actions: actionsScript}
 	respText, _ := env.Compose()
 	return &provider.AIResponse{TextContent: respText}, nil
 }

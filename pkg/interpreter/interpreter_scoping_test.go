@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/parser"
@@ -77,7 +78,7 @@ endfunc
 		t.Fatalf("Failed to build AST from parsed script: %v", buildErr)
 	}
 
-	if err := interp.Load(programAST); err != nil {
+	if err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: programAST}}}}); err != nil {
 		t.Fatalf("Failed to load program into interpreter: %v", err)
 	}
 
@@ -153,7 +154,7 @@ endfunc
 		t.Fatalf("Failed to build AST from parsed script: %v", buildErr)
 	}
 
-	if err := interp.Load(programAST); err != nil {
+	if err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: programAST}}}}); err != nil {
 		t.Fatalf("Failed to load program into interpreter: %v", err)
 	}
 

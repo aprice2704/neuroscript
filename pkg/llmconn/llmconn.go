@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.7.0
-// File version: 4
-// Purpose: Corrected API key handling to resolve the secret reference from environment variables.
+// File version: 8
+// Purpose: Updated to use model.AccountName instead of the removed model.SecretRef field.
 // filename: pkg/llmconn/llmconn.go
-// nlines: 98
-// risk_rating: HIGH
+// nlines: 115
+// risk_rating: MEDIUM
 
 package llmconn
 
@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
+	"github.com/aprice2704/neuroscript/pkg/capsule"
 	"github.com/aprice2704/neuroscript/pkg/provider"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
@@ -61,11 +62,28 @@ func (c *LLMConn) Converse(ctx context.Context, input *aeiou.Envelope) (*provide
 		return nil, fmt.Errorf("failed to compose input envelope for provider: %w", err)
 	}
 
-	// ** THE FIX IS HERE **
-	// Correctly resolve the API key from the environment variable specified in SecretRef.
+	// On the first turn of a conversation, prepend the appropriate bootstrap
+	// instructions to the entire prompt by retrieving them from the capsule registry.
+	if c.turnCount == 1 {
+		var capsuleID string
+		if c.model.Tools.ToolLoopPermitted {
+			capsuleID = "capsule/bootstrap_agentic/3"
+		} else {
+			capsuleID = "capsule/bootstrap_oneshot/3"
+		}
+
+		cap, ok := capsule.Get(capsuleID)
+		if !ok {
+			// This would be a critical setup error, as capsules should be embedded.
+			return nil, fmt.Errorf("bootstrap capsule not found in registry: %s", capsuleID)
+		}
+		prompt = cap.Content + "\n\n" + prompt
+	}
+
+	// Correctly resolve the API key from the environment variable specified in AccountName.
 	apiKey := ""
-	if c.model.SecretRef != "" {
-		apiKey = os.Getenv(c.model.SecretRef)
+	if c.model.AccountName != "" {
+		apiKey = os.Getenv(c.model.AccountName)
 	}
 
 	req := provider.AIRequest{

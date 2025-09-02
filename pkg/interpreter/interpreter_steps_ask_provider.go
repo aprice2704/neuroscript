@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 2
-// Purpose: Refactored: Contains AI provider call logic for the 'ask' statement, including 'with' options handling.
+// File version: 3
+// Purpose: Updated to use model.AccountName instead of the removed model.SecretRef field.
 // filename: pkg/interpreter/interpreter_steps_ask_provider.go
 // nlines: 66
 // risk_rating: MEDIUM
@@ -19,8 +19,8 @@ import (
 
 func callAIProvider(i *Interpreter, model types.AgentModel, withOpts *lang.MapValue, prompt string, pos *types.Position) (*provider.AIResponse, error) {
 	apiKey := ""
-	if model.SecretRef != "" {
-		apiKey = os.Getenv(model.SecretRef)
+	if model.AccountName != "" {
+		apiKey = os.Getenv(model.AccountName)
 	}
 
 	prov, provExists := i.GetProvider(model.Provider)

@@ -1,14 +1,15 @@
 // NeuroScript Version: 0.7.0
-// File version: 2
-// Purpose: Corrected import paths after refactoring agentmodel and policy packages.
+// File version: 3
+// Purpose: Added GetTurnContext and setTurnContext methods to manage the AEIOU v3 session context.
 // filename: pkg/interpreter/interpreter_api.go
-// nlines: 122
+// nlines: 135
 // risk_rating: LOW
 
 package interpreter
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"strings"
 
@@ -129,4 +130,19 @@ func (i *Interpreter) SetWhisperFunc(f func(handle, data lang.Value)) {
 // GetAndClearWhisperBuffer retrieves the content of the default 'self' buffer and clears it.
 func (i *Interpreter) GetAndClearWhisperBuffer() string {
 	return i.bufferManager.GetAndClear(DefaultSelfHandle)
+}
+
+// GetTurnContext returns the context for the current AEIOU turn. This is intended
+// to satisfy the tool.Runtime interface so tools can access session data.
+func (i *Interpreter) GetTurnContext() context.Context {
+	if i.turnCtx == nil {
+		return context.Background()
+	}
+	return i.turnCtx
+}
+
+// setTurnContext sets the context for the current turn. This is used internally
+// by the host loop controller in 'ask'.
+func (i *Interpreter) setTurnContext(ctx context.Context) {
+	i.turnCtx = ctx
 }

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 3
-// Purpose: Corrects the test expectation for the precedence selection logic.
+// File version: 5
+// Purpose: Corrects the "last-wins" test case by using two distinct tokens.
 // filename: aeiou/loop_test.go
-// nlines: 130
+// nlines: 156
 // risk_rating: LOW
 
 package aeiou
@@ -11,6 +11,7 @@ import (
 	"crypto/ed25519"
 	"encoding/base64"
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -21,8 +22,10 @@ func TestLoopController_ProcessOutput(t *testing.T) {
 	pubKey, privKey, _ := ed25519.GenerateKey(nil)
 	minter, _ := NewMagicMinter(privKey)
 	keyID := "test-key-1"
-	kp := &simpleKeyProvider{keys: map[string]ed25519.PublicKey{keyID: pubKey}}
-	verifier := NewMagicVerifier(kp)
+
+	// Using simpleKeyProvider for simplicity in existing tests
+	kpSimple := &simpleKeyProvider{keys: map[string]ed25519.PublicKey{keyID: pubKey}}
+	verifier := NewMagicVerifier(kpSimple)
 	lc := NewLoopController(verifier)
 
 	// Setup: Base context
@@ -36,15 +39,17 @@ func TestLoopController_ProcessOutput(t *testing.T) {
 
 	// Mint tokens for various scenarios
 	continueToken, _ := minter.MintToken(KindLoop, ControlPayload{Action: ActionContinue}, hostCtx)
+	continueToken2, _ := minter.MintToken(KindLoop, ControlPayload{Action: ActionContinue}, hostCtx) // A second, unique token
 	doneToken, _ := minter.MintToken(KindLoop, ControlPayload{Action: ActionDone}, hostCtx)
 	abortToken, _ := minter.MintToken(KindLoop, ControlPayload{Action: ActionAbort}, hostCtx)
 
 	testCases := []struct {
 		name              string
 		output            string
-		hostCtxOverride   *HostContext // Used to override the default hostCtx
+		hostCtxOverride   *HostContext
 		setupCache        func(cache *ReplayCache, token string)
 		expectedAction    LoopAction
+		expectedLints     []Lint
 		expectNilDecision bool
 	}{
 		{
@@ -70,12 +75,25 @@ func TestLoopController_ProcessOutput(t *testing.T) {
 		{
 			name:           "Precedence: Done wins over Continue",
 			output:         strings.Join([]string{continueToken, doneToken}, "\n"),
-			expectedAction: ActionDone, // Corrected expectation
+			expectedAction: ActionDone,
 		},
 		{
 			name:           "Last-wins for same precedence",
-			output:         strings.Join([]string{continueToken, "some other text", continueToken}, "\n"),
+			output:         strings.Join([]string{continueToken, "some other text", continueToken2}, "\n"),
 			expectedAction: ActionContinue,
+			expectedLints:  nil,
+		},
+		{
+			name:           "Post-token text creates a lint",
+			output:         strings.Join([]string{continueToken, "this is extra text"}, "\n"),
+			expectedAction: ActionContinue,
+			expectedLints:  []Lint{{Code: LintCodePostTokenText, Message: "extraneous text found after the chosen control token"}},
+		},
+		{
+			name:           "Post-token empty lines do not create a lint",
+			output:         strings.Join([]string{doneToken, "  ", "\t"}, "\n"),
+			expectedAction: ActionDone,
+			expectedLints:  nil,
 		},
 		{
 			name: "Replayed token is ignored",
@@ -131,6 +149,9 @@ func TestLoopController_ProcessOutput(t *testing.T) {
 			}
 			if decision.Action != tc.expectedAction {
 				t.Errorf("Mismatched action. Got %s, want %s", decision.Action, tc.expectedAction)
+			}
+			if !reflect.DeepEqual(decision.Lints, tc.expectedLints) {
+				t.Errorf("Mismatched lints. Got %+v, want %+v", decision.Lints, tc.expectedLints)
 			}
 		})
 	}

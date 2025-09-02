@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 7
-// Purpose: Expanded AgentModel to include comprehensive generation, tool, and safety controls.
+// File version: 8
+// Purpose: Replaced SecretRef with AccountName to decouple agent configuration from credentials.
 // filename: pkg/types/agentmodel.go
 // nlines: 110
 // risk_rating: MEDIUM
@@ -76,7 +76,7 @@ type AgentModel struct {
 	Name           AgentModelName
 	Provider       string
 	Model          string
-	SecretRef      string
+	AccountName    string // NEW: Logical name for the account providing credentials.
 	BaseURL        string
 	BudgetCurrency string
 	PriceTable     map[string]float64
@@ -105,8 +105,6 @@ type AgentModel struct {
 	MaxTokPerMinute int
 
 	// Ask Loop Control (Legacy fields, kept for backward compatibility during transition)
-	// These will be migrated to ToolConfig and GenerationConfig over time.
-	// New implementations should prefer the structured configs.
 	ToolLoopPermitted bool    `json:"-"` // Deprecated: use Tools.ToolLoopPermitted
 	AutoLoopEnabled   bool    `json:"-"` // Deprecated: use Tools.AutoLoopEnabled
 	Temperature       float64 `json:"-"` // Deprecated: use Generation.Temperature

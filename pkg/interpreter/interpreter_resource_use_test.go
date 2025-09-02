@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/parser"
 )
@@ -31,7 +32,7 @@ func TestResourceUsageLimits(t *testing.T) {
 		parserAPI := parser.NewParserAPI(interp.GetLogger())
 		ast, _ := parserAPI.Parse(script)
 		prog, _, _ := parser.NewASTBuilder(interp.GetLogger()).Build(ast)
-		interp.Load(prog)
+		interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: prog}}}})
 
 		_, err := interp.Run("main")
 
@@ -66,7 +67,7 @@ func TestResourceUsageLimits(t *testing.T) {
 		if bErr != nil {
 			t.Fatalf("Failed to build AST: %v", bErr)
 		}
-		if err := interp.Load(program); err != nil {
+		if err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: program}}}}); err != nil {
 			t.Fatalf("Failed to load program: %v", err)
 		}
 

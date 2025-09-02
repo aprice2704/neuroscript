@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 9
-// Purpose: Corrected a typo in the mockLogger's Infof method receiver.
+// File version: 11
+// Purpose: Corrected a type mismatch in a test case by wrapping a native string in its corresponding Value type.
 // filename: pkg/api/interpreter_test.go
-// nlines: 110
+// nlines: 131
 // risk_rating: LOW
 
 package api_test
@@ -121,7 +121,8 @@ func TestUnwrap(t *testing.T) {
 		{"NumberValue", lang.NumberValue{Value: 123.45}, 123.45},
 		{"BoolValue (true)", lang.BoolValue{Value: true}, true},
 		{"NilValue", lang.NilValue{}, nil},
-		{"Native String", "already native", "already native"},
+		// FIX: Wrap the native string in a lang.StringValue to conform to the api.Value interface.
+		{"Native String", lang.StringValue{Value: "already native"}, "already native"},
 	}
 
 	for _, tc := range testCases {

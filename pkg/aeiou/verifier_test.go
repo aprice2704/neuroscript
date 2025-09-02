@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 5
-// Purpose: Adds tests for token length and wrapping constraints.
+// File version: 6
+// Purpose: Replaces simpleKeyProvider with RotatingKeyProvider and adds key rotation test.
 // filename: aeiou/verifier_test.go
-// nlines: 179
+// nlines: 204
 // risk_rating: HIGH
 
 package aeiou
@@ -19,6 +19,7 @@ import (
 )
 
 // simpleKeyProvider is a basic implementation of KeyProvider for testing.
+// This is being replaced by RotatingKeyProvider but kept for reference if needed.
 type simpleKeyProvider struct {
 	keys map[string]ed25519.PublicKey
 }
@@ -38,7 +39,8 @@ func TestMagicVerifier_ParseAndVerify(t *testing.T) {
 	keyID := "test-key-1"
 
 	// Setup: Create verifier with a key provider
-	kp := &simpleKeyProvider{keys: map[string]ed25519.PublicKey{keyID: pubKey}}
+	kp := NewRotatingKeyProvider()
+	kp.Add(keyID, pubKey)
 	verifier := NewMagicVerifier(kp)
 
 	// Setup: Base context and payload for tests
@@ -183,5 +185,43 @@ func TestMagicVerifier_ParseAndVerify(t *testing.T) {
 				t.Errorf("Payload action mismatch. Got %s, want %s", payload.Payload.Action, agentPayload.Action)
 			}
 		})
+	}
+}
+
+func TestMagicVerifier_KeyRotation(t *testing.T) {
+	// 1. Setup initial key (v1)
+	pubKey1, privKey1, _ := ed25519.GenerateKey(nil)
+	minter1, _ := NewMagicMinter(privKey1)
+	kid1 := "key-v1"
+
+	// 2. Setup key provider and verifier
+	kp := NewRotatingKeyProvider()
+	kp.Add(kid1, pubKey1)
+	verifier := NewMagicVerifier(kp)
+
+	// 3. Mint and verify a token with the old key
+	ctx1 := HostContext{SessionID: "sid-1", TurnIndex: 1, TurnNonce: "nonce-1", KeyID: kid1, TTL: 60}
+	tokenV1, _ := minter1.MintToken(KindLoop, ControlPayload{Action: ActionContinue}, ctx1)
+
+	if _, err := verifier.ParseAndVerify(tokenV1, ctx1); err != nil {
+		t.Fatalf("Verification of token v1 failed before rotation: %v", err)
+	}
+
+	// 4. ROTATE KEYS: Introduce a new key (v2)
+	pubKey2, privKey2, _ := ed25519.GenerateKey(nil)
+	minter2, _ := NewMagicMinter(privKey2)
+	kid2 := "key-v2"
+	kp.Add(kid2, pubKey2) // Hot-reload the new public key
+
+	// 5. Mint and verify a token with the NEW key
+	ctx2 := HostContext{SessionID: "sid-1", TurnIndex: 2, TurnNonce: "nonce-2", KeyID: kid2, TTL: 60}
+	tokenV2, _ := minter2.MintToken(KindLoop, ControlPayload{Action: ActionDone}, ctx2)
+	if _, err := verifier.ParseAndVerify(tokenV2, ctx2); err != nil {
+		t.Fatalf("Verification of token v2 failed after rotation: %v", err)
+	}
+
+	// 6. CRITICAL: Verify the token signed with the OLD key again. It must still pass.
+	if _, err := verifier.ParseAndVerify(tokenV1, ctx1); err != nil {
+		t.Fatalf("Verification of token v1 FAILED after rotation, but should have passed: %v", err)
 	}
 }

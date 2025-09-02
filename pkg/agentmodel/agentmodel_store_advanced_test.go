@@ -56,7 +56,7 @@ func newFullConfig(name, provider, model string) (map[string]interface{}, types.
 		Name:           types.AgentModelName(name),
 		Provider:       provider,
 		Model:          model,
-		SecretRef:      "SOME_SECRET",
+		AccountName:    "SOME_SECRET",
 		BaseURL:        "https://api.example.com/v1",
 		BudgetCurrency: "USD",
 		Notes:          "Full config test",

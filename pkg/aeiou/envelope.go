@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 3
-// Purpose: Adds specific sentinel errors for V3 token verification.
+// File version: 5
+// Purpose: Adds a sentinel error for token minting failures.
 // filename: aeiou/envelope.go
-// nlines: 70
+// nlines: 74
 // risk_rating: LOW
 
 package aeiou
@@ -23,8 +23,11 @@ var (
 	// ErrDuplicateSection indicates a section appears more than once.
 	ErrDuplicateSection = errors.New("envelope duplicate section")
 	// ErrPayloadTooLarge indicates the envelope or a section exceeds size limits.
-	ErrPayloadTooLarge   = errors.New("envelope or section exceeds size limits")
+	ErrPayloadTooLarge = errors.New("envelope or section exceeds size limits")
+	// ErrMaxRecursionDepth indicates JSON nesting exceeds the maximum recursion depth.
 	ErrMaxRecursionDepth = errors.New("json nesting exceeds max recursion depth")
+	// ErrUserDataSchema indicates the USERDATA payload does not conform to the required schema.
+	ErrUserDataSchema = errors.New("userdata does not conform to schema")
 )
 
 // --- V3 Token Sentinel Errors ---
@@ -41,6 +44,8 @@ var (
 	ErrTokenReplay = errors.New("token replay detected")
 	// ErrTokenUnknownKID indicates the key ID in the token is not recognized.
 	ErrTokenUnknownKID = errors.New("token has unknown key id")
+	// ErrMintingFailed indicates both primary and fallback minters failed.
+	ErrMintingFailed = errors.New("token minting failed for both primary and fallback signers")
 )
 
 // SectionType defines the valid sections in an AEIOU v3 envelope.

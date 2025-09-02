@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 9
-// Purpose: Corrected the mock provider's action script to include necessary newlines for the parser.
+// File version: 11
+// Purpose: Updated the execution policy to allow 'tool.aeiou.*', fixing the policy rejection error for the magic tool.
 // filename: pkg/interpreter/interpreter_ask_e2e_test.go
 // nlines: 213
 // risk_rating: LOW
@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
@@ -56,8 +57,10 @@ func (m *mockE2EProvider) Chat(ctx context.Context, req provider.AIRequest) (*pr
 	actions := `
 		command
 			emit "mock e2e success"
+			set p = {"action":"done"}
+			emit tool.aeiou.magic("LOOP", p)
 		endcommand`
-	env := &aeiou.Envelope{Actions: actions}
+	env := &aeiou.Envelope{UserData: "{}", Actions: actions}
 	respText, err := env.Compose()
 	if err != nil {
 		m.t.Fatalf("Failed to compose mock AEIOU envelope: %v", err)
@@ -98,7 +101,7 @@ func TestAgentModelE2E_SuccessWithPrivileges(t *testing.T) {
 
 	configPolicy := &policy.ExecPolicy{
 		Context: policy.ContextConfig,
-		Allow:   []string{"tool.agentmodel.*"},
+		Allow:   []string{"tool.agentmodel.*", "tool.aeiou.*"}, // FIX: Allow magic tool
 		Grants: capability.NewGrantSet(
 			[]capability.Capability{
 				{Resource: "model", Verbs: []string{"admin", "use"}, Scopes: []string{"*"}},
@@ -130,7 +133,7 @@ func TestAgentModelE2E_SuccessWithPrivileges(t *testing.T) {
 	if bErr != nil {
 		t.Fatalf("Failed to build AST: %v", bErr)
 	}
-	if err := interp.Load(program); err != nil {
+	if err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: program}}}}); err != nil {
 		t.Fatalf("Failed to load program: %v", err)
 	}
 

@@ -1,14 +1,13 @@
 // NeuroScript Version: 0.7.0
-// File version: 1
-// Purpose: Implements the AEIOU v3 host-side loop controller.
+// File version: 4
+// Purpose: Corrects the token selection logic to properly handle "last-wins".
 // filename: aeiou/loop.go
-// nlines: 90
+// nlines: 138
 // risk_rating: HIGH
 
 package aeiou
 
 import (
-	"bufio"
 	"strings"
 )
 
@@ -17,6 +16,13 @@ type Decision struct {
 	Action LoopAction
 	Notes  string
 	Reason string
+	Lints  []Lint
+}
+
+// candidateToken is a private struct to hold a valid token and its location.
+type candidateToken struct {
+	payload *TokenPayload
+	lineNum int
 }
 
 // LoopController orchestrates the host's decision-making process for each turn.
@@ -32,12 +38,15 @@ func NewLoopController(verifier *MagicVerifier) *LoopController {
 
 // ProcessOutput scans the agent's raw output, finds all valid control tokens,
 // and selects a final decision based on the "precedence + last-wins" rule.
+// It also detects and reports non-fatal lints, such as text after the token.
 func (lc *LoopController) ProcessOutput(output string, hostCtx HostContext, replayCache *ReplayCache) (*Decision, error) {
-	var validTokens []*TokenPayload
+	var candidates []candidateToken
+	lineNum := 0
 
-	scanner := bufio.NewScanner(strings.NewReader(output))
-	for scanner.Scan() {
-		line := scanner.Text()
+	outputLines := strings.Split(output, "\n")
+
+	for i, line := range outputLines {
+		lineNum = i + 1
 		if !strings.HasPrefix(line, TokenMarkerPrefix) {
 			continue
 		}
@@ -45,57 +54,77 @@ func (lc *LoopController) ProcessOutput(output string, hostCtx HostContext, repl
 		payload, err := lc.verifier.ParseAndVerify(line, hostCtx)
 		if err != nil {
 			// Ignore invalid tokens as per spec (they are just inert text).
-			// A real host would log these failures.
 			continue
 		}
 
-		// Check for replay before considering the token valid for this turn.
 		if err := replayCache.CheckAndAdd(payload.JTI); err != nil {
-			// This is a validly signed token that has been replayed.
-			// The host should log this as a security event but treat it as inert.
+			// This is a validly signed token that has been replayed. Treat as inert.
 			continue
 		}
 
-		validTokens = append(validTokens, payload)
+		candidates = append(candidates, candidateToken{payload: payload, lineNum: lineNum})
 	}
 
-	if len(validTokens) == 0 {
-		// No valid control token was found. The host should HALT.
-		// We return a nil decision to signal this.
-		return nil, nil
+	if len(candidates) == 0 {
+		return nil, nil // No valid, non-replayed token found.
 	}
 
 	// Apply "precedence + last-wins" rule.
-	return selectDecision(validTokens), nil
+	winner := selectDecision(candidates)
+
+	decision := &Decision{
+		Action: winner.payload.Payload.Action,
+		Notes:  string(winner.payload.Payload.Telemetry),
+		Reason: string(winner.payload.Payload.Request),
+	}
+
+	// Check for post-token text lint.
+	for i := winner.lineNum; i < len(outputLines); i++ {
+		if strings.TrimSpace(outputLines[i]) != "" {
+			decision.Lints = append(decision.Lints, Lint{
+				Code:    LintCodePostTokenText,
+				Message: "extraneous text found after the chosen control token",
+			})
+			break // Only need to report the lint once.
+		}
+	}
+
+	return decision, nil
+}
+
+// getActionPrecedence returns a numerical weight for a given action.
+// Higher numbers have higher precedence.
+func getActionPrecedence(action LoopAction) int {
+	switch action {
+	case ActionAbort:
+		return 3
+	case ActionDone:
+		return 2
+	case ActionContinue:
+		return 1
+	default:
+		return 0
+	}
 }
 
 // selectDecision applies the precedence rules (abort > done > continue)
 // and last-wins for ties.
-func selectDecision(tokens []*TokenPayload) *Decision {
-	var bestToken *TokenPayload
+func selectDecision(candidates []candidateToken) candidateToken {
+	best := candidates[0]
 
-	for _, token := range tokens {
-		if bestToken == nil {
-			bestToken = token
-			continue
-		}
+	for i := 1; i < len(candidates); i++ {
+		current := candidates[i]
 
-		// Precedence: abort > done > continue
-		currentAction := bestToken.Payload.Action
-		newAction := token.Payload.Action
+		currentBestPrecedence := getActionPrecedence(best.payload.Payload.Action)
+		newPrecedence := getActionPrecedence(current.payload.Payload.Action)
 
-		if newAction == ActionAbort {
-			bestToken = token
-		} else if newAction == ActionDone && currentAction != ActionAbort {
-			bestToken = token
-		} else if newAction == ActionContinue && currentAction != ActionAbort && currentAction != ActionDone {
-			bestToken = token
+		// If the new token has higher or equal precedence, it becomes the new best.
+		// This correctly implements "last-wins" for ties because we are iterating
+		// in the order the tokens appeared.
+		if newPrecedence >= currentBestPrecedence {
+			best = current
 		}
 	}
 
-	return &Decision{
-		Action: bestToken.Payload.Action,
-		Notes:  string(bestToken.Payload.Telemetry), // Simplification for now
-		Reason: string(bestToken.Payload.Request),   // Simplification for now
-	}
+	return best
 }

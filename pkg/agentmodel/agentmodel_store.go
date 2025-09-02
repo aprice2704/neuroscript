@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 4
-// Purpose: Refactored to use ExecPolicy from the new, separate policy package.
+// File version: 6
+// Purpose: Updated to handle the 'AccountName' field and added a type-safe RegisterFromModel method.
 // filename: pkg/agentmodel/agentmodel_store.go
-// nlines: 322
+// nlines: 327
 // risk_rating: HIGH
 
 package agentmodel
@@ -96,6 +96,24 @@ func (v *agentModelAdminView) Register(name types.AgentModelName, cfg map[string
 	return nil
 }
 
+// RegisterFromModel provides a type-safe way to register a pre-constructed AgentModel.
+func (v *agentModelAdminView) RegisterFromModel(model types.AgentModel) error {
+	if err := v.ensureConfigContext(); err != nil {
+		return err
+	}
+	key := strings.ToLower(string(model.Name))
+
+	v.s.mu.Lock()
+	defer v.s.mu.Unlock()
+
+	if _, exists := v.s.m[key]; exists {
+		return lang.ErrDuplicateKey
+	}
+
+	v.s.m[key] = model
+	return nil
+}
+
 func (v *agentModelAdminView) Update(name types.AgentModelName, updates map[string]any) error {
 	if err := v.ensureConfigContext(); err != nil {
 		return err
@@ -159,7 +177,7 @@ func modelFromCfg(name types.AgentModelName, cfg map[string]any, base *types.Age
 	if out.Model, err = getString(cfg, "model", out.Model); err != nil {
 		return out, err
 	}
-	if out.SecretRef, err = getString(cfg, "api_key_ref", out.SecretRef); err != nil {
+	if out.AccountName, err = getString(cfg, "accountName", out.AccountName); err != nil {
 		return out, err
 	}
 	if out.BaseURL, err = getString(cfg, "base_url", out.BaseURL); err != nil {

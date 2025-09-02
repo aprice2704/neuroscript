@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 4
-// Purpose: Updated prompts to explicitly instruct the AI to use the AEIOU envelope format.
+// File version: 6
+// Purpose: Corrected the agent configuration key to 'SecretRef' to match the struct field name.
 // filename: pkg/livetest/ask_loop_livetest.go
 // nlines: 213
 // risk_rating: HIGH
@@ -42,7 +42,7 @@ func setupLiveTest(t *testing.T) *api.Interpreter {
 	agentConfig := map[string]any{
 		"provider":            "google",
 		"model":               "gemini-1.5-flash",
-		"secret_ref":          "GEMINI_API_KEY", // This tells the provider where to find the key.
+		"SecretRef":           "GEMINI_API_KEY", // FIX: Corrected to match the Go struct field 'SecretRef'.
 		"tool_loop_permitted": true,
 		"max_turns":           5,
 	}

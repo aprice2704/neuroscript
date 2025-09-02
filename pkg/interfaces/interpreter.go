@@ -1,48 +1,58 @@
-// NeuroScript Version: 0.5.2
-// File version: 4
-// Purpose: Updated to import Kind from the foundational types package.
+// NeuroScript Version: 0.7.0
+// File version: 9
+// Purpose: Purified the interpreter interface to use 'any' instead of 'lang.Value', breaking the core import cycle.
 // filename: pkg/interfaces/interpreter.go
-// nlines: 30
-// risk_rating: HIGH
+// nlines: 45
+// risk_rating: COSMIC
 
 package interfaces
 
 import (
-	"context"
+	"io"
 
-	"github.com/aprice2704/neuroscript/pkg/types" // CORRECTED: Import types package
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
-// Node is the interface required by the new integration contract.
-type Node interface {
-	GetPos() *types.Position
-	End() *types.Position
-	Kind() types.Kind // CORRECTED: Use types.Kind
+// Interpreter is the primary interface for the NeuroScript execution engine.
+type Interpreter interface {
+	Load(tree *Tree) error
+	ExecuteCommands() (any, error)
+	Run(procName string, args ...any) (any, error)
+	EmitEvent(eventName string, source string, payload any)
+	ToolRegistry() ToolRegistry
+	AgentModelsAdmin() AgentModelAdmin
+	AccountAdmin() AccountAdmin
+	SetSandboxDir(path string)
+	SetStdout(w io.Writer)
+	SetStderr(w io.Writer)
+	SetEmitFunc(f func(any))
+	SetAITranscript(w io.Writer)
+	GetLogger() Logger
+	RegisterProvider(name string, p any)
 }
 
-// Tree represents the entire parsed NeuroScript program.
+// Node represents a node in the AST.
+type Node interface {
+	Kind() types.Kind
+	GetPos() *types.Position
+}
+
+// Tree represents the entire parsed AST.
 type Tree struct {
 	Root     Node
-	Comments []interface{}
+	Comments []any
 }
 
-// ExecResult represents the outcome of a script execution.
-type ExecResult struct {
-	Output string
-	Error  error
-	Value  interface{}
+func (t *Tree) Kind() types.Kind {
+	if t.Root == nil {
+		return types.KindUnknown
+	}
+	return t.Root.Kind()
 }
 
-// SecretResolver is a function type that resolves a secret reference.
-type SecretResolver func(ref Node) (string, error)
-
-// InterpreterConfig holds the configuration for an interpreter run.
-type InterpreterConfig struct {
-	ResolveSecret SecretResolver
-}
-
-// Interpreter defines the public contract for executing a NeuroScript AST.
-type Interpreter interface {
-	ExecCommand(ctx context.Context, tree *Tree, cfg InterpreterConfig) (*ExecResult, error)
-	RegisterHandle(obj interface{}, typePrefix string) (string, error)
+func (t *Tree) GetPos() *types.Position {
+	if t.Root == nil {
+		return nil
+	}
+	return t.Root.GetPos()
 }

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.3
-// File version: 4
-// Purpose: Defines the CodecRegistry, now fully populated with codecs for all AST node kinds.
+// File version: 5
+// Purpose: Corrected undefined KindAccountName to KindSecretRef.
 // filename: pkg/canon/codec_registry.go
 // nlines: 70
 // risk_rating: LOW

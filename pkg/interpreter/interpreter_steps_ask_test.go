@@ -1,112 +1,76 @@
 // NeuroScript Version: 0.7.0
-// File version: 20
-// Purpose: Corrected mock provider to generate syntactically valid ACTIONS blocks with newlines.
+// File version: 40
+// Purpose: Removed duplicated test helper functions, now using the centralized helpers from 'interpreter_test_helpers.go'.
 // filename: pkg/interpreter/interpreter_steps_ask_test.go
-// nlines: 118
+// nlines: 60
 // risk_rating: MEDIUM
 
-package interpreter
+package interpreter_test
 
 import (
-	"context"
 	"errors"
-	"strings"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
-	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/parser"
 	"github.com/aprice2704/neuroscript/pkg/provider"
 )
 
-// mockSimpleProvider returns a single, final response.
-type mockSimpleProvider struct{}
+// Note: The mockAskProviderV3 struct and setupAskTestV3 function have been
+// moved to interpreter_test_helpers.go to avoid redeclaration errors.
 
-func (m *mockSimpleProvider) Chat(ctx context.Context, req provider.AIRequest) (*provider.AIResponse, error) {
-	responseActions := "command\n  emit \"The capital of Canada is Ottawa.\"\nendcommand"
-	env := &aeiou.Envelope{Actions: responseActions}
-	respText, _ := env.Compose()
-	return &provider.AIResponse{TextContent: respText}, nil
-}
-
-// mockErrorProvider always returns an error.
-type mockErrorProvider struct{}
-
-func (m *mockErrorProvider) Chat(ctx context.Context, req provider.AIRequest) (*provider.AIResponse, error) {
-	return nil, errors.New("API limit reached")
-}
-
-func TestAskStatementExecution(t *testing.T) {
+func TestAskStatementExecutionV3(t *testing.T) {
 	t.Run("Simple ask into variable", func(t *testing.T) {
-		mockProv := &mockSimpleProvider{}
-		interp, _ := NewTestInterpreter(t, nil, nil, true)
-		interp.RegisterProvider("mock_provider", mockProv)
-		err := interp.AgentModelsAdmin().Register("test_agent", map[string]any{
-			"provider":          "mock_provider",
-			"model":             "mock_model",
-			"toolLoopPermitted": true,
-		})
-		if err != nil {
-			t.Fatalf("Failed to register agent model: %v", err)
-		}
+		interp, mockProv := setupAskTestV3(t)
 
-		step := ast.Step{
-			Type: "ask",
-			AskStmt: &ast.AskStmt{
-				AgentModelExpr: &ast.StringLiteralNode{Value: "test_agent"},
-				PromptExpr:     &ast.StringLiteralNode{Value: "What is the capital of Canada?"},
-				IntoTarget:     &ast.LValueNode{Identifier: "result"},
-			},
-		}
+		// Set up the mock response for this specific test case
+		actions := `
+		command
+			emit "The capital of Canada is Ottawa."
+			set p = {"action": "done"}
+			emit tool.aeiou.magic("LOOP", p)
+		endcommand
+		`
+		env := &aeiou.Envelope{UserData: "{}", Actions: actions}
+		respText, _ := env.Compose()
+		mockProv.ResponseToReturn = &provider.AIResponse{TextContent: respText}
 
-		_, err = interp.executeAsk(step)
+		script := `command ask "test_agent", "What is the capital of Canada?" into result endcommand`
+		p := parser.NewParserAPI(nil)
+		tree, _ := p.Parse(script)
+		program, _, _ := parser.NewASTBuilder(nil).Build(tree)
+
+		_, err := interp.Execute(program)
 		if err != nil {
 			t.Fatalf("executeAsk failed: %v", err)
 		}
 
-		resultVar, exists := interp.GetVariable("result")
-		if !exists {
-			t.Fatal("Variable 'result' was not set by the ask statement")
+		resultVar, found := interp.GetVariable("result")
+		if !found {
+			t.Fatal("result variable not found")
 		}
 		resultStr, _ := lang.ToString(resultVar)
-		expectedResult := "The capital of Canada is Ottawa."
-		if resultStr != expectedResult {
-			t.Errorf("Expected result variable to be '%s', got '%s'", expectedResult, resultStr)
+		expected := "The capital of Canada is Ottawa."
+		if resultStr != expected {
+			t.Errorf("Expected result variable to be '%s', got '%s'", expected, resultStr)
 		}
 	})
 
-	t.Run("Ask with provider returning an error", func(t *testing.T) {
-		mockProv := &mockErrorProvider{}
-		interp, _ := NewTestInterpreter(t, nil, nil, true)
-		interp.RegisterProvider("mock_provider", mockProv)
-		err := interp.AgentModelsAdmin().Register("test_agent_err", map[string]any{
-			"provider":          "mock_provider",
-			"model":             "err_model",
-			"toolLoopPermitted": true,
-		})
-		if err != nil {
-			t.Fatalf("Failed to register agent model: %v", err)
-		}
+	t.Run("Ask with non-existent agent", func(t *testing.T) {
+		interp, _ := setupAskTestV3(t)
+		script := `command ask "no_such_agent", "prompt" endcommand`
+		p := parser.NewParserAPI(nil)
+		tree, _ := p.Parse(script)
+		program, _, _ := parser.NewASTBuilder(nil).Build(tree)
 
-		step := ast.Step{
-			Type: "ask",
-			AskStmt: &ast.AskStmt{
-				AgentModelExpr: &ast.StringLiteralNode{Value: "test_agent_err"},
-				PromptExpr:     &ast.StringLiteralNode{Value: "This will fail"},
-			},
-		}
-
-		_, err = interp.executeAsk(step)
-
+		_, err := interp.Execute(program)
 		if err == nil {
-			t.Fatal("Expected an error from the provider, but got nil")
+			t.Fatal("Expected an error for non-existent agent, but got nil")
 		}
 		var rtErr *lang.RuntimeError
-		if !errors.As(err, &rtErr) {
-			t.Fatalf("Expected a RuntimeError, but got %T", err)
-		}
-		if !strings.Contains(rtErr.Error(), "AI provider call failed") {
-			t.Errorf("Expected error to be about provider failure, got: %v", rtErr)
+		if !errors.As(err, &rtErr) || rtErr.Code != lang.ErrorCodeKeyNotFound {
+			t.Errorf("Expected a KeyNotFound error, got %T: %v", err, err)
 		}
 	})
 }

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/parser"
@@ -85,7 +86,7 @@ func TestInterpreterFixtures(t *testing.T) {
 			}
 
 			interp, _ := NewTestInterpreter(t, nil, nil, false)
-			if err := interp.Load(programAST); err != nil {
+			if err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: programAST}}}}); err != nil {
 				t.Fatalf("failed to load program into interpreter: %v", err)
 			}
 

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 10
-// Purpose: Corrected the agent configuration to use native Go types instead of lang.Value wrappers, fixing the final test failure.
+// File version: 11
+// Purpose: Corrected the test to align with the V3 'ask' statement, which generates a JSON object in the USERDATA section.
 // filename: pkg/api/autoprovider_test.go
-// nlines: 99
+// nlines: 100
 // risk_rating: LOW
 
 package api_test
@@ -58,6 +58,8 @@ endfunc
 	}
 
 	// 6. Run the procedure.
+	// The 'ask' statement will internally create a V3 envelope with a USERDATA
+	// section like: {"subject":"ask","fields":{"prompt":"What is a large language model?"}}
 	result, err := api.RunProcedure(context.Background(), interp, "main")
 	if err != nil {
 		t.Fatalf("api.RunProcedure failed unexpectedly: %v", err)

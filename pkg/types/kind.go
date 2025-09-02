@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 3
-// Purpose: Adds the KindWhisperStmt constant for the new 'whisper' command.
+// File version: 4
+// Purpose: Corrected undefined KindAccountName to KindSecretRef in the String() method.
 // filename: pkg/types/kind.go
-// nlines: 75+
+// nlines: 75
 // risk_rating: LOW
 
 package types
