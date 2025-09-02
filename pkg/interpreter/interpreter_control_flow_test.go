@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 16.0.0
-// Purpose: Corrected calls to the renamed test helper function 'NewTestInterpreter'.
+// File version: 16.0.1
+// Purpose: Corrected the call to interp.Load to pass the correct AST structure.
 // filename: pkg/interpreter/interpreter_control_flow_test.go
 // nlines: 200
 // risk_rating: MEDIUM
@@ -35,7 +35,7 @@ func runControlFlowTest(t *testing.T, script string) (lang.Value, error) {
 		return nil, bErr
 	}
 
-	if err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: program}}}}); err != nil {
+	if err := interp.Load(&interfaces.Tree{Root: program}); err != nil {
 		return nil, err
 	}
 

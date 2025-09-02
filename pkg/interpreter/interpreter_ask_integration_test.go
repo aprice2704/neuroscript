@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 30
-// Purpose: Removed duplicated test helper functions, now using the centralized helpers from 'interpreter_test_helpers.go'.
+// File version: 31
+// Purpose: Corrected the call to interp.Load to pass the correct AST structure.
 // filename: pkg/interpreter/interpreter_ask_integration_test.go
 // nlines: 125
 // risk_rating: MEDIUM
@@ -49,7 +49,7 @@ func loadAskTestScript(t *testing.T, interp *interpreter.Interpreter) {
 	if bErr != nil {
 		t.Fatalf("Failed to build AST: %v", bErr)
 	}
-	if err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: program}}}}); err != nil {
+	if err := interp.Load(&interfaces.Tree{Root: program}); err != nil {
 		t.Fatalf("Failed to load program into interpreter: %v", err)
 	}
 }

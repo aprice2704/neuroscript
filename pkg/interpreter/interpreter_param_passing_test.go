@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 4.0.0
-// Purpose: Corrected test setup to use SetEmitFunc for capturing output, resolving the core test failure.
+// File version: 4.0.1
+// Purpose: Corrected the call to interp.Load to pass the correct AST structure.
 // filename: pkg/interpreter/interpreter_param_passing_test.go
 // nlines: 275
 // risk_rating: MEDIUM
@@ -102,12 +102,12 @@ func TestInterpreter_ParameterPassingFuzz(t *testing.T) {
 
 	baseLogger := logging.NewTestLogger(t)
 	parserAPI := parser.NewParserAPI(baseLogger)
-	parseTree, parseErr := parserAPI.Parse(paramPassingTestScriptEnhanced)
+	parseTree, _, parseErr := parserAPI.ParseAndGetStream("test.ns", paramPassingTestScriptEnhanced)
 	if parseErr != nil {
 		t.Fatalf("Failed to parse script: %v", parseErr)
 	}
 	astBuilder := parser.NewASTBuilder(baseLogger)
-	program, _, buildErr := astBuilder.Build(parseTree)
+	program, _, buildErr := astBuilder.BuildFromParseResult(parseTree, nil)
 	if buildErr != nil {
 		t.Fatalf("Failed to build AST: %v", buildErr)
 	}
@@ -125,7 +125,7 @@ func TestInterpreter_ParameterPassingFuzz(t *testing.T) {
 				fmt.Fprintln(&capturedOutput, v.String())
 			})
 
-			if err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: program}}}}); err != nil {
+			if err := interp.Load(&interfaces.Tree{Root: program}); err != nil {
 				t.Fatalf("Iteration %d: Failed to load program: %v", iteration, err)
 			}
 

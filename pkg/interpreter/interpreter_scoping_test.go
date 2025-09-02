@@ -1,7 +1,7 @@
 // filename: pkg/interpreter/interpreter_scoping_test.go
-// NeuroScript Version: 0.7.0
-// File version: 2
-// Purpose: Corrected tests to use SetEmitFunc for capturing output, aligning with the interpreter's design.
+// Neuroscript version: 0.5.2
+// File version: 18
+// Purpose: Corrected calls to interp.Load to pass the correct AST structure.
 package interpreter
 
 import (
@@ -78,7 +78,7 @@ endfunc
 		t.Fatalf("Failed to build AST from parsed script: %v", buildErr)
 	}
 
-	if err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: programAST}}}}); err != nil {
+	if err := interp.Load(&interfaces.Tree{Root: programAST}); err != nil {
 		t.Fatalf("Failed to load program into interpreter: %v", err)
 	}
 
@@ -154,7 +154,7 @@ endfunc
 		t.Fatalf("Failed to build AST from parsed script: %v", buildErr)
 	}
 
-	if err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: programAST}}}}); err != nil {
+	if err := interp.Load(&interfaces.Tree{Root: programAST}); err != nil {
 		t.Fatalf("Failed to load program into interpreter: %v", err)
 	}
 

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 2.0.0
-// Purpose: Corrected call to the renamed test helper function 'NewTestInterpreter'.
+// File version: 2.0.1
+// Purpose: Corrected assignment mismatch in call to ParseAndGetStream.
 // filename: pkg/interpreter/interpreter_return_value_test.go
 // nlines: 45
 // risk_rating: LOW
@@ -31,15 +31,15 @@ endfunc
 	}
 
 	parserAPI := parser.NewParserAPI(interp.GetLogger())
-	p, pErr := parserAPI.Parse(script)
+	p, _, pErr := parserAPI.ParseAndGetStream("test.ns", script)
 	if pErr != nil {
 		t.Fatalf("Failed to parse script: %v", pErr)
 	}
-	program, _, bErr := parser.NewASTBuilder(interp.GetLogger()).Build(p)
+	program, _, bErr := parser.NewASTBuilder(interp.GetLogger()).BuildFromParseResult(p, nil)
 	if bErr != nil {
 		t.Fatalf("Failed to build AST: %v", bErr)
 	}
-	if err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: program}}}}); err != nil {
+	if err := interp.Load(&interfaces.Tree{Root: program}); err != nil {
 		t.Fatalf("Failed to load program: %v", err)
 	}
 

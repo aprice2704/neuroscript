@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.0
-// File version: 2
-// Purpose: Corrected the test to use the WithGlobals option directly, resolving the type mismatch error.
+// File version: 3
+// Purpose: Corrected the call to interp.Load to pass the correct AST structure.
 // filename: pkg/interpreter/interpreter_globals_test.go
 // nlines: 55
 // risk_rating: LOW
@@ -43,7 +43,7 @@ endfunc
 	if bErr != nil {
 		t.Fatalf("Failed to build AST: %v", bErr)
 	}
-	if err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: program}}}}); err != nil {
+	if err := interp.Load(&interfaces.Tree{Root: program}); err != nil {
 		t.Fatalf("Failed to load program: %v", err)
 	}
 

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 2
-// Purpose: Implements a thread-safe store for managing provider accounts, now requiring a 'kind' field on registration.
+// File version: 3
+// Purpose: Implements a thread-safe store for managing provider accounts, now using a sentinel error for invalid configs.
 // filename: pkg/account/store.go
-// nlines: 133
+// nlines: 135
 // risk_rating: HIGH
 
 package account
@@ -118,13 +118,13 @@ func accountFromCfg(name string, cfg map[string]any) (Account, error) {
 	var ok bool
 
 	if acc.Kind, ok = cfg["kind"].(string); !ok || acc.Kind == "" {
-		return Account{}, fmt.Errorf("'kind' is a required string field")
+		return Account{}, fmt.Errorf("'kind' is a required string field: %w", ErrInvalidConfiguration)
 	}
 	if acc.Provider, ok = cfg["provider"].(string); !ok || acc.Provider == "" {
-		return Account{}, fmt.Errorf("'provider' is a required string field")
+		return Account{}, fmt.Errorf("'provider' is a required string field: %w", ErrInvalidConfiguration)
 	}
 	if acc.APIKey, ok = cfg["apiKey"].(string); !ok || acc.APIKey == "" {
-		return Account{}, fmt.Errorf("'apiKey' is a required string field")
+		return Account{}, fmt.Errorf("'apiKey' is a required string field: %w", ErrInvalidConfiguration)
 	}
 
 	if val, present := cfg["orgId"]; present {

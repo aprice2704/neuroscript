@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 57
-// Purpose: Removed helper methods that were moved to interpreter_helpers.go to resolve duplicate declarations.
+// File version: 58
+// Purpose: Corrected the Load method to gracefully handle nil trees, fixing a test panic.
 // filename: pkg/interpreter/interpreter.go
 // nlines: 160
 // risk_rating: MEDIUM
@@ -15,6 +15,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/aprice2704/neuroscript/pkg/account"
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/agentmodel"
 	"github.com/aprice2704/neuroscript/pkg/ast"
@@ -59,6 +60,7 @@ type Interpreter struct {
 	turnCtx             context.Context
 	aiTranscript        io.Writer
 	transientPrivateKey ed25519.PrivateKey
+	accountStore        *account.Store
 }
 
 // SetAITranscript sets the writer for logging AI prompts.
@@ -83,6 +85,7 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	i.tools = tool.NewToolRegistry(i)
 	i.root = nil
 	i.modelStore = agentmodel.NewAgentModelStore()
+	i.accountStore = account.NewStore()
 
 	i.bufferManager.Create(DefaultSelfHandle)
 	i.customWhisperFunc = i.defaultWhisperFunc
@@ -141,17 +144,17 @@ func (i *Interpreter) SetInitialVariable(name string, value any) error {
 }
 
 func (i *Interpreter) Load(tree *interfaces.Tree) error {
-	program, ok := tree.Root.(*ast.Program)
-	if !ok {
-		return fmt.Errorf("interpreter.Load: expected root node of type *ast.Program, but got %T", tree.Root)
-	}
-
-	if program == nil {
+	if tree == nil || tree.Root == nil {
 		i.logger.Warn("Load called with a nil program AST.")
 		i.state.knownProcedures = make(map[string]*ast.Procedure)
 		i.eventManager.eventHandlers = make(map[string][]*ast.OnEventDecl)
 		i.state.commands = []*ast.CommandNode{}
 		return nil
+	}
+
+	program, ok := tree.Root.(*ast.Program)
+	if !ok {
+		return fmt.Errorf("interpreter.Load: expected root node of type *ast.Program, but got %T", tree.Root)
 	}
 
 	i.state.knownProcedures = make(map[string]*ast.Procedure)
@@ -184,4 +187,14 @@ func (i *Interpreter) GetGrantSet() *capability.GrantSet {
 		return &capability.GrantSet{}
 	}
 	return &i.ExecPolicy.Grants
+}
+
+// Accounts provides a read-only view of the account store.
+func (i *Interpreter) Accounts() interfaces.AccountReader {
+	return account.NewReader(i.accountStore)
+}
+
+// AccountsAdmin provides a policy-gated administrative view of the account store.
+func (i *Interpreter) AccountsAdmin() interfaces.AccountAdmin {
+	return account.NewAdmin(i.accountStore, i.ExecPolicy)
 }

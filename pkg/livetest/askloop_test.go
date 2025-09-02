@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 6
-// Purpose: Corrected the agent configuration key to 'SecretRef' to match the struct field name.
+// File version: 12
+// Purpose: Updated the inline setup script with the corrected NeuroScript syntax and re-verified the Go setup code.
 // filename: pkg/livetest/ask_loop_livetest.go
-// nlines: 213
+// nlines: 240
 // risk_rating: HIGH
 
 package livetest_test
@@ -24,31 +24,49 @@ import (
 func setupLiveTest(t *testing.T) *api.Interpreter {
 	t.Helper()
 
-	apiKey := os.Getenv("GEMINI_API_KEY")
-	if apiKey == "" {
+	if os.Getenv("GEMINI_API_KEY") == "" {
 		t.Skip("Skipping live test: GEMINI_API_KEY is not set.")
 	}
 
-	// Create an interpreter in a trusted context to allow agent registration.
-	configPolicy := &api.ExecPolicy{
-		Context: api.ContextConfig,
-		Allow:   []string{"tool.fs.*", "tool.str.*"},
+	// 1. Define the setup script to register the account and agent model.
+	setupScript := `
+	command
+		set key = tool.os.Getenv("GEMINI_API_KEY")
+		if key == nil or key == ""
+			fail "GEMINI_API_KEY not found by setup script"
+		endif
+		must tool.account.Register("google-ci", {\
+			"kind": "llm", "provider": "google", "apiKey": key\
+		})
+		must tool.agentmodel.Register("live_agent", {\
+			"provider": "google",\
+			"model": "gemini-1.5-flash",\
+			"AccountName": "google-ci",\
+			"tool_loop_permitted": true,\
+			"max_turns": 5\
+		})
+	endcommand
+	`
+
+	// 2. Define permissions for setup AND for the test logic itself.
+	allowedTools := []string{
+		"tool.os.Getenv",
+		"tool.account.Register",
+		"tool.agentmodel.Register",
+		"tool.fs.*",
+		"tool.str.*",
+	}
+	requiredGrants := []api.Capability{
+		api.NewCapability(api.ResEnv, api.VerbRead, "GEMINI_API_KEY"),
+		api.NewWithVerbs(api.ResModel, []string{api.VerbAdmin}, []string{"*"}),
 	}
 
-	// Note: api.New() automatically registers the "google" provider.
-	interp := api.New(api.WithExecPolicy(configPolicy))
+	// 3. Create a trusted interpreter with the necessary permissions.
+	interp := api.NewConfigInterpreter(allowedTools, requiredGrants)
 
-	// Configure the agent to use the API key from the environment.
-	agentConfig := map[string]any{
-		"provider":            "google",
-		"model":               "gemini-1.5-flash",
-		"SecretRef":           "GEMINI_API_KEY", // FIX: Corrected to match the Go struct field 'SecretRef'.
-		"tool_loop_permitted": true,
-		"max_turns":           5,
-	}
-
-	if err := interp.RegisterAgentModel("live_agent", agentConfig); err != nil {
-		t.Fatalf("Failed to register agent model for live test: %v", err)
+	// 4. Execute the setup script to configure the interpreter instance.
+	if _, err := api.ExecInNewInterpreter(context.Background(), setupScript, api.WithInterpreter(interp)); err != nil {
+		t.Fatalf("Failed to execute setup script: %v", err)
 	}
 
 	return interp

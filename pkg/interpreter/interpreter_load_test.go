@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 2.0.0
-// Purpose: Corrected calls to the renamed test helper function 'NewTestInterpreter'.
+// File version: 2.0.1
+// Purpose: Corrected calls to interp.Load to pass the correct AST structure.
 // filename: pkg/interpreter/interpreter_load_test.go
 // nlines: 95
 // risk_rating: LOW
@@ -38,7 +38,7 @@ func TestInterpreterLoad(t *testing.T) {
 			t.Fatalf("Failed to build AST: %v", bErr)
 		}
 
-		err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: program}}}})
+		err := interp.Load(&interfaces.Tree{Root: program})
 		if err != nil {
 			t.Fatalf("Load() returned an unexpected error: %v", err)
 		}
@@ -69,7 +69,7 @@ func TestInterpreterLoad(t *testing.T) {
 				Body:          []ast.Step{},
 			}},
 		}
-		if err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: program1}}}}); err != nil {
+		if err := interp.Load(&interfaces.Tree{Root: program1}); err != nil {
 			t.Fatalf("Initial load failed: %v", err)
 		}
 
@@ -83,7 +83,7 @@ func TestInterpreterLoad(t *testing.T) {
 			Procedures: map[string]*ast.Procedure{"proc2": {}, "proc3": {}},
 			Events:     []*ast.OnEventDecl{},
 		}
-		if err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: program2}}}}); err != nil {
+		if err := interp.Load(&interfaces.Tree{Root: program2}); err != nil {
 			t.Fatalf("Reload failed: %v", err)
 		}
 
@@ -102,7 +102,7 @@ func TestInterpreterLoad(t *testing.T) {
 	t.Run("Load Nil Program", func(t *testing.T) {
 		interp, _ := NewTestInterpreter(t, nil, nil, false)
 		// This should not panic
-		err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: nil}}}})
+		err := interp.Load(&interfaces.Tree{Root: nil})
 		if err != nil {
 			t.Fatalf("Load(nil) returned an error: %v", err)
 		}
@@ -114,7 +114,7 @@ func TestInterpreterLoad(t *testing.T) {
 			Procedures: make(map[string]*ast.Procedure),
 			Events:     []*ast.OnEventDecl{},
 		}
-		err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: program}}}})
+		err := interp.Load(&interfaces.Tree{Root: program})
 		if err != nil {
 			t.Fatalf("Load(empty) returned an error: %v", err)
 		}

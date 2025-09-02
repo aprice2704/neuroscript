@@ -1,7 +1,7 @@
 // filename: pkg/interpreter/evaluation_event_handler_test.go
 // NeuroScript Version: 0.5.2
-// File version: 12
-// Purpose: Corrected test setup to use SetEmitFunc for capturing output, which is the correct mechanism for observing 'emit' statements.
+// File version: 13
+// Purpose: Corrected calls to interp.Load to pass the correct AST structure.
 // nlines: 135+
 // risk_rating: LOW
 
@@ -45,7 +45,7 @@ func setupEventHandlerTest(t *testing.T, script string) (*Interpreter, *bytes.Bu
 		t.Fatalf("Failed to build AST: %v", err)
 	}
 
-	if err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: prog}}}}); err != nil {
+	if err := interp.Load(&interfaces.Tree{Root: prog}); err != nil {
 		t.Fatalf("Failed to load program into interpreter: %v", err)
 	}
 

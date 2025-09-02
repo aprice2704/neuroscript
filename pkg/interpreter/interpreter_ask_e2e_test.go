@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 11
-// Purpose: Updated the execution policy to allow 'tool.aeiou.*', fixing the policy rejection error for the magic tool.
+// File version: 12
+// Purpose: Updated the test script to use the correct 'AccountName' key, fixing the API key mismatch error.
 // filename: pkg/interpreter/interpreter_ask_e2e_test.go
 // nlines: 213
 // risk_rating: LOW
@@ -78,7 +78,7 @@ func _SetupMockAgent() means
     set config = {\
         "provider": "mock_e2e_provider",\
         "model": "e2e_model",\
-        "api_key_ref": "MOCK_API_KEY_ENV_VAR",\
+        "AccountName": "MOCK_API_KEY_ENV_VAR",\
         "tool_loop_permitted": true\
     }
     must tool.agentmodel.Register("mock_e2e_agent", config)
@@ -133,7 +133,7 @@ func TestAgentModelE2E_SuccessWithPrivileges(t *testing.T) {
 	if bErr != nil {
 		t.Fatalf("Failed to build AST: %v", bErr)
 	}
-	if err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: program}}}}); err != nil {
+	if err := interp.Load(&interfaces.Tree{Root: program}); err != nil {
 		t.Fatalf("Failed to load program: %v", err)
 	}
 

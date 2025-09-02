@@ -1,7 +1,9 @@
 // filename: pkg/lang/type_utils.go
 // NeuroScript Version: 0.4.1
-// File version: 11
-// Purpose: Removed unused import of 'interfaces' package to break an import cycle.
+// File version: 12
+// Purpose: Corrected the reflection logic for tool type detection to work with interfaces, not just structs.
+// nlines: 290
+// risk_rating: LOW
 
 package lang
 
@@ -37,10 +39,10 @@ func TypeOf(value interface{}) NeuroScriptType {
 			if t.Kind() == reflect.Ptr {
 				t = t.Elem()
 			}
-			if t.Kind() == reflect.Struct {
-				if _, ok := t.MethodByName("IsTool"); ok {
-					return TypeTool
-				}
+			// FIX: The type can be an interface, not just a struct.
+			// The presence of the IsTool method is the defining characteristic.
+			if _, ok := t.MethodByName("IsTool"); ok {
+				return TypeTool
 			}
 		}
 	}

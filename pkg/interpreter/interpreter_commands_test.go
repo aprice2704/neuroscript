@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 8.0.0
-// Purpose: Corrected call to the renamed test helper function 'NewTestInterpreter'.
+// File version: 8.0.1
+// Purpose: Corrected the call to interp.Load to pass the correct AST structure.
 // filename: pkg/interpreter/interpreter_commands_test.go
 // nlines: 80
 // risk_rating: LOW
@@ -61,7 +61,7 @@ func TestCommandExecution(t *testing.T) {
 			},
 		}
 
-		if err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: program}}}}); err != nil {
+		if err := interp.Load(&interfaces.Tree{Root: program}); err != nil {
 			t.Fatalf("Load() returned an unexpected error: %v", err)
 		}
 

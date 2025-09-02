@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 6
-// Purpose: Updated to handle the 'AccountName' field and added a type-safe RegisterFromModel method.
+// File version: 8
+// Purpose: Updated the config parser to look for 'AccountName' to align with test data.
 // filename: pkg/agentmodel/agentmodel_store.go
 // nlines: 327
 // risk_rating: HIGH
@@ -177,7 +177,7 @@ func modelFromCfg(name types.AgentModelName, cfg map[string]any, base *types.Age
 	if out.Model, err = getString(cfg, "model", out.Model); err != nil {
 		return out, err
 	}
-	if out.AccountName, err = getString(cfg, "accountName", out.AccountName); err != nil {
+	if out.AccountName, err = getString(cfg, "AccountName", out.AccountName); err != nil {
 		return out, err
 	}
 	if out.BaseURL, err = getString(cfg, "base_url", out.BaseURL); err != nil {

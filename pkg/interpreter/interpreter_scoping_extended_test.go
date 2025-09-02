@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 4.0.0
-// Purpose: Corrected calls to the renamed test helper function 'NewTestInterpreter'.
+// File version: 4.0.1
+// Purpose: Corrected assignment mismatch in call to ParseAndGetStream.
 // filename: pkg/interpreter/interpreter_scoping_extended_test.go
 // nlines: 125
 // risk_rating: LOW
@@ -109,9 +109,9 @@ func TestVariableScopingExtended(t *testing.T) {
 		`
 		interp, _ := NewTestInterpreter(t, nil, nil, false)
 		parserAPI := parser.NewParserAPI(interp.GetLogger())
-		ast, _ := parserAPI.Parse(script)
-		prog, _, _ := parser.NewASTBuilder(interp.GetLogger()).Build(ast)
-		interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: prog}}}})
+		p, _, _ := parserAPI.ParseAndGetStream("test.ns", script)
+		prog, _, _ := parser.NewASTBuilder(interp.GetLogger()).BuildFromParseResult(p, nil)
+		interp.Load(&interfaces.Tree{Root: prog})
 
 		interp.SetVariable("a", lang.StringValue{Value: "original"})
 

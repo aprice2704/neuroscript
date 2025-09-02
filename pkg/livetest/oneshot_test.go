@@ -1,12 +1,13 @@
 // NeuroScript Version: 0.7.0
-// File version: 9
-// Purpose: Corrected the agent configuration key to 'secretRef' to match the expected map key for proper API key resolution.
+// File version: 19
+// Purpose: Corrected the debug script to iterate over the lists returned by tool calls, as 'emit' does not support printing lists directly.
 // filename: pkg/livetest/oneshot_test.go
-// nlines: 88
+// nlines: 145
 // risk_rating: HIGH
 package livetest_test
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"strings"
@@ -24,24 +25,50 @@ func setupOneShotTest(t *testing.T) *api.Interpreter {
 		t.Skip("Skipping live test: GEMINI_API_KEY is not set.")
 	}
 
-	// Create an interpreter in a trusted context to allow agent registration.
-	configPolicy := &api.ExecPolicy{
-		Context: api.ContextConfig,
+	// 1. Define the setup script to register the account and agent model.
+	setupScript := `
+	command
+		set key = tool.os.Getenv("GEMINI_API_KEY")
+		if key == nil or key == ""
+			fail "GEMINI_API_KEY not found by setup script"
+		endif
+		must tool.account.Register("google-ci", {\
+			"kind": "llm", "provider": "google", "apiKey": key\
+		})
+		must tool.agentmodel.Register("live_agent", {\
+			"provider": "google",\
+			"model": "gemini-1.5-flash",\
+			"AccountName": "google-ci",\
+			"tool_loop_permitted": false\
+		})
+	endcommand
+	`
+
+	// 2. Define permissions, including for the debug/listing tools.
+	allowedTools := []string{
+		"tool.os.Getenv",
+		"tool.account.*",
+		"tool.agentmodel.*",
+		"tool.provider.*",
+		"tool.str.*",
+	}
+	requiredGrants := []api.Capability{
+		api.NewCapability(api.ResEnv, api.VerbRead, "GEMINI_API_KEY"),
+		api.NewWithVerbs(api.ResModel, []string{api.VerbAdmin, api.VerbRead}, []string{"*"}),
+		api.NewWithVerbs("account", []string{api.VerbAdmin, api.VerbRead}, []string{"*"}),
+		api.NewWithVerbs("provider", []string{api.VerbRead}, []string{"*"}),
 	}
 
-	interp := api.New(api.WithExecPolicy(configPolicy))
+	// 3. Create a trusted interpreter.
+	interp := api.NewConfigInterpreter(allowedTools, requiredGrants)
 
-	// Configure the agent to use the API key from the environment.
-	agentConfig := map[string]any{
-		"provider": "google",
-		"model":    "gemini-1.5-flash",
-		// FIX: The correct key is 'secretRef' (camelCase).
-		"secretRef":           "GEMINI_API_KEY",
-		"tool_loop_permitted": false, // This is a one-shot agent.
+	// 4. Parse and execute the setup script.
+	tree, err := api.Parse([]byte(setupScript), api.ParseSkipComments)
+	if err != nil {
+		t.Fatalf("Failed to parse setup script: %v", err)
 	}
-
-	if err := interp.RegisterAgentModel("live_agent", agentConfig); err != nil {
-		t.Fatalf("Failed to register agent model for live test: %v", err)
+	if _, err := api.ExecWithInterpreter(context.Background(), interp, tree); err != nil {
+		t.Fatalf("Failed to execute setup script: %v", err)
 	}
 
 	return interp
@@ -51,16 +78,31 @@ func setupOneShotTest(t *testing.T) *api.Interpreter {
 func TestLive_OneShotQuery(t *testing.T) {
 	interp := setupOneShotTest(t)
 
+	// This script now iterates over the lists to print them.
 	script := `
 func main(returns result) means
-    # The prompt is now just the user's question.
-    # Formatting rules are provided by the bootstrap capsule automatically.
-    set prompt = "What were the names of the three astronauts who flew on the Apollo 13 mission?"
+    emit "--- DEBUG: STATE BEFORE ASK ---"
+    emit "ACCOUNTS:"
+    set account_list = tool.account.List()
+    for each name in account_list
+        emit "  - " + name
+    endfor
 
+    emit "AGENT MODELS:"
+    set agent_list = tool.agentmodel.List()
+    for each name in agent_list
+        emit "  - " + name
+    endfor
+    emit "-----------------------------"
+
+    set prompt = "What were the names of the three astronauts who flew on the Apollo 13 mission?"
     ask "live_agent", prompt into result
     return result
 endfunc
 `
+	var testOutput bytes.Buffer
+	interp.SetStdout(&testOutput)
+
 	tree, err := api.Parse([]byte(script), api.ParseSkipComments)
 	if err != nil {
 		t.Fatalf("api.Parse failed: %v", err)
@@ -70,8 +112,8 @@ endfunc
 	}
 
 	result, err := api.RunProcedure(context.Background(), interp, "main")
+	t.Logf("Test script debug output:\n%s", testOutput.String())
 	if err != nil {
-		// Log the raw error which might contain the full AI response for debugging.
 		t.Logf("Full error from RunProcedure: %v", err)
 		t.Fatalf("api.RunProcedure failed unexpectedly: %v", err)
 	}
@@ -84,7 +126,6 @@ endfunc
 
 	t.Logf("One-shot query final answer: %s", answer)
 
-	// Verify the answer contains the key names.
 	for _, name := range []string{"Lovell", "Swigert", "Haise"} {
 		if !strings.Contains(answer, name) {
 			t.Errorf("Expected answer to contain '%s', but it did not.", name)

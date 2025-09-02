@@ -1,7 +1,7 @@
 // filename: pkg/interpreter/interpreter_script_test.go
 // Neuroscript version: 0.5.2
-// File version: 17
-// Purpose: Corrected call to the renamed test helper function 'NewTestInterpreter'.
+// File version: 18
+// Purpose: Corrected the call to interp.Load to pass the correct AST structure.
 package interpreter
 
 import (
@@ -86,7 +86,7 @@ func TestInterpreterFixtures(t *testing.T) {
 			}
 
 			interp, _ := NewTestInterpreter(t, nil, nil, false)
-			if err := interp.Load(&interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: &interfaces.Tree{Root: programAST}}}}); err != nil {
+			if err := interp.Load(&interfaces.Tree{Root: programAST}); err != nil {
 				t.Fatalf("failed to load program into interpreter: %v", err)
 			}
 

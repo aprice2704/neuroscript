@@ -1,0 +1,53 @@
+// NeuroScript Version: 0.7.0
+// File version: 2
+// Purpose: Registers provider accounts from environment variables using correct NeuroScript syntax.
+// filename: config/accounts.nsc
+// risk_rating: HIGH (contains credential logic)
+
+command
+    emit "--- Registering Provider Accounts ---"
+
+    # Per the guide, variables are assigned with the 'set' keyword.
+    # We assume a tool 'env.Get' exists to read environment variables.
+    set openai_api_key = tool.os.GetEnv("OPENAI_API_KEY")
+    set google_api_key = tool.os.GetEnv("GOOGLE_API_KEY")
+
+    if openai_api_key == nil or openai_api_key == ""
+        emit "WARN: OPENAI_API_KEY environment variable not set. Skipping."
+    else
+        # External functions are invoked with the 'tool.' prefix.
+        set success = tool.account.Register("openai-main", {\
+            "kind": "llm",\
+            "provider": "openai",\
+            "apiKey": openai_api_key,\
+            "notes": "Primary account for general purpose tasks."\
+        })
+
+        if success
+            # The 'emit' statement is the standard way to produce output.
+            emit "✅ Registered account: openai-main"
+        endif
+    endif
+
+
+    if google_api_key == nil or google_api_key == ""
+        emit "WARN: GOOGLE_API_KEY environment variable not set. Skipping."
+    else
+        set success = tool.account.Register("google-gemini", {\
+            "kind": "llm",\
+            "provider": "google",\
+            "apiKey": google_api_key,\
+            "notes": "Primary account for Gemini models."\
+        })
+
+        if success
+            emit "✅ Registered account: google-gemini"
+        endif
+    endif
+
+    emit "" # for a blank line
+    emit "--- Verification: All Registered Accounts ---"
+    set current_accounts = tool.account.List()
+    emit current_accounts
+    emit "------------------------------------------"
+endcommand
