@@ -17,7 +17,7 @@ We use **Go 1.24+**. These rules emphasize correctness, minimalism, and context 
 - If you don't fix all related bugs in a file in **two** attempts, you **do NOT** understand the problem, however confident you feel. **IMMEDIATELY** add debug output. Given enough debug output, all bugs are shallow.
 
 ### 2. Import Hygiene
-- Never output `github.comcom`. It must always be `github.com`.  
+- Never output `github.comcom` or `.com.com` It must always be `github.com`.  
 - In `.md` files, do **not** wrap Go import paths in markdown links.
 
 ### 3. Full & Functional Files
@@ -54,10 +54,11 @@ At the top of **every modified file**, include:
 - Use the **standard library `testing` package only**.  
 - No `testify` or external assertion libs.  
 
-### 9. Bail Out on Nil
+### 9. No Limping
+- FAIL FAST
 - Always check for nil before use.  
 - If nil means unsafe state, **return an error immediately** (or panic if unrecoverable).  
-- Don’t “limp along” on nils.  
+- Don’t “limp along” on nil or unexpected formats; ns is designed to be simple and obvious, not forgiving of garbage.
 
 ### 10. Ask for Missing Info
 - If you need a `.g4` grammar, a fixture, or a file that isn’t present, **ask immediately**.  

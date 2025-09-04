@@ -1,126 +1,92 @@
 // NeuroScript Version: 0.7.0
-// File version: 8
-// Purpose: Replaced SecretRef with AccountName to decouple agent configuration from credentials.
+// File version: 5
+// Purpose: Adds a runtime-only APIKey field to the AgentModel struct to plumb credentials from the account store to the LLM connector.
 // filename: pkg/types/agentmodel.go
-// nlines: 110
+// nlines: 78
 // risk_rating: MEDIUM
 
 package types
 
-import "encoding/json"
+// AgentModelName is a typed string for agent model identifiers.
+type AgentModelName string
 
-// ConstitutionLevel indicates how a model's constitution is applied.
-type ConstitutionLevel uint8
-
-const (
-	ConstitutionNone       ConstitutionLevel = iota // No constitution applied
-	ConstitutionSysPrompt                           // Constitution applied via system prompt
-	ConstitutionInTraining                          // Constitution baked in during model training
-)
-
-// ResponseFormat specifies the desired output format from the model.
+// ResponseFormat specifies the format for the model's output (e.g., json_object).
 type ResponseFormat string
 
 const (
-	ResponseFormatDefault ResponseFormat = ""
-	ResponseFormatText    ResponseFormat = "text"
-	ResponseFormatJSON    ResponseFormat = "json_object"
+	ResponseFormatText ResponseFormat = "text"
+	ResponseFormatJSON ResponseFormat = "json_object"
 )
 
-// ToolChoice sets the mode for tool execution.
+// ToolChoice controls how the model uses tools.
 type ToolChoice string
 
 const (
-	ToolChoiceDefault ToolChoice = ""
-	ToolChoiceAuto    ToolChoice = "auto"
-	ToolChoiceAny     ToolChoice = "any"
-	ToolChoiceNone    ToolChoice = "none"
+	ToolChoiceAuto ToolChoice = "auto"
+	ToolChoiceAny  ToolChoice = "any"
+	ToolChoiceNone ToolChoice = "none"
 )
 
-// GenerationConfig holds parameters that control the model's creative output.
-type GenerationConfig struct {
-	Temperature       float64
-	TopP              float64
-	TopK              int
-	MaxOutputTokens   int
-	StopSequences     []string
-	PresencePenalty   float64
-	FrequencyPenalty  float64
-	RepetitionPenalty float64 // For Meta Llama
-	Seed              *int64  // Use a pointer to distinguish between 0 and not set
-	LogitBias         map[string]int
-	LogProbs          bool
-	ResponseFormat    ResponseFormat
-}
-
-// ToolConfig defines how the model should interact with tools.
-type ToolConfig struct {
-	ToolLoopPermitted bool
-	AutoLoopEnabled   bool // If true, a single 'ask' will automatically start the multi-turn loop.
-	ToolChoice        ToolChoice
-}
-
-// SafetyConfig defines safety-related parameters.
-type SafetyConfig struct {
-	// For providers like Mistral, this can be used to enable a "safe mode".
-	SafePrompt bool
-	// For providers like Google, this allows for fine-grained control over safety categories.
-	// The key is the category (e.g., "HARM_CATEGORY_HARASSMENT") and the value is the
-	// threshold (e.g., "BLOCK_MEDIUM_AND_ABOVE").
-	Settings map[string]string
-}
-
-// AgentModel holds the validated and parsed configuration for a specific AI model endpoint.
-// This is the canonical definition used throughout the system.
+// AgentModel is the central, unified configuration for an AI agent. It defines
+// the model to use, its parameters, and associated settings.
 type AgentModel struct {
-	Name           AgentModelName
-	Provider       string
-	Model          string
-	AccountName    string // NEW: Logical name for the account providing credentials.
-	BaseURL        string
-	BudgetCurrency string
-	PriceTable     map[string]float64
+	Name           AgentModelName `json:"name"`
+	Provider       string         `json:"provider"`
+	Model          string         `json:"model"`
+	AccountName    string         `json:"account_name,omitempty"`
+	BaseURL        string         `json:"base_url,omitempty"`
+	BudgetCurrency string         `json:"budget_currency,omitempty"`
+	Notes          string         `json:"notes,omitempty"`
+	Disabled       bool           `json:"disabled,omitempty"`
+	ContextKTok    int            `json:"context_ktok,omitempty"`
+	MaxTurns       int            `json:"max_turns,omitempty"`
+	MaxRetries     int            `json:"max_retries,omitempty"`
 
-	// Core Generation Controls
-	Generation GenerationConfig
+	// APIKey is resolved at runtime from the AccountName. It is not persisted
+	// or parsed from configuration files.
+	APIKey string `json:"-"`
 
-	// Tool & Loop Controls
-	Tools ToolConfig
+	PriceTable PriceTable       `json:"price_table,omitempty"`
+	Generation GenerationConfig `json:"generation,omitempty"`
+	Tools      ToolConfig       `json:"tools,omitempty"`
+	Safety     SafetyConfig     `json:"safety,omitempty"`
 
-	// Safety Controls
-	Safety SafetyConfig
-
-	// Context and Constitution
-	ContextKTok        int // Maximum advertised context in thousands of tokens (e.g., 1000 for 1M tokens)
-	IdealContextKTok   int // The recommended context size to use in kTok.
-	ConstitutionLevel  ConstitutionLevel
-	ConstitutionSource string // Source identifier for the constitution (e.g., a file path or URL)
-
-	// Rate & Token Limits
-	MaxReqPerSec    int
-	MaxReqPerMinute int
-	MaxReqPerHour   int
-	MaxReqPerDay    int
-	MaxTokPerSec    int
-	MaxTokPerMinute int
-
-	// Ask Loop Control (Legacy fields, kept for backward compatibility during transition)
-	ToolLoopPermitted bool    `json:"-"` // Deprecated: use Tools.ToolLoopPermitted
-	AutoLoopEnabled   bool    `json:"-"` // Deprecated: use Tools.AutoLoopEnabled
-	Temperature       float64 `json:"-"` // Deprecated: use Generation.Temperature
-	MaxTurns          int
-	MaxRetries        int
-
-	// Metadata
-	Notes    string
-	Disabled bool
+	// --- Deprecated Fields (for backward compatibility) ---
+	Temperature       float64 `json:"temperature,omitempty"`
+	ToolLoopPermitted bool    `json:"tool_loop_permitted,omitempty"`
+	AutoLoopEnabled   bool    `json:"auto_loop_enabled,omitempty"`
 }
 
-// String provides a JSON representation of the AgentModel for logging/debugging.
-func (am AgentModel) String() string {
-	b, err := json.MarshalIndent(am, "", "  ")
-	if err != nil {
-		return "failed to marshal AgentModel"
-	}
-	return string(b)
+// PriceTable defines the cost of using a model.
+type PriceTable struct {
+	InputPerMTok  float64 `json:"input_per_mtok,omitempty"`
+	OutputPerMTok float64 `json:"output_per_mtok,omitempty"`
+}
+
+// GenerationConfig holds parameters that control the model's output generation.
+type GenerationConfig struct {
+	Temperature       float64        `json:"temperature,omitempty"`
+	TopP              float64        `json:"top_p,omitempty"`
+	TopK              int            `json:"top_k,omitempty"`
+	MaxOutputTokens   int            `json:"max_output_tokens,omitempty"`
+	StopSequences     []string       `json:"stop_sequences,omitempty"`
+	PresencePenalty   float64        `json:"presence_penalty,omitempty"`
+	FrequencyPenalty  float64        `json:"frequency_penalty,omitempty"`
+	RepetitionPenalty float64        `json:"repetition_penalty,omitempty"`
+	Seed              *int64         `json:"seed,omitempty"`
+	LogProbs          bool           `json:"log_probs,omitempty"`
+	ResponseFormat    ResponseFormat `json:"response_format,omitempty"`
+}
+
+// ToolConfig holds parameters related to tool use.
+type ToolConfig struct {
+	ToolLoopPermitted bool       `json:"tool_loop_permitted,omitempty"`
+	AutoLoopEnabled   bool       `json:"auto_loop_enabled,omitempty"`
+	ToolChoice        ToolChoice `json:"tool_choice,omitempty"`
+}
+
+// SafetyConfig holds parameters for content safety.
+type SafetyConfig struct {
+	SafePrompt bool              `json:"safe_prompt,omitempty"`
+	Settings   map[string]string `json:"settings,omitempty"`
 }

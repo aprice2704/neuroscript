@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.7.0
-// File version: 58
-// Purpose: Corrected the Load method to gracefully handle nil trees, fixing a test panic.
+// File version: 59
+// Purpose: Rerouted store accessors to the root interpreter to ensure state changes persist even when executed from a sandboxed clone.
 // filename: pkg/interpreter/interpreter.go
-// nlines: 160
-// risk_rating: MEDIUM
+// nlines: 184
+// risk_rating: HIGH
 
 package interpreter
 
@@ -189,12 +189,38 @@ func (i *Interpreter) GetGrantSet() *capability.GrantSet {
 	return &i.ExecPolicy.Grants
 }
 
-// Accounts provides a read-only view of the account store.
-func (i *Interpreter) Accounts() interfaces.AccountReader {
-	return account.NewReader(i.accountStore)
+// rootInterpreter walks the chain of clones to find the original root interpreter.
+// This ensures that operations on persistent stores are always on the canonical instance.
+func (i *Interpreter) rootInterpreter() *Interpreter {
+	root := i
+	for root.root != nil {
+		root = root.root
+	}
+	return root
 }
 
-// AccountsAdmin provides a policy-gated administrative view of the account store.
+// Accounts provides a read-only view of the account store from the root interpreter.
+func (i *Interpreter) Accounts() interfaces.AccountReader {
+	root := i.rootInterpreter()
+	return account.NewReader(root.accountStore)
+}
+
+// AccountsAdmin provides a policy-gated administrative view of the account store
+// from the root interpreter, ensuring changes are always persisted.
 func (i *Interpreter) AccountsAdmin() interfaces.AccountAdmin {
-	return account.NewAdmin(i.accountStore, i.ExecPolicy)
+	root := i.rootInterpreter()
+	return account.NewAdmin(root.accountStore, i.ExecPolicy)
+}
+
+// AgentModels provides a read-only view of the agent model store from the root interpreter.
+func (i *Interpreter) AgentModels() interfaces.AgentModelReader {
+	root := i.rootInterpreter()
+	return agentmodel.NewAgentModelReader(root.modelStore)
+}
+
+// AgentModelsAdmin provides a policy-gated administrative view of the agent model store
+// from the root interpreter, ensuring changes are always persisted.
+func (i *Interpreter) AgentModelsAdmin() interfaces.AgentModelAdmin {
+	root := i.rootInterpreter()
+	return agentmodel.NewAgentModelAdmin(root.modelStore, i.ExecPolicy)
 }

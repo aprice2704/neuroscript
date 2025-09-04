@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.5.0
-// File version: 18
-// Purpose: Removed explicit provider registration, which is now handled automatically by api.New().
+// NeuroScript Version: 0.7.0
+// File version: 19
+// Purpose: Fixes issue where emit was not producing output by using SetEmitFunc.
 // filename: cmd/ng/run.go
-// nlines: 193
+// nlines: 200
 // risk_rating: HIGH
 package main
 
@@ -60,9 +60,20 @@ func Run(cfg CliConfig) int {
 		trustedInterp := api.NewConfigInterpreter(
 			allowedTools,
 			requiredGrants,
-			api.WithStdout(os.Stdout),
+			// api.WithStdout(os.Stdout), // This was not working as expected.
 			api.WithStderr(os.Stderr),
 		)
+
+		// FIX: Explicitly set a handler for the 'emit' command to ensure output.
+		trustedInterp.SetEmitFunc(func(v api.Value) {
+			val, err := api.Unwrap(v)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "[emit error] %v\n", err)
+				return
+			}
+			fmt.Println(val)
+		})
+
 		fmt.Println("Interpreter created with elevated privileges.")
 
 		args := stringSliceToAnySlice(cfg.TrustedTargetArgs)
@@ -84,9 +95,18 @@ func Run(cfg CliConfig) int {
 	if scriptToRunNonTUI != "" || cfg.TuiMode || cfg.ReplMode {
 		// api.New() now handles registration of default providers automatically.
 		interp = api.New(
-			api.WithStdout(os.Stdout),
 			api.WithStderr(os.Stderr),
 		)
+		// Also apply the emit fix to the standard interpreter.
+		interp.SetEmitFunc(func(v api.Value) {
+			val, err := api.Unwrap(v)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "[emit error] %v\n", err)
+				return
+			}
+			fmt.Println(val)
+		})
+
 		fmt.Println("Interpreter created with standard privileges.")
 	}
 

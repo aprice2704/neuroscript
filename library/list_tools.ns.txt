@@ -10,7 +10,7 @@ func main means
     emit ```
     --------------------
     ```
-    set helpResult = tool.Meta.ToolsHelp()
+    set helpResult = tool.Meta.ToolsHelp("")
     emit "Detailed Tool Help (Markdown):"
     emit helpResult
 endfunc

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 8
-// Purpose: Updated to use model.AccountName instead of the removed model.SecretRef field.
+// File version: 11
+// Purpose: Updated to use the version-aware capsule registry, fetching the latest bootstrap capsules by name instead of by a versioned ID.
 // filename: pkg/llmconn/llmconn.go
-// nlines: 115
+// nlines: 135
 // risk_rating: MEDIUM
 
 package llmconn
@@ -10,7 +10,6 @@ package llmconn
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
@@ -65,25 +64,19 @@ func (c *LLMConn) Converse(ctx context.Context, input *aeiou.Envelope) (*provide
 	// On the first turn of a conversation, prepend the appropriate bootstrap
 	// instructions to the entire prompt by retrieving them from the capsule registry.
 	if c.turnCount == 1 {
-		var capsuleID string
+		var capsuleName string
 		if c.model.Tools.ToolLoopPermitted {
-			capsuleID = "capsule/bootstrap_agentic/3"
+			capsuleName = "capsule/bootstrap_agentic"
 		} else {
-			capsuleID = "capsule/bootstrap_oneshot/3"
+			capsuleName = "capsule/bootstrap_oneshot"
 		}
 
-		cap, ok := capsule.Get(capsuleID)
+		cap, ok := capsule.GetLatest(capsuleName)
 		if !ok {
 			// This would be a critical setup error, as capsules should be embedded.
-			return nil, fmt.Errorf("bootstrap capsule not found in registry: %s", capsuleID)
+			return nil, fmt.Errorf("latest bootstrap capsule not found in registry: %s", capsuleName)
 		}
 		prompt = cap.Content + "\n\n" + prompt
-	}
-
-	// Correctly resolve the API key from the environment variable specified in AccountName.
-	apiKey := ""
-	if c.model.AccountName != "" {
-		apiKey = os.Getenv(c.model.AccountName)
 	}
 
 	req := provider.AIRequest{
@@ -91,7 +84,7 @@ func (c *LLMConn) Converse(ctx context.Context, input *aeiou.Envelope) (*provide
 		ProviderName:   c.model.Provider,
 		ModelName:      c.model.Model,
 		BaseURL:        c.model.BaseURL,
-		APIKey:         apiKey,
+		APIKey:         c.model.APIKey, // Use the API key prepared by the interpreter.
 		Prompt:         prompt,
 		Temperature:    c.model.Generation.Temperature,
 		Stream:         false,
@@ -107,4 +100,19 @@ func (c *LLMConn) Converse(ctx context.Context, input *aeiou.Envelope) (*provide
 	c.totalCost += resp.Cost
 
 	return resp, nil
+}
+
+// TurnCount returns the number of turns completed in the current conversation.
+func (c *LLMConn) TurnCount() int {
+	return c.turnCount
+}
+
+// TotalTokens returns the cumulative number of tokens used in the conversation.
+func (c *LLMConn) TotalTokens() int {
+	return c.totalTokens
+}
+
+// TotalCost returns the cumulative cost of the conversation.
+func (c *LLMConn) TotalCost() float64 {
+	return c.totalCost
 }

@@ -1,0 +1,59 @@
+// NeuroScript Version: 0.7.0
+// File version: 4
+// Purpose: Template for the one-shot live test. Uses the ComposeEnvelope tool to build the prompt.
+// filename: livetest/test_scripts/oneshot.txt
+// nlines: 53
+// risk_rating: LOW
+
+# Registers the account and agent model.
+func setup() means
+    set env_var_name = "GEMINI_API_KEY"
+    set key = tool.os.Getenv(env_var_name)
+    if key == nil or key == ""
+        fail "GEMINI_API_KEY environment variable is missing or empty."
+    endif
+
+    must tool.account.Register("google-ci", {\
+        "kind": "llm", "provider": "google", "api_key": key\
+    })
+    must tool.agentmodel.Register("live_agent", {\
+        "provider": "google",\
+        "model": "gemini-1.5-flash",\
+        "account_name": "google-ci"\
+    })
+endfunc
+
+# Checks that the required state exists before running the main logic.
+func verify_state() means
+    if not tool.account.Exists("google-ci")
+        fail "BUG: Account 'google-ci' was not found after registration!"
+    endif
+    if tool.agentmodel.Get("live_agent") == nil
+        fail "BUG: Agent model 'live_agent' was not found after registration!"
+    endif
+    emit "--- VERIFICATION COMPLETE ---"
+endfunc
+
+# Runs the actual test logic.
+func main(returns result) means
+    call verify_state()
+    emit "--- PROCEEDING TO ASK ---"
+
+    # The question string is injected here by the Go test runner's Sprintf call.
+    set question = '%s'
+    emit "--- MAIN: Assembling prompt envelope for question: " + question
+
+    set userdata_json = '{"subject":"one-shot-query","fields":{"question":"' + question + '"}}'
+    
+    # Use the new tool to build the envelope, avoiding all string manipulation issues.
+    set actions_stub = "command\nendcommand"
+    set prompt_envelope = tool.aeiou.ComposeEnvelope(userdata_json, actions_stub, "", "")
+
+    emit "--- MAIN: Sending envelope to 'ask'."
+    ask "live_agent", prompt_envelope into result
+
+    emit "--- MAIN: Raw result from 'ask':"
+    emit result
+
+    return result
+endfunc

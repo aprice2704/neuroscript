@@ -1,14 +1,15 @@
 // NeuroScript Version: 0.4.1
-// File version: 1
+// File version: 4
 // Purpose: Implements the core Value wrapping/unwrapping contract.
 // filename: pkg/lang/value_helpers.go
-// nlines: 151
+// nlines: 171
 // risk_rating: MEDIUM
 
 package lang
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 )
 
@@ -64,6 +65,18 @@ func Wrap(x any) (Value, error) {
 		return &MapValue{Value: newMap}, nil
 
 	default:
+		// Use reflection to handle slices of any string-based type.
+		val := reflect.ValueOf(x)
+		if val.Kind() == reflect.Slice {
+			elemType := val.Type().Elem()
+			if elemType.Kind() == reflect.String {
+				elems := make([]Value, val.Len())
+				for i := 0; i < val.Len(); i++ {
+					elems[i] = StringValue{Value: val.Index(i).String()}
+				}
+				return ListValue{Value: elems}, nil
+			}
+		}
 		return nil, fmt.Errorf("core.Wrap: unsupported type %T", v)
 	}
 }

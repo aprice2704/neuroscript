@@ -13,23 +13,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aprice2704/neuroscript/pkg/agentmodel"
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/provider"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
-
-// AgentModels provides read-only access to the agent model store.
-func (i *Interpreter) AgentModels() interfaces.AgentModelReader {
-	return agentmodel.NewAgentModelReader(i.modelStore)
-}
-
-// AgentModelsAdmin provides administrative access to the agent model store.
-func (i *Interpreter) AgentModelsAdmin() interfaces.AgentModelAdmin {
-	return agentmodel.NewAgentModelAdmin(i.modelStore, i.ExecPolicy)
-}
 
 // PromptUser satisfies the tool.Runtime interface for user interaction.
 func (i *Interpreter) PromptUser(prompt string) (string, error) {

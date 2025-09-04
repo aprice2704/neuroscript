@@ -1,4 +1,4 @@
-# NeuroScript Integration Guide (v0.7 — 2025-08-28)
+# NeuroScript Integration Guide (v0.7 — 2025-09-01)
 
 This guide provides a comprehensive overview of how to embed and interact with the NeuroScript engine in an external Go application using **only** the public `neuroscript/pkg/api` package. The `api` package is a stable facade that wraps the underlying parser, interpreter, and cryptographic components.
 
@@ -9,7 +9,7 @@ This guide provides a comprehensive overview of how to embed and interact with t
 You can access both the overall program version and the specific grammar version directly from the API. This is useful for logging, debugging, and ensuring compatibility.
 
 ```go
-import "github.com/aprice2704/neuroscript/pkg/api"
+import "[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
 import "fmt"
 
 func main() {
@@ -38,7 +38,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/aprice2704/neuroscript/pkg/api"
+	"[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
 )
 
 func main() {
@@ -105,7 +105,9 @@ endfunc
 
 ## 3. Interpreter Facade API
 
-For stateful applications, you can create a long-running interpreter instance and interact with it over time.
+For stateful applications, you can create a long-running interpreter instance and interact with it over time. The `api.Interpreter` object **is a persistent session object**. Any state changes (e.g., setting variables, registering accounts) will persist across calls to `RunProcedure` on the same instance.
+
+To create an isolated, sandboxed execution, create a new `api.Interpreter` instance via `api.New()`.
 
 ### Interpreter Configuration
 
@@ -129,6 +131,52 @@ You can set the I/O streams after creation as well.
 
 -   **`interp.SetStdout(w io.Writer)`**
 -   **`interp.SetStderr(w io.Writer)`**
+
+## 3. Interpreter Facade API
+
+For stateful applications, you can create a long-running interpreter instance and interact with it over time. The `api.Interpreter` object **is a persistent session object**. Any state changes (e.g., setting variables, registering accounts) will persist across calls to `RunProcedure` on the same instance.
+
+To create an isolated, sandboxed execution, create a new `api.Interpreter` instance via `api.New()`.
+
+### Interpreter Configuration
+
+Use `api.New()` with functional options to configure the interpreter.
+
+-   **`api.New(opts ...api.Option) *api.Interpreter`**: Creates a new interpreter.
+-   **`api.WithSandboxDir(path string) api.Option`**: **Mandatory for filesystem tools.** Sets the secure root directory for all file operations.
+-   **`api.WithLogger(logger api.Logger) api.Option`**: Provides a custom logger.
+-   **`api.WithGlobals(globals map[string]any) api.Option`**: Sets initial global variables.
+-   **`api.WithTool(tool api.ToolImplementation) api.Option`**: Registers a custom Go function as a tool (see Section 6).
+
+### Managing I/O and `emit`
+
+The **recommended** way to handle output from `emit` statements is to set a custom handler function. This gives you complete control over the output, whether you want to print it to the console, capture it in a buffer, or send it to a logging service.
+
+-   **`interp.SetEmitFunc(f func(api.Value))`**: Overrides the default `emit` behavior. This is the canonical method for capturing output.
+-   **`interp.SetStderr(w io.Writer)`**: Sets the standard error stream.
+
+**Example: Printing `emit` output to the console**
+```go
+interp := api.New()
+interp.SetEmitFunc(func(v api.Value) {
+    // Unwrap the value to print its Go representation.
+    unwrapped, _ := api.Unwrap(v)
+    fmt.Println(unwrapped)
+})
+```
+
+> **Note on `api.WithStdout`**: While this option exists, `SetEmitFunc` is more explicit and has proven more reliable across all execution contexts. It is the preferred method for managing `emit` output.
+
+### Standard Tool and Provider Registration
+
+**Core tools** (like `tool.math.Add`, `tool.fs.Read`, etc.) and **default AI providers** (like `google`) are automatically registered for you when you call `api.New()`. You do not need to take any special steps, such as importing a "tool bundle", to make them available. They are ready to use immediately in your NeuroScript code.
+
+### Executing Code and Handling Values
+
+-   **`api.LoadFromUnit(interp *api.Interpreter, unit *api.LoadedUnit) error`**: Loads definitions from a verified unit into an interpreter.
+-   **`api.RunProcedure(ctx context.Context, interp *api.Interpreter, name string, args ...any) (api.Value, error)`**: Executes a named procedure.
+-   **`api.Unwrap(v api.Value) (any, error)`**: Converts a NeuroScript `api.Value` back into a standard Go `any` type.
+
 
 ### Executing Code and Handling Values
 
@@ -156,7 +204,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/aprice2704/neuroscript/pkg/api"
+	"[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
 )
 
 func main() {
@@ -205,12 +253,29 @@ endcommand
 
 For simple, one-shot script execution where the source is trusted, you can use a more direct helper.
 
--   **`api.ExecInNewInterpreter(ctx context.Context, src string, opts ...api.Option) (api.Value, error)`**: Parses and runs any top-level `command` blocks in a single call.
+-   **`api.ExecInNewInterpreter(ctx context.Context, src string, opts ...api.Option) (api.Value, error)`**: Parses and runs any top-level `command` blocks in a single call. This creates a new interpreter, runs the code, and discards it. **No state is preserved.**
 
 ```go
 // Example: Stateless execution
 src := `command { emit "This is a one-shot execution!" }`
 result, err := api.ExecInNewInterpreter(context.Background(), src, api.WithStdout(os.Stdout))
+```
+Revised sec 5??
+## 5. Stateless Execution
+
+For simple, one-shot script execution, you can use a more direct helper. **Note:** To see output from `emit` in this mode, you must pass a configured `emit` handler via an option, as the default output may not be connected.
+
+-   **`api.ExecInNewInterpreter(ctx context.Context, src string, opts ...api.Option) (api.Value, error)`**: Parses and runs any top-level `command` blocks in a single call.
+
+```go
+// Example: Stateless execution with console output
+var emitToConsole api.Option = api.WithEmitFunc(func(v api.Value) {
+    val, _ := api.Unwrap(v)
+    fmt.Println(val)
+})
+
+src := `command { emit "This is a one-shot execution!" }`
+result, err := api.ExecInNewInterpreter(context.Background(), src, emitToConsole)
 ```
 
 ---
@@ -239,9 +304,10 @@ When an agent with `tool_loop_permitted: true` wants to perform a multi-turn tas
 #### Host Responsibilities
 
 1.  **Manage the Loop**: Use a standard Go `for` loop to manage turns and enforce limits like `MaxTurns`.
-2.  **Capture `emit` Output**: Use the `interp.SetEmitFunc` method to redirect all output from `emit` statements into a buffer.
-3.  **Provide Context**: Pass information (like the previous turn's output) back to the script using the `whisper` command.
-4.  **Parse Control Signals**: After each turn, use the `api.ParseLoopControl` helper to scan the captured output for the agent's `LOOP` signal (`continue`, `done`, or `abort`).
+2.  **Use a single, persistent interpreter instance** for the entire duration of the loop to maintain state.
+3.  **Capture `emit` Output**: Use the `interp.SetEmitFunc` method to redirect all output from `emit` statements into a buffer.
+4.  **Provide Context**: Pass information (like the previous turn's output) back to the script using the `whisper` command.
+5.  **Parse Control Signals**: After each turn, use the `api.ParseLoopControl` helper to scan the captured output for the agent's `LOOP` signal (`continue`, `done`, or `abort`).
 
 #### Ask-Loop Example
 
@@ -255,24 +321,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aprice2704/neuroscript/pkg/api"
-	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
 )
 
 func main() {
-	// 1. Create an interpreter and register a looping agent.
-	// In a real app, this would be done via a trusted setup script.
+	// 1. Create ONE interpreter instance to be used for the entire session.
 	interp := api.New()
-	// ... setup code to register a mock provider ...
-	agentConfig := map[string]api.Value{
-		"provider":            "mock_provider",
-		"model":               "looper",
-		"tool_loop_permitted": true,
-		"max_turns":           5,
-	}
-	// This is a simplified registration for the example.
-	// A real app would use a trusted script with tool.agentmodel.Register.
-	_ = interp.RegisterAgentModel("looper_agent", agentConfig)
+	// In a real app, this agent registration would be done via a trusted setup script.
+	// For this example, we'll assume a mock provider and a "looper_agent" are registered.
 
 	// 2. The host application runs the loop.
 	lastOutput := "Initial task: plan a party."
@@ -295,21 +351,23 @@ command
     emit result
 endcommand`, lastOutput)
 
-		// Re-use the same interpreter instance for each turn.
-		if _, err := api.ExecInNewInterpreter(context.Background(), script, WithInterpreter(interp)); err != nil {
+		// 4. Execute the script using the SAME interpreter instance.
+		// This ensures state (variables, etc.) is preserved between turns.
+		tree, _ := api.Parse([]byte(script), api.ParseSkipComments)
+		if _, err := api.ExecWithInterpreter(context.Background(), interp, tree); err != nil {
 			fmt.Printf("Turn failed: %v\n", err); return
 		}
 
 		lastOutput = outputCollector.String()
 		fmt.Printf("Agent Output:\n%s\n", lastOutput)
 
-		// 4. Parse the control signal from the agent's output.
+		// 5. Parse the control signal from the agent's output.
 		loopControl, err := api.ParseLoopControl(lastOutput)
 		if err != nil {
 			fmt.Println("No loop signal found. Halting."); break
 		}
 
-		// 5. Act on the signal.
+		// 6. Act on the signal.
 		if loopControl.Control == "done" {
 			fmt.Println("--- Loop Finished: Agent signaled done. ---"); return
 		}
@@ -319,20 +377,7 @@ endcommand`, lastOutput)
 	}
 	fmt.Println("--- Loop Terminated: Max turns exceeded. ---")
 }
-
-// Helper to reuse an interpreter instance with the one-shot executor.
-func WithInterpreter(existing *api.Interpreter) api.Option {
-    return func(i *interpreter.Interpreter) { *i = *existing.internal }
-}
 ```
-
-
-
-
-
-
-
-
 
 ## 6. Custom Tools
 
@@ -347,7 +392,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aprice2704/neuroscript/pkg/api"
+	"[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
 )
 
 // 1. Define the tool's function. It must match the api.ToolFunc signature.
@@ -366,8 +411,6 @@ func AddTool(rt api.Runtime, args []any) (any, error) {
 func main() {
 	// 2. Define the tool's implementation using re-exported API types.
 	adderImpl := api.ToolImplementation{
-		// Use the helper for clarity and correctness.
-		FullName: api.MakeToolFullName("host", "add"),
 		Spec: api.ToolSpec{
 			Name:  "add",
 			Group: "host",
@@ -422,7 +465,7 @@ package main
 
 import (
 	"context"
-	"github.com/aprice2704/neuroscript/pkg/api"
+	"[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
 	"[github.com/aprice2704/neuroscript/pkg/provider](https://github.com/aprice2704/neuroscript/pkg/provider)" // Note: internal package needed for AIRequest/AIResponse
 )
 
@@ -462,7 +505,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/aprice2704/neuroscript/pkg/api"
+	"[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
 )
 
 func init() {
@@ -503,7 +546,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/aprice2704/neuroscript/pkg/api"
+	"[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
 	"[github.com/aprice2704/neuroscript/pkg/lang](https://github.com/aprice2704/neuroscript/pkg/lang)"
 )
 
@@ -538,7 +581,7 @@ command
 endcommand`, lastOutput, initialPrompt)
 
 		// 5. Execute the script.
-		tree, _ := api.Parse([]byte(script))
+		tree, _ := api.Parse([]byte(script), api.ParseSkipComments)
 		_, err := api.ExecWithInterpreter(context.Background(), interp, tree)
 		if err != nil {
 			fmt.Printf("Turn failed: %v\n", err)
@@ -594,7 +637,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/aprice2704/neuroscript/pkg/api"
+	"[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
 	"[github.com/aprice2704/neuroscript/pkg/lang](https://github.com/aprice2704/neuroscript/pkg/lang)"
 )
 

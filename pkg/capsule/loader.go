@@ -1,5 +1,5 @@
-// NeuroScript Version: 0.3.0
-// File version: 1
+// NeuroScript Version: 0.7.0
+// File version: 2
 // Purpose: Loads and registers all capsules from the content directory on init.
 // filename: pkg/capsule/loader.go
 // nlines: 57
@@ -49,7 +49,7 @@ func init() {
 		priority, _ := extractor.GetIntOr("priority", 100)
 
 		MustRegister(Capsule{
-			ID:       extractor.MustGet("id"),
+			Name:     extractor.MustGet("id"), // 'id' from markdown is now the 'Name'
 			Version:  extractor.MustGet("version"),
 			MIME:     extractor.GetOr("mime", "text/markdown; charset=utf-8"),
 			Content:  string(bytes.TrimSpace(contentBody)),

@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.7.0
-// File version: 28
-// Purpose: Corrected the Load method to wrap the *ast.Program in an *interfaces.Tree before passing it to the internal interpreter.
+// File version: 29
+// Purpose: Implemented the critical fix for state persistence by ensuring Run() operates directly on the persistent internal interpreter, not a clone.
 // filename: pkg/api/interpreter.go
 // nlines: 165
-// risk_rating: LOW
+// risk_rating: HIGH
 package api
 
 import (
@@ -108,6 +108,7 @@ func (i *Interpreter) ExecuteCommands() (Value, error) {
 }
 
 // Run calls a specific, named procedure from the loaded program.
+// It now executes directly on the persistent interpreter instance to maintain state.
 func (i *Interpreter) Run(procName string, args ...lang.Value) (Value, error) {
 	result, err := i.internal.Run(procName, args...)
 	return result, err

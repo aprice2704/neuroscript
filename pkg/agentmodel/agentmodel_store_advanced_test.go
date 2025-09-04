@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 3
-// Purpose: Provides advanced tests for AgentModelStore, covering concurrency, parsing, and updates. Renamed config key to AccountName.
+// File version: 4
+// Purpose: Updated test configurations to use snake_case keys.
 // filename: pkg/agentmodel/agentmodel_store_advanced_test.go
 // nlines: 231
 // risk_rating: HIGH
@@ -24,7 +24,7 @@ func newFullConfig(name, provider, model string) (map[string]interface{}, types.
 	cfg := map[string]interface{}{
 		"provider":            provider,
 		"model":               model,
-		"AccountName":         "SOME_SECRET",
+		"account_name":        "SOME_SECRET",
 		"base_url":            "https://api.example.com/v1",
 		"budget_currency":     "USD",
 		"notes":               "Full config test",

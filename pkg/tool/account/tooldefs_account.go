@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 1
-// Purpose: Defines the tool specifications for managing provider accounts.
+// File version: 3
+// Purpose: Defines the tool specifications for managing provider accounts, including a new 'Exists' tool.
 // filename: pkg/tool/account/tooldefs_account.go
-// nlines: 83
+// nlines: 108
 // risk_rating: HIGH
 package account
 
@@ -60,6 +60,24 @@ var AccountToolsToRegister = []tool.ToolImplementation{
 			Example:     `account.List()`,
 		},
 		Func:          toolListAccounts,
+		RequiresTrust: false,
+		RequiredCaps: []capability.Capability{
+			{Resource: "account", Verbs: []string{"read"}, Scopes: []string{"*"}},
+		},
+		Effects: []string{"readonly"},
+	},
+	{
+		Spec: tool.ToolSpec{
+			Name:        "Exists",
+			Group:       Group,
+			Description: "Checks if an account with the given name is registered.",
+			Args: []tool.ArgSpec{
+				{Name: "name", Type: tool.ArgTypeString, Description: "The logical name of the account to check.", Required: true},
+			},
+			ReturnType: tool.ArgTypeBool,
+			Example:    `account.Exists("openai-prod")`,
+		},
+		Func:          toolAccountExists,
 		RequiresTrust: false,
 		RequiredCaps: []capability.Capability{
 			{Resource: "account", Verbs: []string{"read"}, Scopes: []string{"*"}},

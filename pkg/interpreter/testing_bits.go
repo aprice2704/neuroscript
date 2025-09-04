@@ -1,7 +1,9 @@
-// NeuroScript Version: 0.6.0
-// File version: 3.0.0
-// Purpose: Expanded the privileged test policy to include comprehensive grants for model, env, and net resources, fixing policy-related test failures.
+// NeuroScript Version: 0.7.0
+// File version: 6
+// Purpose: Added the 'model:read' capability to the privileged test policy to allow tools like 'agentmodel.get' to run in tests.
 // filename: pkg/interpreter/testing_bits.go
+// nlines: 95
+// risk_rating: LOW
 package interpreter
 
 import (
@@ -71,7 +73,8 @@ func NewTestInterpreter(t *testing.T, initialVars map[string]lang.Value, lastRes
 			Allow:   []string{"*"},
 			Grants: capability.NewGrantSet(
 				[]capability.Capability{
-					{Resource: "model", Verbs: []string{"admin", "use"}, Scopes: []string{"*"}},
+					{Resource: "model", Verbs: []string{"admin", "use", "read"}, Scopes: []string{"*"}}, // FIX: Added 'read' verb
+					{Resource: "account", Verbs: []string{"admin"}, Scopes: []string{"*"}},
 					{Resource: "env", Verbs: []string{"read"}, Scopes: []string{"*"}},
 					{Resource: "net", Verbs: []string{"read"}, Scopes: []string{"*"}},
 				},

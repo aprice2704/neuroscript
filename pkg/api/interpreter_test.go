@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.6.0
-// File version: 11
-// Purpose: Corrected a type mismatch in a test case by wrapping a native string in its corresponding Value type.
+// NeuroScript Version: 0.7.0
+// File version: 24
+// Purpose: Corrected account registration tests to use the snake_case 'api_key' field, aligning with the new JSON standards.
 // filename: pkg/api/interpreter_test.go
-// nlines: 131
+// nlines: 228
 // risk_rating: LOW
 
 package api_test
@@ -89,25 +89,120 @@ endfunc
 		t.Fatalf("api.Parse failed: %v", err)
 	}
 
-	// Create an interpreter with a global variable.
 	globals := map[string]any{"agent_id": "agent-007"}
 	interp := api.New(api.WithGlobals(globals))
 
-	// Load the script.
 	if _, err := api.ExecWithInterpreter(context.Background(), interp, tree); err != nil {
 		t.Fatalf("api.ExecWithInterpreter failed: %v", err)
 	}
 
-	// Run the procedure that accesses the global.
 	result, err := api.RunProcedure(context.Background(), interp, "get_global_agent_id")
 	if err != nil {
 		t.Fatalf("api.RunProcedure failed: %v", err)
 	}
 
-	// Verify the result.
 	unwrapped, _ := api.Unwrap(result)
 	if val, ok := unwrapped.(string); !ok || val != "agent-007" {
 		t.Errorf("Expected result 'agent-007', got %v (type %T)", unwrapped, unwrapped)
+	}
+}
+
+// TestInterpreter_StatePersistence_AccountRegistration verifies that state
+// created by tools (e.g., accounts) persists on the same interpreter instance.
+func TestInterpreter_StatePersistence_AccountRegistration(t *testing.T) {
+	src := `
+func register_acct(needs name, config) means
+    must tool.account.Register(name, config)
+endfunc
+
+func check_acct(needs name returns bool) means
+    return tool.account.Exists(name)
+endfunc
+`
+	tree, err := api.Parse([]byte(src), api.ParseSkipComments)
+	if err != nil {
+		t.Fatalf("api.Parse failed: %v", err)
+	}
+
+	allowedTools := []string{"tool.account.Register", "tool.account.Exists"}
+	requiredGrants := []api.Capability{
+		api.NewWithVerbs("account", []string{api.VerbAdmin, api.VerbRead}, []string{"*"}),
+	}
+	interp := api.NewConfigInterpreter(allowedTools, requiredGrants)
+
+	if _, err := api.ExecWithInterpreter(context.Background(), interp, tree); err != nil {
+		t.Fatalf("ExecWithInterpreter failed: %v", err)
+	}
+
+	// The tool requires a valid config map, including kind, provider, and api_key.
+	accountConfig := map[string]any{
+		"kind":     "llm",
+		"provider": "test-provider",
+		"api_key":  "test-key",
+	}
+	_, err = api.RunProcedure(context.Background(), interp, "register_acct", "test-user", accountConfig)
+	if err != nil {
+		t.Fatalf("Run(register_acct) failed: %v", err)
+	}
+
+	result, err := api.RunProcedure(context.Background(), interp, "check_acct", "test-user")
+	if err != nil {
+		t.Fatalf("Run(check_acct) failed: %v", err)
+	}
+	unwrapped, _ := api.Unwrap(result)
+	if val, ok := unwrapped.(bool); !ok || !val {
+		t.Error("Expected account 'test-user' to exist, but it did not")
+	}
+}
+
+// TestInterpreter_StateIsolation verifies that two separate interpreter
+// instances have completely independent state.
+func TestInterpreter_StateIsolation(t *testing.T) {
+	src := `
+func register_acct(needs name, config) means
+    must tool.account.Register(name, config)
+endfunc
+func check_acct(needs name returns bool) means
+    return tool.account.Exists(name)
+endfunc
+`
+	tree, err := api.Parse([]byte(src), api.ParseSkipComments)
+	if err != nil {
+		t.Fatalf("api.Parse failed: %v", err)
+	}
+
+	allowedTools := []string{"tool.account.Register", "tool.account.Exists"}
+	requiredGrants := []api.Capability{
+		api.NewWithVerbs("account", []string{api.VerbAdmin, api.VerbRead}, []string{"*"}),
+	}
+	interp1 := api.NewConfigInterpreter(allowedTools, requiredGrants)
+	interp2 := api.NewConfigInterpreter(allowedTools, requiredGrants)
+
+	if _, err := api.ExecWithInterpreter(context.Background(), interp1, tree); err != nil {
+		t.Fatalf("Exec on interp1 failed: %v", err)
+	}
+	if _, err := api.ExecWithInterpreter(context.Background(), interp2, tree); err != nil {
+		t.Fatalf("Exec on interp2 failed: %v", err)
+	}
+
+	// Provide a valid config map to the tool.
+	accountConfig := map[string]any{
+		"kind":     "llm",
+		"provider": "test-provider",
+		"api_key":  "test-key-isolate",
+	}
+	_, err = api.RunProcedure(context.Background(), interp1, "register_acct", "user-on-interp1", accountConfig)
+	if err != nil {
+		t.Fatalf("Run on interp1 failed: %v", err)
+	}
+
+	result, err := api.RunProcedure(context.Background(), interp2, "check_acct", "user-on-interp1")
+	if err != nil {
+		t.Fatalf("Run on interp2 failed unexpectedly: %v", err)
+	}
+	unwrapped, _ := api.Unwrap(result)
+	if val, ok := unwrapped.(bool); !ok || val {
+		t.Error("State leak detected: account from interp1 was found on interp2")
 	}
 }
 
@@ -121,7 +216,6 @@ func TestUnwrap(t *testing.T) {
 		{"NumberValue", lang.NumberValue{Value: 123.45}, 123.45},
 		{"BoolValue (true)", lang.BoolValue{Value: true}, true},
 		{"NilValue", lang.NilValue{}, nil},
-		// FIX: Wrap the native string in a lang.StringValue to conform to the api.Value interface.
 		{"Native String", lang.StringValue{Value: "already native"}, "already native"},
 	}
 

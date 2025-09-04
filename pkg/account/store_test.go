@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 2
-// Purpose: Provides comprehensive unit tests for the account.Store, corrected for visibility and context errors.
+// File version: 3
+// Purpose: Updated test configurations to use snake_case keys.
 // filename: pkg/account/store_test.go
 // nlines: 191
 // risk_rating: LOW
@@ -20,12 +20,12 @@ import (
 
 func newValidConfig() map[string]interface{} {
 	return map[string]interface{}{
-		"kind":      "llm",
-		"provider":  "test-provider",
-		"apiKey":    "key-12345",
-		"orgId":     "org-abc",
-		"projectId": "proj-xyz",
-		"notes":     "A test account",
+		"kind":       "llm",
+		"provider":   "test-provider",
+		"api_key":    "key-12345",
+		"org_id":     "org-abc",
+		"project_id": "proj-xyz",
+		"notes":      "A test account",
 	}
 }
 
@@ -123,7 +123,7 @@ func TestAdminView_Register(t *testing.T) {
 			name:      "Fail - Invalid Config (missing kind)",
 			adminPol:  configPolicy,
 			accName:   "bad-acc",
-			accCfg:    map[string]interface{}{"provider": "p", "apiKey": "k"},
+			accCfg:    map[string]interface{}{"provider": "p", "api_key": "k"},
 			wantErrIs: account.ErrInvalidConfiguration,
 		},
 		{

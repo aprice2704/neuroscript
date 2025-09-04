@@ -1,10 +1,9 @@
-// NeuroScript Version: 0.6.0
-// File version: 5
-// Purpose: Defines the tool specifications for managing agent models. Added policy metadata.
+// NeuroScript Version: 0.7.0
+// File version: 3
+// Purpose: Added the 'Select' tool definition to align with the advanced test suite.
 // filename: pkg/tool/agentmodel/tooldefs_agentmodel.go
-// nlines: 120
+// nlines: 137
 // risk_rating: HIGH
-
 package agentmodel
 
 import (
@@ -19,10 +18,10 @@ var AgentModelToolsToRegister = []tool.ToolImplementation{
 		Spec: tool.ToolSpec{
 			Name:        "Register",
 			Group:       Group,
-			Description: "Registers a new AgentModel configuration.",
+			Description: "Registers a new agent model configuration.",
 			Args: []tool.ArgSpec{
-				{Name: "name", Type: tool.ArgTypeString, Required: true},
-				{Name: "config", Type: tool.ArgTypeMap, Required: true},
+				{Name: "name", Type: tool.ArgTypeString, Description: "The logical name for the agent model (e.g., 'gpt-4-turbo').", Required: true},
+				{Name: "config", Type: tool.ArgTypeMap, Description: "A map containing model details like 'provider' and 'model'.", Required: true},
 			},
 			ReturnType: tool.ArgTypeBool,
 		},
@@ -31,33 +30,14 @@ var AgentModelToolsToRegister = []tool.ToolImplementation{
 		RequiredCaps: []capability.Capability{
 			{Resource: "model", Verbs: []string{"admin"}, Scopes: []string{"*"}},
 		},
-		Effects: []string{"idempotent"},
-	},
-	{
-		Spec: tool.ToolSpec{
-			Name:        "Update",
-			Group:       Group,
-			Description: "Updates an existing AgentModel's configuration.",
-			Args: []tool.ArgSpec{
-				{Name: "name", Type: tool.ArgTypeString, Required: true},
-				{Name: "updates", Type: tool.ArgTypeMap, Required: true},
-			},
-			ReturnType: tool.ArgTypeBool,
-		},
-		Func:          toolUpdateAgentModel,
-		RequiresTrust: true,
-		RequiredCaps: []capability.Capability{
-			{Resource: "model", Verbs: []string{"admin"}, Scopes: []string{"*"}},
-		},
-		Effects: []string{"idempotent"},
 	},
 	{
 		Spec: tool.ToolSpec{
 			Name:        "Delete",
 			Group:       Group,
-			Description: "Deletes an AgentModel configuration.",
+			Description: "Deletes an agent model configuration.",
 			Args: []tool.ArgSpec{
-				{Name: "name", Type: tool.ArgTypeString, Required: true},
+				{Name: "name", Type: tool.ArgTypeString, Description: "The logical name of the model to delete.", Required: true},
 			},
 			ReturnType: tool.ArgTypeBool,
 		},
@@ -66,33 +46,67 @@ var AgentModelToolsToRegister = []tool.ToolImplementation{
 		RequiredCaps: []capability.Capability{
 			{Resource: "model", Verbs: []string{"admin"}, Scopes: []string{"*"}},
 		},
-		Effects: []string{"idempotent"},
 	},
 	{
 		Spec: tool.ToolSpec{
 			Name:        "List",
 			Group:       Group,
-			Description: "Lists the names of all available AgentModels.",
+			Description: "Lists the names of all configured agent models.",
 			ReturnType:  tool.ArgTypeSliceString,
 		},
 		Func:          toolListAgentModels,
 		RequiresTrust: false,
-		RequiredCaps:  nil,
-		Effects:       []string{"idempotent"},
+		RequiredCaps: []capability.Capability{
+			{Resource: "model", Verbs: []string{"read"}, Scopes: []string{"*"}},
+		},
+	},
+	{
+		Spec: tool.ToolSpec{
+			Name:        "Get",
+			Group:       Group,
+			Description: "Retrieves the full configuration of a registered agent model.",
+			Args: []tool.ArgSpec{
+				{Name: "name", Type: tool.ArgTypeString, Description: "The logical name of the model to retrieve.", Required: true},
+			},
+			ReturnType: tool.ArgTypeMap,
+		},
+		Func:          toolGetAgentModel,
+		RequiresTrust: false,
+		RequiredCaps: []capability.Capability{
+			{Resource: "model", Verbs: []string{"read"}, Scopes: []string{"*"}},
+		},
+	},
+	{
+		Spec: tool.ToolSpec{
+			Name:        "Update",
+			Group:       Group,
+			Description: "Updates an existing agent model configuration.",
+			Args: []tool.ArgSpec{
+				{Name: "name", Type: tool.ArgTypeString, Description: "The logical name of the agent model to update.", Required: true},
+				{Name: "updates", Type: tool.ArgTypeMap, Description: "A map containing the fields to update.", Required: true},
+			},
+			ReturnType: tool.ArgTypeBool,
+		},
+		Func:          toolUpdateAgentModel,
+		RequiresTrust: true,
+		RequiredCaps: []capability.Capability{
+			{Resource: "model", Verbs: []string{"admin"}, Scopes: []string{"*"}},
+		},
 	},
 	{
 		Spec: tool.ToolSpec{
 			Name:        "Select",
 			Group:       Group,
-			Description: "Selects (finds) a specific AgentModel by name.",
+			Description: "Selects a model by name, or the default if no name is provided.",
 			Args: []tool.ArgSpec{
-				{Name: "name", Type: tool.ArgTypeString, Required: true},
+				{Name: "name", Type: tool.ArgTypeString, Description: "The logical name of the model to select. If empty, selects the default.", Required: false},
 			},
 			ReturnType: tool.ArgTypeString,
 		},
 		Func:          toolSelectAgentModel,
 		RequiresTrust: false,
-		RequiredCaps:  nil,
-		Effects:       []string{"idempotent"},
+		RequiredCaps: []capability.Capability{
+			{Resource: "model", Verbs: []string{"read"}, Scopes: []string{"*"}},
+		},
 	},
 }

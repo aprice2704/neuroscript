@@ -22,21 +22,21 @@ func (i *Interpreter) executeCall(step ast.Step) (lang.Value, error) {
 	return i.evaluate.Expression(step.Call)
 }
 
-func (i *Interpreter) executeEmit(step ast.Step) (lang.Value, error) {
-	if len(step.Values) == 0 {
-		return &lang.NilValue{}, nil
-	}
-	val, err := i.evaluate.Expression(step.Values[0])
-	if err != nil {
-		return nil, err
-	}
-	if i.customEmitFunc != nil {
-		i.customEmitFunc(val)
-	} else {
-		i.logger.Debug("Emit statement executed", "value", val.String())
-	}
-	return val, nil
-}
+// func (i *Interpreter) executeEmit(step ast.Step) (lang.Value, error) {
+// 	if len(step.Values) == 0 {
+// 		return &lang.NilValue{}, nil
+// 	}
+// 	val, err := i.evaluate.Expression(step.Values[0])
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	if i.customEmitFunc != nil {
+// 		i.customEmitFunc(val)
+// 	} else {
+// 		i.logger.Debug("Emit statement executed", "value", val.String())
+// 	}
+// 	return val, nil
+// }
 
 func (i *Interpreter) executeWhisper(step ast.Step) (lang.Value, error) {
 	if step.WhisperStmt == nil {

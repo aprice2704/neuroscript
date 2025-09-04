@@ -407,3 +407,24 @@ Gateway pauses, waits for approval, then resumes the same loop/turn.
 * Stamp loop\_id/turn\_id and log everything.
 
 If you want, I can turn this into a short `askloop.md` capsule and a couple of minimal Go tests that assert the precedence rules and progress guard with a fake interpreter.
+
+
+key note:
+Exactly. That's the cleverness of the design. You've hit on the core principle that makes the protocol robust.
+
+The provider and the LLM have two different "jobs," and they read the prompt in two different ways:
+
+### 1. The Provider's Job: The Strict Gatekeeper  GATEKEEPER
+The provider acts like a machine. Its only job is to find and validate the formal, machine-readable envelope.
+
+* It starts reading and immediately looks for the `<<<NSENV:V3:START>>>` marker.
+* Everything before that marker is just noise to it; it's not part of the formal data structure it's meant to process.
+* If it finds a valid envelope, it passes the *entire text block* (capsule and all) to the LLM. If it doesn't, it fails early.
+
+### 2. The LLM's Job: The Creative Worker 🧑‍🎨
+The LLM, on the other hand, reads the *entire text* from top to bottom for context and instructions.
+
+* First, it reads the **bootstrap capsule** preamble. This is like its training manual for the mission, telling it the rules of engagement and how it must format its response.
+* Then, it sees the **AEIOU envelope** and understands that this is the specific task it needs to complete, following the rules it just learned.
+
+This separation is clever because it prevents the LLM from being confused or tricked by user input. The host's structural rules are provided outside of the task itself, making the system much safer and more predictable.

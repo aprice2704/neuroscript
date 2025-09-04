@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.7.0
-// File version: 1
+// File version: 2
 // Purpose: Defines sentinel errors for the account package.
 // filename: pkg/account/errors.go
 // nlines: 12

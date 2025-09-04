@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 2
-// Purpose: Corrected tests to check for the new sentinel error instead of comparing error strings.
+// File version: 3
+// Purpose: Corrected tests to use the snake_case 'api_key' to align with the new standard.
 // filename: pkg/tool/account/tools_account_test.go
 // nlines: 128
 // risk_rating: MEDIUM
@@ -98,7 +98,7 @@ func newValidAccountConfig() map[string]interface{} {
 	return map[string]interface{}{
 		"kind":     "llm",
 		"provider": "test-provider",
-		"apiKey":   "test-key",
+		"api_key":  "test-key",
 	}
 }
 
@@ -113,7 +113,7 @@ func TestToolAccount_Register(t *testing.T) {
 		{
 			name:          "Fail: Missing required kind field",
 			toolName:      "Register",
-			args:          []interface{}{"test_account_2", map[string]interface{}{"provider": "p", "apiKey": "k"}},
+			args:          []interface{}{"test_account_2", map[string]interface{}{"provider": "p", "api_key": "k"}},
 			wantToolErrIs: account.ErrInvalidConfiguration,
 		},
 		{

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 36
-// Purpose: Modified executeEmit to support a custom emit handler for capturing output during 'ask' loops.
+// File version: 37
+// Purpose: Corrected the default 'emit' behavior to print to stdout, fixing silent failures in cloned interpreters.
 // filename: pkg/interpreter/interpreter_steps_simple.go
-// nlines: 184
+// nlines: 188
 // risk_rating: HIGH
 
 package interpreter
@@ -47,6 +47,28 @@ func (i *Interpreter) executeReturn(step ast.Step) (lang.Value, bool, error) {
 		results[idx] = evaluatedValue
 	}
 	return lang.ListValue{Value: results}, true, nil
+}
+
+// executeEmit handles the "emit" statement.
+func (i *Interpreter) executeEmit(step ast.Step) (lang.Value, error) {
+	if len(step.Values) == 0 {
+		return &lang.NilValue{}, nil
+	}
+	val, err := i.evaluate.Expression(step.Values[0])
+	if err != nil {
+		return nil, err
+	}
+
+	if i.customEmitFunc != nil {
+		i.customEmitFunc(val)
+	} else {
+		// Default behavior is to print to the interpreter's configured stdout.
+		if _, err := fmt.Fprintln(i.Stdout(), val.String()); err != nil {
+			// This would be an IO error on the host, treat as internal.
+			return nil, lang.NewRuntimeError(lang.ErrorCodeIOFailed, "failed to write to stdout", err).WithPosition(step.GetPos())
+		}
+	}
+	return val, nil
 }
 
 // executeMust handles "must" and "mustbe" steps.

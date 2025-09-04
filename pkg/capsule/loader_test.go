@@ -1,5 +1,5 @@
-// NeuroScript Version: 0.3.0
-// File version: 1
+// NeuroScript Version: 0.7.0
+// File version: 2
 // Purpose: Tests that the capsule loader correctly registers embedded content.
 // filename: pkg/capsule/loader_test.go
 // nlines: 21
@@ -13,19 +13,22 @@ import (
 )
 
 func TestCapsuleLoader(t *testing.T) {
-	const expectedID = "capsule/aeiou/1"
-	c, ok := capsule.Get(expectedID)
+	const expectedName = "capsule/aeiou"
+	c, ok := capsule.GetLatest(expectedName)
 
 	if !ok {
-		t.Fatalf("capsule.Get(%q) failed: capsule was not loaded and registered", expectedID)
+		t.Fatalf("capsule.GetLatest(%q) failed: capsule was not loaded and registered", expectedName)
 	}
 
-	if c.ID != expectedID {
-		t.Errorf("capsule ID mismatch: got %q, want %q", c.ID, expectedID)
+	if c.Name != expectedName {
+		t.Errorf("capsule Name mismatch: got %q, want %q", c.Name, expectedName)
 	}
-	if c.Version != "1" {
-		t.Errorf("capsule Version mismatch: got %q, want %q", c.Version, "1")
+
+	// Version can change, so we just check it's not empty
+	if c.Version == "" {
+		t.Errorf("capsule Version is empty after loading")
 	}
+
 	if c.Content == "" {
 		t.Error("capsule Content is empty after loading")
 	}

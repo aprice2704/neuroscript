@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 4
-// Purpose: Replaced the call to the non-existent 'aeiou.RobustParse' with the correct 'aeiou.Parse' function to resolve compiler errors.
+// File version: 5
+// Purpose: Corrected the parsing logic to find the last envelope in the prompt, allowing it to ignore any prepended bootstrap text from the connection manager.
 // filename: pkg/provider/google/google.go
-// nlines: 125
+// nlines: 128
 // risk_rating: MEDIUM
 
 package google
@@ -66,7 +66,14 @@ func (p *Provider) Chat(ctx context.Context, req provider.AIRequest) (*provider.
 	}
 
 	// The provider contract requires a valid AEIOU envelope. Parse it first.
-	_, _, err := aeiou.Parse(strings.NewReader(req.Prompt))
+	// FIX: The prompt may contain bootstrap text. Find the last occurrence of the
+	// start marker to parse the real envelope, ignoring any preceding content.
+	promptToParse := req.Prompt
+	if markerPos := strings.LastIndex(req.Prompt, aeiou.Wrap(aeiou.SectionStart)); markerPos != -1 {
+		promptToParse = req.Prompt[markerPos:]
+	}
+
+	_, _, err := aeiou.Parse(strings.NewReader(promptToParse))
 	if err != nil {
 		return nil, fmt.Errorf("google provider requires a valid AEIOU envelope prompt, but parsing failed: %w", err)
 	}

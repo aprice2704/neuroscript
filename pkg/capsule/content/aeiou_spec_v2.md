@@ -75,7 +75,7 @@ endcommand
 
 ::schema: spec
 ::serialization: md
-::id: capsule/aeiou/2
+::id: capsule/aeiou
 ::version: 2
 ::fileVersion: 1
 ::author: NeuroScript Docs Team

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 5
-// Purpose: Corrected tests to use the V3 'UserData' field instead of the obsolete 'Orchestration' field and replaced 'aeiou.RobustParse' with the correct 'aeiou.Parse' call.
+// File version: 6
+// Purpose: Updated tests to confirm the provider correctly ignores prepended text and finds the final valid envelope in the prompt.
 // filename: pkg/provider/test/test_test.go
-// nlines: 89
+// nlines: 100
 // risk_rating: LOW
 
 package test
@@ -16,10 +16,10 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/provider"
 )
 
-// TestTestProvider_Chat verifies the core logic of the mock provider.
-// It ensures that the provider strictly requires valid AEIOU envelopes
-// and correctly handles different user data content.
-func TestTestProvider_Chat(t *testing.T) {
+// TestTestProvider_EnvelopeHandling verifies the core logic of the mock provider.
+// It ensures that the provider correctly handles prompts with and without prepended
+// text, while still rejecting prompts that lack a valid AEIOU envelope.
+func TestTestProvider_EnvelopeHandling(t *testing.T) {
 	p := New()
 	ctx := context.Background()
 
@@ -49,18 +49,24 @@ func TestTestProvider_Chat(t *testing.T) {
 			mustContain: "A large language model is a neural network",
 		},
 		{
-			name:        "Strictly fails on non-envelope string",
+			name:        "Succeeds with prepended text before a valid envelope",
+			prompt:      "Some leading text...\n" + createPrompt("ping"),
+			expectErr:   false,
+			mustContain: "test_provider_ok:pong",
+		},
+		{
+			name:        "Fails on non-envelope string",
 			prompt:      "this is just a plain string",
 			expectErr:   true,
 			mustContain: "test provider requires a valid AEIOU envelope",
 		},
 		{
-			name:      "Strictly fails on empty string",
+			name:      "Fails on empty string",
 			prompt:    "",
 			expectErr: true,
 		},
 		{
-			name:      "Strictly fails on incomplete envelope",
+			name:      "Fails on incomplete envelope",
 			prompt:    "<<<NSENV:V3:START>>>",
 			expectErr: true,
 		},

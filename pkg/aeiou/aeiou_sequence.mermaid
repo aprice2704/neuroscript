@@ -1,0 +1,55 @@
+sequenceDiagram
+    participant Host
+    participant NS Interpreter
+    participant LLMConn
+    participant Provider
+    participant LLMsequenceDiagram
+    participant Host
+    participant NS Interpreter
+    participant LLMConn
+    participant Provider
+    participant LLM
+
+    Host->>NS Interpreter: RunProcedure("main")
+
+    Note over NS Interpreter: Script inside 'main' calls:<br/>ask("live_agent", prompt_envelope)
+
+    NS Interpreter->>LLMConn: Interpreter creates/gets LLMConn for "live_agent",<br/>then calls Converse(prompt_envelope)
+
+    Note over LLMConn: On Turn 1, prepends bootstrap capsule<br/>(e.g., instructions) to the prompt.
+
+    LLMConn->>Provider: Chat(final_prompt_with_bootstrap)
+
+    Note over Provider: Provider validates the string<br/>is a well-formed envelope.
+
+    Provider->>LLM: POST /generateContent (sends full prompt)
+
+    LLM-->>Provider: HTTP 200 OK (returns the completed envelope as text)
+
+    Provider-->>LLMConn: Returns AIResponse containing the raw text
+
+    LLMConn-->>NS Interpreter: Returns AIResponse to the 'ask' statement
+
+    NS Interpreter-->>Host: 'ask' completes, returns final string from AIResponse
+
+    Host->>NS Interpreter: RunProcedure("main")
+
+    Note over NS Interpreter: Script inside 'main' calls:<br/>ask("live_agent", prompt_envelope)
+
+    NS Interpreter->>LLMConn: Interpreter creates/gets LLMConn for "live_agent",<br/>then calls Converse(prompt_envelope)
+
+    Note over LLMConn: On Turn 1, prepends bootstrap capsule<br/>(e.g., instructions) to the prompt.
+
+    LLMConn->>Provider: Chat(final_prompt_with_bootstrap)
+
+    Note over Provider: Provider validates the string<br/>is a well-formed envelope.
+
+    Provider->>LLM: POST /generateContent (sends full prompt)
+
+    LLM-->>Provider: HTTP 200 OK (returns the completed envelope as text)
+
+    Provider-->>LLMConn: Returns AIResponse containing the raw text
+
+    LLMConn-->>NS Interpreter: Returns AIResponse to the 'ask' statement
+
+    NS Interpreter-->>Host: 'ask' completes, returns final string from AIResponse

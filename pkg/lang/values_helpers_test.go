@@ -1,13 +1,25 @@
 // filename: pkg/lang/values_helpers_test.go
+// NeuroScript Version: 0.4.1
+// File version: 4
+// Purpose: Implements the core Value wrapping/unwrapping contract.
+// nlines: 132
+// risk_rating: MEDIUM
 package lang
 
 import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 func TestWrap(t *testing.T) {
+	// Define a custom string type for testing the generic slice wrapping.
+	type CustomString string
+	customSlice := []CustomString{"custom1", "custom2"}
+	expectedCustomSlice := ListValue{Value: []Value{StringValue{"custom1"}, StringValue{"custom2"}}}
+
 	testCases := []struct {
 		name     string
 		input    any
@@ -21,6 +33,24 @@ func TestWrap(t *testing.T) {
 		{"bool", true, BoolValue{true}, false},
 		{"[]byte", []byte("bytes"), BytesValue{[]byte("bytes")}, false},
 		{"time.Time", time.Unix(0, 0).UTC(), TimedateValue{time.Unix(0, 0).UTC()}, false},
+		{
+			name:     "[]string",
+			input:    []string{"a", "b"},
+			expected: ListValue{[]Value{StringValue{"a"}, StringValue{"b"}}},
+			hasError: false,
+		},
+		{
+			name:     "[]types.AgentModelName",
+			input:    []types.AgentModelName{"model-a", "model-b"},
+			expected: ListValue{[]Value{StringValue{"model-a"}, StringValue{"model-b"}}},
+			hasError: false,
+		},
+		{
+			name:     "[]CustomString",
+			input:    customSlice,
+			expected: expectedCustomSlice,
+			hasError: false,
+		},
 		{
 			name:     "[]any",
 			input:    []any{"a", 1},

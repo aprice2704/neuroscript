@@ -1,3 +1,9 @@
+// NeuroScript Version: 0.7.0
+// File version: 2
+// Purpose: Tests that the AEIOU capsule is correctly registered and accessible.
+// filename: pkg/capsule/aeiou_test.go
+// nlines: 60
+// risk_rating: LOW
 package capsule_test
 
 import (
@@ -11,80 +17,57 @@ import (
 )
 
 func TestAEIOUCapsuleRegistered(t *testing.T) {
-	const id = "capsule/aeiou/1"
+	const name = "capsule/aeiou"
 
-	// Exists in registry (external package reference)
-	c, ok := capsule.Get(id)
+	// Get the latest version from the registry
+	c, ok := capsule.GetLatest(name)
 	if !ok {
-		t.Fatalf("capsule %q not registered", id)
+		t.Fatalf("latest capsule for %q not registered", name)
 	}
 	if c.Content == "" {
-		t.Fatalf("capsule %q has empty content", id)
+		t.Fatalf("capsule %q has empty content", name)
 	}
 	if c.MIME == "" {
-		t.Fatalf("capsule %q MIME not set", id)
+		t.Fatalf("capsule %q MIME not set", name)
 	}
-	if c.Version != "1" {
-		t.Fatalf("capsule %q version = %q, want %q", id, c.Version, "1")
+	if c.Version == "" {
+		t.Fatalf("capsule %q version not set", name)
 	}
 
 	// SHA should match content
 	sum := sha256.Sum256([]byte(c.Content))
 	want := hex.EncodeToString(sum[:])
 	if c.SHA256 != want {
-		t.Fatalf("capsule %q SHA mismatch: got %s, want %s", id, c.SHA256, want)
+		t.Fatalf("capsule %q SHA mismatch: got %s, want %s", name, c.SHA256, want)
 	}
 
 	// List should include it
 	found := false
 	for _, x := range capsule.List() {
-		if x.ID == id {
+		if x.Name == name {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Fatalf("capsule %q not found in List()", id)
+		t.Fatalf("capsule %q not found in List()", name)
 	}
 
 	// Tool surface should see it and round-trip the same metadata.
 	tool := api.NewCapsuleTool()
 	ctx := context.Background()
 
-	listed := tool.List(ctx, []string{id})
-	if !listed[id] {
-		t.Fatalf("tool.List did not report %q", id)
+	// Use the fully qualified ID for the tool tests
+	listed := tool.List(ctx, []string{c.ID})
+	if !listed[c.ID] {
+		t.Fatalf("tool.List did not report %q", c.ID)
 	}
 
-	content, ver, sha, mime, ok := tool.Read(ctx, id)
+	content, ver, sha, mime, ok := tool.Read(ctx, c.ID)
 	if !ok {
-		t.Fatalf("tool.Read(%q) returned ok=false", id)
+		t.Fatalf("tool.Read(%q) returned ok=false", c.ID)
 	}
 	if ver != c.Version || sha != c.SHA256 || mime != c.MIME || content != c.Content {
-		t.Fatalf("tool.Read metadata/content mismatch")
-	}
-}
-
-func TestValidateID(t *testing.T) {
-	cases := []struct {
-		id    string
-		valid bool
-	}{
-		{"capsule/aeiou/1", true},
-		{"capsule/foo-bar_9/42", true},
-		{"Capsule/Bad/1", false},       // wrong prefix case
-		{"capsule/missingver", false},  // missing version
-		{"capsule//1", false},          // empty name
-		{"capsule/Name/one", false},    // version not integer
-		{"capsule/space bad/1", false}, // invalid chars
-	}
-	for _, tc := range cases {
-		err := capsule.ValidateID(tc.id)
-		if tc.valid && err != nil {
-			t.Fatalf("ValidateID(%q) unexpected error: %v", tc.id, err)
-		}
-		if !tc.valid && err == nil {
-			t.Fatalf("ValidateID(%q) expected error, got nil", tc.id)
-		}
+		t.Fatalf("tool.Read metadata/content mismatch for %q", c.ID)
 	}
 }

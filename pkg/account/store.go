@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 3
-// Purpose: Implements a thread-safe store for managing provider accounts, now using a sentinel error for invalid configs.
+// File version: 4
+// Purpose: Updated config parser to use snake_case keys as per the new standard.
 // filename: pkg/account/store.go
 // nlines: 135
 // risk_rating: HIGH
@@ -123,14 +123,14 @@ func accountFromCfg(name string, cfg map[string]any) (Account, error) {
 	if acc.Provider, ok = cfg["provider"].(string); !ok || acc.Provider == "" {
 		return Account{}, fmt.Errorf("'provider' is a required string field: %w", ErrInvalidConfiguration)
 	}
-	if acc.APIKey, ok = cfg["apiKey"].(string); !ok || acc.APIKey == "" {
-		return Account{}, fmt.Errorf("'apiKey' is a required string field: %w", ErrInvalidConfiguration)
+	if acc.APIKey, ok = cfg["api_key"].(string); !ok || acc.APIKey == "" {
+		return Account{}, fmt.Errorf("'api_key' is a required string field: %w", ErrInvalidConfiguration)
 	}
 
-	if val, present := cfg["orgId"]; present {
+	if val, present := cfg["org_id"]; present {
 		acc.OrgID, _ = val.(string)
 	}
-	if val, present := cfg["projectId"]; present {
+	if val, present := cfg["project_id"]; present {
 		acc.ProjectID, _ = val.(string)
 	}
 	if val, present := cfg["notes"]; present {

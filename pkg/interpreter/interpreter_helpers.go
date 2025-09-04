@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 2
-// Purpose: Contains helper methods for the Interpreter. Corrected LoadAndRun signature and removed use of deleted 'accounts' field.
+// File version: 5
+// Purpose: Contains helper methods for the Interpreter. The clone() method was moved to its own file.
 // filename: pkg/interpreter/interpreter_helpers.go
-// nlines: 88
+// nlines: 48
 // risk_rating: MEDIUM
 
 package interpreter
@@ -19,47 +19,6 @@ import (
 // defaultWhisperFunc is the built-in whisper implementation.
 func (i *Interpreter) defaultWhisperFunc(handle, data lang.Value) {
 	i.bufferManager.Write(handle.String(), data.String()+"\n")
-}
-
-// clone creates a new interpreter instance for sandboxing.
-func (i *Interpreter) clone() *Interpreter {
-	clone := NewInterpreter(
-		WithLogger(i.logger),
-		WithStdout(i.stdout),
-		WithStdin(i.stdin),
-		WithStderr(i.stderr),
-		WithSandboxDir(i.state.sandboxDir),
-	)
-	clone.tools = i.tools
-	clone.ExecPolicy = i.ExecPolicy
-	clone.modelStore = i.modelStore
-	// clone.accounts = i.accounts // This field was removed
-	clone.turnCtx = i.turnCtx
-	clone.aiTranscript = i.aiTranscript
-	clone.transientPrivateKey = i.transientPrivateKey
-
-	clone.customEmitFunc = i.customEmitFunc
-	clone.customWhisperFunc = i.customWhisperFunc
-
-	rootInterpreter := i
-	if i.root != nil {
-		rootInterpreter = i.root
-	}
-	clone.root = rootInterpreter
-
-	clone.state.knownProcedures = i.state.knownProcedures
-
-	rootInterpreter.state.variablesMu.RLock()
-	defer rootInterpreter.state.variablesMu.RUnlock()
-
-	for name := range rootInterpreter.state.globalVarNames {
-		if val, ok := rootInterpreter.state.variables[name]; ok {
-			clone.SetVariable(name, val)
-			clone.state.globalVarNames[name] = true
-		}
-	}
-
-	return clone
 }
 
 // AddProcedure programmatically adds a single procedure to the interpreter's registry.

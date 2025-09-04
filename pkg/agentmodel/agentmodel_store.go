@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 8
-// Purpose: Updated the config parser to look for 'AccountName' to align with test data.
+// File version: 10
+// Purpose: Added debug logging to trace the parsing of agent model configurations.
 // filename: pkg/agentmodel/agentmodel_store.go
-// nlines: 327
+// nlines: 331
 // risk_rating: HIGH
 
 package agentmodel
@@ -170,6 +170,9 @@ func modelFromCfg(name types.AgentModelName, cfg map[string]any, base *types.Age
 		out = types.AgentModel{Name: name}
 	}
 
+	// DEBUG: Print the incoming config map
+	fmt.Printf("[DEBUG] modelFromCfg for '%s': received config map: %+v\n", name, cfg)
+
 	// Top-level fields
 	if out.Provider, err = getString(cfg, "provider", out.Provider); err != nil {
 		return out, err
@@ -177,7 +180,7 @@ func modelFromCfg(name types.AgentModelName, cfg map[string]any, base *types.Age
 	if out.Model, err = getString(cfg, "model", out.Model); err != nil {
 		return out, err
 	}
-	if out.AccountName, err = getString(cfg, "AccountName", out.AccountName); err != nil {
+	if out.AccountName, err = getString(cfg, "account_name", out.AccountName); err != nil {
 		return out, err
 	}
 	if out.BaseURL, err = getString(cfg, "base_url", out.BaseURL); err != nil {

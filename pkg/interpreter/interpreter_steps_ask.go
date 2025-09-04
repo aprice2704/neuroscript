@@ -1,15 +1,15 @@
 // NeuroScript Version: 0.7.0
-// File version: 60
-// Purpose: Corrected the initial envelope creation to include a minimal 'Actions' block, fixing the 'envelope missing required section' test failures.
+// File version: 68
+// Purpose: Corrected the 'ask' statement to automatically wrap the prompt string in a valid AEIOU v3 envelope, rather than requiring the script to provide a full envelope.
 // filename: pkg/interpreter/interpreter_steps_ask.go
-// nlines: 101
+// nlines: 136
 // risk_rating: HIGH
 package interpreter
 
 import (
-	"encoding/json"
 	"fmt"
 
+	"github.com/aprice2704/neuroscript/pkg/account"
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -53,6 +53,24 @@ func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeProviderNotFound, fmt.Sprintf("provider '%s' for AgentModel '%s' not found", agentModel.Provider, agentModel.Name), nil).WithPosition(node.GetPos())
 	}
 
+	// 2a. Resolve Account and Inject API Key into the AgentModel for this call
+	if agentModel.AccountName != "" {
+		accountObj, found := i.Accounts().Get(agentModel.AccountName)
+		if !found {
+			return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("account '%s' specified by AgentModel '%s' not found", agentModel.AccountName, agentModel.Name), nil).WithPosition(node.GetPos())
+		}
+
+		acc, ok := accountObj.(account.Account)
+		if !ok {
+			return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("retrieved object for account '%s' is not of type account.Account, but %T", agentModel.AccountName, accountObj), nil).WithPosition(node.GetPos())
+		}
+
+		if acc.APIKey == "" {
+			return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, fmt.Sprintf("account '%s' is missing or has an empty 'api_key' in its configuration", agentModel.AccountName), nil).WithPosition(node.GetPos())
+		}
+		agentModel.APIKey = acc.APIKey
+	}
+
 	// 3. Initialize LLM Connection
 	conn, err := llmconn.New(&agentModel, prov)
 	if err != nil {
@@ -60,14 +78,11 @@ func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
 	}
 
 	// 4. Construct Initial V3 Envelope
-	userDataBytes, err := json.Marshal(map[string]interface{}{"goal": initialPrompt})
-	if err != nil {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "failed to marshal initial prompt to JSON for USERDATA", err).WithPosition(node.GetPos())
-	}
-
+	//    The 'ask' statement automatically wraps the provided prompt string
+	//    into the UserData section of a valid AEIOU envelope.
 	initialEnvelope := &aeiou.Envelope{
-		UserData: string(userDataBytes),
-		Actions:  "command endcommand", // FIX: Add minimal valid Actions block
+		UserData: initialPrompt,
+		Actions:  "command endcommand", // A valid, empty actions block is required.
 	}
 
 	// 5. Delegate to the Host Loop

@@ -85,7 +85,7 @@ endcommand
 
 ::schema: spec
 ::serialization: md
-::id: capsule/askloop/2
+::id: capsule/askloop
 ::version: 2
 ::fileVersion: 1
 ::author: NeuroScript Docs Team

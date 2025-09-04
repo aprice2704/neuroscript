@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.6.0
-// File version: 17.0.0
-// Purpose: Corrected the call to admin.Register to pass the expected map[string]any, fixing the core type mismatch and compiler errors.
+// NeuroScript Version: 0.7.0
+// File version: 18.0.0
+// Purpose: Enforced API simplification by rejecting agent model registrations that contain a direct 'api_key'.
 // filename: pkg/interpreter/interpreter_agentmodel.go
 // nlines: 80
 // risk_rating: HIGH
@@ -27,6 +27,11 @@ func unwrapMapValues(m map[string]lang.Value) map[string]any {
 func (i *Interpreter) RegisterAgentModel(name types.AgentModelName, config map[string]lang.Value) error {
 	if i.root != nil {
 		return i.root.RegisterAgentModel(name, config)
+	}
+
+	// API Simplification: Reject direct API keys.
+	if _, apiKeyExists := config["api_key"]; apiKeyExists {
+		return errors.New("agent model config cannot contain 'api_key'; use 'account_name' instead")
 	}
 
 	// Validate required fields before proceeding.

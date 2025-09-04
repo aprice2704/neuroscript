@@ -1,14 +1,16 @@
 // NeuroScript Version: 0.7.0
-// File version: 19
-// Purpose: Corrected the debug script to iterate over the lists returned by tool calls, as 'emit' does not support printing lists directly.
+// File version: 49
+// Purpose: Added 'tool.aeiou.magic' to the allowed tools list to fix the policy violation error when executing the LLM's response.
 // filename: pkg/livetest/oneshot_test.go
-// nlines: 145
+// nlines: 191
 // risk_rating: HIGH
 package livetest_test
 
 import (
 	"bytes"
 	"context"
+	_ "embed"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -16,94 +18,71 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/api"
 )
 
-// setupOneShotTest creates an interpreter configured for a live one-shot test.
-// It skips the test if the GEMINI_API_KEY environment variable is not set.
-func setupOneShotTest(t *testing.T) *api.Interpreter {
+//go:embed test_scripts/oneshot.txt
+var oneShotScriptTemplate string
+
+// abbreviate returns a shortened version of a multi-line string for cleaner test logs.
+func abbreviate(s string, maxLines int) string {
+	lines := strings.Split(s, "\n")
+	if len(lines) <= maxLines {
+		return s
+	}
+	var sb strings.Builder
+	for i := 0; i < maxLines/2; i++ {
+		sb.WriteString(lines[i])
+		sb.WriteString("\n")
+	}
+	sb.WriteString(fmt.Sprintf("... (%d lines omitted) ...\n", len(lines)-maxLines))
+	for i := len(lines) - maxLines/2; i < len(lines); i++ {
+		sb.WriteString(lines[i])
+		sb.WriteString("\n")
+	}
+	return sb.String()
+}
+
+// setupLiveInterpreter creates the privileged interpreter instance.
+func setupLiveInterpreter(t *testing.T) *api.Interpreter {
 	t.Helper()
 
 	if os.Getenv("GEMINI_API_KEY") == "" {
 		t.Skip("Skipping live test: GEMINI_API_KEY is not set.")
 	}
 
-	// 1. Define the setup script to register the account and agent model.
-	setupScript := `
-	command
-		set key = tool.os.Getenv("GEMINI_API_KEY")
-		if key == nil or key == ""
-			fail "GEMINI_API_KEY not found by setup script"
-		endif
-		must tool.account.Register("google-ci", {\
-			"kind": "llm", "provider": "google", "apiKey": key\
-		})
-		must tool.agentmodel.Register("live_agent", {\
-			"provider": "google",\
-			"model": "gemini-1.5-flash",\
-			"AccountName": "google-ci",\
-			"tool_loop_permitted": false\
-		})
-	endcommand
-	`
-
-	// 2. Define permissions, including for the debug/listing tools.
 	allowedTools := []string{
 		"tool.os.Getenv",
 		"tool.account.*",
 		"tool.agentmodel.*",
-		"tool.provider.*",
-		"tool.str.*",
+		"tool.aeiou.ComposeEnvelope",
+		"tool.aeiou.magic", // Allow the magic tool to be called by the LLM's code.
 	}
 	requiredGrants := []api.Capability{
 		api.NewCapability(api.ResEnv, api.VerbRead, "GEMINI_API_KEY"),
 		api.NewWithVerbs(api.ResModel, []string{api.VerbAdmin, api.VerbRead}, []string{"*"}),
 		api.NewWithVerbs("account", []string{api.VerbAdmin, api.VerbRead}, []string{"*"}),
-		api.NewWithVerbs("provider", []string{api.VerbRead}, []string{"*"}),
 	}
 
-	// 3. Create a trusted interpreter.
-	interp := api.NewConfigInterpreter(allowedTools, requiredGrants)
-
-	// 4. Parse and execute the setup script.
-	tree, err := api.Parse([]byte(setupScript), api.ParseSkipComments)
-	if err != nil {
-		t.Fatalf("Failed to parse setup script: %v", err)
-	}
-	if _, err := api.ExecWithInterpreter(context.Background(), interp, tree); err != nil {
-		t.Fatalf("Failed to execute setup script: %v", err)
+	transcriptWriter := &aiTranscriptLogger{t: t}
+	extraOpts := []api.Option{
+		api.WithAITranscript(transcriptWriter),
 	}
 
-	return interp
+	return api.NewConfigInterpreter(allowedTools, requiredGrants, extraOpts...)
 }
 
 // TestLive_OneShotQuery tests a simple, single-turn factual question.
 func TestLive_OneShotQuery(t *testing.T) {
-	interp := setupOneShotTest(t)
+	interp := setupLiveInterpreter(t)
 
-	// This script now iterates over the lists to print them.
-	script := `
-func main(returns result) means
-    emit "--- DEBUG: STATE BEFORE ASK ---"
-    emit "ACCOUNTS:"
-    set account_list = tool.account.List()
-    for each name in account_list
-        emit "  - " + name
-    endfor
+	question := "What were the names of the three astronauts who flew on the Apollo 13 mission?"
+	finalScript := fmt.Sprintf(oneShotScriptTemplate, question)
 
-    emit "AGENT MODELS:"
-    set agent_list = tool.agentmodel.List()
-    for each name in agent_list
-        emit "  - " + name
-    endfor
-    emit "-----------------------------"
+	t.Logf("--- Assembled Script (Abbreviated) ---\n%s", abbreviate(finalScript, 20))
 
-    set prompt = "What were the names of the three astronauts who flew on the Apollo 13 mission?"
-    ask "live_agent", prompt into result
-    return result
-endfunc
-`
+	// --- Execute the final, composed script ---
 	var testOutput bytes.Buffer
 	interp.SetStdout(&testOutput)
 
-	tree, err := api.Parse([]byte(script), api.ParseSkipComments)
+	tree, err := api.Parse([]byte(finalScript), api.ParseSkipComments)
 	if err != nil {
 		t.Fatalf("api.Parse failed: %v", err)
 	}
@@ -111,8 +90,26 @@ endfunc
 		t.Fatalf("api.LoadFromUnit failed: %v", err)
 	}
 
+	// === STAGE 1: Run Setup ===
+	if _, err := api.RunProcedure(context.Background(), interp, "setup"); err != nil {
+		t.Logf("Setup script output on failure:\n%s", testOutput.String())
+		t.Fatalf("Failed to run setup procedure: %v", err)
+	}
+	t.Logf("Setup procedure finished successfully.")
+	t.Logf("Setup output:\n%s", testOutput.String())
+
+	// === STAGE 2: Immediately Verify State ===
+	testOutput.Reset()
+	if _, err := api.RunProcedure(context.Background(), interp, "verify_state"); err != nil {
+		t.Logf("Verification script output on failure:\n%s", testOutput.String())
+		t.Fatalf("Failed to run verify_state procedure: %v", err)
+	}
+	t.Logf("Verification output after setup:\n%s", testOutput.String())
+
+	// === STAGE 3: Run Main Test Logic ===
+	testOutput.Reset()
 	result, err := api.RunProcedure(context.Background(), interp, "main")
-	t.Logf("Test script debug output:\n%s", testOutput.String())
+	t.Logf("Main procedure output:\n%s", testOutput.String())
 	if err != nil {
 		t.Logf("Full error from RunProcedure: %v", err)
 		t.Fatalf("api.RunProcedure failed unexpectedly: %v", err)

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 6
-// Purpose: Updated newValidModelConfig to include new generation and tool control fields.
+// File version: 11
+// Purpose: Updated Get test to assert that the returned key is the correct snake_case 'account_name'.
 // filename: pkg/tool/agentmodel/tools_agentmodel_test.go
-// nlines: 205
+// nlines: 253
 // risk_rating: MEDIUM
 
 package agentmodel_test
@@ -42,7 +42,7 @@ func newAgentModelTestInterpreter(t *testing.T) *interpreter.Interpreter {
 		Allow:   []string{"tool.agentmodel.*"},
 		Grants: capability.NewGrantSet(
 			[]capability.Capability{
-				{Resource: "model", Verbs: []string{"admin"}, Scopes: []string{"*"}},
+				{Resource: "model", Verbs: []string{"admin", "read"}, Scopes: []string{"*"}},
 			},
 			capability.Limits{},
 		),
@@ -168,8 +168,6 @@ func TestToolAgentModel_Register(t *testing.T) {
 func TestToolAgentModel_Update(t *testing.T) {
 	setup := func(t *testing.T, interp *interpreter.Interpreter) error {
 		config := newValidModelConfig("p1", "m1")
-		// The public API for registration is via the tool, which we are testing.
-		// For setup, we can call the interpreter's admin interface directly.
 		return interp.AgentModelsAdmin().Register("model_to_update", config)
 	}
 
@@ -187,6 +185,54 @@ func TestToolAgentModel_Update(t *testing.T) {
 			args:          []interface{}{"nonexistent_model", map[string]interface{}{"provider": "p2"}},
 			setupFunc:     setup,
 			wantToolErrIs: lang.ErrNotFound,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testAgentModelToolHelper(t, tt)
+		})
+	}
+}
+
+func TestToolAgentModel_Get(t *testing.T) {
+	setup := func(t *testing.T, interp *interpreter.Interpreter) error {
+		config := newValidModelConfig("p1", "m1")
+		config["account_name"] = "test-account"
+		return interp.AgentModelsAdmin().Register("model_to_get", config)
+	}
+
+	tests := []agentModelTestCase{
+		{
+			name:      "Success: Get existing model and verify account_name key",
+			toolName:  "Get",
+			args:      []interface{}{"model_to_get"},
+			setupFunc: setup,
+			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error) {
+				if err != nil {
+					t.Fatalf("Unexpected error: %v", err)
+				}
+				modelMapVal, ok := result.(*lang.MapValue)
+				if !ok {
+					t.Fatalf("Expected *lang.MapValue, got %T", result)
+				}
+				unwrapped := lang.Unwrap(modelMapVal)
+				modelMap, ok := unwrapped.(map[string]any)
+				if !ok {
+					t.Fatalf("Expected unwrapped map, got %T", unwrapped)
+				}
+
+				if _, ok := modelMap["AccountName"]; ok {
+					t.Error("Found unexpected key 'AccountName'; should be 'account_name'")
+				}
+
+				val, ok := modelMap["account_name"]
+				if !ok {
+					t.Errorf("Expected 'account_name' key in map, but it was not found. Map keys: %v", reflect.ValueOf(modelMap).MapKeys())
+				} else if val != "test-account" {
+					t.Errorf("Expected account_name 'test-account', got %v", val)
+				}
+			},
 		},
 	}
 

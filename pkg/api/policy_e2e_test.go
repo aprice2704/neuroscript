@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.6.0
-// File version: 4
-// Purpose: Added a test to explicitly verify that a default interpreter is unprivileged.
+// NeuroScript Version: 0.7.0
+// File version: 6
+// Purpose: Reverted the limit enforcement test to use manual policy construction, as the high-level helpers do not support limits. Kept the added failure case for the trust enforcement test.
 // filename: pkg/api/policy_e2e_test.go
-// nlines: 160
+// nlines: 169
 // risk_rating: HIGH
 
 package api_test
@@ -34,6 +34,8 @@ func main() means
     call tool.test.count()
 endfunc
 `
+	// Manually construct the policy to include limits, as the high-level
+	// helpers do not support them. This is the correct pattern for this test.
 	policy := &policy.ExecPolicy{
 		Context: policy.ContextNormal,
 		Allow:   []string{"tool.test.count"},
@@ -49,6 +51,7 @@ endfunc
 		api.WithTool(counterTool),
 		interpreter.WithExecPolicy(policy),
 	)
+
 	tree, err := api.Parse([]byte(limitScript), api.ParseSkipComments)
 	if err != nil {
 		t.Fatalf("api.Parse() failed: %v", err)
@@ -93,7 +96,7 @@ endfunc
 	t.Run("Success in config context", func(t *testing.T) {
 		interp := api.NewConfigInterpreter(
 			[]string{"tool.sys.setConfig"},
-			[]capability.Capability{},
+			[]api.Capability{},
 			api.WithTool(privilegedTool),
 		)
 		if err := api.LoadFromUnit(interp, &api.LoadedUnit{Tree: tree}); err != nil {
@@ -101,9 +104,25 @@ endfunc
 		}
 
 		_, err := api.RunProcedure(context.Background(), interp, "main")
-
 		if err != nil {
 			t.Fatalf("Expected privileged tool to succeed in a config context, but it failed: %v", err)
+		}
+	})
+
+	t.Run("Failure in normal context", func(t *testing.T) {
+		// A default interpreter is unprivileged.
+		interp := api.New(api.WithTool(privilegedTool))
+		if err := api.LoadFromUnit(interp, &api.LoadedUnit{Tree: tree}); err != nil {
+			t.Fatalf("api.LoadFromUnit() failed: %v", err)
+		}
+
+		_, err := api.RunProcedure(context.Background(), interp, "main")
+		if err == nil {
+			t.Fatal("Expected privileged tool to fail in a normal context, but it succeeded.")
+		}
+		var rtErr *lang.RuntimeError
+		if !errors.As(err, &rtErr) || rtErr.Code != lang.ErrorCodePolicy {
+			t.Errorf("Expected a policy error, but got: %v", err)
 		}
 	})
 }
@@ -127,8 +146,7 @@ endfunc
 		t.Fatalf("api.Parse() failed: %v", err)
 	}
 
-	// Create a standard, default-configured interpreter.
-	// It must be unprivileged.
+	// Create a standard, default-configured interpreter. It must be unprivileged.
 	interp := api.New(api.WithTool(privilegedTool))
 
 	if err := api.LoadFromUnit(interp, &api.LoadedUnit{Tree: tree}); err != nil {

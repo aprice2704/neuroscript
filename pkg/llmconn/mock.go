@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.7.0
-// File version: 5
-// Purpose: Updated scenario helpers to generate V3-compliant ACTION blocks using 'tool.aeiou.magic' instead of the obsolete V2 'aeiou.Wrap' function. Adds a UserData section to conform to V3 spec.
+// File version: 6
+// Purpose: Implemented the provider.AIProvider interface on MockConn to allow its use in interpreter tests.
 // filename: pkg/llmconn/mock.go
-// nlines: 106
-// risk_rating: LOW
+// nlines: 125
+// risk_rating: MEDIUM
 
 package llmconn
 
@@ -25,6 +25,7 @@ type ScenarioTurn struct {
 }
 
 // MockConn is a mock implementation of askloop.Connector for testing.
+// It also implements provider.AIProvider to be used directly in interpreter tests.
 type MockConn struct {
 	t        *testing.T
 	mu       sync.Mutex
@@ -38,6 +39,27 @@ func NewMock(t *testing.T, scenario ...ScenarioTurn) *MockConn {
 		t:        t,
 		scenario: scenario,
 	}
+}
+
+// Chat implements the provider.AIProvider interface, allowing the MockConn to be
+// used where a provider is expected in tests. It parses the raw prompt string
+// into an envelope and then delegates to the Converse method.
+func (m *MockConn) Chat(ctx context.Context, req provider.AIRequest) (*provider.AIResponse, error) {
+	// The mock provider needs to simulate what a real provider does: parse the envelope.
+	// We find the last envelope to correctly skip over bootstrap text.
+	promptToParse := req.Prompt
+	if markerPos := strings.LastIndex(req.Prompt, aeiou.Wrap(aeiou.SectionStart)); markerPos != -1 {
+		promptToParse = req.Prompt[markerPos:]
+	}
+
+	env, _, err := aeiou.Parse(strings.NewReader(promptToParse))
+	if err != nil {
+		// This simulates a provider failing because the prompt isn't a valid envelope.
+		return nil, fmt.Errorf("mock provider could not parse AEIOU envelope from prompt: %w", err)
+	}
+
+	// Delegate to the existing scenario-based logic.
+	return m.Converse(ctx, env)
 }
 
 // Converse pops the next response from the scenario queue.

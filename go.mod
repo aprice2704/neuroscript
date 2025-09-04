@@ -59,7 +59,6 @@ require (
 	github.com/atotto/clipboard v0.1.4
 	github.com/charmbracelet/bubbles v0.21.0
 	github.com/charmbracelet/bubbletea v1.3.4
-	github.com/cyberphone/json-canonicalization v0.0.0-20241213102144-19d51d7fe467
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/google/generative-ai-go v0.19.0
