@@ -615,5 +615,77 @@
       }
     ],
     "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "GetOrCreateByDID",
+      "groupname": "fdm.agent",
+      "fullname": "",
+      "description": "",
+      "returnType": "map"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "AssignModel",
+      "groupname": "fdm.agent",
+      "fullname": "",
+      "description": "",
+      "returnType": "map"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "SetRole",
+      "groupname": "fdm.agent",
+      "fullname": "",
+      "description": "",
+      "returnType": "map"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "LoadScriptSigned",
+      "groupname": "fdm.agent",
+      "fullname": "",
+      "description": "",
+      "returnType": "map"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "Emit",
+      "groupname": "fdm.events",
+      "fullname": "",
+      "description": "",
+      "args": [
+        {
+          "name": "event",
+          "type": "map",
+          "description": "A map containing event details like 'type', 'target', and 'payload'.",
+          "required": true
+        }
+      ],
+      "returnType": "bool"
+    },
+    "requiresTrust": false,
+    "requiredCaps": [
+      {
+        "Resource": "bus",
+        "Verbs": [
+          "write"
+        ],
+        "Scopes": null
+      }
+    ],
+    "signatureChecksum": ""
   }
 ]

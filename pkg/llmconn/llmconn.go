@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.0
-// File version: 11
-// Purpose: Updated to use the version-aware capsule registry, fetching the latest bootstrap capsules by name instead of by a versioned ID.
+// NeuroScript Version: 0.7.1
+// File version: 12
+// Purpose: Updated to use the version-aware default capsule registry to fetch the latest bootstrap capsules.
 // filename: pkg/llmconn/llmconn.go
 // nlines: 135
 // risk_rating: MEDIUM
@@ -62,7 +62,7 @@ func (c *LLMConn) Converse(ctx context.Context, input *aeiou.Envelope) (*provide
 	}
 
 	// On the first turn of a conversation, prepend the appropriate bootstrap
-	// instructions to the entire prompt by retrieving them from the capsule registry.
+	// instructions by retrieving them from the default capsule registry.
 	if c.turnCount == 1 {
 		var capsuleName string
 		if c.model.Tools.ToolLoopPermitted {
@@ -71,10 +71,12 @@ func (c *LLMConn) Converse(ctx context.Context, input *aeiou.Envelope) (*provide
 			capsuleName = "capsule/bootstrap_oneshot"
 		}
 
-		cap, ok := capsule.GetLatest(capsuleName)
+		// FIX: Use the DefaultRegistry() to get the built-in capsules.
+		reg := capsule.DefaultRegistry()
+		cap, ok := reg.GetLatest(capsuleName)
 		if !ok {
 			// This would be a critical setup error, as capsules should be embedded.
-			return nil, fmt.Errorf("latest bootstrap capsule not found in registry: %s", capsuleName)
+			return nil, fmt.Errorf("latest bootstrap capsule not found in default registry: %s", capsuleName)
 		}
 		prompt = cap.Content + "\n\n" + prompt
 	}

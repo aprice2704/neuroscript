@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.0
-// File version: 6
-// Purpose: Added the 'model:read' capability to the privileged test policy to allow tools like 'agentmodel.get' to run in tests.
+// NeuroScript Version: 0.7.1
+// File version: 7
+// Purpose: Added an exported Clone() method for testing purposes.
 // filename: pkg/interpreter/testing_bits.go
-// nlines: 95
+// nlines: 100
 // risk_rating: LOW
 package interpreter
 
@@ -18,6 +18,11 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/policy/capability"
 )
+
+// Clone is an exported wrapper for the unexported clone method, allowing it to be called by external test packages.
+func (i *Interpreter) Clone() *Interpreter {
+	return i.clone()
+}
 
 // RunSteps is an exported wrapper for the unexported executeSteps method, allowing it to be called by external test packages.
 func (i *Interpreter) RunSteps(steps []ast.Step) (lang.Value, bool, bool, error) {
@@ -73,7 +78,7 @@ func NewTestInterpreter(t *testing.T, initialVars map[string]lang.Value, lastRes
 			Allow:   []string{"*"},
 			Grants: capability.NewGrantSet(
 				[]capability.Capability{
-					{Resource: "model", Verbs: []string{"admin", "use", "read"}, Scopes: []string{"*"}}, // FIX: Added 'read' verb
+					{Resource: "model", Verbs: []string{"admin", "use", "read"}, Scopes: []string{"*"}},
 					{Resource: "account", Verbs: []string{"admin"}, Scopes: []string{"*"}},
 					{Resource: "env", Verbs: []string{"read"}, Scopes: []string{"*"}},
 					{Resource: "net", Verbs: []string{"read"}, Scopes: []string{"*"}},

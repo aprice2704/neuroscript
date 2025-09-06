@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.0
-// File version: 2
-// Purpose: Loads and registers all capsules from the content directory on init.
+// NeuroScript Version: 0.7.1
+// File version: 3
+// Purpose: Loads and registers all capsules from the content directory into the default registry.
 // filename: pkg/capsule/loader.go
-// nlines: 57
+// nlines: 60
 // risk_rating: MEDIUM
 package capsule
 
@@ -21,6 +21,9 @@ var contentFS embed.FS
 
 func init() {
 	parser := metadata.NewMarkdownParser()
+	// Get the default registry instance.
+	reg := DefaultRegistry()
+
 	err := fs.WalkDir(contentFS, "content", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -48,7 +51,8 @@ func init() {
 
 		priority, _ := extractor.GetIntOr("priority", 100)
 
-		MustRegister(Capsule{
+		// Register into the default registry instance.
+		reg.MustRegister(Capsule{
 			Name:     extractor.MustGet("id"), // 'id' from markdown is now the 'Name'
 			Version:  extractor.MustGet("version"),
 			MIME:     extractor.GetOr("mime", "text/markdown; charset=utf-8"),

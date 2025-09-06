@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.6.0
-// File version: 5
-// Purpose: Renamed WithInitialGlobals to WithGlobals for API consistency.
+// NeuroScript Version: 0.7.1
+// File version: 6
+// Purpose: Adds WithCapsuleRegistry option to support host-provided capsules.
 // filename: pkg/interpreter/interpreter_options.go
-// nlines: 62
+// nlines: 75
 // risk_rating: LOW
 
 package interpreter
@@ -10,6 +10,7 @@ package interpreter
 import (
 	"io"
 
+	"github.com/aprice2704/neuroscript/pkg/capsule"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 )
@@ -79,5 +80,15 @@ func WithGlobals(globals map[string]interface{}) InterpreterOption {
 func WithExecPolicy(policy *policy.ExecPolicy) InterpreterOption {
 	return func(i *Interpreter) {
 		i.ExecPolicy = policy
+	}
+}
+
+// WithCapsuleRegistry creates an interpreter option that adds a custom
+// capsule registry to the interpreter's store.
+func WithCapsuleRegistry(registry *capsule.Registry) InterpreterOption {
+	return func(i *Interpreter) {
+		if i.capsuleStore != nil {
+			i.capsuleStore.Add(registry)
+		}
 	}
 }

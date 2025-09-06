@@ -1,9 +1,9 @@
-// NeuroScript Version: 0.7.0
-// File version: 2
-// Purpose: Defines the version-aware registry for capsules.
+// NeuroScript Version: 0.7.1
+// File version: 3
+// Purpose: Implements a layered, version-aware registry store for capsules, allowing hosts to add their own.
 // filename: pkg/capsule/registry.go
-// nlines: 150
-// risk_rating: MEDIUM
+// nlines: 220
+// risk_rating: HIGH
 
 package capsule
 
@@ -34,10 +34,6 @@ type Capsule struct {
 }
 
 var (
-	// registry stores capsules by name, then by version.
-	registry = make(map[string]map[string]Capsule)
-	mu       sync.RWMutex
-
 	// nameRE validates the <name> part of a capsule id.
 	nameRE = regexp.MustCompile(`^capsule/[a-z0-9._-]+$`)
 )
@@ -50,8 +46,23 @@ func ValidateName(name string) error {
 	return nil
 }
 
-// Register adds (or replaces) a capsule. Safe for concurrent use and init().
-func Register(c Capsule) error {
+// --- Registry ---
+
+// Registry is a collection of capsules. It is safe for concurrent use.
+type Registry struct {
+	mu       sync.RWMutex
+	capsules map[string]map[string]Capsule // name -> version -> Capsule
+}
+
+// NewRegistry creates a new, empty capsule registry.
+func NewRegistry() *Registry {
+	return &Registry{
+		capsules: make(map[string]map[string]Capsule),
+	}
+}
+
+// Register adds (or replaces) a capsule in the registry.
+func (r *Registry) Register(c Capsule) error {
 	if err := ValidateName(c.Name); err != nil {
 		return fmt.Errorf("invalid name for capsule with version %s: %w", c.Version, err)
 	}
@@ -66,28 +77,28 @@ func Register(c Capsule) error {
 	c.Size = len(c.Content)
 	c.ID = fmt.Sprintf("%s@%s", c.Name, c.Version)
 
-	mu.Lock()
-	defer mu.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	if _, ok := registry[c.Name]; !ok {
-		registry[c.Name] = make(map[string]Capsule)
+	if _, ok := r.capsules[c.Name]; !ok {
+		r.capsules[c.Name] = make(map[string]Capsule)
 	}
-	registry[c.Name][c.Version] = c
+	r.capsules[c.Name][c.Version] = c
 	return nil
 }
 
-// MustRegister is like Register but panics on error (useful in init).
-func MustRegister(c Capsule) {
-	if err := Register(c); err != nil {
+// MustRegister is like Register but panics on error.
+func (r *Registry) MustRegister(c Capsule) {
+	if err := r.Register(c); err != nil {
 		panic(err)
 	}
 }
 
-// Get returns a specific version of a capsule by name.
-func Get(name, version string) (Capsule, bool) {
-	mu.RLock()
-	defer mu.RUnlock()
-	versions, ok := registry[name]
+// Get returns a specific version of a capsule by name from this registry.
+func (r *Registry) Get(name, version string) (Capsule, bool) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	versions, ok := r.capsules[name]
 	if !ok {
 		return Capsule{}, false
 	}
@@ -95,32 +106,26 @@ func Get(name, version string) (Capsule, bool) {
 	return c, ok
 }
 
-// GetLatest returns the highest version of a capsule.
-// It uses integer comparison for versions that are simple integers,
-// otherwise it uses semantic versioning comparison.
-func GetLatest(name string) (Capsule, bool) {
-	mu.RLock()
-	defer mu.RUnlock()
-	versions, ok := registry[name]
+// GetLatest returns the highest version of a capsule from this registry.
+func (r *Registry) GetLatest(name string) (Capsule, bool) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	versions, ok := r.capsules[name]
 	if !ok || len(versions) == 0 {
 		return Capsule{}, false
 	}
 
-	var latestVersion string
 	var versionKeys []string
 	for k := range versions {
 		versionKeys = append(versionKeys, k)
 	}
 
-	// Try to sort by integer first
 	sort.SliceStable(versionKeys, func(i, j int) bool {
 		v1, err1 := strconv.Atoi(versionKeys[i])
 		v2, err2 := strconv.Atoi(versionKeys[j])
 		if err1 == nil && err2 == nil {
 			return v1 > v2
 		}
-		// Fallback to semver or string compare if not simple integers
-		// Add "v" prefix if it's missing for semver compatibility.
 		sv1 := versionKeys[i]
 		if !strings.HasPrefix(sv1, "v") {
 			sv1 = "v" + sv1
@@ -132,38 +137,85 @@ func GetLatest(name string) (Capsule, bool) {
 		return semver.Compare(sv1, sv2) > 0
 	})
 
-	latestVersion = versionKeys[0]
+	latestVersion := versionKeys[0]
 	return versions[latestVersion], true
 }
 
-// ListVersions returns all available versions for a given capsule name, sorted.
-func ListVersions(name string) ([]string, bool) {
-	mu.RLock()
-	defer mu.RUnlock()
-	versions, ok := registry[name]
-	if !ok {
-		return nil, false
-	}
-
-	var versionKeys []string
-	for k := range versions {
-		versionKeys = append(versionKeys, k)
-	}
-	sort.Strings(versionKeys)
-	return versionKeys, true
-}
-
-// List returns all capsules, stable-ordered by Priority then ID.
-func List() []Capsule {
-	mu.RLock()
-	defer mu.RUnlock()
+// List returns all capsules in this registry.
+func (r *Registry) List() []Capsule {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	var allCapsules []Capsule
-	for _, versions := range registry {
+	for _, versions := range r.capsules {
 		for _, c := range versions {
 			allCapsules = append(allCapsules, c)
 		}
 	}
+	return allCapsules
+}
 
+// --- Store ---
+
+// Store manages a layered set of capsule registries.
+type Store struct {
+	mu         sync.RWMutex
+	registries []*Registry
+}
+
+// NewStore creates a new store, optionally initialized with a set of registries.
+func NewStore(initial ...*Registry) *Store {
+	return &Store{
+		registries: initial,
+	}
+}
+
+// Add adds a new registry as a new layer.
+func (s *Store) Add(r *Registry) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.registries = append(s.registries, r)
+}
+
+// Get finds a specific capsule version, searching registries in order.
+func (s *Store) Get(name, version string) (Capsule, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, r := range s.registries {
+		if c, ok := r.Get(name, version); ok {
+			return c, true
+		}
+	}
+	return Capsule{}, false
+}
+
+// GetLatest finds the latest version of a capsule. It searches the first
+// registry that contains the capsule name and returns the latest from there.
+func (s *Store) GetLatest(name string) (Capsule, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, r := range s.registries {
+		// Check if the name exists at all in this registry layer.
+		r.mu.RLock()
+		_, ok := r.capsules[name]
+		r.mu.RUnlock()
+
+		if ok {
+			// If it exists, get the latest from this layer and stop searching.
+			return r.GetLatest(name)
+		}
+	}
+	return Capsule{}, false
+}
+
+// List returns all capsules from all registries, sorted by priority then ID.
+// It does not handle potential duplicates across registries.
+func (s *Store) List() []Capsule {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	var allCapsules []Capsule
+	for _, r := range s.registries {
+		allCapsules = append(allCapsules, r.List()...)
+	}
 	sort.Slice(allCapsules, func(i, j int) bool {
 		if allCapsules[i].Priority != allCapsules[j].Priority {
 			return allCapsules[i].Priority < allCapsules[j].Priority
@@ -171,4 +223,19 @@ func List() []Capsule {
 		return allCapsules[i].ID < allCapsules[j].ID
 	})
 	return allCapsules
+}
+
+// --- Default Registry ---
+
+var (
+	defaultRegistry     *Registry
+	defaultRegistryOnce sync.Once
+)
+
+// DefaultRegistry returns the singleton registry for built-in capsules.
+func DefaultRegistry() *Registry {
+	defaultRegistryOnce.Do(func() {
+		defaultRegistry = NewRegistry()
+	})
+	return defaultRegistry
 }

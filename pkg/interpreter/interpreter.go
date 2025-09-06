@@ -1,10 +1,9 @@
-// NeuroScript Version: 0.7.0
-// File version: 59
-// Purpose: Rerouted store accessors to the root interpreter to ensure state changes persist even when executed from a sandboxed clone.
+// NeuroScript Version: 0.7.1
+// File version: 61
+// Purpose: Removed special-case logic for capsule tool registration, which is now handled by the standard tool registration process.
 // filename: pkg/interpreter/interpreter.go
-// nlines: 184
-// risk_rating: HIGH
-
+// nlines: 194
+// risk_rating: MEDIUM
 package interpreter
 
 import (
@@ -19,6 +18,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/agentmodel"
 	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/capsule"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
@@ -61,6 +61,7 @@ type Interpreter struct {
 	aiTranscript        io.Writer
 	transientPrivateKey ed25519.PrivateKey
 	accountStore        *account.Store
+	capsuleStore        *capsule.Store
 }
 
 // SetAITranscript sets the writer for logging AI prompts.
@@ -80,6 +81,7 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 		bufferManager:     NewBufferManager(),
 		objectCache:       make(map[string]interface{}),
 		turnCtx:           context.Background(),
+		capsuleStore:      capsule.NewStore(capsule.DefaultRegistry()),
 	}
 	i.evaluate = &evaluation{i: i}
 	i.tools = tool.NewToolRegistry(i)
@@ -119,6 +121,11 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	i.SetInitialVariable("self", lang.StringValue{Value: DefaultSelfHandle})
 
 	return i
+}
+
+// CapsuleStore returns the interpreter's layered capsule store.
+func (i *Interpreter) CapsuleStore() *capsule.Store {
+	return i.capsuleStore
 }
 
 func (i *Interpreter) EvaluateExpression(node ast.Expression) (lang.Value, error) {

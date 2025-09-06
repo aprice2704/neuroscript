@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.0
-// File version: 2
-// Purpose: Tests that the capsule loader correctly registers embedded content.
+// NeuroScript Version: 0.7.1
+// File version: 3
+// Purpose: Tests that the capsule loader correctly registers embedded content into the default registry.
 // filename: pkg/capsule/loader_test.go
-// nlines: 21
+// nlines: 25
 // risk_rating: LOW
 package capsule_test
 
@@ -14,10 +14,13 @@ import (
 
 func TestCapsuleLoader(t *testing.T) {
 	const expectedName = "capsule/aeiou"
-	c, ok := capsule.GetLatest(expectedName)
+
+	// The loader runs on init, populating the default registry.
+	reg := capsule.DefaultRegistry()
+	c, ok := reg.GetLatest(expectedName)
 
 	if !ok {
-		t.Fatalf("capsule.GetLatest(%q) failed: capsule was not loaded and registered", expectedName)
+		t.Fatalf("reg.GetLatest(%q) failed: capsule was not loaded and registered", expectedName)
 	}
 
 	if c.Name != expectedName {

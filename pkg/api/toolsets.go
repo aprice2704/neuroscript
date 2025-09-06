@@ -15,6 +15,7 @@ import (
 	_ "github.com/aprice2704/neuroscript/pkg/tool/account"
 	_ "github.com/aprice2704/neuroscript/pkg/tool/aeiou"
 	_ "github.com/aprice2704/neuroscript/pkg/tool/agentmodel"
+	_ "github.com/aprice2704/neuroscript/pkg/tool/capsule"
 	_ "github.com/aprice2704/neuroscript/pkg/tool/fs"
 	_ "github.com/aprice2704/neuroscript/pkg/tool/gotools"
 	_ "github.com/aprice2704/neuroscript/pkg/tool/io"

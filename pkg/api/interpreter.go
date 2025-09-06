@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.0
-// File version: 29
-// Purpose: Implemented the critical fix for state persistence by ensuring Run() operates directly on the persistent internal interpreter, not a clone.
+// NeuroScript Version: 0.7.1
+// File version: 32
+// Purpose: Added the CapsuleStore() method to expose the interpreter's layered capsule store.
 // filename: pkg/api/interpreter.go
-// nlines: 165
+// nlines: 180
 // risk_rating: HIGH
 package api
 
@@ -10,6 +10,7 @@ import (
 	"errors"
 	"io"
 
+	"github.com/aprice2704/neuroscript/pkg/capsule"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -34,6 +35,7 @@ func New(opts ...Option) *Interpreter {
 			Allow:   []string{},
 		}
 	}
+	// The internal interpreter is now expected to initialize its own capsule store.
 	googleProvider := google.New()
 	i.RegisterProvider("google", googleProvider)
 	return &Interpreter{internal: i}
@@ -95,6 +97,11 @@ func (i *Interpreter) RegisterProvider(name string, p AIProvider) {
 // It now correctly accepts a map of native Go types.
 func (i *Interpreter) RegisterAgentModel(name string, config map[string]any) error {
 	return i.internal.AgentModelsAdmin().Register(types.AgentModelName(name), config)
+}
+
+// CapsuleStore returns the interpreter's layered capsule store.
+func (i *Interpreter) CapsuleStore() *capsule.Store {
+	return i.internal.CapsuleStore()
 }
 
 // Load injects a parsed program into the interpreter via the interface.

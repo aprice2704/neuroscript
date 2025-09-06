@@ -1,10 +1,9 @@
-// NeuroScript Version: 0.7.0
-// File version: 5
-// Purpose: Centralizes the interpreter cloning logic for sandboxed execution.
+// NeuroScript Version: 0.7.1
+// File version: 6
+// Purpose: Ensures the capsuleStore is correctly propagated to cloned interpreters.
 // filename: pkg/interpreter/interpreter_clone.go
-// nlines: 60
+// nlines: 61
 // risk_rating: HIGH
-
 package interpreter
 
 // clone creates a new interpreter instance for sandboxing.
@@ -28,6 +27,7 @@ func (i *Interpreter) clone() *Interpreter {
 		skipStdTools:        i.skipStdTools,
 		modelStore:          i.modelStore,
 		accountStore:        i.accountStore,
+		capsuleStore:        i.capsuleStore, // Propagate capsule store to clone
 		ExecPolicy:          i.ExecPolicy,
 		root:                i, // Link back to the parent
 		aiTranscript:        i.aiTranscript,

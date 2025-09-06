@@ -9,7 +9,7 @@ This guide provides a comprehensive overview of how to embed and interact with t
 You can access both the overall program version and the specific grammar version directly from the API. This is useful for logging, debugging, and ensuring compatibility.
 
 ```go
-import "[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
+import "github.com/aprice2704/neuroscript/pkg/api"
 import "fmt"
 
 func main() {
@@ -38,7 +38,7 @@ import (
 	"fmt"
 	"os"
 
-	"[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
+	"github.com/aprice2704/neuroscript/pkg/api"
 )
 
 func main() {
@@ -125,28 +125,60 @@ Use `api.New()` with functional options to configure the interpreter.
 
 **Core tools** (like `tool.math.Add`, `tool.fs.Read`, etc.) and **default AI providers** (like `google`) are automatically registered for you when you call `api.New()`. You do not need to take any special steps, such as importing a "tool bundle", to make them available. They are ready to use immediately in your NeuroScript code.
 
-### Managing I/O
+### Managing Documentation Capsules
 
-You can set the I/O streams after creation as well.
+The interpreter comes with a built-in, layered store for documentation "capsules". These are self-contained pieces of text (like specifications or prompts) that can be accessed by scripts via the `tool.capsule.*` toolset. Your host application can add its own custom capsules by creating and registering a new `CapsuleRegistry`.
 
--   **`interp.SetStdout(w io.Writer)`**
--   **`interp.SetStderr(w io.Writer)`**
+-   **`api.NewCapsuleRegistry() *api.CapsuleRegistry`**: Creates a new, empty registry for your custom capsules.
+-   **`registry.MustRegister(capsule.Capsule{...})`**: Adds a capsule to your custom registry.
+-   **`api.WithCapsuleRegistry(registry *api.CapsuleRegistry) api.Option`**: An option for `api.New()` that adds your custom registry as a new layer to the interpreter's store.
 
-## 3. Interpreter Facade API
+Registries are layered in the order they are added. The default system registry is always layer 0. When a script requests the "latest" version of a capsule, the store will find the first registry that contains that capsule name and return the latest version from *that registry*, ignoring any versions in subsequent layers. This prevents host applications from accidentally overriding built-in system capsules.
 
-For stateful applications, you can create a long-running interpreter instance and interact with it over time. The `api.Interpreter` object **is a persistent session object**. Any state changes (e.g., setting variables, registering accounts) will persist across calls to `RunProcedure` on the same instance.
+#### Example: Adding and Using a Custom Capsule
 
-To create an isolated, sandboxed execution, create a new `api.Interpreter` instance via `api.New()`.
+```go
+package main
 
-### Interpreter Configuration
+import (
+	"context"
+	"fmt"
+	"os"
 
-Use `api.New()` with functional options to configure the interpreter.
+	"github.com/aprice2704/neuroscript/pkg/api"
+	"[github.com/aprice2704/neuroscript/pkg/capsule](https://github.com/aprice2704/neuroscript/pkg/capsule)" // Note: internal package needed for Capsule struct
+)
 
--   **`api.New(opts ...api.Option) *api.Interpreter`**: Creates a new interpreter.
--   **`api.WithSandboxDir(path string) api.Option`**: **Mandatory for filesystem tools.** Sets the secure root directory for all file operations.
--   **`api.WithLogger(logger api.Logger) api.Option`**: Provides a custom logger.
--   **`api.WithGlobals(globals map[string]any) api.Option`**: Sets initial global variables.
--   **`api.WithTool(tool api.ToolImplementation) api.Option`**: Registers a custom Go function as a tool (see Section 6).
+func main() {
+	// 1. Create a custom registry and add a capsule to it.
+	customRegistry := api.NewCapsuleRegistry()
+	customRegistry.MustRegister(capsule.Capsule{
+		Name:    "capsule/host-prompts",
+		Version: "1.2",
+		Content: "This is a custom prompt for the host application.",
+	})
+
+	// 2. Create an interpreter with the custom registry added.
+	interp := api.New(
+		api.WithCapsuleRegistry(customRegistry),
+	)
+
+	// 3. Run a script that uses the 'tool.capsule.GetLatest' tool.
+	script := `
+func main(returns string) means
+  set my_prompt_map = tool.capsule.GetLatest("capsule/host-prompts")
+  return my_prompt_map["content"]
+endfunc
+`
+	tree, _ := api.Parse([]byte(script), api.ParseSkipComments)
+	api.ExecWithInterpreter(context.Background(), interp, tree)
+
+	result, _ := api.RunProcedure(context.Background(), interp, "main")
+	unwrapped, _ := api.Unwrap(result)
+
+	fmt.Printf("Custom capsule content from script: %s\n", unwrapped)
+}
+```
 
 ### Managing I/O and `emit`
 
@@ -204,7 +236,7 @@ import (
 	"fmt"
 	"os"
 
-	"[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
+	"github.com/aprice2704/neuroscript/pkg/api"
 )
 
 func main() {
@@ -249,18 +281,6 @@ endcommand
 
 ---
 
-## 5. Stateless Execution
-
-For simple, one-shot script execution where the source is trusted, you can use a more direct helper.
-
--   **`api.ExecInNewInterpreter(ctx context.Context, src string, opts ...api.Option) (api.Value, error)`**: Parses and runs any top-level `command` blocks in a single call. This creates a new interpreter, runs the code, and discards it. **No state is preserved.**
-
-```go
-// Example: Stateless execution
-src := `command { emit "This is a one-shot execution!" }`
-result, err := api.ExecInNewInterpreter(context.Background(), src, api.WithStdout(os.Stdout))
-```
-Revised sec 5??
 ## 5. Stateless Execution
 
 For simple, one-shot script execution, you can use a more direct helper. **Note:** To see output from `emit` in this mode, you must pass a configured `emit` handler via an option, as the default output may not be connected.
@@ -321,7 +341,7 @@ import (
 	"fmt"
 	"strings"
 
-	"[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
+	"github.com/aprice2704/neuroscript/pkg/api"
 )
 
 func main() {
@@ -392,7 +412,7 @@ import (
 	"context"
 	"fmt"
 
-	"[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
+	"github.com/aprice2704/neuroscript/pkg/api"
 )
 
 // 1. Define the tool's function. It must match the api.ToolFunc signature.
@@ -465,7 +485,7 @@ package main
 
 import (
 	"context"
-	"[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
+	"github.com/aprice2704/neuroscript/pkg/api"
 	"[github.com/aprice2704/neuroscript/pkg/provider](https://github.com/aprice2704/neuroscript/pkg/provider)" // Note: internal package needed for AIRequest/AIResponse
 )
 
@@ -505,7 +525,7 @@ import (
 	"log"
 	"os"
 
-	"[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
+	"github.com/aprice2704/neuroscript/pkg/api"
 )
 
 func init() {
@@ -546,7 +566,7 @@ import (
 	"fmt"
 	"os"
 
-	"[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
+	"github.com/aprice2704/neuroscript/pkg/api"
 	"[github.com/aprice2704/neuroscript/pkg/lang](https://github.com/aprice2704/neuroscript/pkg/lang)"
 )
 
@@ -637,7 +657,7 @@ import (
 	"context"
 	"os"
 
-	"[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
+	"github.com/aprice2704/neuroscript/pkg/api"
 	"[github.com/aprice2704/neuroscript/pkg/lang](https://github.com/aprice2704/neuroscript/pkg/lang)"
 )
 

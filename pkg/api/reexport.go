@@ -1,14 +1,15 @@
-// NeuroScript Version: 0.7.0
-// File version: 27
-// Purpose: Re-exported AEIOU v3 loop controller components.
+// NeuroScript Version: 0.7.1
+// File version: 29
+// Purpose: Re-exported capsule.Registry and added WithCapsuleRegistry option.
 // filename: pkg/api/reexport.go
-// nlines: 175
+// nlines: 180
 // risk_rating: LOW
 
 package api
 
 import (
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
+	"github.com/aprice2704/neuroscript/pkg/capsule"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -49,6 +50,7 @@ type (
 	ToolName           = types.ToolName
 	ToolGroup          = types.ToolGroup
 	ArgType            = tool.ArgType
+	CapsuleRegistry    = capsule.Registry
 
 	// --- AEIOU v3 Host Components ---
 	// LoopControl holds the parsed result of an AEIOU LOOP signal. (DEPRECATED)
@@ -127,6 +129,7 @@ var (
 	NewMagicVerifier       = aeiou.NewMagicVerifier
 	ComputeHostDigest      = aeiou.ComputeHostDigest
 	NewRotatingKeyProvider = aeiou.NewRotatingKeyProvider
+	NewCapsuleRegistry     = capsule.NewRegistry
 )
 
 // WithTool creates an interpreter option to register a custom tool.
@@ -136,6 +139,16 @@ func WithTool(t ToolImplementation) Option {
 			if logger := i.GetLogger(); logger != nil {
 				logger.Error("failed to register tool via WithTool option", "tool", t.Spec.Name, "error", err)
 			}
+		}
+	}
+}
+
+// WithCapsuleRegistry adds a custom capsule registry to the interpreter's store.
+// This allows host applications to layer in their own documentation.
+func WithCapsuleRegistry(registry *CapsuleRegistry) Option {
+	return func(i *interpreter.Interpreter) {
+		if cs := i.CapsuleStore(); cs != nil {
+			cs.Add(registry)
 		}
 	}
 }
