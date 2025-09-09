@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.5.2
-// File version: 2
+// File version: 3
 // Purpose: Fuzz and sanitization tests for the path-lite parser.
 // filename: pkg/json-lite/path_fuzz_test.go
 // nlines: 91
@@ -86,7 +86,7 @@ func TestSelectWithWeirdKeys(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parsing 'a.b' failed: %v", err)
 	}
-	_, err = Select(data, path)
+	_, err = Select(data, path, nil)
 	if err == nil {
 		t.Error("expected error when selecting path 'a.b' but got nil")
 	}

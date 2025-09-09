@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.7.0
-// File version: 3
+// File version: 4
 // Purpose: Corrected tests to use the snake_case 'api_key' to align with the new standard.
 // filename: pkg/tool/account/tools_account_test.go
 // nlines: 128
@@ -34,16 +34,14 @@ type accountTestCase struct {
 func newAccountTestInterpreter(t *testing.T) *interpreter.Interpreter {
 	t.Helper()
 
-	testPolicy := &policy.ExecPolicy{
-		Context: policy.ContextConfig,
-		Allow:   []string{"tool.account.*"},
-		Grants: capability.NewGrantSet(
-			[]capability.Capability{
-				{Resource: "account", Verbs: []string{"admin", "read"}, Scopes: []string{"*"}},
-			},
-			capability.Limits{},
-		),
-	}
+	testPolicy := policy.AllowAll()
+	testPolicy.Context = policy.ContextConfig
+	testPolicy.Grants = capability.NewGrantSet(
+		[]capability.Capability{
+			{Resource: "account", Verbs: []string{"admin", "read"}, Scopes: []string{"*"}},
+		},
+		capability.Limits{},
+	)
 
 	interp := interpreter.NewInterpreter(interpreter.WithExecPolicy(testPolicy))
 

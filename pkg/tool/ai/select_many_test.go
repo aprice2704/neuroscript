@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.0
-// File version: 4
-// Purpose: Provides unit tests for the SelectMany tool. Corrected numeric types in source data to float64.
+// File version: 5
+// Purpose: Provides unit tests for the SelectMany tool. Corrected expected error types.
 // filename: pkg/tool/ai/select_many_test.go
 // nlines: 90
 // risk_rating: LOW
@@ -12,7 +12,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/json_lite"
 	"github.com/aprice2704/neuroscript/pkg/testutil"
 )
 
@@ -22,7 +22,6 @@ func TestSelectMany(t *testing.T) {
 		t.Fatalf("NewTestInterpreter failed: %v", err)
 	}
 
-	// Corrected: Initialize numeric data as float64 to simulate JSON unmarshaling.
 	data := map[string]interface{}{
 		"user": map[string]interface{}{
 			"name":    "Ada Lovelace",
@@ -56,7 +55,7 @@ func TestSelectMany(t *testing.T) {
 			args: []interface{}{data, map[string]interface{}{
 				"email": "user.email",
 			}},
-			wantErrIs: lang.ErrMapKeyNotFound,
+			wantErrIs: json_lite.ErrMapKeyNotFound,
 		},
 		{
 			name: "missing key ok",
@@ -73,7 +72,7 @@ func TestSelectMany(t *testing.T) {
 			args: []interface{}{data, map[string]interface{}{
 				"bad": "user..name",
 			}},
-			wantErrIs: lang.ErrInvalidPath,
+			wantErrIs: json_lite.ErrInvalidPath,
 		},
 	}
 

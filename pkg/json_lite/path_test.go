@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.5.2
-// File version: 2
+// File version: 3
 // Purpose: Tests for path-lite parsing and selection logic.
 // filename: pkg/json-lite/path_test.go
 // nlines: 122
@@ -10,8 +10,6 @@ package json_lite
 import (
 	"errors"
 	"testing"
-
-	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 var pathTestData = map[string]any{
@@ -91,25 +89,25 @@ func TestSelect(t *testing.T) {
 			name:        "key not found",
 			pathStr:     "meta.foo",
 			data:        pathTestData,
-			expectedErr: lang.ErrMapKeyNotFound,
+			expectedErr: ErrMapKeyNotFound,
 		},
 		{
 			name:        "index out of bounds",
 			pathStr:     "items[5]",
 			data:        pathTestData,
-			expectedErr: lang.ErrListIndexOutOfBounds,
+			expectedErr: ErrListIndexOutOfBounds,
 		},
 		{
 			name:        "accessing key on list",
 			pathStr:     "items.key",
 			data:        pathTestData,
-			expectedErr: lang.ErrCannotAccessType,
+			expectedErr: ErrCannotAccessType,
 		},
 		{
 			name:        "nil data",
 			pathStr:     "a.b",
 			data:        nil,
-			expectedErr: lang.ErrCollectionIsNil,
+			expectedErr: ErrCollectionIsNil,
 		},
 	}
 
@@ -120,7 +118,7 @@ func TestSelect(t *testing.T) {
 				t.Fatalf("path parsing failed: %v", err)
 			}
 
-			result, err := Select(tc.data, path)
+			result, err := Select(tc.data, path, nil)
 
 			if tc.expectedErr != nil {
 				if err == nil {

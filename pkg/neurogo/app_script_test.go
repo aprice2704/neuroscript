@@ -53,7 +53,7 @@ func setupTestApp(t *testing.T) *App {
 
 	app.SetInterpreter(interp)
 
-	if err := tool.RegisterExtendedTools(interp.ToolRegistry()); err != nil {
+	if err := tool.RegisterGlobalToolsets(interp.ToolRegistry()); err != nil {
 		t.Fatalf("Failed to register extended tools: %v", err)
 	}
 	return app

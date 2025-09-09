@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.5.2
-// File version: 1
+// File version: 2
 // Purpose: Array-form path tests for path-lite (build Path from []any and use Select)
 // filename: pkg/json-lite/path_arrayform_test.go
 // nlines: 184
@@ -10,8 +10,6 @@ package json_lite
 import (
 	"errors"
 	"testing"
-
-	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 // buildPathFromArray converts an array-form path (e.g., []any{"items", 1, "id"})
@@ -20,26 +18,26 @@ import (
 // NOTE: This is test-local glue; production code still uses ParsePath for strings.
 func buildPathFromArray(arr []any) (Path, error) {
 	if arr == nil {
-		return nil, lang.ErrInvalidArgument
+		return nil, ErrInvalidArgument
 	}
 	if len(arr) == 0 {
-		return nil, lang.ErrInvalidPath
+		return nil, ErrInvalidPath
 	}
 	if len(arr) > maxPathSegments {
-		return nil, lang.ErrNestingDepthExceeded
+		return nil, ErrNestingDepthExceeded
 	}
 	p := make(Path, 0, len(arr))
 	for _, el := range arr {
 		switch v := el.(type) {
 		case string:
 			if v == "" {
-				return nil, lang.ErrInvalidArgument
+				return nil, ErrInvalidArgument
 			}
 			p = append(p, PathSegment{Key: v, IsKey: true})
 		case int:
 			p = append(p, PathSegment{Index: v, IsKey: false})
 		default:
-			return nil, lang.ErrInvalidArgument
+			return nil, ErrInvalidArgument
 		}
 	}
 	return p, nil
@@ -79,37 +77,37 @@ func TestArrayForm_Basics(t *testing.T) {
 		{
 			name:    "map key not found",
 			pathArr: []any{"meta", "nope"},
-			wantErr: lang.ErrMapKeyNotFound,
+			wantErr: ErrMapKeyNotFound,
 		},
 		{
 			name:    "list index OOB",
 			pathArr: []any{"items", 5},
-			wantErr: lang.ErrListIndexOutOfBounds,
+			wantErr: ErrListIndexOutOfBounds,
 		},
 		{
 			name:    "cannot access key on list",
 			pathArr: []any{"items", "id"},
-			wantErr: lang.ErrCannotAccessType,
+			wantErr: ErrCannotAccessType,
 		},
 		{
 			name:    "nil arr",
 			pathArr: nil,
-			wantErr: lang.ErrInvalidArgument,
+			wantErr: ErrInvalidArgument,
 		},
 		{
 			name:    "empty arr",
 			pathArr: []any{},
-			wantErr: lang.ErrInvalidPath,
+			wantErr: ErrInvalidPath,
 		},
 		{
 			name:    "bad element type",
 			pathArr: []any{"items", int64(1)}, // unsupported type
-			wantErr: lang.ErrInvalidArgument,
+			wantErr: ErrInvalidArgument,
 		},
 		{
 			name:    "negative index",
 			pathArr: []any{"items", -1},
-			wantErr: lang.ErrListIndexOutOfBounds,
+			wantErr: ErrListIndexOutOfBounds,
 		},
 	}
 
@@ -127,7 +125,7 @@ func TestArrayForm_Basics(t *testing.T) {
 			if err != nil {
 				t.Fatalf("constructor failed: %v", err)
 			}
-			got, selErr := Select(data, path)
+			got, selErr := Select(data, path, nil)
 			if tc.wantErr != nil {
 				if !errors.Is(selErr, tc.wantErr) {
 					t.Fatalf("expected error %v, got %v", tc.wantErr, selErr)
@@ -176,7 +174,7 @@ func TestArrayForm_WeirdKeys(t *testing.T) {
 			if err != nil {
 				t.Fatalf("constructor failed: %v", err)
 			}
-			got, err := Select(data, p)
+			got, err := Select(data, p, nil)
 			if err != nil {
 				t.Fatalf("select failed: %v", err)
 			}
@@ -193,7 +191,7 @@ func TestArrayForm_Limits(t *testing.T) {
 	for i := 0; i < len(long); i++ {
 		long[i] = "a"
 	}
-	if _, err := buildPathFromArray(long); !errors.Is(err, lang.ErrNestingDepthExceeded) {
+	if _, err := buildPathFromArray(long); !errors.Is(err, ErrNestingDepthExceeded) {
 		t.Fatalf("expected ErrNestingDepthExceeded for array-form path over limit, got: %v", err)
 	}
 }

@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.0
-// File version: 5
+// File version: 6
 // Purpose: Implements the Select tool. Correctly handles both string and array-form paths.
 // filename: pkg/tool/ai/select.go
 // nlines: 81
@@ -53,12 +53,12 @@ func Select(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeSyntax, fmt.Sprintf("Select: failed to process path: %v", err), err)
 	}
 
-	result, selErr := json_lite.Select(value, path)
+	result, selErr := json_lite.Select(value, path, nil) // Corrected call
 	if selErr != nil {
 		if missingOK {
 			// If missing is OK, we swallow errors like key not found, but not syntax errors.
 			switch {
-			case errors.Is(selErr, lang.ErrMapKeyNotFound), errors.Is(selErr, lang.ErrListIndexOutOfBounds), errors.Is(selErr, lang.ErrCollectionIsNil):
+			case errors.Is(selErr, json_lite.ErrMapKeyNotFound), errors.Is(selErr, json_lite.ErrListIndexOutOfBounds), errors.Is(selErr, json_lite.ErrCollectionIsNil):
 				return nil, nil
 			}
 		}

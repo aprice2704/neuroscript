@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.0
-// File version: 4
+// File version: 5
 // Purpose: Implements the Validate tool. Correctly passes through validation errors.
 // filename: pkg/tool/ai/validate.go
 // nlines: 45
@@ -44,7 +44,13 @@ func Validate(interpreter tool.Runtime, args []interface{}) (interface{}, error)
 		return nil, lang.NewRuntimeError(lang.ErrorCodeSyntax, fmt.Sprintf("Validate: failed to parse shape: %v", err), err)
 	}
 
-	if err := shape.Validate(value, allowExtra); err != nil {
+	// Corrected call to use the new options struct.
+	// Note: The 'case-insensitive' option is not exposed at the NeuroScript level yet.
+	validateOptions := &json_lite.ValidateOptions{
+		AllowExtra:      allowExtra,
+		CaseInsensitive: false,
+	}
+	if err := shape.Validate(value, validateOptions); err != nil {
 		return nil, err
 	}
 

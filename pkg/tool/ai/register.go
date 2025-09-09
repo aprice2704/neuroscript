@@ -12,7 +12,7 @@ import "github.com/aprice2704/neuroscript/pkg/tool"
 // init() runs once when the ai package is imported. It injects this tool-set’s
 // registration function into the global bootstrap list.
 //
-// At interpreter start-up, tool.RegisterExtendedTools() will call that
+// At interpreter start-up, tool.RegisterGlobalToolsets() will call that
 // registration func, which, in turn, adds every ToolImplementation in
 // aiToolsToRegister to the live registry.
 func init() {

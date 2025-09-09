@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 24
+// File version: 25
 // Purpose: Corrected account registration tests to use the snake_case 'api_key' field, aligning with the new JSON standards.
 // filename: pkg/api/interpreter_test.go
-// nlines: 228
+// nlines: 247
 // risk_rating: LOW
 
 package api_test
@@ -65,7 +65,7 @@ func TestInterpreter_RunNonExistentProcedure(t *testing.T) {
 func TestInterpreter_WithLogger(t *testing.T) {
 	logger := &mockLogger{}
 	invalidTool := api.ToolImplementation{
-		FullName: "invalid..tool",
+		Spec: api.ToolSpec{Name: ".."},
 	}
 	_ = api.New(api.WithLogger(logger), api.WithTool(invalidTool))
 
@@ -76,6 +76,23 @@ func TestInterpreter_WithLogger(t *testing.T) {
 	if !strings.Contains(logOutput, "failed to register tool") {
 		t.Errorf("Expected logger to capture tool registration failure, but log was: %q", logOutput)
 	}
+}
+
+func TestInterpreter_HasEmitFunc(t *testing.T) {
+	t.Run("without emit func", func(t *testing.T) {
+		interp := api.New()
+		if interp.HasEmitFunc() {
+			t.Error("Expected HasEmitFunc to be false, but it was true")
+		}
+	})
+
+	t.Run("with emit func", func(t *testing.T) {
+		interp := api.New()
+		interp.SetEmitFunc(func(v api.Value) {})
+		if !interp.HasEmitFunc() {
+			t.Error("Expected HasEmitFunc to be true, but it was false")
+		}
+	})
 }
 
 func TestInterpreter_WithGlobals(t *testing.T) {

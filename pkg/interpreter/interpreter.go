@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.1
-// File version: 61
-// Purpose: Removed special-case logic for capsule tool registration, which is now handled by the standard tool registration process.
+// File version: 70
+// Purpose: Removed the inSystemErrorHandler flag as part of the event error handling refactor.
 // filename: pkg/interpreter/interpreter.go
-// nlines: 194
+// nlines: 205
 // risk_rating: MEDIUM
 package interpreter
 
@@ -25,6 +25,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/policy/capability"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/google/uuid"
 )
 
 // DefaultSelfHandle is the internal handle for the default whisper buffer.
@@ -32,36 +33,42 @@ const DefaultSelfHandle = "default_self_buffer"
 
 // Interpreter holds the state for a NeuroScript runtime environment.
 type Interpreter struct {
-	logger              interfaces.Logger
-	fileAPI             interfaces.FileAPI
-	state               *interpreterState
-	tools               tool.ToolRegistry
-	eventManager        *EventManager
-	evaluate            *evaluation
-	aiWorker            interfaces.LLMClient
-	shouldExit          bool
-	exitCode            int
-	returnValue         lang.Value
-	lastCallResult      lang.Value
-	stdout              io.Writer
-	stdin               io.Reader
-	stderr              io.Writer
-	maxLoopIterations   int
-	bufferManager       *BufferManager
-	objectCache         map[string]interface{}
-	objectCacheMu       sync.Mutex
-	llmclient           interfaces.LLMClient
-	skipStdTools        bool
-	modelStore          *agentmodel.AgentModelStore
-	ExecPolicy          *policy.ExecPolicy
-	root                *Interpreter
-	customEmitFunc      func(lang.Value)
-	customWhisperFunc   func(handle, data lang.Value)
-	turnCtx             context.Context
-	aiTranscript        io.Writer
-	transientPrivateKey ed25519.PrivateKey
-	accountStore        *account.Store
-	capsuleStore        *capsule.Store
+	id                        string // Unique ID for this interpreter instance
+	logger                    interfaces.Logger
+	fileAPI                   interfaces.FileAPI
+	state                     *interpreterState
+	tools                     tool.ToolRegistry
+	eventManager              *EventManager
+	evaluate                  *evaluation
+	aiWorker                  interfaces.LLMClient
+	shouldExit                bool
+	exitCode                  int
+	returnValue               lang.Value
+	lastCallResult            lang.Value
+	stdout                    io.Writer
+	stdin                     io.Reader
+	stderr                    io.Writer
+	maxLoopIterations         int
+	bufferManager             *BufferManager
+	objectCache               map[string]interface{}
+	objectCacheMu             sync.Mutex
+	llmclient                 interfaces.LLMClient
+	skipStdTools              bool
+	modelStore                *agentmodel.AgentModelStore
+	ExecPolicy                *policy.ExecPolicy
+	root                      *Interpreter
+	customEmitFunc            func(lang.Value)
+	customWhisperFunc         func(handle, data lang.Value)
+	turnCtx                   context.Context
+	aiTranscript              io.Writer
+	transientPrivateKey       ed25519.PrivateKey
+	accountStore              *account.Store
+	capsuleStore              *capsule.Store
+	eventHandlerErrorCallback func(eventName, source string, err *lang.RuntimeError)
+
+	// --- Clone Tracking for Debugging ---
+	cloneRegistry   []*Interpreter
+	cloneRegistryMu sync.Mutex
 }
 
 // SetAITranscript sets the writer for logging AI prompts.
@@ -71,6 +78,7 @@ func (i *Interpreter) SetAITranscript(w io.Writer) {
 
 func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	i := &Interpreter{
+		id:                fmt.Sprintf("interp-%s", uuid.NewString()[:8]), // Assign a unique ID
 		state:             newInterpreterState(),
 		eventManager:      newEventManager(),
 		maxLoopIterations: 1000,
@@ -82,10 +90,11 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 		objectCache:       make(map[string]interface{}),
 		turnCtx:           context.Background(),
 		capsuleStore:      capsule.NewStore(capsule.DefaultRegistry()),
+		cloneRegistry:     make([]*Interpreter, 0), // Initialize the registry
 	}
 	i.evaluate = &evaluation{i: i}
 	i.tools = tool.NewToolRegistry(i)
-	i.root = nil
+	i.root = nil // This is the root interpreter
 	i.modelStore = agentmodel.NewAgentModelStore()
 	i.accountStore = account.NewStore()
 
@@ -97,16 +106,21 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	}
 
 	if !i.skipStdTools {
-		if err := tool.RegisterExtendedTools(i.tools); err != nil {
-			panic(fmt.Sprintf("FATAL: Failed to register extended tools: %v", err))
+		if err := tool.RegisterGlobalToolsets(i.tools); err != nil {
+			panic(fmt.Sprintf("FATAL: Failed to register global toolsets: %v", err))
 		}
+	}
+
+	// Register debug tools.
+	if err := registerDebugTools(i.tools); err != nil {
+		panic(fmt.Sprintf("FATAL: Failed to register debug tools: %v", err))
 	}
 
 	_, transientPrivateKey, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		panic(fmt.Sprintf("FATAL: Failed to generate transient private key for AEIOU tool: %v", err))
 	}
-	i.transientPrivateKey = transientPrivateKey // Store the key
+	i.transientPrivateKey = transientPrivateKey
 
 	primaryMinter, err := aeiou.NewMagicMinter(i.transientPrivateKey)
 	if err != nil {
@@ -196,8 +210,6 @@ func (i *Interpreter) GetGrantSet() *capability.GrantSet {
 	return &i.ExecPolicy.Grants
 }
 
-// rootInterpreter walks the chain of clones to find the original root interpreter.
-// This ensures that operations on persistent stores are always on the canonical instance.
 func (i *Interpreter) rootInterpreter() *Interpreter {
 	root := i
 	for root.root != nil {
@@ -206,27 +218,21 @@ func (i *Interpreter) rootInterpreter() *Interpreter {
 	return root
 }
 
-// Accounts provides a read-only view of the account store from the root interpreter.
 func (i *Interpreter) Accounts() interfaces.AccountReader {
 	root := i.rootInterpreter()
 	return account.NewReader(root.accountStore)
 }
 
-// AccountsAdmin provides a policy-gated administrative view of the account store
-// from the root interpreter, ensuring changes are always persisted.
 func (i *Interpreter) AccountsAdmin() interfaces.AccountAdmin {
 	root := i.rootInterpreter()
 	return account.NewAdmin(root.accountStore, i.ExecPolicy)
 }
 
-// AgentModels provides a read-only view of the agent model store from the root interpreter.
 func (i *Interpreter) AgentModels() interfaces.AgentModelReader {
 	root := i.rootInterpreter()
 	return agentmodel.NewAgentModelReader(root.modelStore)
 }
 
-// AgentModelsAdmin provides a policy-gated administrative view of the agent model store
-// from the root interpreter, ensuring changes are always persisted.
 func (i *Interpreter) AgentModelsAdmin() interfaces.AgentModelAdmin {
 	root := i.rootInterpreter()
 	return agentmodel.NewAgentModelAdmin(root.modelStore, i.ExecPolicy)

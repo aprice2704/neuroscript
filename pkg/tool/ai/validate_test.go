@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.0
-// File version: 4
-// Purpose: Provides unit tests for the Validate tool. Corrected expected error type for format failures.
+// File version: 5
+// Purpose: Provides unit tests for the Validate tool. Corrected expected error types.
 // filename: pkg/tool/ai/validate_test.go
 // nlines: 85
 // risk_rating: LOW
@@ -11,7 +11,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/json_lite"
 	"github.com/aprice2704/neuroscript/pkg/testutil"
 )
 
@@ -54,20 +54,19 @@ func TestValidate(t *testing.T) {
 				shape,
 				false,
 			},
-			wantErrIs: lang.ErrValidationRequiredArgMissing,
+			wantErrIs: json_lite.ErrValidationRequiredArgMissing,
 		},
 		{
 			name: "invalid email format",
 			args: []interface{}{
 				map[string]interface{}{
 					"name":  "Ada Lovelace",
-					"email": "ada", // This is a string, but it fails the 'email' format validation.
+					"email": "ada",
 				},
 				shape,
 				false,
 			},
-			// CORRECTED: A format mismatch should return ErrValidationFailed, not a type mismatch.
-			wantErrIs: lang.ErrValidationFailed,
+			wantErrIs: json_lite.ErrValidationFailed,
 		},
 		{
 			name: "extra field not allowed",
@@ -80,7 +79,7 @@ func TestValidate(t *testing.T) {
 				shape,
 				false,
 			},
-			wantErrIs: lang.ErrInvalidArgument,
+			wantErrIs: json_lite.ErrInvalidArgument,
 		},
 		{
 			name: "extra field allowed",

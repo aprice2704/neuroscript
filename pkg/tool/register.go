@@ -68,10 +68,8 @@ func CreateRegistrationFunc(toolsetName string, tools []ToolImplementation) Tool
 	}
 }
 
-// RegisterExtendedTools registers all non-core toolsets that have added themselves
-// via AddToolsetRegistration. It uses the provided ToolRegistrar (which should be
-// the interpreter's tool registry).
-func RegisterExtendedTools(registry ToolRegistrar) error {
+// RegisterGlobalToolsets registers all toolsets
+func RegisterGlobalToolsets(registry ToolRegistrar) error {
 	registrationMu.RLock()
 	defer registrationMu.RUnlock()
 

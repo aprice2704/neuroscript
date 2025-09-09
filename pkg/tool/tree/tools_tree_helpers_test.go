@@ -34,7 +34,7 @@ type treeTestCase struct {
 func testTreeToolHelper(t *testing.T, testName string, testFunc func(t *testing.T, interp tool.Runtime)) {
 	t.Run(testName, func(t *testing.T) {
 		interp := interpreter.NewInterpreter(interpreter.WithLogger(logging.NewTestLogger(t)))
-		if err := tool.RegisterExtendedTools(interp.ToolRegistry()); err != nil {
+		if err := tool.RegisterGlobalToolsets(interp.ToolRegistry()); err != nil {
 			t.Fatalf("Failed to register extended tools: %v", err)
 		}
 		testFunc(t, interp)

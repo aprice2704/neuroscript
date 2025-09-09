@@ -1,14 +1,14 @@
 // NeuroScript Version: 0.7.1
-// File version: 29
-// Purpose: Re-exported capsule.Registry and added WithCapsuleRegistry option.
+// File version: 33
+// Purpose: Re-exported canon.DecodeWithRegistry for FDM integration.
 // filename: pkg/api/reexport.go
-// nlines: 180
+// nlines: 191
 // risk_rating: LOW
-
 package api
 
 import (
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
+	"github.com/aprice2704/neuroscript/pkg/canon"
 	"github.com/aprice2704/neuroscript/pkg/capsule"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
@@ -22,7 +22,6 @@ import (
 
 // Re-exported types for the public API, as per the v0.7 contract.
 type (
-	// ... (other types unchanged) ...
 	Kind         = types.Kind
 	Position     = types.Position
 	Node         = interfaces.Node
@@ -35,7 +34,6 @@ type (
 		Sum  [32]byte
 		Sig  []byte
 	}
-	//Value              any
 	Option             = interpreter.InterpreterOption
 	ExecPolicy         = policy.ExecPolicy
 	ExecContext        = policy.ExecContext // Re-export the type
@@ -130,6 +128,8 @@ var (
 	ComputeHostDigest      = aeiou.ComputeHostDigest
 	NewRotatingKeyProvider = aeiou.NewRotatingKeyProvider
 	NewCapsuleRegistry     = capsule.NewRegistry
+	NewPolicyBuilder       = policy.NewBuilder
+	DecodeWithRegistry     = canon.DecodeWithRegistry
 )
 
 // WithTool creates an interpreter option to register a custom tool.
@@ -161,6 +161,12 @@ func WithEmitFunc(f func(Value)) Option {
 			f(v)
 		})
 	}
+}
+
+// WithEventHandlerErrorCallback creates an interpreter option to set a custom
+// callback for handling errors that occur within event handlers.
+func WithEventHandlerErrorCallback(f func(eventName, source string, err *RuntimeError)) Option {
+	return interpreter.WithEventHandlerErrorCallback(f)
 }
 
 // RegisterCriticalErrorHandler allows the host application to override the default

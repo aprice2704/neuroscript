@@ -1,17 +1,48 @@
-// NeuroScript Version: 0.5.2
-// File version: 15
-// Purpose: Correctly uses a sandboxed clone for event handlers as per design spec.
+// NeuroScript Version: 0.7.1
+// File version: 38
+// Purpose: Refactors event handler error reporting to exclusively use the host callback, removing the architecturally unsound system:handler:error event.
 // filename: pkg/interpreter/interpreter_events.go
-// nlines: 60
+// nlines: 90
 // risk_rating: HIGH
 
 package interpreter
 
 import (
-	"time"
+	"fmt"
+	"math"
 
+	"github.com/aprice2704/neuroscript/pkg/api/shape"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 )
+
+// unwrapForShapeValidation converts a lang.Value to an interface{} suitable for
+// the shape validator, crucially preserving integer types where possible.
+func unwrapForShapeValidation(v lang.Value) interface{} {
+	if v == nil {
+		return nil
+	}
+	switch tv := v.(type) {
+	case lang.NumberValue:
+		if tv.Value == math.Trunc(tv.Value) {
+			return int64(tv.Value)
+		}
+		return tv.Value
+	case *lang.MapValue:
+		m := make(map[string]interface{}, len(tv.Value))
+		for k, val := range tv.Value {
+			m[k] = unwrapForShapeValidation(val)
+		}
+		return m
+	case lang.ListValue:
+		l := make([]interface{}, len(tv.Value))
+		for i, val := range tv.Value {
+			l[i] = unwrapForShapeValidation(val)
+		}
+		return l
+	default:
+		return lang.Unwrap(v)
+	}
+}
 
 func (i *Interpreter) EmitEvent(eventName string, source string, payload lang.Value) {
 	i.eventManager.eventHandlersMu.RLock()
@@ -22,31 +53,58 @@ func (i *Interpreter) EmitEvent(eventName string, source string, payload lang.Va
 		return
 	}
 
-	eventDataMap := map[string]lang.Value{
-		lang.EventKeyName:    lang.StringValue{Value: eventName},
-		lang.EventKeySource:  lang.StringValue{Value: source},
-		"timestamp":          lang.TimedateValue{Value: time.Now().UTC()},
-		lang.EventKeyPayload: payload,
+	// FAIL-FAST CONTRACT: If handlers are registered, the host MUST provide the I/O functions
+	// for them to communicate. A nil function indicates a host-level configuration error.
+	if i.customEmitFunc == nil || i.customWhisperFunc == nil {
+		panic(fmt.Sprintf(
+			"FATAL: Interpreter (ID: %s) has event handlers for '%s' but is missing custom I/O functions. The host must configure them via SetEmitFunc/SetWhisperFunc to capture handler output.",
+			i.id,
+			eventName,
+		))
 	}
-	if payload == nil {
-		eventDataMap[lang.EventKeyPayload] = &lang.NilValue{}
+
+	eventObj, err := i.composeCanonicalEvent(eventName, source, payload)
+	if err != nil {
+		i.logger.Error("Failed to prepare canonical event", "event", eventName, "error", err)
+		return
 	}
-	eventObj := lang.EventValue{Value: eventDataMap}
 
 	for _, handler := range handlers {
-		// FIX: Use the sandboxing clone to execute the handler. This ensures
-		// that the handler has read-only access to globals and that any
-		// state changes it makes are discarded.
 		handlerInterpreter := i.CloneForEventHandler()
+		handlerInterpreter.customEmitFunc = i.customEmitFunc
+		handlerInterpreter.customWhisperFunc = i.customWhisperFunc
 
 		if handler.EventVarName != "" {
 			handlerInterpreter.SetVariable(handler.EventVarName, eventObj)
 		}
 
-		_, _, _, err := handlerInterpreter.executeSteps(handler.Body, true, nil)
+		_, _, _, execErr := handlerInterpreter.executeSteps(handler.Body, true, nil)
 
-		if err != nil {
-			i.Logger().Error("Error executing 'on event' handler", "event", eventName, "error", err)
+		if execErr != nil {
+			// This is the single, robust error reporting mechanism.
+			// The error is sent directly to the host via the out-of-band callback.
+			rtErr := ensureRuntimeError(execErr, handler.GetPos(), "ON_EVENT_HANDLER")
+			if i.eventHandlerErrorCallback != nil {
+				i.eventHandlerErrorCallback(eventName, source, rtErr)
+			}
 		}
 	}
+}
+
+// composeCanonicalEvent ensures the payload is wrapped in the standard event shape.
+func (i *Interpreter) composeCanonicalEvent(eventName, source string, payload lang.Value) (lang.Value, error) {
+	unwrappedPayload := unwrapForShapeValidation(payload)
+	if payloadMap, ok := unwrappedPayload.(map[string]interface{}); ok {
+		if shape.ValidateNSEvent(payloadMap, nil) == nil {
+			return payload, nil
+		}
+	}
+
+	payloadToCompose, _ := unwrappedPayload.(map[string]interface{})
+	composed, err := shape.ComposeNSEvent(eventName, payloadToCompose, &shape.NSEventComposeOptions{AgentID: source})
+	if err != nil {
+		return nil, fmt.Errorf("failed to compose canonical event: %w", err)
+	}
+
+	return lang.Wrap(composed)
 }

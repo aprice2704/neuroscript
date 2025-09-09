@@ -28,7 +28,7 @@ func testListTool(t *testing.T, toolName types.ToolName, cases []testCase) {
 	// This assumes that the list tools are registered via an init() function
 	// in the list package, which is a common pattern. If not, they would
 	// need to be registered here manually.
-	err := tool.RegisterExtendedTools(interp.ToolRegistry())
+	err := tool.RegisterGlobalToolsets(interp.ToolRegistry())
 	if err != nil {
 		t.Fatalf("Failed to register extended tools: %v", err)
 	}

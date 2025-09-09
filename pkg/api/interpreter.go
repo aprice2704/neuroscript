@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.1
-// File version: 32
-// Purpose: Added the CapsuleStore() method to expose the interpreter's layered capsule store.
+// File version: 34
+// Purpose: Corrected the `github.comcom` import path error.
 // filename: pkg/api/interpreter.go
-// nlines: 180
+// nlines: 185
 // risk_rating: HIGH
 package api
 
@@ -88,6 +88,11 @@ func (i *Interpreter) SetEmitFunc(f func(Value)) {
 	})
 }
 
+// HasEmitFunc returns true if a custom emit handler has been set on the interpreter.
+func (i *Interpreter) HasEmitFunc() bool {
+	return i.internal.HasEmitFunc()
+}
+
 // RegisterProvider allows the host application to register a concrete AIProvider implementation.
 func (i *Interpreter) RegisterProvider(name string, p AIProvider) {
 	i.internal.RegisterProvider(name, p)
@@ -143,4 +148,11 @@ func Unwrap(v Value) (any, error) {
 // aeiou.LoopController for V3-compliant loop management.
 func ParseLoopControl(output string) (*LoopControl, error) {
 	return nil, errors.New("ParseLoopControl is deprecated; use the AEIOU v3 LoopController")
+}
+
+// GetVariable retrieves a variable from the interpreter's current state.
+// It returns the value and a boolean indicating if the variable was found.
+func (i *Interpreter) GetVariable(name string) (Value, bool) {
+	val, exists := i.internal.GetVariable(name)
+	return val, exists
 }

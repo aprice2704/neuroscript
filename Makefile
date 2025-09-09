@@ -1,5 +1,9 @@
-# Makefile for NeuroScript Project
-# file_version: 13
+# NeuroScript Version: 0.3.0
+# File version: 14
+# Purpose: Build system configuration for the NeuroScript project.
+# filename: Makefile
+# nlines: 139
+# risk_rating: LOW
 
 # Directories
 ROOT_DIR        := $(shell pwd)
@@ -63,6 +67,8 @@ $(BIN_INSTALL_DIR)/nslsp: $(NSLSP_GO_FILES) $(ALL_PKG_GO_FILES) $(ANTLR_STAMP_FI
 $(BIN_INSTALL_DIR)/ng: $(NG_GO_FILES) $(ALL_PKG_GO_FILES) $(ANTLR_STAMP_FILE)
 	@echo "--> Installing ng Go binary to $(BIN_INSTALL_DIR)..."
 	$(GO) install $(GOFLAGS) ./cmd/ng
+	@echo "--> Updating alltools.md documentation..."
+	@$(BIN_INSTALL_DIR)/ng -trusted-config ./library/list_tools.ns.txt > alltools.md
 
 # ------------------------------------------------------------------------------
 # Generate ANTLR parser (only if grammar changes)

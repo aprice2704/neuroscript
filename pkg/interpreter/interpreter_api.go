@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.0
-// File version: 3
-// Purpose: Added GetTurnContext and setTurnContext methods to manage the AEIOU v3 session context.
+// NeuroScript Version: 0.7.1
+// File version: 5
+// Purpose: Added HasEmitFunc() to the public API to allow hosts to check if a custom emit function has been configured.
 // filename: pkg/interpreter/interpreter_api.go
-// nlines: 135
+// nlines: 140
 // risk_rating: LOW
 
 package interpreter
@@ -111,9 +111,19 @@ func (i *Interpreter) SetEmitFunc(f func(lang.Value)) {
 	i.customEmitFunc = f
 }
 
+// HasEmitFunc returns true if a custom emit function has been set.
+func (i *Interpreter) HasEmitFunc() bool {
+	return i.customEmitFunc != nil
+}
+
 // SetWhisperFunc sets a custom function to handle 'whisper' statements.
 func (i *Interpreter) SetWhisperFunc(f func(handle, data lang.Value)) {
 	i.customWhisperFunc = f
+}
+
+// SetEventHandlerErrorCallback sets the callback for event handler errors.
+func (i *Interpreter) SetEventHandlerErrorCallback(f func(eventName, source string, err *lang.RuntimeError)) {
+	i.eventHandlerErrorCallback = f
 }
 
 // GetAndClearWhisperBuffer retrieves the content of the default 'self' buffer and clears it.

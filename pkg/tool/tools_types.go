@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 19
-// Purpose: Expanded the Runtime interface to include GetGrantSet for capability checking.
+// File version: 20
+// Purpose: Added NewViewForInterpreter to ToolRegistry for efficient sharing.
 // filename: pkg/tool/tool_types.go
-// nlines: 136
+// nlines: 140
 // risk_rating: HIGH
 
 package tool
@@ -114,4 +114,7 @@ type ToolRegistry interface {
 	ListTools() []ToolImplementation
 	NTools() int
 	ExecuteTool(toolName types.FullName, args map[string]lang.Value) (lang.Value, error)
+	// NewViewForInterpreter creates a new registry that shares the tool definitions
+	// of the parent but is bound to a different interpreter runtime.
+	NewViewForInterpreter(interpreter Runtime) ToolRegistry
 }

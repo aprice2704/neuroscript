@@ -16,6 +16,9 @@ tool.agentmodel.List() -> slice_string
 tool.agentmodel.Register(name:string, config:map) -> bool
 tool.agentmodel.Select(name:string?) -> string
 tool.agentmodel.Update(name:string, updates:map) -> bool
+tool.capsule.GetLatest(name:string) -> map
+tool.capsule.List() -> slice_string
+tool.capsule.Read(id:string) -> map
 tool.fs.Append(filepath:string, content:string) -> string
 tool.fs.Delete(path:string) -> string
 tool.fs.Hash(filepath:string) -> string
@@ -57,9 +60,19 @@ tool.math.Divide(num1:float, num2:float) -> float
 tool.math.Modulo(num1:int, num2:int) -> int
 tool.math.Multiply(num1:float, num2:float) -> float
 tool.math.Subtract(num1:float, num2:float) -> float
+tool.ns_event.Compose(kind:string, payload:map, id:string?, agent_id:string?) -> map
+tool.ns_event.GetAllPayloads(event_object:map) -> slice
+tool.ns_event.GetEventShape() -> map
+tool.ns_event.GetID(event_object:map) -> string
+tool.ns_event.GetKind(event_object:map) -> string
+tool.ns_event.GetPayload(event_object:map) -> map
+tool.ns_event.GetTimestamp(event_object:map) -> int
 tool.os.Getenv(varName:string) -> string
 tool.script.ListFunctions() -> map
 tool.script.LoadScript(script_content:string) -> map
+tool.shape.IsValidPath(path_string:string) -> bool
+tool.shape.Select(value:any, path:any, options:map?) -> any
+tool.shape.Validate(value:map, shape:map, options:map?) -> bool
 tool.shell.Execute(command:string, args_list:slice_string?, directory:string?) -> map
 tool.str.Concat(strings_list:slice_string) -> string
 tool.str.Contains(input_string:string, substring:string) -> bool
@@ -275,6 +288,48 @@ _None_
 * `updates` (`map`): A map containing the fields to update.
 
 **Returns:** (`bool`) 
+---
+
+## `tool.capsule.GetLatest`
+**Description:** Gets the latest version of a capsule by its logical name (e.g., 'capsule/aeiou').
+
+**Parameters:**
+* `name` (`string`): The logical name of the capsule.
+
+**Returns:** (`map`) 
+
+**Example:**
+```neuroscript
+capsule.GetLatest("capsule/aeiou")
+```
+---
+
+## `tool.capsule.List`
+**Description:** Lists the IDs of all available documentation capsules.
+
+**Parameters:**
+_None_
+
+**Returns:** (`slice_string`) 
+
+**Example:**
+```neuroscript
+capsule.List()
+```
+---
+
+## `tool.capsule.Read`
+**Description:** Reads the content and metadata of a specific capsule by its full ID (e.g., 'capsule/aeiou@2').
+
+**Parameters:**
+* `id` (`string`): The fully qualified ID of the capsule.
+
+**Returns:** (`map`) 
+
+**Example:**
+```neuroscript
+capsule.Read("capsule/aeiou@2")
+```
 ---
 
 ## `tool.fs.Append`
@@ -951,6 +1006,107 @@ tool.Subtract(10, 4.5) // returns 5.5
 ```
 ---
 
+## `tool.ns_event.Compose`
+**Description:** Creates a valid ns standard event from its constituent parts.
+
+**Parameters:**
+* `kind` (`string`): The event kind (e.g., 'start.ping').
+* `payload` (`map`): The data payload of the event.
+* `id` (`string`): (optional) Optional event ID. If omitted, a new one is generated.
+* `agent_id` (`string`): (optional) Optional agent ID.
+
+**Returns:** (`map`) 
+
+**Example:**
+```neuroscript
+ns_event.Compose("user.created", {"user_id": 123})
+```
+---
+
+## `tool.ns_event.GetAllPayloads`
+**Description:** Extracts all coalesced payloads from a raw ns standard event into a list of maps.
+
+**Parameters:**
+* `event_object` (`map`): The event object, typically from an 'on event' handler.
+
+**Returns:** (`slice`) 
+
+**Example:**
+```neuroscript
+ns_event.GetAllPayloads(ev)
+```
+---
+
+## `tool.ns_event.GetEventShape`
+**Description:** Returns the canonical Shape-Lite definition for a standard ns_event object.
+
+**Parameters:**
+_None_
+
+**Returns:** (`map`) 
+
+**Example:**
+```neuroscript
+set shape = ns_event.GetEventShape()
+```
+---
+
+## `tool.ns_event.GetID`
+**Description:** Extracts the event ID from the first envelope in an ns standard event.
+
+**Parameters:**
+* `event_object` (`map`): The event object.
+
+**Returns:** (`string`) 
+
+**Example:**
+```neuroscript
+ns_event.GetID(ev)
+```
+---
+
+## `tool.ns_event.GetKind`
+**Description:** Extracts the event Kind from the first envelope in an ns standard event.
+
+**Parameters:**
+* `event_object` (`map`): The event object.
+
+**Returns:** (`string`) 
+
+**Example:**
+```neuroscript
+ns_event.GetKind(ev)
+```
+---
+
+## `tool.ns_event.GetPayload`
+**Description:** Extracts the core payload from a raw ns standard event, unwrapping the outer envelope.
+
+**Parameters:**
+* `event_object` (`map`): The event object, typically from an 'on event' handler.
+
+**Returns:** (`map`) 
+
+**Example:**
+```neuroscript
+ns_event.GetPayload(ev)
+```
+---
+
+## `tool.ns_event.GetTimestamp`
+**Description:** Extracts the event Timestamp (TS) from the first envelope in an ns standard event.
+
+**Parameters:**
+* `event_object` (`map`): The event object.
+
+**Returns:** (`int`) 
+
+**Example:**
+```neuroscript
+ns_event.GetTimestamp(ev)
+```
+---
+
 ## `tool.os.Getenv`
 **Description:** Gets the value of an environment variable. Requires 'env:read' capability.
 
@@ -996,6 +1152,58 @@ set loaded_functions = tool.script.ListFunctions()
 **Example:**
 ```neuroscript
 set result = tool.script.LoadScript(":: purpose: example\nfunc f()means\nendfunc")\nemit result["metadata"]["purpose"]
+```
+---
+
+## `tool.shape.IsValidPath`
+**Description:** Checks if a string is a syntactically valid Path-Lite expression.
+
+**Category:** Data Validation
+
+**Parameters:**
+* `path_string` (`string`): The Path-Lite string to check.
+
+**Returns:** (`bool`) Returns true if the path has valid syntax, false otherwise.
+
+**Example:**
+```neuroscript
+tool.shape.IsValidPath("a.b[0].c")
+```
+---
+
+## `tool.shape.Select`
+**Description:** Selects a single value from a map or list using a Path-Lite expression.
+
+**Category:** Data Selection
+
+**Parameters:**
+* `value` (`any`): The map or list to select from.
+* `path` (`any`): The Path-Lite string or array-form list path.
+* `options` (`map`): (optional) Options map, e.g., {"case_insensitive": true, "missing_ok": true}.
+
+**Returns:** (`any`) Returns the value found at the specified path.
+
+**Example:**
+```neuroscript
+tool.shape.Select(my_data, "user.name", {"case_insensitive": true})
+```
+---
+
+## `tool.shape.Validate`
+**Description:** Validates a map against a Shape-Lite definition.
+
+**Category:** Data Validation
+
+**Parameters:**
+* `value` (`map`): The data map to validate.
+* `shape` (`map`): The Shape-Lite map to validate against.
+* `options` (`map`): (optional) Options map, e.g., {"allow_extra": true, "case_insensitive": true}.
+
+**Returns:** (`bool`) Returns true on success, otherwise returns a validation error.
+
+**Example:**
+```neuroscript
+tool.shape.Validate(my_data, my_shape, {"allow_extra": true})
 ```
 ---
 

@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.5.2
-// File version: 7
+// File version: 8
 // Purpose: Additional spec-compliance tests for path-lite and shape-lite (v0.2) — updated with valid test data.
 // filename: pkg/json-lite/spec_compliance_additional_test.go
 // nlines: 188
@@ -11,20 +11,18 @@ import (
 	"errors"
 	"strings"
 	"testing"
-
-	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 func TestParsePath_InvalidNegativeIndex(t *testing.T) {
 	_, err := ParsePath("a[-1]")
-	if !errors.Is(err, lang.ErrInvalidPath) {
+	if !errors.Is(err, ErrInvalidPath) {
 		t.Fatalf("expected ErrInvalidPath for negative index, got: %v", err)
 	}
 }
 
 func TestParsePath_InvalidAlphaNumIndex(t *testing.T) {
 	_, err := ParsePath("a[1a]")
-	if !errors.Is(err, lang.ErrInvalidPath) {
+	if !errors.Is(err, ErrInvalidPath) {
 		t.Fatalf("expected ErrInvalidPath for alphanumeric index, got: %v", err)
 	}
 }
@@ -32,7 +30,7 @@ func TestParsePath_InvalidAlphaNumIndex(t *testing.T) {
 func TestParsePath_IndexOverflow(t *testing.T) {
 	huge := strings.Repeat("9", 40)
 	_, err := ParsePath("a[" + huge + "]")
-	if !errors.Is(err, lang.ErrListInvalidIndexType) {
+	if !errors.Is(err, ErrListInvalidIndexType) {
 		t.Fatalf("expected ErrListInvalidIndexType on overflow index, got: %v", err)
 	}
 }
@@ -40,7 +38,7 @@ func TestParsePath_IndexOverflow(t *testing.T) {
 func TestParsePath_IndexSegmentTooLong(t *testing.T) {
 	longIdx := strings.Repeat("1", maxPathSegmentLen+1)
 	_, err := ParsePath("a[" + longIdx + "]")
-	if !errors.Is(err, lang.ErrInvalidArgument) {
+	if !errors.Is(err, ErrInvalidArgument) {
 		t.Fatalf("expected ErrInvalidArgument for overlong index segment, got: %v", err)
 	}
 }
@@ -51,8 +49,8 @@ func TestSelect_IndexZeroOnEmptyList(t *testing.T) {
 		t.Fatalf("unexpected parse error: %v", err)
 	}
 	data := map[string]any{"items": []any{}}
-	_, err = Select(data, p)
-	if !errors.Is(err, lang.ErrListIndexOutOfBounds) {
+	_, err = Select(data, p, nil)
+	if !errors.Is(err, ErrListIndexOutOfBounds) {
 		t.Fatalf("expected ErrListIndexOutOfBounds on empty list, got: %v", err)
 	}
 }
@@ -105,12 +103,12 @@ func TestShapeValidate_ListOfPrimitives(t *testing.T) {
 	}
 
 	data := map[string]any{"tags": []any{"a", "b", "c"}}
-	if err := s.Validate(data, false); err != nil {
+	if err := s.Validate(data, nil); err != nil {
 		t.Fatalf("validation should pass, got: %v", err)
 	}
 
 	bad := map[string]any{"tags": []any{"a", 42}}
-	if err := s.Validate(bad, false); !errors.Is(err, lang.ErrValidationTypeMismatch) {
+	if err := s.Validate(bad, nil); !errors.Is(err, ErrValidationTypeMismatch) {
 		t.Fatalf("expected type mismatch for list element, got: %v", err)
 	}
 }
@@ -133,7 +131,7 @@ func TestShapeValidate_ListOfMaps(t *testing.T) {
 			map[string]any{"sku": "B", "qty": 2},
 		},
 	}
-	if err := s.Validate(ok, false); err != nil {
+	if err := s.Validate(ok, nil); err != nil {
 		t.Fatalf("validation should pass, got: %v", err)
 	}
 
@@ -143,7 +141,7 @@ func TestShapeValidate_ListOfMaps(t *testing.T) {
 			map[string]any{"sku": "B"},
 		},
 	}
-	if err := s.Validate(miss, false); !errors.Is(err, lang.ErrValidationRequiredArgMissing) {
+	if err := s.Validate(miss, nil); !errors.Is(err, ErrValidationRequiredArgMissing) {
 		t.Fatalf("expected required-missing error, got: %v", err)
 	}
 }
@@ -159,11 +157,11 @@ func TestShapeValidate_AllowExtraToggle(t *testing.T) {
 
 	data := map[string]any{"name": "ok", "extra": true}
 
-	if err := s.Validate(data, false); !errors.Is(err, lang.ErrInvalidArgument) {
+	if err := s.Validate(data, &ValidateOptions{AllowExtra: false}); !errors.Is(err, ErrInvalidArgument) {
 		t.Fatalf("expected invalid-argument for extra key, got: %v", err)
 	}
 
-	if err := s.Validate(data, true); err != nil {
+	if err := s.Validate(data, &ValidateOptions{AllowExtra: true}); err != nil {
 		t.Fatalf("validation should pass with allow_extra=true, got: %v", err)
 	}
 }
@@ -180,12 +178,12 @@ func TestShapeValidate_SpecialTypesAcceptance(t *testing.T) {
 	}
 
 	ok := map[string]any{"e": "a@b.com", "u": "http://example.com", "d": "2025-01-01T00:00:00Z"}
-	if err := s.Validate(ok, false); err != nil {
+	if err := s.Validate(ok, nil); err != nil {
 		t.Fatalf("validation should pass for special-string types, got: %v", err)
 	}
 
 	bad := map[string]any{"e": 123, "u": "http://example.com", "d": "2025-01-01T00:00:00Z"}
-	if err := s.Validate(bad, false); !errors.Is(err, lang.ErrValidationTypeMismatch) {
+	if err := s.Validate(bad, nil); !errors.Is(err, ErrValidationTypeMismatch) {
 		t.Fatalf("expected type mismatch for non-string special type, got: %v", err)
 	}
 }
@@ -207,8 +205,8 @@ func TestShapeValidate_MissingRequiredNested(t *testing.T) {
 			"name": "A",
 		},
 	}
-	err = s.Validate(data, false)
-	if !errors.Is(err, lang.ErrValidationRequiredArgMissing) {
+	err = s.Validate(data, nil)
+	if !errors.Is(err, ErrValidationRequiredArgMissing) {
 		t.Fatalf("expected required missing error, got: %v", err)
 	}
 }
@@ -234,8 +232,8 @@ func TestSelect_IndexOutOfBoundsLarge(t *testing.T) {
 		t.Fatalf("parse failed: %v", err)
 	}
 	data := map[string]any{"items": []any{1, 2}}
-	_, err = Select(data, p)
-	if !errors.Is(err, lang.ErrListIndexOutOfBounds) {
+	_, err = Select(data, p, nil)
+	if !errors.Is(err, ErrListIndexOutOfBounds) {
 		t.Fatalf("expected ErrListIndexOutOfBounds, got: %v", err)
 	}
 }
@@ -247,7 +245,7 @@ func TestParsePath_MaxSegmentsBoundary(t *testing.T) {
 	}
 	bad := ok + ".b"
 	_, err := ParsePath(bad)
-	if !errors.Is(err, lang.ErrNestingDepthExceeded) {
+	if !errors.Is(err, ErrNestingDepthExceeded) {
 		t.Fatalf("expected ErrNestingDepthExceeded, got: %v", err)
 	}
 }
@@ -259,7 +257,7 @@ func TestParsePath_MaxSegmentLenBoundary(t *testing.T) {
 	}
 	over := seg + "x"
 	_, err := ParsePath(over)
-	if !errors.Is(err, lang.ErrInvalidArgument) {
+	if !errors.Is(err, ErrInvalidArgument) {
 		t.Fatalf("expected ErrInvalidArgument for overlong key segment, got: %v", err)
 	}
 }
@@ -280,8 +278,8 @@ func TestShapeValidate_ListNestingDepthLimit(t *testing.T) {
 		cur = next
 	}
 
-	err := shape.Validate(data, false)
-	if !errors.Is(err, lang.ErrNestingDepthExceeded) {
+	err := shape.Validate(data, nil)
+	if !errors.Is(err, ErrNestingDepthExceeded) {
 		t.Fatalf("expected ErrNestingDepthExceeded for deep list/map nesting, got: %v", err)
 	}
 }

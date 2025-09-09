@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.4.0
-// File version: 11
-// Purpose: Added capability enforcement to CallFromInterpreter, the central tool gateway.
+// NeuroScript Version: 0.6.0
+// File version: 12
+// Purpose: Added a method to create shared tool registry views for cloned interpreters.
 // filename: pkg/tool/tools_registry.go
-// nlines: 159
+// nlines: 168
 // risk_rating: HIGH
 
 package tool
@@ -22,7 +22,7 @@ import (
 type ToolRegistryImpl struct {
 	tools       map[types.FullName]ToolImplementation
 	interpreter Runtime
-	mu          sync.RWMutex
+	mu          *sync.RWMutex
 }
 
 // NewToolRegistry creates a new, empty registry instance.
@@ -30,6 +30,7 @@ func NewToolRegistry(interpreter Runtime) *ToolRegistryImpl {
 	r := &ToolRegistryImpl{
 		tools:       make(map[types.FullName]ToolImplementation),
 		interpreter: interpreter,
+		mu:          &sync.RWMutex{},
 	}
 	return r
 }
@@ -90,6 +91,16 @@ func (r *ToolRegistryImpl) ListTools() []ToolImplementation {
 		list = append(list, impl)
 	}
 	return list
+}
+
+// NewViewForInterpreter creates a new registry instance that shares the toolset
+// of the original registry but is bound to a new interpreter runtime.
+func (r *ToolRegistryImpl) NewViewForInterpreter(interpreter Runtime) ToolRegistry {
+	return &ToolRegistryImpl{
+		tools:       r.tools,
+		interpreter: interpreter,
+		mu:          r.mu,
+	}
 }
 
 // --- BRIDGE IMPLEMENTATION ---

@@ -58,3 +58,6 @@ print(current_accounts)
 print("------------------------------------------")
 
 doesn't throw errors on the prints, even though they should be emit
+
+
+4. should allow whitespace after \ to be line continuations (or render unneccessary)

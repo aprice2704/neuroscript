@@ -75,7 +75,7 @@ func TestApp_RunScriptMode_BreakContinue(t *testing.T) {
 	)
 	app.SetInterpreter(interp)
 
-	if err := tool.RegisterExtendedTools(interp.ToolRegistry()); err != nil {
+	if err := tool.RegisterGlobalToolsets(interp.ToolRegistry()); err != nil {
 		t.Fatalf("%s: Failed to register extended tools: %v", testName, err)
 	}
 

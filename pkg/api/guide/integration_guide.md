@@ -696,6 +696,13 @@ endon
 // EVENT: User usr_f81b has logged in.
 ```
 
+### Handling Errors in Event Handlers
+
+By default, if a runtime error occurs within an `on event` handler, the error is ignored. To prevent silent failures and properly monitor your application, you must register an error handling callback. This provides a direct, reliable way for the host application to be notified of any issues within its event handlers.
+
+-   **`api.WithEventHandlerErrorCallback(f func(eventName, source string, err *api.RuntimeError)) api.Option`**: An option for `api.New()` that registers a callback function to be invoked whenever an event handler fails.
+
+For a complete guide on best practices for implementing this callback, including logging and metrics, please see the detailed guide: **[Host Integration Guide: Handling Event Handler Errors](./events_and_callbacks.md)**.
 
 ## 11. Core Types Reference
 

@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.5.2
-// File version: 1
+// File version: 2
 // Purpose: Consolidated tests for path and shape depth/length limits.
 // filename: pkg/json-lite/limits_test.go
 // nlines: 98
@@ -11,8 +11,6 @@ import (
 	"errors"
 	"strings"
 	"testing"
-
-	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 // --- Path Limits ---
@@ -28,7 +26,7 @@ func TestPath_StringForm_MaxSegmentsBoundary(t *testing.T) {
 	t.Run("should fail when exceeding segment limit", func(t *testing.T) {
 		pathStr := strings.Repeat("a.", maxPathSegments) + "a"
 		_, err := ParsePath(pathStr)
-		if !errors.Is(err, lang.ErrNestingDepthExceeded) {
+		if !errors.Is(err, ErrNestingDepthExceeded) {
 			t.Fatalf("expected ErrNestingDepthExceeded for path over segment limit, got: %v", err)
 		}
 	})
@@ -45,7 +43,7 @@ func TestPath_StringForm_MaxSegmentLenBoundary(t *testing.T) {
 	t.Run("should fail for key exceeding length limit", func(t *testing.T) {
 		pathStr := strings.Repeat("x", maxPathSegmentLen+1)
 		_, err := ParsePath(pathStr)
-		if !errors.Is(err, lang.ErrInvalidArgument) {
+		if !errors.Is(err, ErrInvalidArgument) {
 			t.Fatalf("expected ErrInvalidArgument for overlong key segment, got: %v", err)
 		}
 	})
@@ -54,7 +52,7 @@ func TestPath_StringForm_MaxSegmentLenBoundary(t *testing.T) {
 		longIdx := strings.Repeat("1", maxPathSegmentLen+1)
 		pathStr := "a[" + longIdx + "]"
 		_, err := ParsePath(pathStr)
-		if !errors.Is(err, lang.ErrInvalidArgument) {
+		if !errors.Is(err, ErrInvalidArgument) {
 			t.Fatalf("expected ErrInvalidArgument for overlong index segment, got: %v", err)
 		}
 	})
@@ -67,7 +65,7 @@ func TestPath_ArrayForm_MaxSegmentsBoundary(t *testing.T) {
 			longPathArr[i] = "a"
 		}
 		_, err := buildPathFromArray(longPathArr)
-		if !errors.Is(err, lang.ErrNestingDepthExceeded) {
+		if !errors.Is(err, ErrNestingDepthExceeded) {
 			t.Fatalf("expected ErrNestingDepthExceeded for array-form path over limit, got: %v", err)
 		}
 	})
@@ -104,7 +102,7 @@ func TestShape_Parse_MaxDepthBoundary(t *testing.T) {
 		current["leaf"] = "string"
 
 		_, err := ParseShape(shape)
-		if !errors.Is(err, lang.ErrNestingDepthExceeded) {
+		if !errors.Is(err, ErrNestingDepthExceeded) {
 			t.Fatalf("expected ErrNestingDepthExceeded, got: %v", err)
 		}
 	})
@@ -126,8 +124,8 @@ func TestShape_Validate_MaxDepthBoundary(t *testing.T) {
 		current = next
 	}
 
-	err := shape.Validate(data, false)
-	if !errors.Is(err, lang.ErrNestingDepthExceeded) {
+	err := shape.Validate(data, nil)
+	if !errors.Is(err, ErrNestingDepthExceeded) {
 		t.Fatalf("expected ErrNestingDepthExceeded for deeply nested data, got: %v", err)
 	}
 }

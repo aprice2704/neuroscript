@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.5.2
-// File version: 1
+// File version: 2
 // Purpose: Tests for regex and sanitization pre-checks in parsers.
 // filename: pkg/json-lite/precheck_test.go
 // nlines: 66
@@ -10,8 +10,6 @@ package json_lite
 import (
 	"errors"
 	"testing"
-
-	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 func TestParsePath_RegexPreCheck(t *testing.T) {
@@ -29,15 +27,15 @@ func TestParsePath_RegexPreCheck(t *testing.T) {
 		{"invalid empty index", "a[]", true},
 		{"invalid char in index", "a[b]", true},
 		{"invalid unterminated index", "a[0", true},
-		{"invalid key char", "a[0].my.key-with-hyphen", false}, // Hyphens are allowed in keys
-		{"invalid key char dot", "a[0].my..key", true},
+		{"valid key with hyphen", "a[0].my-key", false},
+		{"invalid double dot after index", "a[0]..mykey", true},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := ParsePath(tc.pathStr)
 			if tc.shouldErr {
-				if !errors.Is(err, lang.ErrInvalidPath) {
+				if !errors.Is(err, ErrInvalidPath) {
 					t.Fatalf("expected ErrInvalidPath for path '%s', but got: %v", tc.pathStr, err)
 				}
 			} else if err != nil {
@@ -68,7 +66,7 @@ func TestParseShape_KeySanitization(t *testing.T) {
 			shapeDef := map[string]any{tc.key: "string"}
 			_, err := ParseShape(shapeDef)
 			if tc.isInvalid {
-				if !errors.Is(err, lang.ErrInvalidArgument) {
+				if !errors.Is(err, ErrInvalidArgument) {
 					t.Fatalf("expected ErrInvalidArgument for key '%s', got: %v", tc.key, err)
 				}
 			} else if err != nil {

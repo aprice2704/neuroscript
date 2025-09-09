@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.0
-// File version: 79
-// Purpose: Refactored 'ask' logic into interpreter_ask.go to reduce file size.
+// NeuroScript Version: 0.7.1
+// File version: 82
+// Purpose: [DEBUG] Added the interpreter's unique ID to the stderr debug logs.
 // filename: pkg/interpreter/interpreter_exec.go
 // nlines: 250
 // risk_rating: HIGH
@@ -10,6 +10,7 @@ package interpreter
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
@@ -30,6 +31,7 @@ func (i *Interpreter) executeSteps(steps []ast.Step, isInHandler bool, activeErr
 }
 
 func getStepSubjectForLogging(step ast.Step) string {
+	// ... (content unchanged)
 	switch strings.ToLower(step.Type) {
 	case "set", "assign":
 		if len(step.LValues) > 0 {
@@ -101,6 +103,7 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 		stepTypeLower := strings.ToLower(step.Type)
 
 		switch stepTypeLower {
+		// ... (cases unchanged) ...
 		case "set", "assign":
 			stepResult, stepErr = i.executeSet(step)
 		case "call":
@@ -199,10 +202,19 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 
 		if stepErr != nil {
 			rtErr := ensureRuntimeError(stepErr, step.GetPos(), stepTypeLower)
+			fmt.Fprintf(os.Stderr, "\n>>> [EXEC DEBUG %s] Error in step '%s': %v\n", i.id, stepTypeLower, rtErr)
+			fmt.Fprintf(os.Stderr, ">>> [EXEC DEBUG %s] isInHandler flag is: %t\n", i.id, isInHandler)
+
 			if errors.Is(rtErr.Unwrap(), lang.ErrBreak) || errors.Is(rtErr.Unwrap(), lang.ErrContinue) {
 				return nil, false, wasCleared, rtErr
 			}
-			if !isInHandler && len(i.state.errorHandlerStack) > 0 {
+
+			if isInHandler {
+				fmt.Fprintf(os.Stderr, ">>> [EXEC DEBUG %s] In handler, propagating error up to caller (e.g., EmitEvent).\n\n", i.id)
+				return nil, false, false, rtErr
+			}
+
+			if len(i.state.errorHandlerStack) > 0 {
 				handlerBlock := i.state.errorHandlerStack[len(i.state.errorHandlerStack)-1]
 				handlerToExecute := handlerBlock[0]
 				i.SetVariable("system_error_message", lang.StringValue{Value: rtErr.Message})

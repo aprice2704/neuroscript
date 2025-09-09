@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.0
-// File version: 1
-// Purpose: Capability matching helpers: verify that required capabilities are satisfied by a grant set.
+// File version: 2
+// Purpose: Capability matching helpers: fixed hostMatch logic for wildcards.
 // filename: pkg/policy/capability/matcher.go
-// nlines: 164
+// nlines: 167
 // risk_rating: MEDIUM
 
 package capability
@@ -136,29 +136,14 @@ func hostMatch(pattern, host string) bool {
 	if lp == "*" || lp == lh {
 		return true
 	}
+	// FIX: Handle "*.domain.com" pattern to match base domain ("domain.com")
+	// and any subdomain ("api.domain.com").
 	if strings.HasPrefix(lp, "*.") {
-		suf := strings.TrimPrefix(lp, "*")
-		// allow match on exact base domain and subdomains
-		return strings.HasSuffix(lh, suf)
+		suf := strings.TrimPrefix(lp, "*.")
+		return lh == suf || strings.HasSuffix(lh, "."+suf)
 	}
-	if strings.HasSuffix(lp, "*") {
-		pre := strings.TrimSuffix(lp, "*")
-		return strings.HasPrefix(lh, pre)
-	}
-	if strings.Contains(lp, "*") {
-		parts := strings.Split(lp, "*")
-		pos := 0
-		for _, p := range parts {
-			if p == "" {
-				continue
-			}
-			idx := strings.Index(lh[pos:], p)
-			if idx < 0 {
-				return false
-			}
-			pos += idx + len(p)
-		}
-		return true
-	}
-	return lp == lh
+
+	// FIX: Delegate other wildcard patterns (*.com, api.*, *middle*) to the
+	// more robust simpleWildcard function.
+	return simpleWildcard(host, pattern)
 }

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 1
+// File version: 2
 // Purpose: Defines the core policy engine for gating tool calls and validating capabilities.
 // filename: pkg/policy/policy.go
-// nlines: 173
+// nlines: 181
 // risk_rating: HIGH
 
 package policy
@@ -53,6 +53,19 @@ var (
 	ErrIntegrity       = errors.New("tool integrity check failed")
 	validToolNameRegex = regexp.MustCompile(`^[a-zA-Z0-9_.]+$`)
 )
+
+// AllowAll creates a new policy that permits any tool call.
+// This is useful for testing or sandboxed environments.
+func AllowAll() *ExecPolicy {
+	return &ExecPolicy{
+		Context: ContextTest,
+		Allow:   []string{"*"},
+		Deny:    []string{},
+		Grants: capability.GrantSet{
+			Counters: capability.NewCounters(),
+		},
+	}
+}
 
 // CanCall enforces all security checks in the correct order.
 func (p *ExecPolicy) CanCall(t ToolMeta) error {

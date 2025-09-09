@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.1
-// File version: 6
-// Purpose: Adds WithCapsuleRegistry option to support host-provided capsules.
+// File version: 7
+// Purpose: Adds WithEventHandlerErrorCallback and WithoutStandardTools options.
 // filename: pkg/interpreter/interpreter_options.go
-// nlines: 75
+// nlines: 85
 // risk_rating: LOW
 
 package interpreter
@@ -12,6 +12,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/capsule"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 )
 
@@ -90,5 +91,13 @@ func WithCapsuleRegistry(registry *capsule.Registry) InterpreterOption {
 		if i.capsuleStore != nil {
 			i.capsuleStore.Add(registry)
 		}
+	}
+}
+
+// WithEventHandlerErrorCallback registers a function to be called when a runtime
+// error occurs during the execution of an 'on event' handler.
+func WithEventHandlerErrorCallback(f func(eventName, source string, err *lang.RuntimeError)) InterpreterOption {
+	return func(i *Interpreter) {
+		i.eventHandlerErrorCallback = f
 	}
 }

@@ -1,30 +1,27 @@
 // NeuroScript Version: 0.6.0
-// File version: 1
-// Purpose: Provides high-level helpers for creating interpreters configured to run trusted setup scripts.
+// File version: 2
+// Purpose: Refactored to use the new fluent policy builder.
 // filename: pkg/api/config.go
-// nlines: 35
+// nlines: 26
 // risk_rating: MEDIUM
 
 package api
 
 import (
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
-	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/policy/capability"
 )
 
 // WithTrustedPolicy creates an interpreter option that applies a pre-configured
 // execution policy suitable for running trusted configuration scripts.
-// It sets the context to 'config', allowing privileged tools, and applies the
-// specified tool allow-list and capability grants.
 func WithTrustedPolicy(allowedTools []string, grants ...capability.Capability) interpreter.InterpreterOption {
+	builder := NewPolicyBuilder(ContextConfig).Allow(allowedTools...)
+	for _, g := range grants {
+		builder.GrantCap(g)
+	}
+	policy := builder.Build()
+
 	return func(i *interpreter.Interpreter) {
-		policy := &policy.ExecPolicy{
-			Context: policy.ContextConfig,
-			Allow:   allowedTools,
-			Deny:    []string{}, // Start with no denials
-			Grants:  capability.NewGrantSet(grants, capability.Limits{}),
-		}
 		i.ExecPolicy = policy
 	}
 }

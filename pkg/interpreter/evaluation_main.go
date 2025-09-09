@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.0
-// File version: 63
-// Purpose: Integrated the ExecPolicy security gate into the tool call evaluation path, as per the design specification.
+// File version: 64
+// Purpose: [DEBUG] Added logging to the tool-not-found error path.
 // filename: pkg/interpreter/evaluation_main.go
 // nlines: 280
 // risk_rating: HIGH
@@ -186,6 +186,7 @@ func (e *evaluation) evaluateCall(n *ast.CallableExprNode) (lang.Value, error) {
 		toolImpl, found := e.i.tools.GetTool(toolNameForLookup)
 		if !found {
 			errMessage := fmt.Sprintf("tool '%s' not found (looked up as '%s')", n.Target.Name, toolNameForLookup)
+			e.i.logger.Errorf("[DEBUG] Point A: Tool not found error created in evaluateCall: %s", errMessage) // DEBUG
 			return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, errMessage, lang.ErrToolNotFound).WithPosition(n.StartPos)
 		}
 

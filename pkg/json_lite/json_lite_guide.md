@@ -1,6 +1,6 @@
 # json_lite: Path-Lite & Shape-Lite
 
-This document defines the **Path-Lite** and **Shape-Lite** mini-specs used by `pkg/json-lite`.  
+This document defines the **Path-Lite** and **Shape-Lite** mini-specs used by `pkg/json-lite`.
 They are deliberately small, explicit, and easy to test.
 
 - **Path-Lite**: how we address values inside nested JSON-like data.
@@ -8,9 +8,9 @@ They are deliberately small, explicit, and easy to test.
 
 The APIs used below are from this package unless stated otherwise:
 - `ParsePath(string) (Path, error)`
-- `Select(value any, path Path) (any, error)`
+- `Select(value any, path Path, options *SelectOptions) (any, error)`
 - `ParseShape(map[string]any) (*Shape, error)`
-- `(*Shape).Validate(value any, allowExtra bool) error`
+- `(*Shape).Validate(value any, options *ValidateOptions) error`
 
 ---
 
@@ -31,7 +31,7 @@ We support two ways to express the same path:
 ```go
 p, err := ParsePath("items[1].id")
 if err != nil { /* handle */ }
-got, err := Select(data, p)
+got, err := Select(data, p, nil) // No special options
 ````
 
 **Rules**
@@ -45,14 +45,13 @@ got, err := Select(data, p)
 
 **Typical errors** (use `errors.Is`):
 
-* `lang.ErrInvalidPath` — bad syntax (e.g., `a..b`, `a[`, `a[1a]`)
-* `lang.ErrInvalidArgument` — overlong segment, empty key, etc.
+* `ErrInvalidPath` — bad syntax (e.g., `a..b`, `a[`, `a[1a]`)
+* `ErrInvalidArgument` — overlong segment, empty key, etc.
 * During selection:
-
-  * `lang.ErrMapKeyNotFound`
-  * `lang.ErrListIndexOutOfBounds`
-  * `lang.ErrCannotAccessType` (e.g., `items.key` when `items` is a list)
-  * `lang.ErrCollectionIsNil`
+  * `ErrMapKeyNotFound`
+  * `ErrListIndexOutOfBounds`
+  * `ErrCannotAccessType` (e.g., `items.key` when `items` is a list)
+  * `ErrCollectionIsNil`
 
 ### 2) Array form (programmatic)
 
@@ -70,7 +69,7 @@ data := map[string]any{
 path := Path{
   {Key: "a.b", IsKey: true}, // map key
 }
-v, _ := Select(data, path) // -> 1
+v, _ := Select(data, path, nil) // -> 1
 ```
 
 Notes
@@ -81,9 +80,9 @@ Notes
 
 ### Path limits
 
-* **Max segments**: `maxPathSegments` (e.g. 128). Exceed → `lang.ErrNestingDepthExceeded`.
+* **Max segments**: `maxPathSegments` (e.g. 128). Exceed → `ErrNestingDepthExceeded`.
 * **Max segment length** (keys and bracketed index strings): `maxPathSegmentLen`.
-  Exceed → `lang.ErrInvalidArgument`.
+  Exceed → `ErrInvalidArgument`.
 
 ---
 
@@ -112,26 +111,11 @@ Person := map[string]any{
   "company?": "string",
 }
 
-// Nested map
-ContactCard := map[string]any{
-  "name": "string",
-  "contact": map[string]any{
-    "email":  "email",
-    "phone?": "string",
-  },
-}
-
-// List of primitives
-Tags := map[string]any{
-  "tags[]": "string",
-}
-
 // List of maps
 Cart := map[string]any{
   "items[]": map[string]any{
     "sku": "string",
     "qty": "int",
-    "price": "float",
   },
 }
 ```
@@ -142,8 +126,14 @@ Parse & validate
 s, err := ParseShape(Person)
 if err != nil { /* handle */ }
 
-data := map[string]any{"name": "Ada", "email": "ada@example.com"}
-if err := s.Validate(data, /*allowExtra=*/false); err != nil {
+data := map[string]any{"NAME": "Ada", "EMAIL": "ada@example.com"}
+
+// Validate with case-insensitivity
+err = s.Validate(data, &ValidateOptions{
+  CaseInsensitive: true,
+  AllowExtra:      false,
+})
+if err != nil {
   // Validation fails fast with a precise path.
 }
 ```
@@ -160,104 +150,31 @@ if err := s.Validate(data, /*allowExtra=*/false); err != nil {
 * `field[]` with a **primitive** → the value must be a list of that primitive.
 * `field[]` with a **nested shape** → the value must be a list of maps validating against that nested shape.
 
-### Unknown/extra keys
+### Validation Options
 
-* By default (**`allowExtra=false`**), **unexpected** keys at any level cause `lang.ErrInvalidArgument`.
-* Pass **`allowExtra=true`** to tolerate extra keys everywhere.
+The `Validate` method accepts a `ValidateOptions` struct:
+
+```go
+type ValidateOptions struct {
+    AllowExtra      bool
+    CaseInsensitive bool
+}
+```
+
+* **`AllowExtra`**: If `false` (default), **unexpected** keys at any level cause `ErrInvalidArgument`. If `true`, extra keys are ignored.
+* **`CaseInsensitive`**: If `true`, map keys in the data are matched against the shape definition without regard to case (e.g., data with key `"NAME"` will match a shape with key `"name"`). The default is `false`.
 
 ### Nil handling
 
-* A present key with `nil` value is a **type mismatch** (`lang.ErrValidationTypeMismatch`)
+* A present key with `nil` value is a **type mismatch** (`ErrValidationTypeMismatch`)
   unless the declared type is `any`.
 
 ### Depth limits
 
 * **Parsing** enforces a maximum **shape definition** depth: `maxShapeDepth`.
-  Exceeding this during `ParseShape` → `lang.ErrNestingDepthExceeded`.
+  Exceeding this during `ParseShape` → `ErrNestingDepthExceeded`.
 * **Validation** also enforces `maxShapeDepth` on the **data structure**:
-  Excessively deep nesting during `Validate` → `lang.ErrNestingDepthExceeded`.
-
-### Normalization
-
-During `ParseShape`, keys are **normalized**:
-
-* The stored field name is the **base name** with suffixes removed (e.g., `"items[]?"` → `"items"`).
-* Flags `IsList` and `IsOptional` are recorded on the field spec.
-* You should therefore read/inspect fields **without** suffixes: `s.Fields["items"]`.
-
-### Validation errors (examples)
-
-All errors are standard sentinels wrapped with context; use `errors.Is`:
-
-* `lang.ErrValidationRequiredArgMissing`: `missing required key 'email' at path 'contact'`
-* `lang.ErrValidationTypeMismatch`: `expected type 'string' but got 'int' (path: items[0].sku)`
-* `lang.ErrInvalidArgument`: `unexpected key 'notes' at path 'contact.notes'`
-* `lang.ErrNestingDepthExceeded`: depth limit exceeded either in parsing or validation
-
----
-
-## End-to-end examples
-
-### A) Validate then select (string path)
-
-```go
-shape := map[string]any{
-  "user": map[string]any{
-    "name": "string",
-    "email": "email",
-  },
-  "items[]": map[string]any{
-    "id": "int",
-  },
-}
-
-s, _ := ParseShape(shape)
-data := map[string]any{
-  "user": map[string]any{"name": "Ada", "email": "ada@example.com"},
-  "items": []any{map[string]any{"id": 100}},
-}
-_ = s.Validate(data, false)
-
-p, _ := ParsePath("user.email")
-v, _ := Select(data, p) // "ada@example.com"
-```
-
-### B) Validate then select (array form, weird keys)
-
-```go
-s, _ := ParseShape(map[string]any{
-  "weird key?": "string",
-  "a[]": map[string]any{"b.c": "int"},
-})
-
-data := map[string]any{
-  "weird key": "ok",              // normalized base key is "weird key"
-  "a": []any{ map[string]any{"b.c": 42} },
-}
-_ = s.Validate(data, true) // allow extra or weirds if needed
-
-path := Path{
-  {Key: "a", IsKey: true},
-  {Index: 0, IsKey: false},
-  {Key: "b.c", IsKey: true}, // literal dotted key
-}
-v, _ := Select(data, path) // 42
-```
-
-### C) Using from ns scripts (typical flow)
-
-```ns
-# Ask a model for JSON, then validate against a shape and select values.
-
-set Person = {"name":"string","email":"email","company?":"string"}
-
-ask "Return JSON with {name,email,company?}" with {"json": true} into raw
-
-must tool.ai.Validate(raw, Person, /*allow_extra=*/false)
-
-set email = tool.ai.Select(raw, "email")              # string form
-set name  = tool.ai.Select(raw, ["weird.key"])        # array form for literal weird key
-```
+  Excessively deep nesting during `Validate` → `ErrNestingDepthExceeded`.
 
 ---
 
@@ -265,27 +182,18 @@ set name  = tool.ai.Select(raw, ["weird.key"])        # array form for literal w
 
 ### Path-Lite
 
+* **Select Options**: `Select(..., &SelectOptions{CaseInsensitive: true})`.
 * Prefer **string form** (`"a.b[0].c"`) for normal keys.
-* Use **array form** (`[{Key:"a"},{Index:0},{Key:"c"}]`) for literal `.` or `[]` in keys, or code-generated paths.
-* Errors: `ErrInvalidPath`, `ErrInvalidArgument`, `ErrMapKeyNotFound`, `ErrListIndexOutOfBounds`, `ErrCannotAccessType`, `ErrCollectionIsNil`.
+* Use **array form** (`[{Key:"a"},{Index:0},{Key:"c"}]`) for literal `.` or `[]` in keys.
+* Errors: `ErrInvalidPath`, `ErrMapKeyNotFound`, etc.
 * Limits: `maxPathSegments`, `maxPathSegmentLen`.
 
 ### Shape-Lite
 
-* Keys: `field`, `field?`, `field[]` (order of `[]` and `?` does not matter).
+* **Validate Options**: `Validate(..., &ValidateOptions{AllowExtra: true, CaseInsensitive: true})`.
+* Keys: `field`, `field?`, `field[]`.
 * Values: primitive type name **or** nested shape map.
 * Primitives: `string`, `int`, `float`, `bool`, `any`; special string types `email`, `url`, `isoDatetime`.
-* `allowExtra=false` by default — unexpected keys are errors.
 * `nil` is only valid for type `any`.
-* Limits: `maxShapeDepth` (parse + validate).
-* Errors: `ErrValidationRequiredArgMissing`, `ErrValidationTypeMismatch`, `ErrInvalidArgument`, `ErrNestingDepthExceeded`.
-
----
-
-## Rationale
-
-* Keep simple things simple (readable paths and tiny type specs).
-* Make failure modes **obvious** and **testable** with sentinel errors.
-* Avoid heavy schema languages; use plain maps and short type names.
-* Separate **addressing** (Path-Lite) from **shape** concerns (Shape-Lite).
-
+* Limits: `maxShapeDepth`.
+* Errors: `ErrValidationRequiredArgMissing`, `ErrValidationTypeMismatch`, etc.

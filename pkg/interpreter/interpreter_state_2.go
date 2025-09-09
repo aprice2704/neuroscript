@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.0
-// File version: 6.0.0
-// Purpose: Removed the obsolete agentModels map from interpreterState, as it has been replaced by the AgentModelStore.
+// File version: 7.0.0
+// Purpose: Removed the inSystemErrorHandler flag, which now lives on the main Interpreter struct.
 // filename: pkg/interpreter/interpreter_state_2.go
 // nlines: 60
 // risk_rating: MEDIUM

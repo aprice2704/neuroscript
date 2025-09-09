@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 19
-// Purpose: Fixes issue where emit was not producing output by using SetEmitFunc.
+// File version: 20
+// Purpose: Allows trusted config scripts to call any tool by default (*).
 // filename: cmd/ng/run.go
-// nlines: 200
+// nlines: 202
 // risk_rating: HIGH
 package main
 
@@ -55,7 +55,9 @@ func Run(cfg CliConfig) int {
 			{Resource: "env", Verbs: []string{"read"}, Scopes: []string{"*"}},
 			{Resource: "net", Verbs: []string{"read", "write"}, Scopes: []string{"*"}},
 		}
-		var allowedTools []string
+		// FIX: Trusted scripts need to be able to call any tool to perform
+		// administrative and setup tasks.
+		allowedTools := []string{"*"}
 		// Trusted interpreter created via NewConfigInterpreter will have default providers.
 		trustedInterp := api.NewConfigInterpreter(
 			allowedTools,

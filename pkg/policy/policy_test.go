@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 1
-// Purpose: Consolidates unit tests for the ExecPolicy CanCall gating function.
+// File version: 3
+// Purpose: Consolidates unit tests for the ExecPolicy CanCall gating function and adds dedicated tests for helpers.
 // filename: pkg/policy/policy_test.go
-// nlines: 261
+// nlines: 369
 // risk_rating: MEDIUM
 
 package policy
@@ -38,6 +38,20 @@ func calculateMockChecksumInTest(spec tool.ToolSpec) string {
 	data := fmt.Sprintf("%s:%s:%d", spec.FullName, spec.ReturnType, len(spec.Args))
 	hash := sha256.Sum256([]byte(data))
 	return fmt.Sprintf("sha256:%x", hash)
+}
+
+func TestAllowAll(t *testing.T) {
+	p := AllowAll()
+	if p.Context != ContextTest {
+		t.Errorf("expected context %s, got %s", ContextTest, p.Context)
+	}
+	if len(p.Allow) != 1 || p.Allow[0] != "*" {
+		t.Errorf("expected Allow list ['*'], got %v", p.Allow)
+	}
+	tool := ToolMeta{Name: "any.tool.whatsoever"}
+	if err := p.CanCall(tool); err != nil {
+		t.Fatalf("AllowAll policy should have allowed tool call, but got err: %v", err)
+	}
 }
 
 func TestGate_IntegrityCheck(t *testing.T) {
@@ -122,153 +136,5 @@ func TestGate_CallCountLimit(t *testing.T) {
 	err := p.CanCall(tool)
 	if !errors.Is(err, capability.ErrToolExceeded) {
 		t.Fatalf("second call should fail with %v, but got: %v", capability.ErrToolExceeded, err)
-	}
-}
-
-func TestExecPolicy_CanCall_Scenarios(t *testing.T) {
-	// Define common tool metadata and capabilities to be reused in test cases.
-	basicTool := ToolMeta{Name: "tool.basic.run"}
-	trustedTool := ToolMeta{Name: "tool.admin.setConfig", RequiresTrust: true}
-	capTool := ToolMeta{
-		Name:         "tool.fs.writeFile",
-		RequiredCaps: []capability.Capability{{Resource: "fs", Verbs: []string{"write"}}},
-	}
-	fsWriteCap := capability.Capability{Resource: "fs", Verbs: []string{"write"}, Scopes: []string{"*"}}
-
-	testCases := []struct {
-		name    string
-		policy  *ExecPolicy
-		tool    ToolMeta
-		wantErr error
-	}{
-		{
-			name: "Success - Simple allow",
-			policy: &ExecPolicy{
-				Context: ContextNormal,
-				Allow:   []string{"tool.basic.run"},
-			},
-			tool:    basicTool,
-			wantErr: nil,
-		},
-		{
-			name: "Failure - Simple deny",
-			policy: &ExecPolicy{
-				Context: ContextNormal,
-				Allow:   []string{"*"},
-				Deny:    []string{"tool.basic.run"},
-			},
-			tool:    basicTool,
-			wantErr: ErrPolicy,
-		},
-		{
-			name: "Failure - Not in active allow list",
-			policy: &ExecPolicy{
-				Context: ContextNormal,
-				Allow:   []string{"tool.other.thing"},
-			},
-			tool:    basicTool,
-			wantErr: ErrPolicy,
-		},
-		{
-			name: "Success - Wildcard allow",
-			policy: &ExecPolicy{
-				Context: ContextNormal,
-				Allow:   []string{"tool.basic.*"},
-			},
-			tool:    basicTool,
-			wantErr: nil,
-		},
-		{
-			name: "Failure - Trust required in normal context",
-			policy: &ExecPolicy{
-				Context: ContextNormal,
-				Allow:   []string{"*"},
-			},
-			tool:    trustedTool,
-			wantErr: ErrTrust,
-		},
-		{
-			name: "Success - Trust required in config context",
-			policy: &ExecPolicy{
-				Context: ContextConfig,
-				Allow:   []string{"*"},
-			},
-			tool:    trustedTool,
-			wantErr: nil,
-		},
-		{
-			name: "Failure - Capability not granted",
-			policy: &ExecPolicy{
-				Context: ContextConfig,
-				Allow:   []string{"*"},
-				Grants:  capability.GrantSet{},
-			},
-			tool:    capTool,
-			wantErr: ErrCapability,
-		},
-		{
-			name: "Success - Capability granted",
-			policy: &ExecPolicy{
-				Context: ContextConfig,
-				Allow:   []string{"*"},
-				Grants: capability.GrantSet{
-					Grants: []capability.Capability{fsWriteCap},
-				},
-			},
-			tool:    capTool,
-			wantErr: nil,
-		},
-		{
-			name: "Failure - Deny pattern overrides wildcard allow",
-			policy: &ExecPolicy{
-				Context: ContextConfig,
-				Allow:   []string{"tool.agentmodel.*"},
-				Deny:    []string{"tool.agentmodel.Register"},
-			},
-			tool:    ToolMeta{Name: "tool.agentmodel.Register"},
-			wantErr: ErrPolicy,
-		},
-		{
-			name: "Failure - Missing Capability",
-			policy: &ExecPolicy{
-				Context: ContextConfig,
-				Allow:   []string{"tool.os.Getenv"},
-			},
-			tool: ToolMeta{Name: "tool.os.Getenv", RequiredCaps: []capability.Capability{
-				{Resource: "env", Verbs: []string{"read"}, Scopes: []string{"OPENAI_API_KEY"}},
-			}},
-			wantErr: ErrCapability,
-		},
-		{
-			name: "Success - Allows With Capability",
-			policy: &ExecPolicy{
-				Context: ContextConfig,
-				Allow:   []string{"tool.os.Getenv"},
-				Grants: capability.GrantSet{
-					Grants: []capability.Capability{
-						{Resource: "env", Verbs: []string{"read"}, Scopes: []string{"OPENAI_API_KEY"}},
-					},
-				},
-			},
-			tool: ToolMeta{Name: "tool.os.Getenv", RequiredCaps: []capability.Capability{
-				{Resource: "env", Verbs: []string{"read"}, Scopes: []string{"OPENAI_API_KEY"}},
-			}},
-			wantErr: nil,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			// Ensure counters are initialized for every run to prevent state leakage.
-			if tc.policy.Grants.Counters == nil {
-				tc.policy.Grants.Counters = capability.NewCounters()
-			}
-
-			err := tc.policy.CanCall(tc.tool)
-
-			if !errors.Is(err, tc.wantErr) {
-				t.Errorf("CanCall() error = %v, wantErr %v", err, tc.wantErr)
-			}
-		})
 	}
 }

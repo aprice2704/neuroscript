@@ -1,7 +1,7 @@
 // filename: pkg/interpreter/evaluation_event_handler_test.go
 // NeuroScript Version: 0.5.2
-// File version: 13
-// Purpose: Corrected calls to interp.Load to pass the correct AST structure.
+// File version: 15
+// Purpose: Corrected calls to interp.Load and emit capture logic.
 // nlines: 135+
 // risk_rating: LOW
 
@@ -26,8 +26,7 @@ func setupEventHandlerTest(t *testing.T, script string) (*Interpreter, *bytes.Bu
 	logger := logging.NewTestLogger(t)
 	var outputBuffer bytes.Buffer
 
-	// FIX: Use SetEmitFunc to capture the output of 'emit' statements.
-	// The 'emit' statement does not write to the interpreter's stdout by default.
+	// Use SetEmitFunc to capture the output of 'emit' statements.
 	interp := NewInterpreter(WithLogger(logger))
 	interp.SetEmitFunc(func(v lang.Value) {
 		fmt.Fprintln(&outputBuffer, v.String())
@@ -54,12 +53,11 @@ func setupEventHandlerTest(t *testing.T, script string) (*Interpreter, *bytes.Bu
 
 func TestOnEventHandling(t *testing.T) {
 	t.Run("Basic event handler emits variable from payload", func(t *testing.T) {
-		// FIX: The handler now emits the result to prove it worked internally.
+		// The handler now correctly accesses the nested payload within the canonical event.
 		script := `
 			on event "user_login" as data do
-				set payload_map = data["payload"]
-				set login_name = payload_map["username"]
-				emit login_name
+				set envelope = data["payload"][0]
+				emit envelope["Payload"]["username"]
 			endon
 
 			func main() means
@@ -75,21 +73,19 @@ func TestOnEventHandling(t *testing.T) {
 		payload := lang.NewMapValue(map[string]lang.Value{"username": lang.StringValue{Value: "testuser"}})
 		interp.EmitEvent("user_login", "auth_system", payload)
 
-		// FIX: Check the output buffer, not the interpreter's variables.
 		output := strings.TrimSpace(stdout.String())
 		if output != "testuser" {
 			t.Errorf("Expected event handler to emit 'testuser', got '%s'", output)
 		}
 
 		// Also assert that the variable did NOT leak into the parent scope.
-		_, exists := interp.GetVariable("login_name")
+		_, exists := interp.GetVariable("envelope")
 		if exists {
-			t.Fatal("Variable 'login_name' leaked from sandboxed event handler into the parent interpreter")
+			t.Fatal("Variable 'envelope' leaked from sandboxed event handler into the parent interpreter")
 		}
 	})
 
 	t.Run("Multiple handlers for the same event", func(t *testing.T) {
-		// FIX: Handlers now emit their results.
 		script := `
 			on event "test_event" as e1 do
 				set var_a = 1
@@ -112,7 +108,6 @@ func TestOnEventHandling(t *testing.T) {
 		}
 		interp.EmitEvent("test_event", "test", nil)
 
-		// FIX: Check the output buffer for proof of execution.
 		output := stdout.String()
 		if !strings.Contains(output, "handler_a_ran") {
 			t.Error("Did not find expected output from first event handler")

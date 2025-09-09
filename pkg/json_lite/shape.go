@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.5.2
-// File version: 15
-// Purpose: Reverted to stricter, more robust regex for email and URL validation.
+// File version: 16
+// Purpose: Implements shape validation with options for case-insensitivity.
 // filename: pkg/json-lite/shape.go
-// nlines: 242
-// risk_rating: LOW
+// nlines: 282
+// risk_rating: MEDIUM
 
 package json_lite
 
@@ -11,8 +11,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-
-	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 const (
@@ -20,11 +18,8 @@ const (
 )
 
 var (
-	// A robust, commonly used regex for email validation that correctly enforces TLDs.
-	emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-	// A flexible and robust regex for http/https URLs that requires a valid TLD.
-	urlRegex = regexp.MustCompile(`^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{2,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*)?$`)
-	// Regex for ISO 8601 datetime format.
+	emailRegex       = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+	urlRegex         = regexp.MustCompile(`^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{2,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*)?$`)
 	isoDatetimeRegex = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$`)
 )
 
@@ -40,23 +35,27 @@ type FieldSpec struct {
 	NestedShape   *Shape
 }
 
+// ValidateOptions provides options for the Validate method.
+type ValidateOptions struct {
+	AllowExtra      bool
+	CaseInsensitive bool
+}
+
 func ParseShape(rawShape map[string]any) (*Shape, error) {
 	return parseShapeRecursive(rawShape, 0)
 }
 
 func parseShapeRecursive(rawShape map[string]any, depth int) (*Shape, error) {
 	if depth > maxShapeDepth {
-		return nil, fmt.Errorf("%w: shape definition exceeds maximum nesting depth of %d", lang.ErrNestingDepthExceeded, maxShapeDepth)
+		return nil, fmt.Errorf("%w: shape definition exceeds maximum nesting depth of %d", ErrNestingDepthExceeded, maxShapeDepth)
 	}
 	if rawShape == nil {
-		return nil, fmt.Errorf("%w: raw shape definition cannot be nil", lang.ErrInvalidArgument)
+		return nil, fmt.Errorf("%w: raw shape definition cannot be nil", ErrInvalidArgument)
 	}
 	s := &Shape{Fields: make(map[string]*FieldSpec, len(rawShape))}
 	for key, typeDef := range rawShape {
-		// Corrected, robust suffix parsing
 		keyName := key
 		var isOptional, isList bool
-		// Iteratively strip suffixes to handle any order, e.g. '[]?' or '?[]'
 		for hasSuffix := true; hasSuffix; {
 			if strings.HasSuffix(keyName, "?") {
 				keyName = keyName[:len(keyName)-1]
@@ -70,7 +69,7 @@ func parseShapeRecursive(rawShape map[string]any, depth int) (*Shape, error) {
 		}
 
 		if keyName == "" {
-			return nil, fmt.Errorf("%w: shape key '%s' is invalid because it has no name part", lang.ErrInvalidArgument, key)
+			return nil, fmt.Errorf("%w: shape key '%s' is invalid because it has no name part", ErrInvalidArgument, key)
 		}
 
 		spec := &FieldSpec{Name: keyName, IsOptional: isOptional, IsList: isList}
@@ -85,103 +84,118 @@ func parseShapeRecursive(rawShape map[string]any, depth int) (*Shape, error) {
 			}
 			spec.NestedShape = nestedShape
 		default:
-			return nil, fmt.Errorf("%w: invalid type definition for key '%s'", lang.ErrValidationTypeMismatch, key)
+			return nil, fmt.Errorf("%w: invalid type definition for key '%s'", ErrValidationTypeMismatch, key)
 		}
-		s.Fields[keyName] = spec // Use the normalized key name for storage
+		s.Fields[keyName] = spec
 	}
 	return s, nil
 }
 
-func (s *Shape) Validate(value any, allowExtra bool) error {
+func (s *Shape) Validate(value any, options *ValidateOptions) error {
 	valMap, ok := value.(map[string]any)
 	if !ok {
-		return fmt.Errorf("%w: expected a map, but got %T", lang.ErrValidationTypeMismatch, value)
+		return fmt.Errorf("%w: expected a map, but got %T", ErrValidationTypeMismatch, value)
 	}
-	return s.validateMap(valMap, allowExtra, "", 0)
+	if options == nil {
+		options = &ValidateOptions{} // Use defaults if nil
+	}
+	return s.validateMap(valMap, options, "", 0)
 }
 
-func (s *Shape) validateMap(valMap map[string]any, allowExtra bool, currentPath string, depth int) error {
+func (s *Shape) validateMap(valMap map[string]any, options *ValidateOptions, currentPath string, depth int) error {
 	if depth > maxShapeDepth {
-		return fmt.Errorf("%w: data structure exceeds maximum nesting depth of %d at path '%s'", lang.ErrNestingDepthExceeded, maxShapeDepth, currentPath)
+		return fmt.Errorf("%w: data structure exceeds maximum nesting depth of %d at path '%s'", ErrNestingDepthExceeded, maxShapeDepth, currentPath)
 	}
 
 	validatedKeys := make(map[string]bool)
 
-	for keyName, spec := range s.Fields {
-		path := buildPath(currentPath, keyName, false)
-		actualValue, exists := valMap[keyName]
-		validatedKeys[keyName] = true
+	for specKeyName, spec := range s.Fields {
+		path := buildPath(currentPath, specKeyName, false)
+		var actualValue any
+		var exists bool
+		var originalKey string
 
-		if !exists {
+		if options.CaseInsensitive {
+			lowerSpecKeyName := strings.ToLower(specKeyName)
+			for k, v := range valMap {
+				if strings.ToLower(k) == lowerSpecKeyName {
+					actualValue = v
+					exists = true
+					originalKey = k
+					break
+				}
+			}
+		} else {
+			actualValue, exists = valMap[specKeyName]
+			originalKey = specKeyName
+		}
+
+		if exists {
+			validatedKeys[originalKey] = true
+		} else {
 			if !spec.IsOptional {
-				return fmt.Errorf("%w: missing required key '%s' at path '%s'", lang.ErrValidationRequiredArgMissing, keyName, currentPath)
+				return fmt.Errorf("%w: missing required key '%s' at path '%s'", ErrValidationRequiredArgMissing, specKeyName, currentPath)
 			}
 			continue
 		}
 
-		// Depth increases when we descend into a nested structure
 		if spec.IsList {
-			if err := spec.validateList(actualValue, allowExtra, path, depth); err != nil {
+			if err := spec.validateList(actualValue, options, path, depth); err != nil {
 				return err
 			}
 		} else {
-			if err := spec.validateSingle(actualValue, allowExtra, path, depth); err != nil {
+			if err := spec.validateSingle(actualValue, options, path, depth); err != nil {
 				return err
 			}
 		}
 	}
 
-	if !allowExtra {
+	if !options.AllowExtra {
 		for key := range valMap {
 			if !validatedKeys[key] {
-				return fmt.Errorf("%w: unexpected key '%s' at path '%s'", lang.ErrInvalidArgument, key, buildPath(currentPath, key, false))
+				return fmt.Errorf("%w: unexpected key '%s' at path '%s'", ErrInvalidArgument, key, buildPath(currentPath, key, false))
 			}
 		}
 	}
 	return nil
 }
 
-func (fs *FieldSpec) validateSingle(value any, allowExtra bool, path string, depth int) error {
-	// Corrected: Handle nil values as a type mismatch unless the type is 'any'
+func (fs *FieldSpec) validateSingle(value any, options *ValidateOptions, path string, depth int) error {
 	if value == nil {
 		if fs.PrimitiveType == "any" {
 			return nil
 		}
-		// A nil value for a present key is a type mismatch.
-		return fmt.Errorf("%w: at path '%s', got nil value for required type '%s'", lang.ErrValidationTypeMismatch, path, fs.PrimitiveType)
+		return fmt.Errorf("%w: at path '%s', got nil value for required type '%s'", ErrValidationTypeMismatch, path, fs.PrimitiveType)
 	}
 
 	if fs.NestedShape != nil {
 		valMap, ok := value.(map[string]any)
 		if !ok {
-			return fmt.Errorf("%w: at path '%s', expected a map but got %T", lang.ErrValidationTypeMismatch, path, value)
+			return fmt.Errorf("%w: at path '%s', expected a map but got %T", ErrValidationTypeMismatch, path, value)
 		}
-		return fs.NestedShape.validateMap(valMap, allowExtra, path, depth+1)
+		return fs.NestedShape.validateMap(valMap, options, path, depth+1)
 	}
 
-	// Validate against the primitive type
 	if err := validatePrimitive(value, fs.PrimitiveType, path); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (fs *FieldSpec) validateList(value any, allowExtra bool, path string, depth int) error {
+func (fs *FieldSpec) validateList(value any, options *ValidateOptions, path string, depth int) error {
 	valList, ok := value.([]any)
 	if !ok {
-		return fmt.Errorf("%w: for key '%s', expected a list but got %T", lang.ErrValidationTypeMismatch, path, value)
+		return fmt.Errorf("%w: for key '%s', expected a list but got %T", ErrValidationTypeMismatch, path, value)
 	}
 	for i, item := range valList {
 		itemPath := buildPath(path, fmt.Sprintf("%d", i), true)
-		// Pass the same depth for items in a list, but validateSingle will increment it if an item is a map
-		if err := fs.validateSingle(item, allowExtra, itemPath, depth); err != nil {
+		if err := fs.validateSingle(item, options, itemPath, depth); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// --- Helpers ---
 func getTypeName(value any) (string, bool) {
 	switch value.(type) {
 	case string:
@@ -211,9 +225,8 @@ func validatePrimitive(value any, shapeType string, path string) error {
 		return nil
 	}
 
-	// Fallback to basic type check if not a special type
 	if typeName != shapeType {
-		return fmt.Errorf("%w: at path '%s', expected type '%s' but got '%s'", lang.ErrValidationTypeMismatch, path, shapeType, typeName)
+		return fmt.Errorf("%w: at path '%s', expected type '%s' but got '%s'", ErrValidationTypeMismatch, path, shapeType, typeName)
 	}
 	return nil
 }
@@ -221,9 +234,8 @@ func validatePrimitive(value any, shapeType string, path string) error {
 func isSpecialType(value any, shapeType string, path string) (bool, error) {
 	str, isString := value.(string)
 	if !isString {
-		// Special types must have an underlying string type
 		if shapeType == "email" || shapeType == "url" || shapeType == "isoDatetime" {
-			return false, fmt.Errorf("%w: at path '%s', expected a string for special type '%s' but got %T", lang.ErrValidationTypeMismatch, path, shapeType, value)
+			return false, fmt.Errorf("%w: at path '%s', expected a string for special type '%s' but got %T", ErrValidationTypeMismatch, path, shapeType, value)
 		}
 		return false, nil
 	}
@@ -231,17 +243,17 @@ func isSpecialType(value any, shapeType string, path string) (bool, error) {
 	switch shapeType {
 	case "email":
 		if !emailRegex.MatchString(str) {
-			return true, fmt.Errorf("%w: at path '%s', value '%s' is not a valid email format", lang.ErrValidationFailed, path, str)
+			return true, fmt.Errorf("%w: at path '%s', value '%s' is not a valid email format", ErrValidationFailed, path, str)
 		}
 		return true, nil
 	case "url":
 		if !urlRegex.MatchString(str) {
-			return true, fmt.Errorf("%w: at path '%s', value '%s' is not a valid URL format", lang.ErrValidationFailed, path, str)
+			return true, fmt.Errorf("%w: at path '%s', value '%s' is not a valid URL format", ErrValidationFailed, path, str)
 		}
 		return true, nil
 	case "isoDatetime":
 		if !isoDatetimeRegex.MatchString(str) {
-			return true, fmt.Errorf("%w: at path '%s', value '%s' is not a valid ISO 8601 datetime format", lang.ErrValidationFailed, path, str)
+			return true, fmt.Errorf("%w: at path '%s', value '%s' is not a valid ISO 8061 datetime format", ErrValidationFailed, path, str)
 		}
 		return true, nil
 	}

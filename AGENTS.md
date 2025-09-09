@@ -9,6 +9,11 @@ We use **Go 1.24+**. These rules emphasize correctness, minimalism, and context 
 ---
 ## 🔴 TOP CRITICAL RULES — ALWAYS OBEY
 
+### 0. COMMANDS
+- If I end a prompt with code- or -code that means I do NOT want any code files next turn
+- If I end a prompt with code+ or +code that means I do want code file(s) next turn
+
+
 ### 1. Understand Context First
 - Always review `.md` docs and relevant Go code **before** making changes.  
 - Fix compiler/test failures with **minimal, targeted edits**. Do not “tidy up” unrelated code.  
@@ -21,7 +26,7 @@ We use **Go 1.24+**. These rules emphasize correctness, minimalism, and context 
 - In `.md` files, do **not** wrap Go import paths in markdown links.
 
 ### 3. Full & Functional Files
-- Always deliver **complete files**.  
+- Always deliver **complete files** in inline code boxes please. 
 - **NEVER** leave bodies stubbed with `// ... implementation ...`. That has cost hours of wasted debugging in the past.  
 
 ### 4. No File Carpet-Bombing
@@ -49,6 +54,7 @@ At the top of **every modified file**, include:
 - Use `errors.Is` for sentinel errors.  
 - Use `errors.As` for typed errors.  
 - Return sentinel errors (`ErrNotFound`) or wrap with `fmt.Errorf("... %w", err)`.  
+- Avoid using panic for control flow, try to use proper errors everywhere.
 
 ### 8. Testing
 - Use the **standard library `testing` package only**.  

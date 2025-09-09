@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.1
-// File version: 7
-// Purpose: Added an exported Clone() method for testing purposes.
+// File version: 8
+// Purpose: Added a type-preserving unwrap helper for shape validation in tests.
 // filename: pkg/interpreter/testing_bits.go
-// nlines: 100
+// nlines: 120
 // risk_rating: LOW
 package interpreter
 
@@ -35,8 +35,7 @@ func (i *Interpreter) GetLastResult() lang.Value {
 }
 
 // DebugDumpVariables is a testing helper to print the current state of variables
-// in an interpreter instance. It's kept within the interpreter package to avoid
-// import cycles with the testutil package.
+// in an interpreter instance.
 func DebugDumpVariables(i *Interpreter, t *testing.T) {
 	t.Helper()
 	var sb strings.Builder

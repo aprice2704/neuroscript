@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.1
-// File version: 1
-// Purpose: Tests that the capsule store is correctly propagated to cloned interpreters.
+// File version: 2
+// Purpose: Tests that the capsule store and custom I/O functions are correctly propagated to cloned interpreters.
 // filename: pkg/interpreter/interpreter_clone_test.go
-// nlines: 45
+// nlines: 75
 // risk_rating: LOW
 package interpreter_test
 
@@ -11,6 +11,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/capsule"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 func TestInterpreter_Clone_CapsuleStore(t *testing.T) {
@@ -50,5 +51,46 @@ func TestInterpreter_Clone_CapsuleStore(t *testing.T) {
 	}
 	if retrieved.Content != "Content for clone test" {
 		t.Errorf("Retrieved capsule content mismatch.")
+	}
+}
+
+func TestInterpreter_Clone_CustomFuncs(t *testing.T) {
+	parent, err := interpreter.NewTestInterpreter(t, nil, nil, false)
+	if err != nil {
+		t.Fatalf("Failed to create parent interpreter: %v", err)
+	}
+
+	var emitCaptured bool
+	var whisperCaptured bool
+
+	// Set custom functions on the PARENT
+	parent.SetEmitFunc(func(v lang.Value) {
+		emitCaptured = true
+	})
+	parent.SetWhisperFunc(func(h, d lang.Value) {
+		whisperCaptured = true
+	})
+
+	// Create the clone
+	clone := parent.Clone()
+
+	// Execute a script in the CLONE that uses emit and whisper
+	script := `
+	func main() means
+		emit "hello"
+		whisper "self", "data"
+	endfunc
+	`
+	_, execErr := clone.ExecuteScriptString("main", script, nil)
+	if execErr != nil {
+		t.Fatalf("Script execution in clone failed: %v", execErr)
+	}
+
+	// Assert that the custom functions from the PARENT were called
+	if !emitCaptured {
+		t.Error("customEmitFunc was not propagated to the clone")
+	}
+	if !whisperCaptured {
+		t.Error("customWhisperFunc was not propagated to the clone")
 	}
 }

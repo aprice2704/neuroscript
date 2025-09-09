@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.5.2
-// File version: 5
-// Purpose: Implements path-lite selectors with corrected regex and length limits.
+// File version: 6
+// Purpose: Implements path-lite selectors with options for case-insensitivity.
 // filename: pkg/json-lite/path.go
-// nlines: 153
+// nlines: 177
 // risk_rating: MEDIUM
 
 package json_lite
@@ -12,8 +12,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 const (
@@ -26,11 +24,8 @@ var (
 )
 
 func init() {
-	// A segment key allows letters, numbers, underscore, and hyphen.
 	const keyPart = `[a-zA-Z0-9_-]+`
-	// A full segment is a key part followed by optional indices.
 	const segmentPart = keyPart + `(?:\[\d+\])*`
-	// A valid path is one or more segments separated by dots.
 	const pathPattern = `^` + segmentPart + `(?:\.` + segmentPart + `)*$`
 	pathRegex = regexp.MustCompile(pathPattern)
 }
@@ -45,13 +40,18 @@ type PathSegment struct {
 // Path is the parsed, executable representation of a path-lite string.
 type Path []PathSegment
 
+// SelectOptions provides options for the Select function.
+type SelectOptions struct {
+	CaseInsensitive bool
+}
+
 // ParsePath compiles a path-lite string (e.g., "a.b[0].c") into a reusable Path structure.
 func ParsePath(pathStr string) (Path, error) {
 	if pathStr == "" {
-		return nil, fmt.Errorf("%w: path string cannot be empty", lang.ErrInvalidPath)
+		return nil, fmt.Errorf("%w: path string cannot be empty", ErrInvalidPath)
 	}
 	if !pathRegex.MatchString(pathStr) {
-		return nil, fmt.Errorf("%w: path string has invalid format", lang.ErrInvalidPath)
+		return nil, fmt.Errorf("%w: path string has invalid format", ErrInvalidPath)
 	}
 
 	var segments []PathSegment
@@ -60,12 +60,12 @@ func ParsePath(pathStr string) (Path, error) {
 
 	for reader.Len() > 0 {
 		if len(segments) >= maxPathSegments {
-			return nil, fmt.Errorf("%w: path exceeds maximum number of segments (%d)", lang.ErrNestingDepthExceeded, maxPathSegments)
+			return nil, fmt.Errorf("%w: path exceeds maximum number of segments (%d)", ErrNestingDepthExceeded, maxPathSegments)
 		}
 
 		char, _, _ := reader.ReadRune()
 		if currentSegment.Len() > maxPathSegmentLen {
-			return nil, fmt.Errorf("%w: path segment exceeds maximum length (%d)", lang.ErrInvalidArgument, maxPathSegmentLen)
+			return nil, fmt.Errorf("%w: path segment exceeds maximum length (%d)", ErrInvalidArgument, maxPathSegmentLen)
 		}
 
 		switch char {
@@ -83,7 +83,7 @@ func ParsePath(pathStr string) (Path, error) {
 			inIndex := true
 			for reader.Len() > 0 && inIndex {
 				if indexStr.Len() >= maxPathSegmentLen {
-					return nil, fmt.Errorf("%w: path index segment exceeds maximum length (%d)", lang.ErrInvalidArgument, maxPathSegmentLen)
+					return nil, fmt.Errorf("%w: path index segment exceeds maximum length (%d)", ErrInvalidArgument, maxPathSegmentLen)
 				}
 				idxChar, _, _ := reader.ReadRune()
 				if idxChar == ']' {
@@ -93,11 +93,11 @@ func ParsePath(pathStr string) (Path, error) {
 				}
 			}
 			if inIndex {
-				return nil, fmt.Errorf("%w: unterminated index in path '%s'", lang.ErrInvalidPath, pathStr)
+				return nil, fmt.Errorf("%w: unterminated index in path '%s'", ErrInvalidPath, pathStr)
 			}
 			idx, err := strconv.Atoi(indexStr.String())
 			if err != nil {
-				return nil, fmt.Errorf("%w: invalid list index '%s' in path: %v", lang.ErrListInvalidIndexType, indexStr.String(), err)
+				return nil, fmt.Errorf("%w: invalid list index '%s' in path: %v", ErrListInvalidIndexType, indexStr.String(), err)
 			}
 			segments = append(segments, PathSegment{Index: idx, IsKey: false})
 		default:
@@ -105,10 +105,9 @@ func ParsePath(pathStr string) (Path, error) {
 		}
 	}
 
-	// Final check for the last segment
 	if currentSegment.Len() > 0 {
 		if currentSegment.Len() > maxPathSegmentLen {
-			return nil, fmt.Errorf("%w: path segment exceeds maximum length (%d)", lang.ErrInvalidArgument, maxPathSegmentLen)
+			return nil, fmt.Errorf("%w: path segment exceeds maximum length (%d)", ErrInvalidArgument, maxPathSegmentLen)
 		}
 		segments = append(segments, PathSegment{Key: currentSegment.String(), IsKey: true})
 	}
@@ -116,29 +115,49 @@ func ParsePath(pathStr string) (Path, error) {
 	return segments, nil
 }
 
-// Select function remains unchanged
-func Select(value any, path Path) (any, error) {
+// Select retrieves a value from a nested data structure using a pre-parsed Path.
+func Select(value any, path Path, options *SelectOptions) (any, error) {
 	current := value
 	for i, seg := range path {
 		if current == nil {
-			return nil, fmt.Errorf("%w: cannot select from nil value at path segment %d", lang.ErrCollectionIsNil, i)
+			return nil, fmt.Errorf("%w: cannot select from nil value at path segment %d", ErrCollectionIsNil, i)
 		}
 		if seg.IsKey {
 			asMap, ok := current.(map[string]any)
 			if !ok {
-				return nil, fmt.Errorf("%w: expected a map to access key '%s' (segment %d)", lang.ErrCannotAccessType, seg.Key, i)
+				return nil, fmt.Errorf("%w: expected a map to access key '%s' (segment %d)", ErrCannotAccessType, seg.Key, i)
 			}
-			current, ok = asMap[seg.Key]
-			if !ok {
-				return nil, fmt.Errorf("%w: key '%s' not found (segment %d)", lang.ErrMapKeyNotFound, seg.Key, i)
+
+			if options != nil && options.CaseInsensitive {
+				var foundVal any
+				foundKey := false
+				lowerKey := strings.ToLower(seg.Key)
+				for k, v := range asMap {
+					if strings.ToLower(k) == lowerKey {
+						foundVal = v
+						foundKey = true
+						break
+					}
+				}
+				if !foundKey {
+					return nil, fmt.Errorf("%w: key '%s' not found (segment %d)", ErrMapKeyNotFound, seg.Key, i)
+				}
+				current = foundVal
+			} else {
+				val, keyOk := asMap[seg.Key]
+				if !keyOk {
+					return nil, fmt.Errorf("%w: key '%s' not found (segment %d)", ErrMapKeyNotFound, seg.Key, i)
+				}
+				current = val
 			}
-		} else {
+
+		} else { // Is Index
 			asList, ok := current.([]any)
 			if !ok {
-				return nil, fmt.Errorf("%w: expected a list to access index %d (segment %d)", lang.ErrCannotAccessType, seg.Index, i)
+				return nil, fmt.Errorf("%w: expected a list to access index %d (segment %d)", ErrCannotAccessType, seg.Index, i)
 			}
 			if seg.Index < 0 || seg.Index >= len(asList) {
-				return nil, fmt.Errorf("%w: index %d is out of bounds for list of length %d (segment %d)", lang.ErrListIndexOutOfBounds, seg.Index, len(asList), i)
+				return nil, fmt.Errorf("%w: index %d is out of bounds for list of length %d (segment %d)", ErrListIndexOutOfBounds, seg.Index, len(asList), i)
 			}
 			current = asList[seg.Index]
 		}

@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.3.0
-// File version: 1
+// File version: 2
 // Purpose: Implements the SelectMany tool for the AI toolset.
 // filename: pkg/tool/ai/select_many.go
 // nlines: 62
@@ -44,7 +44,7 @@ func SelectMany(interpreter tool.Runtime, args []interface{}) (interface{}, erro
 			return nil, lang.NewRuntimeError(lang.ErrorCodeSyntax, fmt.Sprintf("SelectMany: failed to parse path for key '%s': %v", key, err), err)
 		}
 
-		extractedValue, err := json_lite.Select(value, path)
+		extractedValue, err := json_lite.Select(value, path, nil) // Corrected call
 		if err != nil {
 			if missingOK {
 				continue

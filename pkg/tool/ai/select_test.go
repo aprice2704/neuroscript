@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.0
-// File version: 5
-// Purpose: Provides unit tests for the Select tool. Corrected numeric types in source data to float64.
+// File version: 7
+// Purpose: Provides unit tests for the Select tool. Corrected expected error types.
 // filename: pkg/tool/ai/select_test.go
 // nlines: 100
 // risk_rating: LOW
@@ -11,7 +11,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/json_lite"
 	"github.com/aprice2704/neuroscript/pkg/testutil"
 )
 
@@ -21,7 +21,6 @@ func TestSelect(t *testing.T) {
 		t.Fatalf("NewTestInterpreter failed: %v", err)
 	}
 
-	// Corrected: Initialize numeric data as float64 to simulate JSON unmarshaling.
 	data := map[string]interface{}{
 		"user": map[string]interface{}{
 			"name": "Ada Lovelace",
@@ -57,7 +56,7 @@ func TestSelect(t *testing.T) {
 		{
 			name:      "missing key not ok",
 			args:      []interface{}{data, "user.email"},
-			wantErrIs: lang.ErrMapKeyNotFound,
+			wantErrIs: json_lite.ErrMapKeyNotFound,
 		},
 		{
 			name: "missing key ok",
@@ -67,12 +66,12 @@ func TestSelect(t *testing.T) {
 		{
 			name:      "invalid path string",
 			args:      []interface{}{data, "items[1]name"},
-			wantErrIs: lang.ErrInvalidPath,
+			wantErrIs: json_lite.ErrInvalidPath,
 		},
 		{
 			name:      "out of bounds list access",
 			args:      []interface{}{data, "items[2]"},
-			wantErrIs: lang.ErrListIndexOutOfBounds,
+			wantErrIs: json_lite.ErrListIndexOutOfBounds,
 		},
 		{
 			name: "out of bounds list access ok",

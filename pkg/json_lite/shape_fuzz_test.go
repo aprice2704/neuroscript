@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.5.2
-// File version: 3
+// File version: 4
 // Purpose: Fuzz and sanitization tests for the shape-lite parser and validator.
 // filename: pkg/json-lite/shape_fuzz_test.go
 // nlines: 137
@@ -10,8 +10,6 @@ package json_lite
 import (
 	"errors"
 	"testing"
-
-	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 func TestParseShape_Sanitization(t *testing.T) {
@@ -32,7 +30,7 @@ func TestParseShape_Sanitization(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := ParseShape(tc.shapeDef)
 			if tc.expectErr {
-				if !errors.Is(err, lang.ErrInvalidArgument) {
+				if !errors.Is(err, ErrInvalidArgument) {
 					t.Fatalf("expected ErrInvalidArgument, got: %v", err)
 				}
 			} else if err != nil {
@@ -61,12 +59,12 @@ func TestShapeValidate_NilValues(t *testing.T) {
 		{
 			"nil for required field",
 			map[string]any{"required_field": nil, "any_field": "ok"},
-			lang.ErrValidationTypeMismatch,
+			ErrValidationTypeMismatch,
 		},
 		{
 			"nil for optional field",
 			map[string]any{"required_field": "ok", "optional_field": nil},
-			lang.ErrValidationTypeMismatch,
+			ErrValidationTypeMismatch,
 		},
 		{
 			"nil for any field",
@@ -78,7 +76,7 @@ func TestShapeValidate_NilValues(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := shape.Validate(tc.data, false)
+			err := shape.Validate(tc.data, nil)
 			if tc.expectedErr != nil {
 				if !errors.Is(err, tc.expectedErr) {
 					t.Fatalf("expected error '%v', got '%v'", tc.expectedErr, err)
@@ -100,7 +98,7 @@ func TestShapeValidate_FuzzMutate(t *testing.T) {
 		t.Fatalf("test setup failed: %v", err)
 	}
 	validData := map[string]any{"name": "John", "age": 42}
-	if err := shape.Validate(validData, false); err != nil {
+	if err := shape.Validate(validData, nil); err != nil {
 		t.Fatalf("base valid data failed validation: %v", err)
 	}
 
@@ -121,7 +119,7 @@ func TestShapeValidate_FuzzMutate(t *testing.T) {
 			}
 			m.mutate(mutatedData)
 
-			err := shape.Validate(mutatedData, false)
+			err := shape.Validate(mutatedData, nil)
 			if err == nil {
 				t.Fatalf("expected validation to fail for mutation '%s', but it passed", m.name)
 			}

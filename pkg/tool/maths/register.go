@@ -7,7 +7,7 @@ import "github.com/aprice2704/neuroscript/pkg/tool"
 // or by tests).  It injects this tool-set’s registration function into the
 // global bootstrap list kept in pkg/tool/register.go.
 //
-// At interpreter start-up, tool.RegisterExtendedTools() will call that
+// At interpreter start-up, tool.RegisterGlobalToolsets() will call that
 // registration func, which, in turn, adds every ToolImplementation in
 // mathToolsToRegister to the live registry.
 func init() {

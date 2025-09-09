@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.5.2
-// File version: 4
+// File version: 5
 // Purpose: Tests for the core shape parser.
 // filename: pkg/json-lite/shape_test.go
 // nlines: 43
@@ -10,8 +10,6 @@ package json_lite
 import (
 	"errors"
 	"testing"
-
-	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 func TestParseShape(t *testing.T) {
@@ -40,13 +38,13 @@ func TestParseShape(t *testing.T) {
 	})
 	t.Run("invalid shape type", func(t *testing.T) {
 		_, err := ParseShape(invalidShapeType)
-		if !errors.Is(err, lang.ErrValidationTypeMismatch) {
+		if !errors.Is(err, ErrValidationTypeMismatch) {
 			t.Fatalf("expected type mismatch error, got %v", err)
 		}
 	})
 	t.Run("invalid nested shape type", func(t *testing.T) {
 		_, err := ParseShape(invalidNestedShape)
-		if !errors.Is(err, lang.ErrValidationTypeMismatch) {
+		if !errors.Is(err, ErrValidationTypeMismatch) {
 			t.Fatalf("expected type mismatch error in nested shape, got %v", err)
 		}
 	})
