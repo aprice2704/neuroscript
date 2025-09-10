@@ -2,35 +2,33 @@ Executing trusted config script: ./library/list_tools.ns.txt
 Interpreter created with elevated privileges.
 Running procedure 'main'...
 Compact Tool List:
-tool.Meta.GetToolSpecificationsJSON() -> string
-tool.Meta.ListTools() -> string
-tool.Meta.ToolsHelp(filter:string?) -> string
-tool.account.Delete(name:string) -> bool
-tool.account.Exists(name:string) -> bool
-tool.account.List() -> slice_string
-tool.account.Register(name:string, config:map) -> bool
+tool.account.Delete(name:string) -> bool [caps: account:admin:*]
+tool.account.Exists(name:string) -> bool [caps: account:read:*]
+tool.account.List() -> slice_string [caps: account:read:*]
+tool.account.Register(name:string, config:map) -> bool [caps: account:admin:*]
 tool.aeiou.ComposeEnvelope(userdata:string, actions:string, scratchpad:string?, output:string?) -> string
-tool.agentmodel.Delete(name:string) -> bool
-tool.agentmodel.Get(name:string) -> map
-tool.agentmodel.List() -> slice_string
-tool.agentmodel.Register(name:string, config:map) -> bool
-tool.agentmodel.Select(name:string?) -> string
-tool.agentmodel.Update(name:string, updates:map) -> bool
+tool.agentmodel.Delete(name:string) -> bool [caps: model:admin:*]
+tool.agentmodel.Get(name:string) -> map [caps: model:read:*]
+tool.agentmodel.List() -> slice_string [caps: model:read:*]
+tool.agentmodel.Register(name:string, config:map) -> bool [caps: model:admin:*]
+tool.agentmodel.Select(name:string?) -> string [caps: model:read:*]
+tool.agentmodel.Update(name:string, updates:map) -> bool [caps: model:admin:*]
 tool.capsule.GetLatest(name:string) -> map
 tool.capsule.List() -> slice_string
 tool.capsule.Read(id:string) -> map
-tool.fs.Append(filepath:string, content:string) -> string
-tool.fs.Delete(path:string) -> string
-tool.fs.Hash(filepath:string) -> string
-tool.fs.LineCount(filepath:string) -> int
-tool.fs.List(path:string, recursive:bool?) -> slice_any
-tool.fs.Mkdir(path:string) -> map
-tool.fs.Move(source_path:string, destination_path:string) -> map
-tool.fs.Read(filepath:string) -> string
+tool.debug.dumpClones() -> string
+tool.fs.Append(filepath:string, content:string) -> string [caps: fs:write]
+tool.fs.Delete(path:string) -> string [caps: fs:delete]
+tool.fs.Hash(filepath:string) -> string [caps: fs:read]
+tool.fs.LineCount(filepath:string) -> int [caps: fs:read]
+tool.fs.List(path:string, recursive:bool?) -> slice_any [caps: fs:read]
+tool.fs.Mkdir(path:string) -> map [caps: fs:write]
+tool.fs.Move(source_path:string, destination_path:string) -> map [caps: fs:write,delete]
+tool.fs.Read(filepath:string) -> string [caps: fs:read]
 tool.fs.SanitizeFilename(name:string) -> string
-tool.fs.Stat(path:string) -> map
-tool.fs.Walk(path:string) -> slice_any
-tool.fs.Write(filepath:string, content:string) -> string
+tool.fs.Stat(path:string) -> map [caps: fs:read]
+tool.fs.Walk(path:string) -> slice_any [caps: fs:read]
+tool.fs.Write(filepath:string, content:string) -> string [caps: fs:write]
 tool.gotools.Build(target:string?) -> map
 tool.gotools.Check(target:string) -> map
 tool.gotools.Fmt(content:string) -> string
@@ -60,6 +58,9 @@ tool.math.Divide(num1:float, num2:float) -> float
 tool.math.Modulo(num1:int, num2:int) -> int
 tool.math.Multiply(num1:float, num2:float) -> float
 tool.math.Subtract(num1:float, num2:float) -> float
+tool.Meta.GetToolSpecificationsJSON() -> string
+tool.Meta.ListTools() -> string
+tool.Meta.ToolsHelp(filter:string?) -> string
 tool.ns_event.Compose(kind:string, payload:map, id:string?, agent_id:string?) -> map
 tool.ns_event.GetAllPayloads(event_object:map) -> slice
 tool.ns_event.GetEventShape() -> map
@@ -67,15 +68,19 @@ tool.ns_event.GetID(event_object:map) -> string
 tool.ns_event.GetKind(event_object:map) -> string
 tool.ns_event.GetPayload(event_object:map) -> map
 tool.ns_event.GetTimestamp(event_object:map) -> int
-tool.os.Getenv(varName:string) -> string
+tool.os.Getenv(varName:string) -> string [caps: env:read]
 tool.script.ListFunctions() -> map
 tool.script.LoadScript(script_content:string) -> map
 tool.shape.IsValidPath(path_string:string) -> bool
 tool.shape.Select(value:any, path:any, options:map?) -> any
 tool.shape.Validate(value:map, shape:map, options:map?) -> bool
-tool.shell.Execute(command:string, args_list:slice_string?, directory:string?) -> map
+tool.shell.Execute(command:string, args_list:slice_string?, directory:string?) -> map [caps: shell:execute:*]
+tool.str.Compress(input_string:string) -> string
 tool.str.Concat(strings_list:slice_string) -> string
 tool.str.Contains(input_string:string, substring:string) -> bool
+tool.str.Decompress(base64_encoded_string:string) -> string
+tool.str.FromBase64(encoded_string:string) -> string
+tool.str.FromHex(encoded_string:string) -> string
 tool.str.HasPrefix(input_string:string, prefix:string) -> bool
 tool.str.HasSuffix(input_string:string, suffix:string) -> bool
 tool.str.Join(string_list:slice_string, separator:string) -> string
@@ -85,6 +90,8 @@ tool.str.Replace(input_string:string, old_substring:string, new_substring:string
 tool.str.Split(input_string:string, delimiter:string) -> slice_string
 tool.str.SplitWords(input_string:string) -> slice_string
 tool.str.Substring(input_string:string, start_index:int, length:int) -> string
+tool.str.ToBase64(input_string:string) -> string
+tool.str.ToHex(input_string:string) -> string
 tool.str.ToLower(input_string:string) -> string
 tool.str.ToUpper(input_string:string) -> string
 tool.str.TrimSpace(input_string:string) -> string
@@ -116,57 +123,11 @@ tool.tree.ToJSON(tree_handle:string) -> string
 Detailed Tool Help (Markdown):
 # NeuroScript Tools Help
 
-## `tool.Meta.GetToolSpecificationsJSON`
-**Description:** Provides a JSON string containing an array of all currently available tool specifications. Each object in the array represents a tool and includes its name, description, category, arguments (with their details), return type, return help, variadic status, example usage, and error conditions.
-
-**Category:** Introspection
-
-**Parameters:**
-_None_
-
-**Returns:** (`string`) A JSON string representing an array of ToolSpec objects. This is intended for programmatic use or detailed inspection of all tool capabilities.
-
-**Example:**
-```neuroscript
-GetToolSpecificationsJSON()
-```
----
-
-## `tool.Meta.ListTools`
-**Description:** Provides a compact text list (sorted alphabetically) of all currently available tools, including basic parameter information. Each tool is listed on a new line, showing its name, parameters (name:type), and return type. Example: FS.Read(filepath:string) -> string
-
-**Category:** Introspection
-
-**Parameters:**
-_None_
-
-**Returns:** (`string`) A string containing a newline-separated list of tool names, their parameters (name:type), and return types.
-
-**Example:**
-```neuroscript
-ListTools()
-```
----
-
-## `tool.Meta.ToolsHelp`
-**Description:** Provides a more extensive, Markdown-formatted list of available tools, including descriptions, parameters, and return types. Can be filtered by providing a partial tool name. Details include parameter names, types, descriptions, and return type with its description.
-
-**Category:** Introspection
-
-**Parameters:**
-* `filter` (`string`): (optional) An optional string to filter tool names. Only tools whose names contain this substring will be listed. If empty or omitted, all tools are listed.
-
-**Returns:** (`string`) A string in Markdown format detailing available tools, their descriptions, parameters, and return types. Output can be filtered by the optional 'filter' argument.
-
-**Example:**
-```neuroscript
-ToolsHelp(filter: "FS")
-Meta.ToolsHelp()
-```
----
-
 ## `tool.account.Delete`
 **Description:** Deletes a provider account configuration.
+
+**Required Capabilities:**
+* `account:admin:*`
 
 **Parameters:**
 * `name` (`string`): The logical name of the account to delete.
@@ -182,6 +143,9 @@ account.Delete("openai-prod")
 ## `tool.account.Exists`
 **Description:** Checks if an account with the given name is registered.
 
+**Required Capabilities:**
+* `account:read:*`
+
 **Parameters:**
 * `name` (`string`): The logical name of the account to check.
 
@@ -196,6 +160,9 @@ account.Exists("openai-prod")
 ## `tool.account.List`
 **Description:** Lists the names of all configured provider accounts.
 
+**Required Capabilities:**
+* `account:read:*`
+
 **Parameters:**
 _None_
 
@@ -209,6 +176,9 @@ account.List()
 
 ## `tool.account.Register`
 **Description:** Registers a new provider account configuration.
+
+**Required Capabilities:**
+* `account:admin:*`
 
 **Parameters:**
 * `name` (`string`): The logical name for the account (e.g., 'openai-prod').
@@ -237,6 +207,9 @@ account.Register("openai-prod", {"kind": "llm", "provider": "openai", "apiKey": 
 ## `tool.agentmodel.Delete`
 **Description:** Deletes an agent model configuration.
 
+**Required Capabilities:**
+* `model:admin:*`
+
 **Parameters:**
 * `name` (`string`): The logical name of the model to delete.
 
@@ -245,6 +218,9 @@ account.Register("openai-prod", {"kind": "llm", "provider": "openai", "apiKey": 
 
 ## `tool.agentmodel.Get`
 **Description:** Retrieves the full configuration of a registered agent model.
+
+**Required Capabilities:**
+* `model:read:*`
 
 **Parameters:**
 * `name` (`string`): The logical name of the model to retrieve.
@@ -255,6 +231,9 @@ account.Register("openai-prod", {"kind": "llm", "provider": "openai", "apiKey": 
 ## `tool.agentmodel.List`
 **Description:** Lists the names of all configured agent models.
 
+**Required Capabilities:**
+* `model:read:*`
+
 **Parameters:**
 _None_
 
@@ -263,6 +242,9 @@ _None_
 
 ## `tool.agentmodel.Register`
 **Description:** Registers a new agent model configuration.
+
+**Required Capabilities:**
+* `model:admin:*`
 
 **Parameters:**
 * `name` (`string`): The logical name for the agent model (e.g., 'gpt-4-turbo').
@@ -274,6 +256,9 @@ _None_
 ## `tool.agentmodel.Select`
 **Description:** Selects a model by name, or the default if no name is provided.
 
+**Required Capabilities:**
+* `model:read:*`
+
 **Parameters:**
 * `name` (`string`): (optional) The logical name of the model to select. If empty, selects the default.
 
@@ -282,6 +267,9 @@ _None_
 
 ## `tool.agentmodel.Update`
 **Description:** Updates an existing agent model configuration.
+
+**Required Capabilities:**
+* `model:admin:*`
 
 **Parameters:**
 * `name` (`string`): The logical name of the agent model to update.
@@ -332,10 +320,22 @@ capsule.Read("capsule/aeiou@2")
 ```
 ---
 
+## `tool.debug.dumpClones`
+**Description:** Logs the state of all registered interpreter clones to the host's stdout.
+
+**Parameters:**
+_None_
+
+**Returns:** (`string`) 
+---
+
 ## `tool.fs.Append`
 **Description:** Appends content to a specific file. Creates the file and parent directories if needed. Returns 'OK' on success.
 
 **Category:** Filesystem
+
+**Required Capabilities:**
+* `fs:write`
 
 **Parameters:**
 * `filepath` (`string`): Relative path to the file.
@@ -354,6 +354,9 @@ TOOL.FS.Append(filepath: "logs/activity.log", content: "User logged in.\n")
 
 **Category:** Filesystem
 
+**Required Capabilities:**
+* `fs:delete`
+
 **Parameters:**
 * `path` (`string`): Relative path to the file or empty directory to delete.
 
@@ -369,6 +372,9 @@ TOOL.FS.Delete(path: "temp/old_file.txt")
 **Description:** Calculates the SHA256 hash of a specified file. Returns the hex-encoded hash string.
 
 **Category:** Filesystem
+
+**Required Capabilities:**
+* `fs:read`
 
 **Parameters:**
 * `filepath` (`string`): Relative path (within the sandbox) of the file to hash.
@@ -386,6 +392,9 @@ TOOL.FS.Hash(filepath: "data/my_document.txt")
 
 **Category:** Filesystem
 
+**Required Capabilities:**
+* `fs:read`
+
 **Parameters:**
 * `filepath` (`string`): Relative path to the file.
 
@@ -401,6 +410,9 @@ TOOL.FS.LineCount(filepath: "logs/app.log")
 **Description:** Lists files and subdirectories at a given path. Returns a list of maps, each describing an entry.
 
 **Category:** Filesystem
+
+**Required Capabilities:**
+* `fs:read`
 
 **Parameters:**
 * `path` (`string`): Relative path to the directory (use '.' for current).
@@ -419,6 +431,9 @@ TOOL.FS.List(path: "mydir", recursive: true)
 
 **Category:** Filesystem
 
+**Required Capabilities:**
+* `fs:write`
+
 **Parameters:**
 * `path` (`string`): Relative path of the directory to create.
 
@@ -434,6 +449,9 @@ TOOL.FS.Mkdir(path: "new/subdir")
 **Description:** Moves or renames a file or directory within the sandbox.
 
 **Category:** Filesystem
+
+**Required Capabilities:**
+* `fs:write,delete`
 
 **Parameters:**
 * `source_path` (`string`): Relative path of the source file/directory.
@@ -451,6 +469,9 @@ TOOL.FS.Move(source_path: "old_name.txt", destination_path: "new_name.txt")
 **Description:** Reads the entire content of a specific file. Returns the content as a string.
 
 **Category:** Filesystem
+
+**Required Capabilities:**
+* `fs:read`
 
 **Parameters:**
 * `filepath` (`string`): Relative path to the file.
@@ -484,6 +505,9 @@ TOOL.FS.SanitizeFilename(name: "My Report Final?.docx")
 
 **Category:** Filesystem
 
+**Required Capabilities:**
+* `fs:read`
+
 **Parameters:**
 * `path` (`string`): Relative path to the file or directory.
 
@@ -500,6 +524,9 @@ TOOL.FS.Stat(path: "my_file.go")
 
 **Category:** Filesystem
 
+**Required Capabilities:**
+* `fs:read`
+
 **Parameters:**
 * `path` (`string`): Relative path to the directory to walk.
 
@@ -515,6 +542,9 @@ TOOL.FS.Walk(path: "src")
 **Description:** Writes content to a specific file, overwriting it if it exists. Creates parent directories if needed. Returns 'OK' on success.
 
 **Category:** Filesystem
+
+**Required Capabilities:**
+* `fs:write`
 
 **Parameters:**
 * `filepath` (`string`): Relative path to the file.
@@ -1006,6 +1036,55 @@ tool.Subtract(10, 4.5) // returns 5.5
 ```
 ---
 
+## `tool.Meta.GetToolSpecificationsJSON`
+**Description:** Provides a JSON string containing an array of all currently available tool specifications. Each object in the array represents a tool and includes its name, description, category, arguments (with their details), return type, return help, variadic status, example usage, and error conditions.
+
+**Category:** Introspection
+
+**Parameters:**
+_None_
+
+**Returns:** (`string`) A JSON string representing an array of ToolSpec objects. This is intended for programmatic use or detailed inspection of all tool capabilities.
+
+**Example:**
+```neuroscript
+GetToolSpecificationsJSON()
+```
+---
+
+## `tool.Meta.ListTools`
+**Description:** Provides a compact text list (sorted alphabetically) of all currently available tools, including basic parameter information. Each tool is listed on a new line, showing its name, parameters (name:type), and return type. Example: FS.Read(filepath:string) -> string
+
+**Category:** Introspection
+
+**Parameters:**
+_None_
+
+**Returns:** (`string`) A string containing a newline-separated list of tool names, their parameters (name:type), and return types.
+
+**Example:**
+```neuroscript
+ListTools()
+```
+---
+
+## `tool.Meta.ToolsHelp`
+**Description:** Provides a more extensive, Markdown-formatted list of available tools, including descriptions, parameters, and return types. Can be filtered by providing a partial tool name. Details include parameter names, types, descriptions, and return type with its description.
+
+**Category:** Introspection
+
+**Parameters:**
+* `filter` (`string`): (optional) An optional string to filter tool names. Only tools whose names contain this substring will be listed. If empty or omitted, all tools are listed.
+
+**Returns:** (`string`) A string in Markdown format detailing available tools, their descriptions, parameters, and return types. Output can be filtered by the optional 'filter' argument.
+
+**Example:**
+```neuroscript
+ToolsHelp(filter: "FS")
+Meta.ToolsHelp()
+```
+---
+
 ## `tool.ns_event.Compose`
 **Description:** Creates a valid ns standard event from its constituent parts.
 
@@ -1112,6 +1191,9 @@ ns_event.GetTimestamp(ev)
 
 **Category:** Operating System
 
+**Required Capabilities:**
+* `env:read`
+
 **Parameters:**
 * `varName` (`string`): The name of the environment variable.
 
@@ -1212,6 +1294,9 @@ tool.shape.Validate(my_data, my_shape, {"allow_extra": true})
 
 **Category:** Shell Operations
 
+**Required Capabilities:**
+* `shell:execute:*`
+
 **Parameters:**
 * `command` (`string`): The command or executable path (must not contain path separators like '/' or '\').
 * `args_list` (`slice_string`): (optional) A list of string arguments for the command.
@@ -1222,6 +1307,22 @@ tool.shape.Validate(my_data, my_shape, {"allow_extra": true})
 **Example:**
 ```neuroscript
 tool.shell.Execute("ls", ["-la"], "my_directory")
+```
+---
+
+## `tool.str.Compress`
+**Description:** Compresses a string using Gzip and returns the result as a Base64-encoded string.
+
+**Category:** String Compression
+
+**Parameters:**
+* `input_string` (`string`): The string to compress.
+
+**Returns:** (`string`) Returns the Gzip compressed and Base64 encoded string.
+
+**Example:**
+```neuroscript
+tool.Compress("some repeating text...")
 ```
 ---
 
@@ -1255,6 +1356,54 @@ tool.Concat(["hello", " ", "world"]) // Returns "hello world"
 **Example:**
 ```neuroscript
 tool.Contains("hello world", "world") // Returns true
+```
+---
+
+## `tool.str.Decompress`
+**Description:** Decodes a Base64 string and then decompresses the Gzip data to the original string.
+
+**Category:** String Compression
+
+**Parameters:**
+* `base64_encoded_string` (`string`): The Base64 encoded Gzip data to decompress.
+
+**Returns:** (`string`) Returns the decompressed original string.
+
+**Example:**
+```neuroscript
+tool.Decompress("H4sIAAAAAAAA/...")
+```
+---
+
+## `tool.str.FromBase64`
+**Description:** Decodes a Base64-encoded string.
+
+**Category:** String Codecs
+
+**Parameters:**
+* `encoded_string` (`string`): The Base64 string to decode.
+
+**Returns:** (`string`) Returns the decoded string.
+
+**Example:**
+```neuroscript
+tool.FromBase64("aGVsbG8gd29ybGQ=") // Returns "hello world"
+```
+---
+
+## `tool.str.FromHex`
+**Description:** Decodes a string from its hexadecimal representation.
+
+**Category:** String Codecs
+
+**Parameters:**
+* `encoded_string` (`string`): The hex string to decode.
+
+**Returns:** (`string`) Returns the decoded string.
+
+**Example:**
+```neuroscript
+tool.FromHex("68656c6c6f") // Returns "hello"
 ```
 ---
 
@@ -1410,6 +1559,38 @@ tool.SplitWords("hello world  example") // Returns ["hello", "world", "example"]
 **Example:**
 ```neuroscript
 tool.Substring("hello world", 6, 5) // Returns "world"
+```
+---
+
+## `tool.str.ToBase64`
+**Description:** Encodes a string using standard Base64 encoding.
+
+**Category:** String Codecs
+
+**Parameters:**
+* `input_string` (`string`): The string to encode.
+
+**Returns:** (`string`) Returns the Base64 encoded string.
+
+**Example:**
+```neuroscript
+tool.ToBase64("hello world") // Returns "aGVsbG8gd29ybGQ="
+```
+---
+
+## `tool.str.ToHex`
+**Description:** Encodes a string into a hexadecimal representation.
+
+**Category:** String Codecs
+
+**Parameters:**
+* `input_string` (`string`): The string to encode.
+
+**Returns:** (`string`) Returns the hex-encoded string.
+
+**Example:**
+```neuroscript
+tool.ToHex("hello") // Returns "68656c6c6f"
 ```
 ---
 

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.5.2
-// File version: 1
-// Purpose: Registers the 'os' toolset with the NeuroScript policy.
+// File version: 3
+// Purpose: Registers the 'os' toolset, using exported tool definition variables.
 // filename: pkg/tool/os/register.go
-// nlines: 15
+// nlines: 16
 // risk_rating: LOW
 
 package os
@@ -13,8 +13,9 @@ import "github.com/aprice2704/neuroscript/pkg/tool"
 // toolset's registration function into the global bootstrap list kept
 // in the parent tool package.
 func init() {
+	allTools := append(OsToolsToRegister, OsProcToolsToRegister...)
 	tool.AddToolsetRegistration(
 		"os",
-		tool.CreateRegistrationFunc("os", OsToolsToRegister),
+		tool.CreateRegistrationFunc("os", allTools),
 	)
 }

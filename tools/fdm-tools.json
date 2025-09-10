@@ -583,6 +583,26 @@
   },
   {
     "spec": {
+      "name": "FindSymbol",
+      "groupname": "FDM.SIO",
+      "fullname": "",
+      "description": "Finds all definitions of a given Go symbol from the Symbol Index Overlay.",
+      "args": [
+        {
+          "name": "symbolName",
+          "type": "string",
+          "description": "The exact name of the symbol to find (e.g., 'NewFDM').",
+          "required": true
+        }
+      ],
+      "returnType": "slice_map",
+      "returnHelp": "Returns a list of maps, each detailing a symbol definition with keys: 'NodeID', 'FilePath', 'Kind', 'Position', 'Recv'."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
       "name": "patch",
       "groupname": "FDM.File",
       "fullname": "",
@@ -662,30 +682,21 @@
   },
   {
     "spec": {
-      "name": "Emit",
-      "groupname": "fdm.events",
+      "name": "send",
+      "groupname": "fdm.bus",
       "fullname": "",
       "description": "",
       "args": [
         {
-          "name": "event",
+          "name": "event_object",
           "type": "map",
-          "description": "A map containing event details like 'type', 'target', and 'payload'.",
+          "description": "A standard event object map, created with ns_event.Compose().",
           "required": true
         }
       ],
       "returnType": "bool"
     },
     "requiresTrust": false,
-    "requiredCaps": [
-      {
-        "Resource": "bus",
-        "Verbs": [
-          "write"
-        ],
-        "Scopes": null
-      }
-    ],
     "signatureChecksum": ""
   }
 ]

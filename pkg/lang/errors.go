@@ -120,6 +120,8 @@ const (
 	ErrorCodeControlFlow          ErrorCode = 39
 	ErrProviderNotFound           ErrorCode = 40
 
+	ErrorCodeInvalidValue ErrorCode = 41
+
 	// --- SECURITY codes (99 900-99 999).  Stable for signing / IR play-books. ----
 	SecurityBase ErrorCode = 99900
 )

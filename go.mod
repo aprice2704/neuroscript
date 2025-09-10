@@ -61,6 +61,7 @@ require (
 	github.com/charmbracelet/bubbletea v1.3.4
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/gdamore/tcell/v2 v2.8.1
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/generative-ai-go v0.19.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0

@@ -1,13 +1,16 @@
 // NeuroScript Version: 0.3.0
-// File version: 1
-// Purpose: Limit and counter enforcement helpers (budget, net, fs, per-tool).
+// File version: 2
+// Purpose: Limit and counter enforcement helpers. Added CheckSleep to enforce time limits.
 // filename: pkg/policy/capability/limits.go
-// nlines: 96
+// nlines: 107
 // risk_rating: MEDIUM
 
 package capability
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 var (
 	// ErrBudgetExceeded indicates a per-run or per-call budget violation.
@@ -18,7 +21,18 @@ var (
 	ErrFSExceeded = errors.New("filesystem limits exceeded")
 	// ErrToolExceeded indicates a per-tool call count limit violation.
 	ErrToolExceeded = errors.New("tool call limit exceeded")
+	// ErrTimeExceeded indicates a time-based limit violation (e.g., sleep duration).
+	ErrTimeExceeded = errors.New("time limit exceeded")
 )
+
+// CheckSleep validates a single sleep duration against the limit.
+func (g *GrantSet) CheckSleep(seconds float64) error {
+	if g.Limits.TimeMaxSleepSeconds > 0 && int(seconds) > g.Limits.TimeMaxSleepSeconds {
+		return fmt.Errorf("%w: sleep duration of %.2fs exceeds limit of %ds",
+			ErrTimeExceeded, seconds, g.Limits.TimeMaxSleepSeconds)
+	}
+	return nil
+}
 
 // CheckPerCallBudget validates a single-call spend against the per-call limit.
 func (g *GrantSet) CheckPerCallBudget(currency string, cents int) error {

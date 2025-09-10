@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.0
-// File version: 1
-// Purpose: Core capability, limits, counters, and grant set types used by the policy gate.
+// File version: 2
+// Purpose: Core capability, limits, counters, and grant set types used by the policy gate. Added TimeMaxSleepSeconds.
 // filename: pkg/policy/capability/capability.go
-// nlines: 66
+// nlines: 68
 // risk_rating: MEDIUM
 
 // Package capability defines the minimal data structures for expressing
@@ -21,13 +21,14 @@ type Capability struct {
 
 // Limits encode quantitative guardrails that apply over a run.
 type Limits struct {
-	BudgetPerRunCents  map[string]int // currency -> max cents (CAD, USD, etc.)
-	BudgetPerCallCents map[string]int
-	NetMaxBytes        int64
-	NetMaxCalls        int
-	FSMaxBytes         int64
-	FSMaxCalls         int
-	ToolMaxCalls       map[string]int // tool name -> limit
+	BudgetPerRunCents   map[string]int // currency -> max cents (CAD, USD, etc.)
+	BudgetPerCallCents  map[string]int
+	NetMaxBytes         int64
+	NetMaxCalls         int
+	FSMaxBytes          int64
+	FSMaxCalls          int
+	ToolMaxCalls        map[string]int // tool name -> limit
+	TimeMaxSleepSeconds int
 }
 
 // Counters record consumption during a run and are compared to Limits.

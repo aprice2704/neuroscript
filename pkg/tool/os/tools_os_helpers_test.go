@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 2
-// Purpose: Provides test helpers for the 'os' tool package. Corrected policy handling based on new guidelines.
+// File version: 4
+// Purpose: Provides test helpers for the 'os' tool package. Updated to use exported tool list.
 // filename: pkg/tool/os/tools_os_helpers_test.go
-// nlines: 75
+// nlines: 80
 // risk_rating: LOW
 
 package os_test
@@ -14,7 +14,6 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/policy"
-	"github.com/aprice2704/neuroscript/pkg/policy/capability"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/tool/os"
 	"github.com/aprice2704/neuroscript/pkg/types"
@@ -36,21 +35,21 @@ func newOsTestInterpreter(t *testing.T) *interpreter.Interpreter {
 	t.Helper()
 
 	// Define a policy that allows the os tools to run.
-	testPolicy := &policy.ExecPolicy{
-		Context: policy.ContextConfig,  // Use 'config' to enable trusted tools.
-		Allow:   []string{"tool.os.*"}, // Allow the toolset.
-		Grants: capability.NewGrantSet(
-			[]capability.Capability{
-				// Grant the specific capability the tool requires.
-				{Resource: "env", Verbs: []string{"read"}, Scopes: []string{"*"}},
-			},
-			capability.Limits{},
-		),
-	}
+	testPolicy := policy.NewBuilder(policy.ContextConfig).
+		Allow("tool.os.*").
+		Grant("env:read:*").
+		Grant("os:exec:sleep").
+		LimitPerRunCents("USD", 100). // Example limit
+		LimitToolCalls("tool.os.Getenv", 10).
+		Build()
+	// Manually set the sleep limit for tests.
+	testPolicy.Grants.Limits.TimeMaxSleepSeconds = 5
 
 	interp := interpreter.NewInterpreter(interpreter.WithExecPolicy(testPolicy))
 
-	for _, toolImpl := range os.OsToolsToRegister {
+	// Manually register all os tools for the test interpreter
+	allOsTools := append(os.OsToolsToRegister, os.OsProcToolsToRegister...)
+	for _, toolImpl := range allOsTools {
 		if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
 			t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
 		}

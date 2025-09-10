@@ -9,7 +9,6 @@ package interpreter
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -53,11 +52,11 @@ func (i *Interpreter) executeReturn(step ast.Step) (lang.Value, bool, error) {
 // executeEmit handles the "emit" statement.
 func (i *Interpreter) executeEmit(step ast.Step) (lang.Value, error) {
 	// FINAL DEBUG SIGNAL
-	if i.customEmitFunc == nil {
-		fmt.Fprintf(os.Stderr, "\n--- SIGNAL: executeEmit REACHED, but customEmitFunc is NIL ---\n")
-	} else {
-		fmt.Fprintf(os.Stderr, "\n--- SIGNAL: executeEmit REACHED with a VALID customEmitFunc ---\n")
-	}
+	// if i.customEmitFunc == nil {
+	// 	fmt.Fprintf(os.Stderr, "\n--- SIGNAL: executeEmit REACHED, but customEmitFunc is NIL ---\n")
+	// } else {
+	// 	fmt.Fprintf(os.Stderr, "\n--- SIGNAL: executeEmit REACHED with a VALID customEmitFunc ---\n")
+	// }
 
 	if len(step.Values) == 0 {
 		return &lang.NilValue{}, nil

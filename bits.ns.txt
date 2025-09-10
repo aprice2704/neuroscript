@@ -1,0 +1,23 @@
+command
+
+set symbol_to_find = "FileContentOverlay"
+
+emit "--> Searching for symbol: '" + symbol_to_find + "'"
+
+set locations = tool.FDM.SIO.FindSymbol(symbol_to_find)
+
+if locations == nil or tool.str.length(locations) == 0
+    emit "    Symbol not found."
+else
+    emit "    Found " + tool.str.length(locations) + " definition(s):"
+    for each loc in locations
+        emit "      - File: " + loc["FilePath"]
+        emit "        Position: " + loc["Position"]
+    endfor
+endif
+
+
+set l = tool.meta.listtools()
+emit l
+
+endcommand

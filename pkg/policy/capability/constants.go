@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.0
-// File version: 2
-// Purpose: Defines standardized constants for capability resources and verbs, adding ResBus.
+// File version: 3
+// Purpose: Defines standardized constants for capability resources and verbs, adding ResCrypto and VerbSign.
 // filename: pkg/policy/capability/constants.go
-// nlines: 21
+// nlines: 24
 // risk_rating: LOW
 
 package capability
@@ -17,6 +17,7 @@ const (
 	ResSecret = "secret"
 	ResBudget = "budget"
 	ResBus    = "bus"
+	ResCrypto = "crypto"
 )
 
 // Standard capability verbs.
@@ -26,4 +27,5 @@ const (
 	VerbAdmin = "admin"
 	VerbUse   = "use"
 	VerbExec  = "exec"
+	VerbSign  = "sign"
 )
