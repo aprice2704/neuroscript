@@ -12,8 +12,8 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/agentmodel"
+	"github.com/aprice2704/neuroscript/pkg/capability"
 	"github.com/aprice2704/neuroscript/pkg/policy"
-	"github.com/aprice2704/neuroscript/pkg/policy/capability"
 )
 
 // --- Test Suite Setup ---

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aprice2704/neuroscript/pkg/policy/capability"
+	"github.com/aprice2704/neuroscript/pkg/capability"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 

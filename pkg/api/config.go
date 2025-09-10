@@ -8,8 +8,8 @@
 package api
 
 import (
+	"github.com/aprice2704/neuroscript/pkg/capability"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
-	"github.com/aprice2704/neuroscript/pkg/policy/capability"
 )
 
 // WithTrustedPolicy creates an interpreter option that applies a pre-configured

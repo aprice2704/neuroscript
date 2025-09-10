@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 2
-// Purpose: Corrected the error checking to use the standard library's 'errors.Is'.
+// File version: 3
+// Purpose: Corrected the expected HMAC result in the test case.
 // filename: pkg/tool/crypto/tools_crypto_hash_test.go
 // nlines: 84
 // risk_rating: LOW
@@ -46,7 +46,7 @@ func TestToolCryptoHash(t *testing.T) {
 		{name: "Hash unsupported algo", toolName: "Hash", args: []interface{}{"hello", "sha1"}, wantErrIs: lang.ErrInvalidArgument},
 
 		// HMAC
-		{name: "HMAC SHA256", toolName: "HMAC", args: []interface{}{"message", "secret", "sha256"}, wantResult: "6e9ef29b75fffc5b7abae527d58fdadb2fe42e7219011976917343065f58ed4a"},
+		{name: "HMAC SHA256", toolName: "HMAC", args: []interface{}{"message", "secret", "sha256"}, wantResult: "8b5f48702995c1598c573db1e21866a9b825d4a794d169d7060a03605796360b"},
 		{name: "HMAC unsupported algo", toolName: "HMAC", args: []interface{}{"message", "secret", "sha1"}, wantErrIs: lang.ErrInvalidArgument},
 	}
 

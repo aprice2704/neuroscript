@@ -9,7 +9,7 @@ package fs
 import (
 	"fmt"
 
-	"github.com/aprice2704/neuroscript/pkg/policy/capability"
+	"github.com/aprice2704/neuroscript/pkg/capability"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 ) // Required for time format constants used in some tool descriptions
 

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 2
-// Purpose: Defines the core policy engine for gating tool calls and validating capabilities.
+// File version: 5
+// Purpose: Exported CalculateChecksum for use in external tests.
 // filename: pkg/policy/policy.go
-// nlines: 181
+// nlines: 187
 // risk_rating: HIGH
 
 package policy
@@ -14,10 +14,18 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/aprice2704/neuroscript/pkg/capability"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/policy/capability"
-	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
+
+// ToolSpecProvider is an interface that a tool specification must satisfy
+// for the policy engine to perform integrity checks. This breaks the import cycle.
+type ToolSpecProvider interface {
+	FullNameForChecksum() types.FullName
+	ReturnTypeForChecksum() string
+	ArgCountForChecksum() int
+}
 
 // ExecContext represents the interpreter's trust context for the current run.
 type ExecContext string
@@ -34,7 +42,7 @@ type ExecPolicy struct {
 	Allow               []string
 	Deny                []string
 	Grants              capability.GrantSet
-	LiveToolSpecFetcher func(name string) (tool.ToolSpec, bool)
+	LiveToolSpecFetcher func(name string) (ToolSpecProvider, bool)
 }
 
 // ToolMeta describes a tool for policy evaluation.
@@ -55,7 +63,6 @@ var (
 )
 
 // AllowAll creates a new policy that permits any tool call.
-// This is useful for testing or sandboxed environments.
 func AllowAll() *ExecPolicy {
 	return &ExecPolicy{
 		Context: ContextTest,
@@ -100,7 +107,7 @@ func (p *ExecPolicy) validateIntegrity(t ToolMeta) error {
 		return lang.NewRuntimeError(lang.ErrorCodeSubsystemCompromised, msg, lang.ErrSubsystemCompromised)
 	}
 
-	expectedChecksum := calculateMockChecksum(spec)
+	expectedChecksum := CalculateChecksum(spec)
 	if t.SignatureChecksum != "" && t.SignatureChecksum != expectedChecksum {
 		msg := fmt.Sprintf("checksum mismatch for tool '%s'", t.Name)
 		return lang.NewRuntimeError(lang.ErrorCodeSubsystemCompromised, msg, lang.ErrSubsystemCompromised)
@@ -108,8 +115,9 @@ func (p *ExecPolicy) validateIntegrity(t ToolMeta) error {
 	return nil
 }
 
-func calculateMockChecksum(spec tool.ToolSpec) string {
-	data := fmt.Sprintf("%s:%s:%d", spec.FullName, spec.ReturnType, len(spec.Args))
+// CalculateChecksum generates a stable hash of a tool's essential signature.
+func CalculateChecksum(spec ToolSpecProvider) string {
+	data := fmt.Sprintf("%s:%s:%d", spec.FullNameForChecksum(), spec.ReturnTypeForChecksum(), spec.ArgCountForChecksum())
 	hash := sha256.Sum256([]byte(data))
 	return fmt.Sprintf("sha256:%x", hash)
 }
@@ -120,8 +128,6 @@ func disallowed(name string, allow, deny []string) bool {
 	if matchAny(name, deny) {
 		return true // Explicitly denied.
 	}
-	// FIX: If the allow list is not nil, it is active. An empty active list
-	// means nothing is allowed.
 	if allow != nil && !matchAny(name, allow) {
 		return true // Not in the allow list.
 	}

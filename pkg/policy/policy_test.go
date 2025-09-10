@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 3
-// Purpose: Consolidates unit tests for the ExecPolicy CanCall gating function and adds dedicated tests for helpers.
+// File version: 4
+// Purpose: Corrected mock fetcher to return the policy.ToolSpecProvider interface.
 // filename: pkg/policy/policy_test.go
 // nlines: 369
 // risk_rating: MEDIUM
@@ -13,13 +13,13 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/capability"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/policy/capability"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
-// newMockFetcher creates a mock fetcher for integrity checks.
-func newMockFetcher() func(name string) (tool.ToolSpec, bool) {
+// newMockFetcher creates a mock fetcher for integrity checks that returns the correct interface.
+func newMockFetcher() func(name string) (ToolSpecProvider, bool) {
 	specs := map[string]tool.ToolSpec{
 		"valid.tool": {
 			FullName:   "valid.tool",
@@ -27,15 +27,19 @@ func newMockFetcher() func(name string) (tool.ToolSpec, bool) {
 			Args:       []tool.ArgSpec{},
 		},
 	}
-	return func(name string) (tool.ToolSpec, bool) {
+	return func(name string) (ToolSpecProvider, bool) {
 		s, ok := specs[name]
-		return s, ok
+		if !ok {
+			return nil, false
+		}
+		// Return the concrete type, which satisfies the interface.
+		return s, true
 	}
 }
 
-// calculateMockChecksumInTest duplicates the unexported checksum logic from policy.go for testing.
-func calculateMockChecksumInTest(spec tool.ToolSpec) string {
-	data := fmt.Sprintf("%s:%s:%d", spec.FullName, spec.ReturnType, len(spec.Args))
+// calculateMockChecksumInTest duplicates the checksum logic from policy.go for testing.
+func calculateMockChecksumInTest(spec ToolSpecProvider) string {
+	data := fmt.Sprintf("%s:%s:%d", spec.FullNameForChecksum(), spec.ReturnTypeForChecksum(), spec.ArgCountForChecksum())
 	hash := sha256.Sum256([]byte(data))
 	return fmt.Sprintf("sha256:%x", hash)
 }

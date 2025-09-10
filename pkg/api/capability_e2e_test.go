@@ -15,8 +15,8 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/api"
+	"github.com/aprice2704/neuroscript/pkg/capability"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/policy/capability"
 )
 
 // secureFileWriteTool is a custom tool for testing that requires 'fs:write' capability.

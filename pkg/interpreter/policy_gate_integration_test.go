@@ -11,9 +11,9 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/capability"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/policy"
-	"github.com/aprice2704/neuroscript/pkg/policy/capability"
 )
 
 func runPolicyIntegrationTest(t *testing.T, p *policy.ExecPolicy, script string) (*Interpreter, error) {

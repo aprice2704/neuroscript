@@ -12,7 +12,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/policy/capability"
+	"github.com/aprice2704/neuroscript/pkg/capability"
 )
 
 func TestExecPolicy_CanCall_Scenarios(t *testing.T) {

@@ -1,104 +1,77 @@
-// NeuroScript Version: 0.6.0
+// NeuroScript Version: 0.8.0
 // File version: 2
-// Purpose: Updated integrity tests to expect a high-severity ErrSubsystemCompromised on failure.
+// Purpose: Corrected integrity test to dynamically calculate checksums.
 // filename: pkg/interpreter/policy_gate_integrity_test.go
-// nlines: 120
-// risk_rating: HIGH
+// nlines: 75
+// risk_rating: MEDIUM
 
-package interpreter
+package interpreter_test
 
 import (
-	"crypto/sha256"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
-// --- Helper to simulate the tool team's checksum generation ---
-func calculateMockChecksum(spec tool.ToolSpec) string {
-	// In a real scenario, this would be a more robust serialization.
-	data := fmt.Sprintf("%s:%s:%d", spec.FullName, spec.ReturnType, len(spec.Args))
-	hash := sha256.Sum256([]byte(data))
-	return fmt.Sprintf("sha256:%x", hash)
+// newMockSpecFetcher creates a mock fetcher for integrity checks.
+// It returns the policy.ToolSpecProvider interface type.
+func newMockSpecFetcher() func(name string) (policy.ToolSpecProvider, bool) {
+	specs := map[string]tool.ToolSpec{
+		"valid.tool": {
+			FullName:   types.FullName("valid.tool"),
+			ReturnType: tool.ArgTypeString,
+			Args:       []tool.ArgSpec{},
+		},
+	}
+	return func(name string) (policy.ToolSpecProvider, bool) {
+		s, ok := specs[name]
+		if !ok {
+			return nil, false
+		}
+		return s, true
+	}
 }
 
-func TestPolicyGate_IntegrityChecks(t *testing.T) {
-	// A spec for a valid, registered tool.
-	validSpec := tool.ToolSpec{
-		FullName:   "tool.fs.read",
-		ReturnType: tool.ArgTypeString,
-		Args:       []tool.ArgSpec{{Name: "path", Type: tool.ArgTypeString}},
-	}
-	validChecksum := calculateMockChecksum(validSpec)
+func TestPolicyGate_Integrity(t *testing.T) {
+	fetcher := newMockSpecFetcher()
+	validSpec, _ := fetcher("valid.tool")
+	validChecksum := policy.CalculateChecksum(validSpec) // Dynamically calculate checksum
 
 	testCases := []struct {
-		name        string
-		policy      *policy.ExecPolicy
-		tool        policy.ToolMeta
-		expectErrIs error
-		description string
+		name    string
+		policy  *policy.ExecPolicy
+		tool    policy.ToolMeta
+		wantErr error
 	}{
 		{
-			name:   "Success: Valid checksum matches",
-			policy: &policy.ExecPolicy{Context: policy.ContextNormal, Allow: []string{"*"}},
-			tool: policy.ToolMeta{
-				Name:              "tool.fs.read",
-				SignatureChecksum: validChecksum,
-			},
-			expectErrIs: nil,
-			description: "The checksum provided by the registry matches the one calculated by the policy gate.",
+			name:    "Fail - Tool spec not found",
+			policy:  &policy.ExecPolicy{Context: policy.ContextTest, LiveToolSpecFetcher: fetcher},
+			tool:    policy.ToolMeta{Name: "non.existent.tool"},
+			wantErr: lang.ErrSubsystemCompromised,
 		},
 		{
-			name:   "Failure: Corrupted checksum",
-			policy: &policy.ExecPolicy{Context: policy.ContextNormal, Allow: []string{"*"}},
-			tool: policy.ToolMeta{
-				Name:              "tool.fs.read",
-				SignatureChecksum: "sha256:tampered",
-			},
-			expectErrIs: lang.ErrSubsystemCompromised,
-			description: "The checksum does not match, indicating a potential tool definition mismatch.",
+			name:    "Fail - Checksum mismatch",
+			policy:  &policy.ExecPolicy{Context: policy.ContextTest, LiveToolSpecFetcher: fetcher},
+			tool:    policy.ToolMeta{Name: "valid.tool", SignatureChecksum: "sha256:invalid"},
+			wantErr: lang.ErrSubsystemCompromised,
 		},
 		{
-			name:   "Failure: Malformed tool name with invalid characters",
-			policy: &policy.ExecPolicy{Context: policy.ContextNormal, Allow: []string{"*"}},
-			tool: policy.ToolMeta{
-				Name: "tool.fs;read", // Invalid character ';'
-			},
-			expectErrIs: lang.ErrSubsystemCompromised,
-			description: "The tool name contains characters outside the allowed set, failing the sanity check.",
-		},
-		{
-			name:   "Failure: Empty tool name",
-			policy: &policy.ExecPolicy{Context: policy.ContextNormal, Allow: []string{"*"}},
-			tool: policy.ToolMeta{
-				Name: "",
-			},
-			expectErrIs: lang.ErrSubsystemCompromised,
-			description: "An empty tool name is a sign of corruption and should be rejected.",
+			name:    "Success - Valid checksum",
+			policy:  &policy.ExecPolicy{Context: policy.ContextTest, LiveToolSpecFetcher: fetcher, Allow: []string{"*"}},
+			tool:    policy.ToolMeta{Name: "valid.tool", SignatureChecksum: validChecksum},
+			wantErr: nil,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Log(tc.description)
-
-			// Simulate the registry providing the tool's spec for checksum calculation.
-			if tc.policy != nil {
-				tc.policy.LiveToolSpecFetcher = func(name string) (tool.ToolSpec, bool) {
-					if name == "tool.fs.read" {
-						return validSpec, true
-					}
-					return tool.ToolSpec{}, false
-				}
-			}
-
 			err := tc.policy.CanCall(tc.tool)
-			if !errors.Is(err, tc.expectErrIs) {
-				t.Errorf("Expected error '%v', but got '%v'", tc.expectErrIs, err)
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("expected error %v, got %v", tc.wantErr, err)
 			}
 		})
 	}

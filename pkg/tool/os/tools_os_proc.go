@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.5.2
-// File version: 3
-// Purpose: Implements tools for OS process and time functions. Corrected policy access in Sleep to use new Policy() getter.
+// File version: 5
+// Purpose: Implements OS tools. Corrected Sleep to use the GetGrantSet() interface method.
 // filename: pkg/tool/os/tools_os_proc.go
-// nlines: 61
+// nlines: 53
 // risk_rating: HIGH
 
 package os
@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
@@ -29,16 +28,12 @@ func toolSleep(interpreter tool.Runtime, args []interface{}) (interface{}, error
 		duration = 0
 	}
 
-	// The tool.Runtime interface doesn't expose the policy directly. We perform a
-	// type assertion to access the concrete interpreter's Policy() method.
-	interpImpl, ok := interpreter.(interface{ Policy() *policy.ExecPolicy })
-	if !ok {
-		// This should not happen in the standard interpreter.
-		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "Sleep: could not access policy from runtime", lang.ErrInternal)
+	// Enforce policy limit before sleeping by using the GetGrantSet interface method.
+	grantSet := interpreter.GetGrantSet()
+	if grantSet == nil {
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "Sleep: could not access grant set from runtime", lang.ErrInternal)
 	}
-
-	// Enforce policy limit before sleeping
-	if err := interpImpl.Policy().Grants.CheckSleep(duration); err != nil {
+	if err := grantSet.CheckSleep(duration); err != nil {
 		return nil, lang.NewRuntimeError(lang.ErrorCodePolicy, err.Error(), err)
 	}
 

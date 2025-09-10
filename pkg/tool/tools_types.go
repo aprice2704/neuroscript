@@ -1,16 +1,16 @@
 // NeuroScript Version: 0.6.0
-// File version: 20
-// Purpose: Added NewViewForInterpreter to ToolRegistry for efficient sharing.
+// File version: 21
+// Purpose: Broke import cycle by removing ExecPolicy from Runtime and implementing policy.ToolSpecProvider.
 // filename: pkg/tool/tool_types.go
-// nlines: 140
+// nlines: 151
 // risk_rating: HIGH
 
 package tool
 
 import (
+	"github.com/aprice2704/neuroscript/pkg/capability"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/policy/capability"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
@@ -80,6 +80,11 @@ type ToolSpec struct {
 	Example         string          `json:"example,omitempty"`
 	ErrorConditions string          `json:"errorConditions,omitempty"`
 }
+
+// Methods to satisfy policy.ToolSpecProvider interface
+func (ts ToolSpec) FullNameForChecksum() types.FullName { return ts.FullName }
+func (ts ToolSpec) ReturnTypeForChecksum() string       { return string(ts.ReturnType) }
+func (ts ToolSpec) ArgCountForChecksum() int            { return len(ts.Args) }
 
 // ToolImplementation combines the specification of a tool with its Go function
 // and its policy requirements.
