@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 49
-// Purpose: Added 'tool.aeiou.magic' to the allowed tools list to fix the policy violation error when executing the LLM's response.
+// File version: 50
+// Purpose: Removed the erroneous fmt.Sprintf call that was corrupting the script and causing a parse error.
 // filename: pkg/livetest/oneshot_test.go
 // nlines: 191
 // risk_rating: HIGH
@@ -73,8 +73,9 @@ func setupLiveInterpreter(t *testing.T) *api.Interpreter {
 func TestLive_OneShotQuery(t *testing.T) {
 	interp := setupLiveInterpreter(t)
 
-	question := "What were the names of the three astronauts who flew on the Apollo 13 mission?"
-	finalScript := fmt.Sprintf(oneShotScriptTemplate, question)
+	// FIX: The script template does not have a format specifier.
+	// Using Sprintf was corrupting the script by appending the question to the end.
+	finalScript := oneShotScriptTemplate
 
 	t.Logf("--- Assembled Script (Abbreviated) ---\n%s", abbreviate(finalScript, 20))
 
@@ -100,9 +101,10 @@ func TestLive_OneShotQuery(t *testing.T) {
 
 	// === STAGE 2: Immediately Verify State ===
 	testOutput.Reset()
-	if _, err := api.RunProcedure(context.Background(), interp, "verify_state"); err != nil {
+	// NOTE: The function is named 'verify' in the script.
+	if _, err := api.RunProcedure(context.Background(), interp, "verify"); err != nil {
 		t.Logf("Verification script output on failure:\n%s", testOutput.String())
-		t.Fatalf("Failed to run verify_state procedure: %v", err)
+		t.Fatalf("Failed to run verify procedure: %v", err)
 	}
 	t.Logf("Verification output after setup:\n%s", testOutput.String())
 
@@ -128,4 +130,5 @@ func TestLive_OneShotQuery(t *testing.T) {
 			t.Errorf("Expected answer to contain '%s', but it did not.", name)
 		}
 	}
+
 }

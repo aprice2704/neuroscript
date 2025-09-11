@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 4
-// Purpose: Adds detection and reporting of duplicate section lints.
+// File version: 7
+// Purpose: Corrected a regression where whitespace around markers was not being handled, by re-introducing trimming before regex matching.
 // filename: aeiou/parser.go
-// nlines: 140
+// nlines: 175
 // risk_rating: HIGH
 
 package aeiou
@@ -11,6 +11,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 )
 
@@ -21,11 +22,13 @@ const (
 	MaxEnvelopeSize = 1024 * 1024
 )
 
+var markerRegex = regexp.MustCompile(`^<<<NSENV:V3:(START|USERDATA|SCRATCHPAD|OUTPUT|ACTIONS|END)>>>$`)
+
 // Parse reads from an io.Reader, validates the AEIOU v3 envelope structure,
 // and returns a populated Envelope struct and any non-fatal lints.
 func Parse(r io.Reader) (*Envelope, []Lint, error) {
 	scanner := bufio.NewScanner(r)
-	scanner.Buffer(make([]byte, 0, 64*1024), MaxSectionSize+1024)
+	scanner.Buffer(make([]byte, 0, 64*1024), MaxEnvelopeSize+1024) // Buffer large enough for whole envelope
 	return parseWithScanner(scanner)
 }
 
@@ -38,15 +41,24 @@ func parseWithScanner(scanner *bufio.Scanner) (*Envelope, []Lint, error) {
 	var sectionOrder []SectionType
 	var totalBytes int
 	var sectionBytes int
+	var firstLineInSection bool
 
-	// Expect START marker first
-	if !scanner.Scan() || scanner.Text() != Wrap(SectionStart) {
-		return nil, nil, ErrMarkerInvalid
+	// Expect START marker first, allowing for surrounding whitespace
+	if !scanner.Scan() {
+		return nil, nil, fmt.Errorf("%w: expected START marker, found EOF", ErrMarkerInvalid)
+	}
+	trimmedFirstLine := strings.TrimSpace(scanner.Text())
+	match := markerRegex.FindStringSubmatch(trimmedFirstLine)
+	if len(match) < 2 || SectionType(match[1]) != SectionStart {
+		return nil, nil, fmt.Errorf("%w: expected START marker, found: %s", ErrMarkerInvalid, scanner.Text())
 	}
 	totalBytes += len(scanner.Bytes())
+	seenSections[SectionStart] = true
+	sectionOrder = append(sectionOrder, SectionStart)
 
 	for scanner.Scan() {
 		line := scanner.Text()
+		trimmedLine := strings.TrimSpace(line)
 		lineBytes := len(scanner.Bytes())
 		totalBytes += lineBytes + 1 // +1 for the newline
 
@@ -54,13 +66,16 @@ func parseWithScanner(scanner *bufio.Scanner) (*Envelope, []Lint, error) {
 			return nil, nil, ErrPayloadTooLarge
 		}
 
-		if strings.HasPrefix(line, markerPrefix) && strings.HasSuffix(line, markerSuffix) {
-			sectionBytes = 0 // Reset section counter on new marker
-			parts := strings.Split(strings.Trim(line, "<>"), ":")
-			if len(parts) != 3 {
-				return nil, lints, fmt.Errorf("%w: %s", ErrMarkerInvalid, line)
+		match := markerRegex.FindStringSubmatch(trimmedLine)
+		if len(match) > 1 { // It's a marker
+			// When a new section starts, trim the content of the previous one.
+			if currentSection != nil {
+				*currentSection = strings.TrimRight(*currentSection, " \t\r\n")
 			}
-			section := SectionType(parts[2])
+
+			sectionBytes = 0 // Reset section counter on new marker
+			firstLineInSection = true
+			section := SectionType(match[1])
 
 			// END marker terminates parsing
 			if section == SectionEnd {
@@ -88,16 +103,20 @@ func parseWithScanner(scanner *bufio.Scanner) (*Envelope, []Lint, error) {
 				currentSection = &env.Output
 			case SectionActions:
 				currentSection = &env.Actions
-			default:
-				return nil, lints, fmt.Errorf("unknown section type: %s", section)
+			default: // Should be unreachable unless a START marker is duplicated
+				return nil, lints, fmt.Errorf("%w: unknown or misplaced section type: %s", ErrMarkerInvalid, section)
 			}
-		} else {
+		} else { // It's content
 			sectionBytes += lineBytes + 1
 			if sectionBytes > MaxSectionSize {
 				return nil, lints, ErrPayloadTooLarge
 			}
 			if currentSection != nil {
-				*currentSection += line + "\n"
+				if !firstLineInSection {
+					*currentSection += "\n"
+				}
+				*currentSection += line
+				firstLineInSection = false
 			}
 		}
 	}
@@ -106,8 +125,11 @@ func parseWithScanner(scanner *bufio.Scanner) (*Envelope, []Lint, error) {
 		return nil, lints, fmt.Errorf("error scanning envelope: %w", err)
 	}
 
-	// If we reach here, the END marker was missing
-	return nil, lints, ErrMarkerInvalid
+	// If we reach here, the END marker was missing. Before returning, trim the last section.
+	if currentSection != nil {
+		*currentSection = strings.TrimRight(*currentSection, " \t\r\n")
+	}
+	return nil, lints, fmt.Errorf("%w: missing END marker", ErrMarkerInvalid)
 }
 
 func validateAndFinalize(env *Envelope, seen map[SectionType]bool, order []SectionType) (*Envelope, error) {
@@ -119,26 +141,27 @@ func validateAndFinalize(env *Envelope, seen map[SectionType]bool, order []Secti
 	}
 	lastIdx := -1
 	for _, section := range order {
+		// Skip START since it's handled pre-loop
+		if section == SectionStart {
+			continue
+		}
 		currentIdx, ok := orderMap[section]
 		if !ok {
 			continue
 		}
 		if currentIdx < lastIdx {
-			return nil, ErrSectionOrder
+			return nil, fmt.Errorf("%w: section '%s' appeared out of order", ErrSectionOrder, section)
 		}
 		lastIdx = currentIdx
 	}
 
 	// Required Sections Check
-	if !seen[SectionUserData] || !seen[SectionActions] {
-		return nil, ErrSectionMissing
+	if !seen[SectionUserData] {
+		return nil, fmt.Errorf("%w: required section USERDATA not found", ErrSectionMissing)
 	}
-
-	// Trim trailing newlines from content
-	env.UserData = strings.TrimSuffix(env.UserData, "\n")
-	env.Scratchpad = strings.TrimSuffix(env.Scratchpad, "\n")
-	env.Output = strings.TrimSuffix(env.Output, "\n")
-	env.Actions = strings.TrimSuffix(env.Actions, "\n")
+	if !seen[SectionActions] {
+		return nil, fmt.Errorf("%w: required section ACTIONS not found", ErrSectionMissing)
+	}
 
 	return env, nil
 }

@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"strings"
 
+	cap "github.com/aprice2704/neuroscript/pkg/capability"
 	"github.com/aprice2704/neuroscript/pkg/policy"
-	cap "github.com/aprice2704/neuroscript/pkg/policy/capability"
 )
 
 // AgentModelEnvelope declares the external effects and requirements for using

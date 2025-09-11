@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 11
-// Purpose: Corrected the test to align with the V3 'ask' statement, which generates a JSON object in the USERDATA section.
+// File version: 12
+// Purpose: Corrected the test to align with the V3 'ask' statement, which generates a JSON object in the USERDATA section, and updated agent registration to use native Go types.
 // filename: pkg/api/autoprovider_test.go
 // nlines: 100
 // risk_rating: LOW

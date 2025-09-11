@@ -69,6 +69,9 @@ tool.ns_event.GetKind(event_object:map) -> string
 tool.ns_event.GetPayload(event_object:map) -> map
 tool.ns_event.GetTimestamp(event_object:map) -> int
 tool.os.Getenv(varName:string) -> string [caps: env:read]
+tool.os.Hostname() -> string
+tool.os.Now() -> float
+tool.os.Sleep(duration_seconds:float) -> any [caps: os:exec:sleep]
 tool.script.ListFunctions() -> map
 tool.script.LoadScript(script_content:string) -> map
 tool.shape.IsValidPath(path_string:string) -> bool
@@ -79,6 +82,7 @@ tool.str.Compress(input_string:string) -> string
 tool.str.Concat(strings_list:slice_string) -> string
 tool.str.Contains(input_string:string, substring:string) -> bool
 tool.str.Decompress(base64_encoded_string:string) -> string
+tool.str.FindAllRegex(pattern:string, input_string:string) -> slice_string [caps: str:use:regex]
 tool.str.FromBase64(encoded_string:string) -> string
 tool.str.FromHex(encoded_string:string) -> string
 tool.str.HasPrefix(input_string:string, prefix:string) -> bool
@@ -86,7 +90,9 @@ tool.str.HasSuffix(input_string:string, suffix:string) -> bool
 tool.str.Join(string_list:slice_string, separator:string) -> string
 tool.str.Length(input_string:string) -> int
 tool.str.LineCount(content_string:string) -> int
+tool.str.MatchRegex(pattern:string, input_string:string) -> bool [caps: str:use:regex]
 tool.str.Replace(input_string:string, old_substring:string, new_substring:string, count:int) -> string
+tool.str.ReplaceRegex(pattern:string, input_string:string, replacement:string) -> string [caps: str:use:regex]
 tool.str.Split(input_string:string, delimiter:string) -> slice_string
 tool.str.SplitWords(input_string:string) -> slice_string
 tool.str.Substring(input_string:string, start_index:int, length:int) -> string
@@ -1205,6 +1211,57 @@ TOOL.OS.Getenv(varName: "HOME")
 ```
 ---
 
+## `tool.os.Hostname`
+**Description:** Gets the hostname of the machine.
+
+**Category:** Operating System
+
+**Parameters:**
+_None_
+
+**Returns:** (`string`) Returns the kernel's hostname.
+
+**Example:**
+```neuroscript
+os.Hostname()
+```
+---
+
+## `tool.os.Now`
+**Description:** Gets the current system time as a Unix timestamp.
+
+**Category:** Operating System
+
+**Parameters:**
+_None_
+
+**Returns:** (`float`) Returns the number of seconds since the Unix epoch (1970-01-01T00:00:00Z UTC).
+
+**Example:**
+```neuroscript
+os.Now()
+```
+---
+
+## `tool.os.Sleep`
+**Description:** Pauses execution for a specified duration. Requires 'os:exec:sleep' capability and is subject to policy time limits.
+
+**Category:** Operating System
+
+**Required Capabilities:**
+* `os:exec:sleep`
+
+**Parameters:**
+* `duration_seconds` (`float`): The number of seconds to sleep.
+
+**Returns:** (`any`) Returns nil on completion.
+
+**Example:**
+```neuroscript
+os.Sleep(duration_seconds: 1.5)
+```
+---
+
 ## `tool.script.ListFunctions`
 **Description:** Returns a map of all currently loaded function (procedure) names to their signatures.
 
@@ -1375,6 +1432,26 @@ tool.Decompress("H4sIAAAAAAAA/...")
 ```
 ---
 
+## `tool.str.FindAllRegex`
+**Description:** Finds all non-overlapping occurrences of a regex pattern in a string. Requires 'str:use:regex' capability.
+
+**Category:** String Regex
+
+**Required Capabilities:**
+* `str:use:regex`
+
+**Parameters:**
+* `pattern` (`string`): The regex pattern to find.
+* `input_string` (`string`): The string to search in.
+
+**Returns:** (`slice_string`) Returns a list of all matching substrings.
+
+**Example:**
+```neuroscript
+str.FindAllRegex(pattern: "\\w+", input_string: "hello world 123") // Returns ["hello", "world", "123"]
+```
+---
+
 ## `tool.str.FromBase64`
 **Description:** Decodes a Base64-encoded string.
 
@@ -1492,6 +1569,26 @@ tool.LineCount("") // Returns 0
 ```
 ---
 
+## `tool.str.MatchRegex`
+**Description:** Checks if a string matches a regular expression. Requires 'str:use:regex' capability.
+
+**Category:** String Regex
+
+**Required Capabilities:**
+* `str:use:regex`
+
+**Parameters:**
+* `pattern` (`string`): The regex pattern to match.
+* `input_string` (`string`): The string to check.
+
+**Returns:** (`bool`) Returns true if the input_string matches the pattern, false otherwise.
+
+**Example:**
+```neuroscript
+str.MatchRegex(pattern: "\\d{3}-\\d{2}-\\d{4}", input_string: "123-45-6789")
+```
+---
+
 ## `tool.str.Replace`
 **Description:** Replaces occurrences of a substring with another, up to a specified count.
 
@@ -1508,6 +1605,27 @@ tool.LineCount("") // Returns 0
 **Example:**
 ```neuroscript
 tool.Replace("ababab", "ab", "cd", 2) // Returns "cdcdab"
+```
+---
+
+## `tool.str.ReplaceRegex`
+**Description:** Replaces all occurrences of a regex pattern in a string with a replacement string. Requires 'str:use:regex' capability.
+
+**Category:** String Regex
+
+**Required Capabilities:**
+* `str:use:regex`
+
+**Parameters:**
+* `pattern` (`string`): The regex pattern to find.
+* `input_string` (`string`): The string to search in.
+* `replacement` (`string`): The string to replace matches with.
+
+**Returns:** (`string`) Returns a new string with all replacements made.
+
+**Example:**
+```neuroscript
+str.ReplaceRegex(pattern: "\\s+", input_string: "a  b c", replacement: "-") // Returns "a-b-c"
 ```
 ---
 

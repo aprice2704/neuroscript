@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 10
-// Purpose: Corrected the agent configuration to use native Go types and a valid JSON structure for the UserData prompt, fixing the final test failure.
+// File version: 11
+// Purpose: Corrected the agent configuration to use native Go types and a valid JSON structure for the UserData prompt, aligning with V3 'ask' behavior.
 // filename: pkg/api/provider_test.go
 // nlines: 86
 // risk_rating: LOW

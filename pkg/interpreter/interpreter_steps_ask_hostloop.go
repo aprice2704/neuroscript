@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 11
-// Purpose: Replaced the faulty key provider with one that correctly uses the interpreter's public key, fixing the cryptographic panic, and refined the final result logic to exclude the control token.
+// File version: 12
+// Purpose: Implemented error-recovery loop for parsing failures and added strict validation for the control token's position as the last emitted line.
 // filename: pkg/interpreter/interpreter_steps_ask_hostloop.go
-// nlines: 187
+// nlines: 219
 // risk_rating: HIGH
 
 package interpreter
@@ -97,21 +97,44 @@ func (i *Interpreter) runAskHostLoop(pos *types.Position, agentModel *types.Agen
 
 		responseEnvelope, _, err := aeiou.Parse(strings.NewReader(aiResp.TextContent))
 		if err != nil {
-			isOneShotAgent := maxTurns == 1 && !agentModel.Tools.ToolLoopPermitted
-			if isOneShotAgent {
-				i.logger.Debug("Response is not an envelope; treating as final answer for one-shot agent.")
-				finalResult = lang.StringValue{Value: aiResp.TextContent}
-				break
+			// **ERROR RECOVERY**: If parsing fails, give the LLM a chance to fix it.
+			i.logger.Warn("Failed to parse AI response envelope, attempting recovery", "sid", sessionID, "turn", turn, "error", err)
+			// Construct a diagnostic envelope to send back
+			diagnosticUserData := fmt.Sprintf(`{"error": "envelope parsing failed", "diagnostic": "%s"}`, err.Error())
+			turnEnvelope = &aeiou.Envelope{
+				UserData: diagnosticUserData,
+				Actions:  "command endcommand",
 			}
-			return nil, lang.NewRuntimeError(lang.ErrorCodeSyntax, "failed to parse AEIOU envelope from AI response", err).WithPosition(pos)
+			// Don't HALT yet, continue to the next loop iteration to resubmit.
+			continue
 		}
 
 		// D. Execute ACTIONS and capture outputs
 		execInterp := i.clone()
 		var actionEmits []string
 		var actionWhispers = make(map[string]lang.Value)
+
+		// Pre-flight check for ACTIONS block structure
+		actionsTrimmed := strings.TrimSpace(responseEnvelope.Actions)
+		if !strings.HasPrefix(actionsTrimmed, "command") || !strings.HasSuffix(actionsTrimmed, "endcommand") {
+			return nil, lang.NewRuntimeError(lang.ErrorCodeSyntax, "ACTIONS block must contain exactly one 'command...endcommand' block", nil).WithPosition(pos)
+		}
+
 		if err := executeAeiouTurn(execInterp, responseEnvelope, &actionEmits, &actionWhispers); err != nil {
 			return nil, err
+		}
+
+		// **CONTROL TOKEN VALIDATION**: Ensure the last non-empty line is a valid control token.
+		var lastNonEmptyLine string
+		for j := len(actionEmits) - 1; j >= 0; j-- {
+			if strings.TrimSpace(actionEmits[j]) != "" {
+				lastNonEmptyLine = actionEmits[j]
+				break
+			}
+		}
+
+		if _, err := verifier.ParseAndVerify(lastNonEmptyLine, hostCtx); err != nil {
+			return nil, lang.NewRuntimeError(lang.ErrorCodePolicy, "The last non-empty emitted line must be a valid tool.aeiou.magic() control token.", err).WithPosition(pos)
 		}
 
 		// Filter out the magic token from the final result.
@@ -159,8 +182,9 @@ func (i *Interpreter) runAskHostLoop(pos *types.Position, agentModel *types.Agen
 
 		// G. Prepare Envelope for Next Turn
 		turnEnvelope = &aeiou.Envelope{
-			UserData:   fullOutputBody, // The next turn gets the full output, including the token
+			UserData:   outputBody, // Next turn's UserData is the public output from this turn.
 			Scratchpad: scratchpadBody,
+			Output:     outputBody,
 			Actions:    "command endcommand",
 		}
 	}

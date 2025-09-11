@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 7
-// Purpose: Updates tests for new lint-reporting parser signature.
+// File version: 8
+// Purpose: Updated tests to validate the new robust parser, including whitespace/blank line tolerance and round-trip composing.
 // filename: aeiou/parser_test.go
-// nlines: 184
+// nlines: 219
 // risk_rating: MEDIUM
 
 package aeiou
@@ -29,12 +29,12 @@ func TestParse(t *testing.T) {
 				Wrap(SectionUserData),
 				`{"subject":"test"}`,
 				Wrap(SectionActions),
-				`command { emit "ok" }`,
+				`command emit "ok" endcommand`,
 				Wrap(SectionEnd),
 			}, "\n"),
 			expectedEnv: &Envelope{
 				UserData: `{"subject":"test"}`,
-				Actions:  `command { emit "ok" }`,
+				Actions:  `command emit "ok" endcommand`,
 			},
 		},
 		{
@@ -56,6 +56,39 @@ func TestParse(t *testing.T) {
 				Scratchpad: "scratchpad content",
 				Output:     "output content",
 				Actions:    "actions content",
+			},
+		},
+		{
+			name: "Parser handles leading/trailing whitespace on markers",
+			input: strings.Join([]string{
+				"   <<<NSENV:V3:START>>>   ",
+				" <<<NSENV:V3:USERDATA>>>",
+				"user data",
+				"\t<<<NSENV:V3:ACTIONS>>> ",
+				"actions",
+				"<<<NSENV:V3:END>>>",
+			}, "\n"),
+			expectedEnv: &Envelope{
+				UserData: "user data",
+				Actions:  "actions",
+			},
+		},
+		{
+			name: "Parser handles blank lines between sections",
+			input: strings.Join([]string{
+				Wrap(SectionStart),
+				"",
+				Wrap(SectionUserData),
+				"user data",
+				"\n\n",
+				Wrap(SectionActions),
+				"",
+				"actions",
+				Wrap(SectionEnd),
+			}, "\n"),
+			expectedEnv: &Envelope{
+				UserData: "user data",
+				Actions:  "\nactions", // The blank line inside the section is preserved
 			},
 		},
 		{
@@ -157,9 +190,7 @@ func TestParse(t *testing.T) {
 
 			if tc.expectErrIs != nil {
 				if !errors.Is(err, tc.expectErrIs) {
-					if !errors.Is(err, ErrPayloadTooLarge) {
-						t.Fatalf("Parse() expected error target %v, got %v", tc.expectErrIs, err)
-					}
+					t.Fatalf("Parse() expected error target %v, got %v", tc.expectErrIs, err)
 				}
 				return
 			}
@@ -176,6 +207,8 @@ func TestParse(t *testing.T) {
 
 			// Round Trip Test
 			if tc.expectedEnv != nil {
+				// Normalize the expected envelope before composing for a fair comparison
+				// The composer doesn't add blank lines etc.
 				composedString, err := parsedEnv.Compose()
 				if err != nil {
 					t.Fatalf("Compose() failed unexpectedly: %v", err)

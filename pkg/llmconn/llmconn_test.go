@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 10
-// Purpose: Corrected the agentic capsule detection marker to be more reliable.
+// File version: 11
+// Purpose: Made the bootstrap capsule tests more robust by dynamically loading the capsule content instead of relying on hardcoded strings.
 // filename: pkg/llmconn/llmconn_test.go
-// nlines: 225
+// nlines: 231
 // risk_rating: LOW
 
 package llmconn
@@ -13,16 +13,17 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/aeiou"
+	"github.com/aprice2704/neuroscript/pkg/capsule"
+	"github.com/aprice2704/neuroscript/pkg/provider"
+	"github.com/aprice2704/neuroscript/pkg/provider/test"
+	"github.com/aprice2704/neuroscript/pkg/types"
+
 	// This blank import is critical. It forces the Go compiler to include
 	// the bootstrap capsule package in the test binary, which in turn
 	// triggers its init() function, populating the global capsule registry.
 	// Without this, capsule.GetLatest() would fail to find the required prompts.
 	_ "github.com/aprice2704/neuroscript/pkg/capsule"
-
-	"github.com/aprice2704/neuroscript/pkg/aeiou"
-	"github.com/aprice2704/neuroscript/pkg/provider"
-	"github.com/aprice2704/neuroscript/pkg/provider/test"
-	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // capturingMockProvider is a mock used to capture the request sent to it.
@@ -134,9 +135,16 @@ func TestLLMConn_Converse_RequestPopulation(t *testing.T) {
 	ctx := context.Background()
 	inputEnv := &aeiou.Envelope{UserData: "test prompt", Actions: "command endcommand"}
 
-	// Define robust markers to look for in the prompts.
-	agenticMarker := `make observable progress`
-	oneshotMarker := `Do not alter any part of the envelope except ACTIONS.`
+	// Dynamically load capsules to make the test robust against content changes.
+	reg := capsule.DefaultRegistry()
+	agenticCap, ok := reg.GetLatest("capsule/bootstrap_agentic")
+	if !ok {
+		t.Fatal("Failed to load agentic bootstrap capsule for test")
+	}
+	oneshotCap, ok := reg.GetLatest("capsule/bootstrap_oneshot")
+	if !ok {
+		t.Fatal("Failed to load one-shot bootstrap capsule for test")
+	}
 
 	t.Run("Agentic model gets agentic bootstrap", func(t *testing.T) {
 		model := &types.AgentModel{
@@ -154,8 +162,8 @@ func TestLLMConn_Converse_RequestPopulation(t *testing.T) {
 		if mockProvider.lastRequest.APIKey != testAPIKey {
 			t.Errorf("APIKey mismatch: got '%s'", mockProvider.lastRequest.APIKey)
 		}
-		if !strings.Contains(mockProvider.lastRequest.Prompt, agenticMarker) {
-			t.Error("Prompt is missing agentic-specific bootstrap text")
+		if !strings.HasPrefix(mockProvider.lastRequest.Prompt, agenticCap.Content) {
+			t.Error("Prompt does not start with the agentic bootstrap capsule")
 		}
 	})
 
@@ -172,13 +180,13 @@ func TestLLMConn_Converse_RequestPopulation(t *testing.T) {
 		if mockProvider.lastRequest == nil {
 			t.Fatal("Provider was not called")
 		}
-		// Positive check: ensure it still gets a bootstrap prompt.
-		if !strings.Contains(mockProvider.lastRequest.Prompt, oneshotMarker) {
-			t.Error("Prompt appears to be missing one-shot bootstrap text")
+		// Positive check: ensure it starts with the one-shot prompt.
+		if !strings.HasPrefix(mockProvider.lastRequest.Prompt, oneshotCap.Content) {
+			t.Error("Prompt does not start with the one-shot bootstrap capsule")
 		}
 		// Negative check: ensure it does NOT get the agentic/looping instructions.
-		if strings.Contains(mockProvider.lastRequest.Prompt, agenticMarker) {
-			t.Error("One-shot prompt should not contain agentic-specific bootstrap text")
+		if strings.Contains(mockProvider.lastRequest.Prompt, "observable progress") {
+			t.Error("One-shot prompt should not contain agentic-specific text ('observable progress')")
 		}
 	})
 

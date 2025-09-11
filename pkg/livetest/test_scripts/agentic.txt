@@ -1,21 +1,19 @@
 // NeuroScript Version: 0.7.0
-// File version: 5
-// Purpose: A generic template for agentic, multi-turn live tests. Corrected function signature to use 'needs'.
+// File version: 6
+// Purpose: Corrected to use the modern 'ask' statement, which now handles envelope creation internally.
 // filename: livetest/test_scripts/agentic.txt
-// nlines: 20
+// nlines: 15
 // risk_rating: LOW
 
 func main(needs subject, goal_text returns result) means
-    # Assemble the userdata payload inside the script from raw strings to avoid quoting issues.
+    # Assemble the userdata payload as a JSON string. The 'ask' statement
+    # is smart enough to use this directly as the USERDATA section content
+    # without needing to be wrapped in a full envelope first.
     set userdata_json = '{"subject":"' + subject + '","goal":"' + goal_text + '"}'
 
-    # Use the tool to build the full envelope for the LLM.
-    # Provide a non-empty block for the AI to fill.
-    set actions_stub = "command\n    # AI code goes here.\nendcommand"
-    set prompt_envelope = tool.aeiou.ComposeEnvelope(userdata_json, actions_stub, "", "")
-
-    # The ask statement sends the complete envelope to the agent.
-    ask "live_agent", prompt_envelope into result
+    # The modern 'ask' statement handles all envelope creation. We simply pass
+    # it the content for the USERDATA section.
+    ask "live_agent", userdata_json into result
 
     return result
 endfunc

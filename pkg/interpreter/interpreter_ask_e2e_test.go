@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 21
-// Purpose: Simplified the test script to use a plain string prompt, relying on the 'ask' statement's corrected internal envelope creation logic.
+// File version: 24
+// Purpose: Corrected the mock provider's 'round-trip' mode to find the *last* envelope in the prompt, fixing the parsing error.
 // filename: pkg/interpreter/interpreter_ask_e2e_test.go
-// nlines: 230
+// nlines: 284
 // risk_rating: LOW
 
 package interpreter_test
@@ -36,6 +36,7 @@ type mockE2EProvider struct {
 	WasCalled        bool
 	ResponseToReturn *provider.AIResponse
 	ErrorToReturn    error
+	RoundTripMode    bool
 }
 
 func (m *mockE2EProvider) Chat(ctx context.Context, req provider.AIRequest) (*provider.AIResponse, error) {
@@ -53,6 +54,38 @@ func (m *mockE2EProvider) Chat(ctx context.Context, req provider.AIRequest) (*pr
 	}
 	if m.ResponseToReturn != nil {
 		return m.ResponseToReturn, nil
+	}
+
+	if m.RoundTripMode {
+		// In round-trip mode, the prompt from the host contains a bootstrap capsule
+		// followed by the envelope. We must find the *last* start marker to parse the correct envelope.
+		startMarker := aeiou.Wrap(aeiou.SectionStart)
+		envelopeStart := strings.LastIndex(req.Prompt, startMarker)
+		if envelopeStart == -1 {
+			err := fmt.Errorf("RoundTripMode: could not find START marker in incoming prompt")
+			m.t.Error(err)
+			return nil, err
+		}
+		envelopeText := req.Prompt[envelopeStart:]
+
+		// Now, parse only the envelope part of the prompt.
+		env, _, err := aeiou.Parse(strings.NewReader(envelopeText))
+		if err != nil {
+			m.t.Fatalf("RoundTripMode: failed to parse incoming prompt envelope: %v", err)
+		}
+		// Add a minimal valid ACTIONS block to satisfy the host loop.
+		env.Actions = `
+			command
+				emit "round trip success"
+				set p = {"action":"done"}
+				emit tool.aeiou.magic("LOOP", p)
+			endcommand
+		`
+		respText, err := env.Compose()
+		if err != nil {
+			m.t.Fatalf("RoundTripMode: failed to compose response envelope: %v", err)
+		}
+		return &provider.AIResponse{TextContent: respText}, nil
 	}
 
 	// Default response must be a valid AEIOU envelope for the 'ask' command to parse.
@@ -73,7 +106,7 @@ func (m *mockE2EProvider) Chat(ctx context.Context, req provider.AIRequest) (*pr
 
 const e2eScript = `
 # name: E2E AgentModel Registration and Use
-# version: 1.6
+# version: 1.7
 
 func _SetupMockAgent() means
     # description: Registers the mock account and agent using tools.
@@ -105,12 +138,16 @@ func TestTheAsk(returns result) means
     ask "mock_e2e_agent", "Does the API key work?" into result
     return result
 endfunc
+
+func TestRoundTrip(returns result) means
+	# description: Runs an ask command that will be echoed by the provider.
+	ask "mock_e2e_agent", "This is for the round-trip test." into result
+	return result
+endfunc
 `
 
-// TestAgentModelE2E_SuccessWithPrivileges verifies the full flow works when the
-// interpreter is configured with a policy that allows trusted tools to run.
-func TestAgentModelE2E_SuccessWithPrivileges(t *testing.T) {
-	const mockAPIKey = "secret-key-for-e2e-test"
+func setupE2ETest(t *testing.T, mockAPIKey string) (*interpreter.Interpreter, *mockE2EProvider) {
+	t.Helper()
 	const mockEnvVar = "MOCK_API_KEY_ENV_VAR"
 	t.Setenv(mockEnvVar, mockAPIKey)
 
@@ -165,14 +202,15 @@ func TestAgentModelE2E_SuccessWithPrivileges(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Agent setup procedure failed unexpectedly: %v", err)
 	}
-	_, exists := interp.AgentModels().Get("mock_e2e_agent")
-	if !exists {
-		t.Fatal("AgentModel 'mock_e2e_agent' was not registered by the setup script.")
-	}
-	_, accExists := interp.Accounts().Get("MOCK_ACCOUNT")
-	if !accExists {
-		t.Fatal("Account 'MOCK_ACCOUNT' was not registered by the setup script.")
-	}
+
+	return interp, mockProv
+}
+
+// TestAgentModelE2E_SuccessWithPrivileges verifies the full flow works when the
+// interpreter is configured with a policy that allows trusted tools to run.
+func TestAgentModelE2E_SuccessWithPrivileges(t *testing.T) {
+	const mockAPIKey = "secret-key-for-e2e-test"
+	interp, mockProv := setupE2ETest(t, mockAPIKey)
 
 	resultVal, err := interp.Run("TestTheAsk")
 	if err != nil {
@@ -184,6 +222,30 @@ func TestAgentModelE2E_SuccessWithPrivileges(t *testing.T) {
 	}
 	resultStr, _ := lang.ToString(resultVal)
 	expectedResponse := "mock e2e success"
+	if !strings.Contains(resultStr, expectedResponse) {
+		t.Errorf("Expected final result to contain '%s', but got '%s'", expectedResponse, resultStr)
+	}
+}
+
+// TestAgentModelE2E_RoundTrip tests that the parser can correctly handle an
+// envelope that was composed by the system, sent to an LLM (mock), and then
+// sent back, validating robustness against minor formatting differences.
+func TestAgentModelE2E_RoundTrip(t *testing.T) {
+	const mockAPIKey = "secret-key-for-round-trip-test"
+	interp, mockProv := setupE2ETest(t, mockAPIKey)
+	mockProv.RoundTripMode = true // Configure the mock for this specific test
+
+	resultVal, err := interp.Run("TestRoundTrip")
+	if err != nil {
+		t.Fatalf("Round trip test procedure failed: %v", err)
+	}
+
+	if !mockProv.WasCalled {
+		t.Error("Mock AI provider's Chat method was never called in round-trip test.")
+	}
+
+	resultStr, _ := lang.ToString(resultVal)
+	expectedResponse := "round trip success"
 	if !strings.Contains(resultStr, expectedResponse) {
 		t.Errorf("Expected final result to contain '%s', but got '%s'", expectedResponse, resultStr)
 	}
