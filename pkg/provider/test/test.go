@@ -1,15 +1,14 @@
 // NeuroScript Version: 0.7.0
-// File version: 18
-// Purpose: Updated the mock provider to be AEIOU v3 compliant, correctly parsing the JSON object from USERDATA and composing a valid V3 response envelope.
+// File version: 20
+// Purpose: Corrected the test provider to be a functional AEIOU v3 mock. It now correctly parses the USERDATA section from the envelope to return canned success responses, rather than incorrectly returning a hardcoded error. This fixes the contradictions and restores the provider's utility for testing success paths.
 // filename: pkg/provider/test/test.go
-// nlines: 75
+// nlines: 88
 // risk_rating: LOW
 
 package test
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -35,17 +34,21 @@ func WrapResponseInAEIOU(responseContent string) (string, error) {
 	actions := fmt.Sprintf("command\n  emit \"%s\"\n  %s\nendcommand", sanitizedResponse, fakeDoneToken)
 
 	env := &aeiou.Envelope{
-		UserData: "{}", // Must not be empty for a valid envelope.
+		// Per V3 spec, UserData and Actions are required.
+		UserData: `{"subject":"test-response"}`,
 		Actions:  actions,
 	}
 	return env.Compose()
 }
 
-// Chat expects the req.Prompt to be a valid AEIOU envelope. It parses the
-// envelope to extract the user data and returns a canned response.
+// Chat expects the req.Prompt to be a valid AEIOU envelope. It finds the last
+// envelope in the prompt, parses it to extract the user data, and returns a
+// canned response based on the content. This allows it to function as a
+// predictable mock for testing success paths.
 func (p *Provider) Chat(ctx context.Context, req provider.AIRequest) (*provider.AIResponse, error) {
 	log.Printf("[DEBUG] TestProvider received raw prompt: %q", req.Prompt)
 
+	// The provider contract requires a valid AEIOU envelope. Find the last one.
 	promptToParse := req.Prompt
 	if markerPos := strings.LastIndex(req.Prompt, aeiou.Wrap(aeiou.SectionStart)); markerPos != -1 {
 		promptToParse = req.Prompt[markerPos:]
@@ -53,40 +56,27 @@ func (p *Provider) Chat(ctx context.Context, req provider.AIRequest) (*provider.
 
 	env, _, err := aeiou.Parse(strings.NewReader(promptToParse))
 	if err != nil {
-		return nil, fmt.Errorf("test provider requires a valid AEIOU envelope prompt, but parsing failed: %w", err)
+		return nil, fmt.Errorf("test provider requires a valid AEIOU envelope, but parsing failed: %w", err)
 	}
 
-	// V3 ask statements send USERDATA as a JSON object like: {"subject":"ask","fields":{"prompt":"..."}}
-	var userData struct {
-		Fields struct {
-			Prompt string `json:"prompt"`
-		} `json:"fields"`
-	}
-	var actualPrompt string
-	if err := json.Unmarshal([]byte(env.UserData), &userData); err == nil {
-		actualPrompt = userData.Fields.Prompt
-	} else {
-		// Fallback for older tests that send a raw string.
-		actualPrompt = env.UserData
+	// Simulate canned responses based on UserData content
+	var responseText string
+	switch {
+	case strings.Contains(env.UserData, "ping"):
+		responseText = "test_provider_ok:pong"
+	case strings.Contains(env.UserData, "large language model"):
+		responseText = "A large language model is a neural network with many parameters."
+	default:
+		responseText = "test_provider_ok:default_response"
 	}
 
-	log.Printf("[DEBUG] TestProvider extracted user data: %q", actualPrompt)
-
-	var responseContent string
-	if strings.Contains(actualPrompt, "What is a large language model?") {
-		responseContent = "A large language model is a neural network."
-	} else if strings.Contains(actualPrompt, "ping") {
-		responseContent = "test_provider_ok:pong"
-	} else {
-		responseContent = "test_provider_ok:unknown_prompt"
-	}
-
-	response, err := WrapResponseInAEIOU(responseContent)
+	// The AI's response must itself be a valid envelope.
+	finalResponse, err := WrapResponseInAEIOU(responseText)
 	if err != nil {
-		return nil, fmt.Errorf("failed to wrap test response: %w", err)
+		return nil, fmt.Errorf("failed to wrap test provider response: %w", err)
 	}
 
 	return &provider.AIResponse{
-		TextContent: response,
+		TextContent: finalResponse,
 	}, nil
 }

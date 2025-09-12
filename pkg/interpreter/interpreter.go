@@ -1,9 +1,8 @@
-// NeuroScript Version: 0.7.1
-// File version: 70
-// Purpose: Removed the inSystemErrorHandler flag as part of the event error handling refactor.
+// NeuroScript Version: 0.7.2
+// File version: 71
+// Purpose: Adds a field for the LLM telemetry emitter to the Interpreter struct.
 // filename: pkg/interpreter/interpreter.go
-// nlines: 205
-// risk_rating: MEDIUM
+
 package interpreter
 
 import (
@@ -65,10 +64,16 @@ type Interpreter struct {
 	accountStore              *account.Store
 	capsuleStore              *capsule.Store
 	eventHandlerErrorCallback func(eventName, source string, err *lang.RuntimeError)
+	emitter                   interfaces.Emitter // The LLM telemetry emitter.
 
 	// --- Clone Tracking for Debugging ---
 	cloneRegistry   []*Interpreter
 	cloneRegistryMu sync.Mutex
+}
+
+// SetEmitter sets the LLM telemetry emitter for the interpreter.
+func (i *Interpreter) SetEmitter(e interfaces.Emitter) {
+	i.emitter = e
 }
 
 // SetAITranscript sets the writer for logging AI prompts.

@@ -1,9 +1,7 @@
-// NeuroScript Version: 0.7.0
-// File version: 11
-// Purpose: Made the bootstrap capsule tests more robust by dynamically loading the capsule content instead of relying on hardcoded strings.
+// NeuroScript Version: 0.7.2
+// File version: 14
+// Purpose: Updates all calls to llmconn.New to pass a nil emitter, fixing compile errors after the function signature change.
 // filename: pkg/llmconn/llmconn_test.go
-// nlines: 231
-// risk_rating: LOW
 
 package llmconn
 
@@ -53,7 +51,7 @@ func TestNewLLMConn(t *testing.T) {
 	}
 
 	t.Run("Successful creation", func(t *testing.T) {
-		conn, err := New(model, mockProvider)
+		conn, err := New(model, mockProvider, nil) // Pass nil for emitter
 		if err != nil {
 			t.Fatalf("Expected no error, got %v", err)
 		}
@@ -63,14 +61,14 @@ func TestNewLLMConn(t *testing.T) {
 	})
 
 	t.Run("Fails with nil model", func(t *testing.T) {
-		_, err := New(nil, mockProvider)
+		_, err := New(nil, mockProvider, nil) // Pass nil for emitter
 		if !errors.Is(err, ErrModelNotSet) {
 			t.Errorf("Expected error %v, got %v", ErrModelNotSet, err)
 		}
 	})
 
 	t.Run("Fails with nil provider", func(t *testing.T) {
-		_, err := New(model, nil)
+		_, err := New(model, nil, nil) // Pass nil for emitter
 		if !errors.Is(err, ErrProviderNotSet) {
 			t.Errorf("Expected error %v, got %v", ErrProviderNotSet, err)
 		}
@@ -89,7 +87,7 @@ func TestLLMConn_Converse_Lifecycle(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("Successful conversation turn", func(t *testing.T) {
-		conn, err := New(model, mockProvider)
+		conn, err := New(model, mockProvider, nil) // Pass nil for emitter
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -108,7 +106,7 @@ func TestLLMConn_Converse_Lifecycle(t *testing.T) {
 	})
 
 	t.Run("Exceeds max turns", func(t *testing.T) {
-		conn, err := New(model, mockProvider)
+		conn, err := New(model, mockProvider, nil) // Pass nil for emitter
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -151,7 +149,7 @@ func TestLLMConn_Converse_RequestPopulation(t *testing.T) {
 			APIKey: testAPIKey,
 			Tools:  types.ToolConfig{ToolLoopPermitted: true},
 		}
-		conn, _ := New(model, mockProvider)
+		conn, _ := New(model, mockProvider, nil) // Pass nil for emitter
 		_, err := conn.Converse(ctx, inputEnv)
 		if err != nil {
 			t.Fatalf("Converse() failed: %v", err)
@@ -172,7 +170,7 @@ func TestLLMConn_Converse_RequestPopulation(t *testing.T) {
 			APIKey: testAPIKey,
 			Tools:  types.ToolConfig{ToolLoopPermitted: false},
 		}
-		conn, _ := New(model, mockProvider)
+		conn, _ := New(model, mockProvider, nil) // Pass nil for emitter
 		_, err := conn.Converse(ctx, inputEnv)
 		if err != nil {
 			t.Fatalf("Converse() failed: %v", err)
@@ -193,7 +191,7 @@ func TestLLMConn_Converse_RequestPopulation(t *testing.T) {
 	t.Run("Provider error is wrapped correctly", func(t *testing.T) {
 		providerErr := errors.New("API rate limit exceeded")
 		mockProvider.errorToReturn = providerErr
-		conn, _ := New(&types.AgentModel{}, mockProvider)
+		conn, _ := New(&types.AgentModel{}, mockProvider, nil) // Pass nil for emitter
 
 		_, err := conn.Converse(ctx, inputEnv)
 
@@ -215,7 +213,7 @@ func TestLLMConn_Converse_RequestPopulation(t *testing.T) {
 			OutputTokens: 20,
 			Cost:         0.005,
 		}
-		conn, _ := New(&types.AgentModel{}, mockProvider)
+		conn, _ := New(&types.AgentModel{}, mockProvider, nil) // Pass nil for emitter
 
 		_, err := conn.Converse(ctx, inputEnv)
 		if err != nil {

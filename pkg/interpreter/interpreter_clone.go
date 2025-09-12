@@ -1,9 +1,8 @@
-// NeuroScript Version: 0.7.1
-// File version: 14
-// Purpose: Removed the inSystemErrorHandler flag as part of the event error handling refactor.
+// NeuroScript Version: 0.7.2
+// File version: 15
+// Purpose: Corrects a bug where the LLM telemetry emitter was not being propagated to cloned interpreters.
 // filename: pkg/interpreter/interpreter_clone.go
-// nlines: 95
-// risk_rating: HIGH
+
 package interpreter
 
 import (
@@ -44,6 +43,7 @@ func (i *Interpreter) clone() *Interpreter {
 		customEmitFunc:            i.customEmitFunc,
 		customWhisperFunc:         i.customWhisperFunc,
 		eventHandlerErrorCallback: i.eventHandlerErrorCallback,
+		emitter:                   i.emitter, // FIX: Propagate the emitter to the clone.
 	}
 
 	if i.tools != nil {

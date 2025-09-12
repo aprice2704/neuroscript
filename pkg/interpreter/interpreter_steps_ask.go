@@ -1,9 +1,8 @@
-// NeuroScript Version: 0.7.0
-// File version: 68
-// Purpose: Corrected the 'ask' statement to automatically wrap the prompt string in a valid AEIOU v3 envelope, rather than requiring the script to provide a full envelope.
+// NeuroScript Version: 0.7.2
+// File version: 69
+// Purpose: Passes the interpreter's configured Emitter to the llmconn constructor, resolving the final compiler error.
 // filename: pkg/interpreter/interpreter_steps_ask.go
-// nlines: 136
-// risk_rating: HIGH
+
 package interpreter
 
 import (
@@ -72,7 +71,8 @@ func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
 	}
 
 	// 3. Initialize LLM Connection
-	conn, err := llmconn.New(&agentModel, prov)
+	// This is the fix: pass the interpreter's emitter to the constructor.
+	conn, err := llmconn.New(&agentModel, prov, i.emitter)
 	if err != nil {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "failed to create LLM connection", err).WithPosition(node.GetPos())
 	}

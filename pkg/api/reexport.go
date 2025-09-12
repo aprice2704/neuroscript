@@ -1,9 +1,8 @@
-// NeuroScript Version: 0.7.1
-// File version: 33
-// Purpose: Re-exported canon.DecodeWithRegistry for FDM integration.
+// NeuroScript Version: 0.7.2
+// File version: 35
+// Purpose: Adds the WithEmitter option to allow hosts to inject an LLM telemetry emitter.
 // filename: pkg/api/reexport.go
-// nlines: 191
-// risk_rating: LOW
+
 package api
 
 import (
@@ -49,6 +48,12 @@ type (
 	ToolGroup          = types.ToolGroup
 	ArgType            = tool.ArgType
 	CapsuleRegistry    = capsule.Registry
+
+	// --- LLM Telemetry Emitter ---
+	Emitter            = interfaces.Emitter
+	LLMCallStartInfo   = interfaces.LLMCallStartInfo
+	LLMCallSuccessInfo = interfaces.LLMCallSuccessInfo
+	LLMCallFailureInfo = interfaces.LLMCallFailureInfo
 
 	// --- AEIOU v3 Host Components ---
 	// LoopControl holds the parsed result of an AEIOU LOOP signal. (DEPRECATED)
@@ -150,6 +155,14 @@ func WithCapsuleRegistry(registry *CapsuleRegistry) Option {
 		if cs := i.CapsuleStore(); cs != nil {
 			cs.Add(registry)
 		}
+	}
+}
+
+// WithEmitter creates an interpreter option to set a custom LLM event emitter.
+// The provided emitter will be called for every LLM interaction.
+func WithEmitter(emitter Emitter) Option {
+	return func(i *interpreter.Interpreter) {
+		i.SetEmitter(emitter)
 	}
 }
 

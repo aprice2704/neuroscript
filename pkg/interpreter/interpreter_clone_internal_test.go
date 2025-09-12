@@ -1,9 +1,7 @@
-// NeuroScript Version: 0.7.1
-// File version: 6
-// Purpose: Corrected the integrity test to expect the 'id', 'cloneRegistry', and 'cloneRegistryMu' fields to be different in a clone, fixing the test failure.
+// NeuroScript Version: 0.7.2
+// File version: 7
+// Purpose: Updates the clone integrity test to correctly handle and verify the new 'emitter' field.
 // filename: pkg/interpreter/interpreter_clone_internal_test.go
-// nlines: 130
-// risk_rating: MEDIUM
 
 package interpreter
 

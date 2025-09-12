@@ -1,9 +1,7 @@
-// NeuroScript Version: 0.7.1
-// File version: 12
-// Purpose: Updated to use the version-aware default capsule registry to fetch the latest bootstrap capsules.
+// NeuroScript Version: 0.7.2
+// File version: 15
+// Purpose: Updates imports to use the neutral Emitter interface from the new ns_interfaces package.
 // filename: pkg/llmconn/llmconn.go
-// nlines: 135
-// risk_rating: MEDIUM
 
 package llmconn
 
@@ -14,14 +12,17 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/capsule"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/provider"
 	"github.com/aprice2704/neuroscript/pkg/types"
+	"github.com/google/uuid"
 )
 
 // LLMConn represents a stateful connection to a specific AI model endpoint.
 type LLMConn struct {
 	model    *types.AgentModel
 	provider provider.AIProvider
+	emitter  interfaces.Emitter // Bus-agnostic event emitter from neutral package
 
 	// State for the current loop
 	turnCount    int
@@ -31,7 +32,8 @@ type LLMConn struct {
 }
 
 // New creates and initializes a new LLMConn.
-func New(model *types.AgentModel, provider provider.AIProvider) (*LLMConn, error) {
+// If a non-nil emitter is provided, it will be used to send telemetry.
+func New(model *types.AgentModel, provider provider.AIProvider, emitter interfaces.Emitter) (*LLMConn, error) {
 	if model == nil {
 		return nil, ErrModelNotSet
 	}
@@ -42,6 +44,7 @@ func New(model *types.AgentModel, provider provider.AIProvider) (*LLMConn, error
 	return &LLMConn{
 		model:        model,
 		provider:     provider,
+		emitter:      emitter, // Store the emitter
 		turnCount:    0,
 		lastActivity: time.Now(),
 	}, nil
@@ -61,8 +64,6 @@ func (c *LLMConn) Converse(ctx context.Context, input *aeiou.Envelope) (*provide
 		return nil, fmt.Errorf("failed to compose input envelope for provider: %w", err)
 	}
 
-	// On the first turn of a conversation, prepend the appropriate bootstrap
-	// instructions by retrieving them from the default capsule registry.
 	if c.turnCount == 1 {
 		var capsuleName string
 		if c.model.Tools.ToolLoopPermitted {
@@ -71,11 +72,9 @@ func (c *LLMConn) Converse(ctx context.Context, input *aeiou.Envelope) (*provide
 			capsuleName = "capsule/bootstrap_oneshot"
 		}
 
-		// FIX: Use the DefaultRegistry() to get the built-in capsules.
 		reg := capsule.DefaultRegistry()
 		cap, ok := reg.GetLatest(capsuleName)
 		if !ok {
-			// This would be a critical setup error, as capsules should be embedded.
 			return nil, fmt.Errorf("latest bootstrap capsule not found in default registry: %s", capsuleName)
 		}
 		prompt = cap.Content + "\n\n" + prompt
@@ -86,17 +85,34 @@ func (c *LLMConn) Converse(ctx context.Context, input *aeiou.Envelope) (*provide
 		ProviderName:   c.model.Provider,
 		ModelName:      c.model.Model,
 		BaseURL:        c.model.BaseURL,
-		APIKey:         c.model.APIKey, // Use the API key prepared by the interpreter.
+		APIKey:         c.model.APIKey,
 		Prompt:         prompt,
 		Temperature:    c.model.Generation.Temperature,
 		Stream:         false,
 		Timeout:        30 * time.Second,
 	}
 
+	// --- Event Emission Logic ---
+	callID := uuid.NewString()
+	start := time.Now()
+	if c.emitter != nil {
+		c.emitter.EmitLLMCallStarted(interfaces.LLMCallStartInfo{Ctx: ctx, CallID: callID, Request: req, Start: start})
+	}
+
 	resp, err := c.provider.Chat(ctx, req)
+	latency := time.Since(start)
+
 	if err != nil {
+		if c.emitter != nil {
+			c.emitter.EmitLLMCallFailed(interfaces.LLMCallFailureInfo{Ctx: ctx, CallID: callID, Request: req, Err: err, Latency: latency})
+		}
 		return nil, fmt.Errorf("provider chat failed on turn %d: %w", c.turnCount, err)
 	}
+
+	if c.emitter != nil {
+		c.emitter.EmitLLMCallSucceeded(interfaces.LLMCallSuccessInfo{Ctx: ctx, CallID: callID, Request: req, Response: *resp, Latency: latency})
+	}
+	// --- End Event Emission Logic ---
 
 	c.totalTokens += resp.InputTokens + resp.OutputTokens
 	c.totalCost += resp.Cost
