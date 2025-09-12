@@ -9,9 +9,13 @@ We use **Go 1.24+**. These rules emphasize correctness, minimalism, and context 
 ---
 ## 🔴 TOP CRITICAL RULES — ALWAYS OBEY
 
+please include the starting comment block **within** the code fences, thx
+please do not use github.com.com *ever*, it does not exist, thx
+
+
 ### 0. COMMANDS
-- If I end a prompt with code- or -code that means I do NOT want any code files next turn
-- If I end a prompt with code+ or +code that means I do want code file(s) next turn
+- If I end a prompt with code- or -code, DO **NOT** GIVE ME FILES that turn
+- If I end a prompt with code+ or +code, do provide files
 
 
 ### 1. Understand Context First
