@@ -39,6 +39,7 @@ type (
 	Capability         = capability.Capability
 	AIProvider         = provider.AIProvider
 	ToolImplementation = tool.ToolImplementation
+	ToolRegistry       = tool.ToolRegistry
 	ArgSpec            = tool.ArgSpec
 	Runtime            = tool.Runtime
 	ToolFunc           = tool.ToolFunc
@@ -48,6 +49,11 @@ type (
 	ToolGroup          = types.ToolGroup
 	ArgType            = tool.ArgType
 	CapsuleRegistry    = capsule.Registry
+	AgentModel         = types.AgentModel
+	AgentModelReader   = interfaces.AgentModelReader
+	AgentModelAdmin    = interfaces.AgentModelAdmin
+	LLMClient          = interfaces.LLMClient
+	GrantSet           = capability.GrantSet
 
 	// --- LLM Telemetry Emitter ---
 	Emitter            = interfaces.Emitter
@@ -120,7 +126,6 @@ const (
 	ArgTypeNil         = tool.ArgTypeNil
 )
 
-// ... (vars unchanged) ...
 var (
 	NewCapability          = capability.New
 	ParseCapability        = capability.Parse

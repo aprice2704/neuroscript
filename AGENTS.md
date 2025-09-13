@@ -9,8 +9,9 @@ We use **Go 1.24+**. These rules emphasize correctness, minimalism, and context 
 ---
 ## 🔴 TOP CRITICAL RULES — ALWAYS OBEY
 
-please include the starting comment block **within** the code fences, thx
-please do not use github.com.com *ever*, it does not exist, thx
+include only one file (unless I say otherwise) per turn, always with a list of files you are yet to provide
+include the starting comment block of golang files **within** code fences
+do not use github.com.com *ever*, it does not exist, thx
 
 
 ### 0. COMMANDS

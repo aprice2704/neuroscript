@@ -698,5 +698,131 @@
     },
     "requiresTrust": false,
     "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "add_mount",
+      "groupname": "fdm.persist_admin",
+      "fullname": "",
+      "description": "Adds a new mount to the storage configuration. Privileged.",
+      "args": [
+        {
+          "name": "mount_definition",
+          "type": "map",
+          "description": "A map defining the mount, e.g., {'prefix':'store://...','buckets':['b1']}",
+          "required": false
+        }
+      ],
+      "returnType": "string"
+    },
+    "requiresTrust": true,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "add_alias",
+      "groupname": "fdm.persist_admin",
+      "fullname": "",
+      "description": "Adds a new alias to the storage configuration. Privileged.",
+      "args": [
+        {
+          "name": "alias_name",
+          "type": "string",
+          "description": "",
+          "required": true
+        },
+        {
+          "name": "target_uri",
+          "type": "string",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "string"
+    },
+    "requiresTrust": true,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "put",
+      "groupname": "fdm.persist",
+      "fullname": "",
+      "description": "Saves a value (string or bytes) to a storage URI.",
+      "args": [
+        {
+          "name": "uri",
+          "type": "string",
+          "description": "",
+          "required": true
+        },
+        {
+          "name": "value",
+          "type": "any",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get",
+      "groupname": "fdm.persist",
+      "fullname": "",
+      "description": "Retrieves a value from a storage URI as a string.",
+      "args": [
+        {
+          "name": "uri",
+          "type": "string",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "list",
+      "groupname": "fdm.persist",
+      "fullname": "",
+      "description": "Lists all keys and values under a given URI prefix.",
+      "args": [
+        {
+          "name": "uri_prefix",
+          "type": "string",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "map"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "del",
+      "groupname": "fdm.persist",
+      "fullname": "",
+      "description": "Deletes a value at a specific storage URI.",
+      "args": [
+        {
+          "name": "uri",
+          "type": "string",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
   }
 ]
