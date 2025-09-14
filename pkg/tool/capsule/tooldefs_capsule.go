@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.1
-// File version: 1
+// File version: 3
 // Purpose: Defines the tool specifications for managing documentation capsules.
 // filename: pkg/tool/capsule/tooldefs_capsule.go
-// nlines: 55
+// nlines: 75
 // risk_rating: HIGH
 package capsule
 
@@ -57,5 +57,20 @@ var CapsuleToolsToRegister = []tool.ToolImplementation{
 		Func:          toolGetLatestCapsule,
 		RequiresTrust: false,
 		Effects:       []string{"readonly"},
+	},
+	{
+		Spec: tool.ToolSpec{
+			Name:        "Add",
+			Group:       Group,
+			Description: "Adds a new capsule to the runtime registry. Requires a privileged interpreter.",
+			Args: []tool.ArgSpec{
+				{Name: "capsuleData", Type: tool.ArgTypeMap, Description: "A map containing the capsule fields (name, version, content, etc.).", Required: true},
+			},
+			ReturnType: tool.ArgTypeNil,
+			Example:    `capsule.Add({"name":"capsule/my-new-one","version":"1","content":"Hello"})`,
+		},
+		Func:          toolAddCapsule,
+		RequiresTrust: true,
+		Effects:       []string{"capsule:write"},
 	},
 }

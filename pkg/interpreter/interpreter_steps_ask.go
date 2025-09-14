@@ -1,11 +1,14 @@
 // NeuroScript Version: 0.7.2
-// File version: 69
-// Purpose: Passes the interpreter's configured Emitter to the llmconn constructor, resolving the final compiler error.
+// File version: 70
+// Purpose: Auto-wraps simple string prompts in the 'ask' statement into the required AEIOU v3 JSON format.
 // filename: pkg/interpreter/interpreter_steps_ask.go
+// nlines: 125
+// risk_rating: MEDIUM
 
 package interpreter
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/account"
@@ -71,17 +74,36 @@ func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
 	}
 
 	// 3. Initialize LLM Connection
-	// This is the fix: pass the interpreter's emitter to the constructor.
 	conn, err := llmconn.New(&agentModel, prov, i.emitter)
 	if err != nil {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "failed to create LLM connection", err).WithPosition(node.GetPos())
 	}
 
-	// 4. Construct Initial V3 Envelope
-	//    The 'ask' statement automatically wraps the provided prompt string
-	//    into the UserData section of a valid AEIOU envelope.
+	// 4. Construct Initial V3 Envelope & Handle Prompt Wrapping
+	//    This block implements the required auto-wrapping of simple string prompts
+	//    to conform to the AEIOU v3 protocol.
+	var userdataPayload string
+	var jsonData map[string]interface{}
+	if json.Unmarshal([]byte(initialPrompt), &jsonData) == nil {
+		// The prompt is already a valid JSON object string. Use it directly.
+		userdataPayload = initialPrompt
+	} else {
+		// The prompt is a simple string. Wrap it in the standard JSON structure.
+		payloadMap := map[string]interface{}{
+			"subject": "ask",
+			"fields": map[string]interface{}{
+				"prompt": initialPrompt,
+			},
+		}
+		jsonBytes, err := json.Marshal(payloadMap)
+		if err != nil {
+			return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "failed to marshal simple prompt into JSON for USERDATA", err).WithPosition(node.PromptExpr.GetPos())
+		}
+		userdataPayload = string(jsonBytes)
+	}
+
 	initialEnvelope := &aeiou.Envelope{
-		UserData: initialPrompt,
+		UserData: userdataPayload,
 		Actions:  "command endcommand", // A valid, empty actions block is required.
 	}
 

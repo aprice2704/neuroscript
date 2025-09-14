@@ -1,6 +1,73 @@
 [
   {
     "spec": {
+      "name": "init_identity",
+      "groupname": "fdm.admin",
+      "fullname": "",
+      "description": "Initializes a new core identity (FDM or SAI). Privileged.",
+      "args": [
+        {
+          "name": "name",
+          "type": "string",
+          "description": "",
+          "required": true
+        },
+        {
+          "name": "storage_uri",
+          "type": "string",
+          "description": "",
+          "required": true
+        },
+        {
+          "name": "set_as_core",
+          "type": "bool",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "map"
+    },
+    "requiresTrust": true,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "register_agent",
+      "groupname": "fdm.admin",
+      "fullname": "",
+      "description": "Creates a signed agent node in the FDM. Privileged.",
+      "args": [
+        {
+          "name": "identity_uri",
+          "type": "string",
+          "description": "The storage URI of the agent's identity document.",
+          "required": true
+        },
+        {
+          "name": "script_source",
+          "type": "string",
+          "description": "The NeuroScript source code for the agent.",
+          "required": true
+        }
+      ],
+      "returnType": "map"
+    },
+    "requiresTrust": true,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "is_identity_set",
+      "groupname": "fdm.admin",
+      "fullname": "",
+      "description": "Returns true if the FDM core identity has already been set (e.g., from env vars).",
+      "returnType": "bool"
+    },
+    "requiresTrust": true,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
       "name": "CreateRoot",
       "groupname": "FDM.Forum",
       "fullname": "",
@@ -634,6 +701,37 @@
         "Scopes": null
       }
     ],
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "init_identity",
+      "groupname": "fdm.admin",
+      "fullname": "",
+      "description": "Initializes a new identity (FDM or SAI), persists it, and returns the details. Privileged.",
+      "args": [
+        {
+          "name": "name",
+          "type": "string",
+          "description": "The human-readable name for the identity (e.g., 'fdm-instance-main' or 'sai-primary').",
+          "required": true
+        },
+        {
+          "name": "storage_uri",
+          "type": "string",
+          "description": "The persistence URI to save the identity to (e.g., 'store://sys/system/identity').",
+          "required": true
+        },
+        {
+          "name": "set_as_core",
+          "type": "bool",
+          "description": "If true, sets this identity as the active FDM instance identity.",
+          "required": false
+        }
+      ],
+      "returnType": "map"
+    },
+    "requiresTrust": true,
     "signatureChecksum": ""
   },
   {

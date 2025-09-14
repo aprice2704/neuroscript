@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.1
-// File version: 7
-// Purpose: Adds WithEventHandlerErrorCallback and WithoutStandardTools options.
+// File version: 8
+// Purpose: Adds WithCapsuleAdminRegistry option for trusted configuration contexts.
 // filename: pkg/interpreter/interpreter_options.go
-// nlines: 85
+// nlines: 94
 // risk_rating: LOW
 
 package interpreter
@@ -85,12 +85,20 @@ func WithExecPolicy(policy *policy.ExecPolicy) InterpreterOption {
 }
 
 // WithCapsuleRegistry creates an interpreter option that adds a custom
-// capsule registry to the interpreter's store.
+// capsule registry to the interpreter's store for read-only access.
 func WithCapsuleRegistry(registry *capsule.Registry) InterpreterOption {
 	return func(i *Interpreter) {
 		if i.capsuleStore != nil {
 			i.capsuleStore.Add(registry)
 		}
+	}
+}
+
+// WithCapsuleAdminRegistry provides a writable capsule registry to the interpreter.
+// This is for trusted, configuration contexts where scripts need to persist new capsules.
+func WithCapsuleAdminRegistry(registry *capsule.Registry) InterpreterOption {
+	return func(i *Interpreter) {
+		i.adminCapsuleRegistry = registry
 	}
 }
 

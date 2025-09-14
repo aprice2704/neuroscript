@@ -66,6 +66,8 @@ type Interpreter struct {
 	eventHandlerErrorCallback func(eventName, source string, err *lang.RuntimeError)
 	emitter                   interfaces.Emitter // The LLM telemetry emitter.
 
+	adminCapsuleRegistry *capsule.Registry // The writable registry for config scripts.
+
 	// --- Clone Tracking for Debugging ---
 	cloneRegistry   []*Interpreter
 	cloneRegistryMu sync.Mutex
@@ -241,4 +243,11 @@ func (i *Interpreter) AgentModels() interfaces.AgentModelReader {
 func (i *Interpreter) AgentModelsAdmin() interfaces.AgentModelAdmin {
 	root := i.rootInterpreter()
 	return agentmodel.NewAgentModelAdmin(root.modelStore, i.ExecPolicy)
+}
+
+// CapsuleRegistryForAdmin returns the interpreter's administrative capsule registry.
+// This is intended for use by privileged tools in a configuration context.
+func (i *Interpreter) CapsuleRegistryForAdmin() *capsule.Registry {
+	root := i.rootInterpreter()
+	return root.adminCapsuleRegistry
 }

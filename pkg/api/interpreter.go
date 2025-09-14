@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.1
-// File version: 34
-// Purpose: Corrected the `github.comcom` import path error.
+// File version: 35
+// Purpose: Implemented the CapsuleRegistryForAdmin method to support persistent, host-managed capsule registries.
 // filename: pkg/api/interpreter.go
-// nlines: 185
+// nlines: 190
 // risk_rating: HIGH
 package api
 
@@ -104,9 +104,15 @@ func (i *Interpreter) RegisterAgentModel(name string, config map[string]any) err
 	return i.internal.AgentModelsAdmin().Register(types.AgentModelName(name), config)
 }
 
-// CapsuleStore returns the interpreter's layered capsule store.
+// CapsuleStore returns the interpreter's layered capsule store for read-only operations.
 func (i *Interpreter) CapsuleStore() *capsule.Store {
 	return i.internal.CapsuleStore()
+}
+
+// CapsuleRegistryForAdmin returns the interpreter's administrative capsule registry,
+// which is required for privileged tools that add or modify capsules.
+func (i *Interpreter) CapsuleRegistryForAdmin() *capsule.Registry {
+	return i.internal.CapsuleRegistryForAdmin()
 }
 
 // Load injects a parsed program into the interpreter via the interface.

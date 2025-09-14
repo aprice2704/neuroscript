@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.2
-// File version: 35
-// Purpose: Adds the WithEmitter option to allow hosts to inject an LLM telemetry emitter.
+// File version: 36
+// Purpose: Adds the WithCapsuleAdminRegistry option to allow hosts to inject a writable capsule registry.
 // filename: pkg/api/reexport.go
 
 package api
@@ -86,14 +86,15 @@ type (
 
 // ... (resource/verb consts unchanged) ...
 const (
-	ResFS     = capability.ResFS
-	ResNet    = capability.ResNet
-	ResEnv    = capability.ResEnv
-	ResModel  = capability.ResModel
-	ResTool   = capability.ResTool
-	ResSecret = capability.ResSecret
-	ResBudget = capability.ResBudget
-	ResBus    = capability.ResBus
+	ResFS      = capability.ResFS
+	ResNet     = capability.ResNet
+	ResEnv     = capability.ResEnv
+	ResModel   = capability.ResModel
+	ResTool    = capability.ResTool
+	ResSecret  = capability.ResSecret
+	ResBudget  = capability.ResBudget
+	ResBus     = capability.ResBus
+	ResCapsule = "capsule" // Define capsule as a resource
 
 	VerbRead  = capability.VerbRead
 	VerbWrite = capability.VerbWrite
@@ -154,13 +155,15 @@ func WithTool(t ToolImplementation) Option {
 }
 
 // WithCapsuleRegistry adds a custom capsule registry to the interpreter's store.
-// This allows host applications to layer in their own documentation.
+// This allows host applications to layer in their own documentation for read-only access.
 func WithCapsuleRegistry(registry *CapsuleRegistry) Option {
-	return func(i *interpreter.Interpreter) {
-		if cs := i.CapsuleStore(); cs != nil {
-			cs.Add(registry)
-		}
-	}
+	return interpreter.WithCapsuleRegistry(registry)
+}
+
+// WithCapsuleAdminRegistry provides a writable capsule registry to the interpreter.
+// This is for trusted, configuration contexts where scripts need to persist new capsules.
+func WithCapsuleAdminRegistry(registry *CapsuleRegistry) Option {
+	return interpreter.WithCapsuleAdminRegistry(registry)
 }
 
 // WithEmitter creates an interpreter option to set a custom LLM event emitter.

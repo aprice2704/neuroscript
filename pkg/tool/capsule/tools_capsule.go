@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.1
-// File version: 1
+// File version: 5
 // Purpose: Implements the Go functions for the capsule toolset.
 // filename: pkg/tool/capsule/tools_capsule.go
-// nlines: 85
+// nlines: 133
 // risk_rating: HIGH
 package capsule
 
@@ -16,9 +16,15 @@ import (
 )
 
 // capsuleRuntime defines the interface we expect from the runtime
-// for capsule store operations.
+// for capsule store read operations.
 type capsuleRuntime interface {
 	CapsuleStore() *capsule.Store
+}
+
+// capsuleAdminRuntime defines the interface for write operations,
+// allowing access to a mutable registry.
+type capsuleAdminRuntime interface {
+	CapsuleRegistryForAdmin() *capsule.Registry
 }
 
 func getCapsuleStore(rt tool.Runtime) (*capsule.Store, error) {
@@ -31,6 +37,19 @@ func getCapsuleStore(rt tool.Runtime) (*capsule.Store, error) {
 		return nil, fmt.Errorf("internal error: runtime returned a nil CapsuleStore")
 	}
 	return store, nil
+}
+
+func getCapsuleRegistryForAdmin(rt tool.Runtime) (*capsule.Registry, error) {
+	interp, ok := rt.(capsuleAdminRuntime)
+	if !ok {
+		return nil, ErrAdminRegistryNotAvailable
+	}
+	reg := interp.CapsuleRegistryForAdmin()
+	if reg == nil {
+		// This is the expected path for an unprivileged interpreter.
+		return nil, ErrAdminRegistryNotAvailable
+	}
+	return reg, nil
 }
 
 func toolListCapsules(rt tool.Runtime, args []interface{}) (interface{}, error) {
@@ -86,6 +105,38 @@ func toolGetLatestCapsule(rt tool.Runtime, args []interface{}) (interface{}, err
 	}
 
 	return capsuleToMap(c), nil
+}
+
+func toolAddCapsule(rt tool.Runtime, args []interface{}) (interface{}, error) {
+	reg, err := getCapsuleRegistryForAdmin(rt)
+	if err != nil {
+		return nil, err
+	}
+	data, ok := args[0].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("argument 'capsuleData' must be a map")
+	}
+
+	// Helper to extract string values from the map
+	getString := func(key string) string {
+		if val, ok := data[key].(string); ok {
+			return val
+		}
+		return ""
+	}
+
+	newCap := capsule.Capsule{
+		Name:    getString("name"),
+		Version: getString("version"),
+		MIME:    getString("mime"),
+		Content: getString("content"),
+	}
+
+	if err := reg.Register(newCap); err != nil {
+		return nil, fmt.Errorf("failed to register new capsule: %w", err)
+	}
+
+	return &lang.NilValue{}, nil
 }
 
 func capsuleToMap(c capsule.Capsule) map[string]interface{} {
