@@ -121,6 +121,7 @@ const (
 	ErrProviderNotFound           ErrorCode = 40
 
 	ErrorCodeInvalidValue ErrorCode = 41
+	ErrorCodeDuplicate    ErrorCode = 42
 
 	// --- SECURITY codes (99 900-99 999).  Stable for signing / IR play-books. ----
 	SecurityBase ErrorCode = 99900
@@ -302,6 +303,8 @@ var (
 	ErrNotImplemented      = errors.New("feature or tool not implemented")
 	ErrDuplicateKey        = errors.New("duplicate key")
 )
+
+// Add to the main ErrorCode const block
 
 // --- Control Flow Sentinel Errors ---
 var (

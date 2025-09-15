@@ -34,6 +34,7 @@ var (
 	ErrMustConditionFailed = lang.ErrMustConditionFailed
 	ErrFailStatement       = lang.ErrFailStatement
 	ErrDivisionByZero      = lang.ErrDivisionByZero
+	ErrProcedureExists     = lang.ErrProcedureExists
 
 	// --- Policy & Security Errors ---
 	ErrToolNotAllowed    = lang.ErrToolNotAllowed

@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.1
-// File version: 35
-// Purpose: Implemented the CapsuleRegistryForAdmin method to support persistent, host-managed capsule registries.
+// NeuroScript Version: 0.7.2
+// File version: 37
+// Purpose: Adds the Execute method to run loaded top-level command blocks on the persistent interpreter state.
 // filename: pkg/api/interpreter.go
-// nlines: 190
+// nlines: 198
 // risk_rating: HIGH
 package api
 
@@ -118,6 +118,20 @@ func (i *Interpreter) CapsuleRegistryForAdmin() *capsule.Registry {
 // Load injects a parsed program into the interpreter via the interface.
 func (i *Interpreter) Load(tree *interfaces.Tree) error {
 	return i.internal.Load(tree)
+}
+
+// AppendScript merges procedures and event handlers from a new program AST
+// into the interpreter's existing state without clearing previous definitions.
+// It returns an error if a procedure being added already exists.
+func (i *Interpreter) AppendScript(tree *interfaces.Tree) error {
+	return i.internal.AppendScript(tree)
+}
+
+// Execute runs the top-level 'command' blocks that have been loaded into the
+// interpreter's state via Load() or AppendScript(). This is the correct method
+// for executing the entry point of a multi-file program.
+func (i *Interpreter) Execute() (Value, error) {
+	return i.internal.ExecuteCommands()
 }
 
 // ExecuteCommands runs any unnamed 'command' blocks found in the loaded program.
