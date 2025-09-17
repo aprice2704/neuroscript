@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.6.0
-// File version: 11
+// NeuroScript Version: 0.7.2
+// File version: 14
 // Purpose: Corrected Load calls to wrap the *ast.Program in an *interfaces.Tree, conforming to the dependency-injected API.
 // filename: pkg/api/exec.go
-// nlines: 95
+// nlines: 98
 // risk_rating: HIGH
 
 package api
@@ -47,6 +47,16 @@ func ExecWithInterpreter(ctx context.Context, interp *Interpreter, tree *Tree) (
 	if err := interp.Load(&interfaces.Tree{Root: program}); err != nil {
 		return nil, fmt.Errorf("failed to load program into interpreter: %w", err)
 	}
+
+	// --- DEBUG ---
+	// This is the final check. Does the *internal* interpreter have the admin
+	// registry right before we tell it to execute the command?
+	if interp.internal.CapsuleRegistryForAdmin() != nil {
+		fmt.Println("[DEBUG] ExecWithInterpreter: Admin registry is PRESENT on internal interpreter before ExecuteCommands.")
+	} else {
+		fmt.Println("[DEBUG] ExecWithInterpreter: Admin registry is NIL on internal interpreter before ExecuteCommands.")
+	}
+	// --- END DEBUG ---
 
 	// 2. Execute top-level command blocks.
 	finalValue, err := interp.ExecuteCommands()

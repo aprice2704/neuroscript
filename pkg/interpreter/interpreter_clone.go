@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.2
-// File version: 15
-// Purpose: Corrects a bug where the LLM telemetry emitter was not being propagated to cloned interpreters.
+// File version: 20
+// Purpose: FIX: Corrects a critical bug by ensuring the adminCapsuleRegistry is propagated to cloned interpreters. ADDED EXTENSIVE DEBUGGING.
 // filename: pkg/interpreter/interpreter_clone.go
 
 package interpreter
@@ -15,18 +15,32 @@ import (
 // It shares persistent state (stores, tools, config) by reference,
 // but creates an isolated variable scope and a context-aware tool registry view.
 func (i *Interpreter) clone() *Interpreter {
+	// --- MORE DEBUGGING ---
+	fmt.Printf("\n[DEBUG] >>> CLONING INTERPRETER (Parent ID: %s) <<<\n", i.id)
+	if i.adminCapsuleRegistry != nil {
+		fmt.Printf("[DEBUG] PARENT %s: Has a NON-NIL admin registry at clone time.\n", i.id)
+	} else {
+		fmt.Printf("[DEBUG] PARENT %s: Has a NIL admin registry at clone time. THIS IS LIKELY THE CAUSE OF THE BUG.\n", i.id)
+	}
+	// --- END DEBUGGING ---
+
 	clone := &Interpreter{
 		// Assign a new unique ID to the clone
 		id: fmt.Sprintf("interp-%s", uuid.NewString()[:8]),
 
 		// Share core state by reference for persistence
-		logger:                    i.logger,
-		fileAPI:                   i.fileAPI,
-		eventManager:              i.eventManager,
-		aiWorker:                  i.aiWorker,
-		stdout:                    i.stdout,
-		stdin:                     i.stdin,
-		stderr:                    i.stderr,
+		logger:       i.logger,
+		fileAPI:      i.fileAPI,
+		eventManager: i.eventManager,
+		aiWorker:     i.aiWorker,
+		stdout:       i.stdout,
+		stdin:        i.stdin,
+		stderr:       i.stderr,
+		// --- BUG FIX ---
+		// The admin capsule registry must be copied from the parent to the clone.
+		// Without this, privileged tools like 'tool.capsule.Add' will fail
+		// when executed in a sandboxed procedure or command block.
+		adminCapsuleRegistry:      i.adminCapsuleRegistry,
 		maxLoopIterations:         i.maxLoopIterations,
 		bufferManager:             i.bufferManager,
 		objectCache:               i.objectCache,
@@ -43,14 +57,25 @@ func (i *Interpreter) clone() *Interpreter {
 		customEmitFunc:            i.customEmitFunc,
 		customWhisperFunc:         i.customWhisperFunc,
 		eventHandlerErrorCallback: i.eventHandlerErrorCallback,
-		emitter:                   i.emitter, // FIX: Propagate the emitter to the clone.
+		emitter:                   i.emitter,
 	}
+
+	// --- MORE DEBUGGING ---
+	if clone.adminCapsuleRegistry != nil {
+		fmt.Printf("[DEBUG] CLONE %s: Has a NON-NIL admin registry after assignment.\n", clone.id)
+	} else {
+		fmt.Printf("[DEBUG] CLONE %s: Has a NIL admin registry after assignment.\n", clone.id)
+	}
+	fmt.Printf("[DEBUG] >>> CLONING COMPLETE (Clone ID: %s) <<<\n\n", clone.id)
+	// --- END DEBUGGING ---
 
 	if i.tools != nil {
 		clone.tools = i.tools.NewViewForInterpreter(clone)
 	}
 
 	clone.state = newInterpreterState()
+	clone.state.sandboxDir = i.state.sandboxDir
+
 	clone.state.providers = i.state.providers
 	clone.state.knownProcedures = i.state.knownProcedures
 

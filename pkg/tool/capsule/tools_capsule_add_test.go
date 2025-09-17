@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.1
-// File version: 1
-// Purpose: Contains unit tests for the capsule.Add tool.
+// NeuroScript Version: 0.7.2
+// File version: 2
+// Purpose: Corrects the Add tool test to explicitly assert that the tool returns 'true' on success.
 // filename: pkg/tool/capsule/tools_capsule_add_test.go
-// nlines: 55
+// nlines: 60
 // risk_rating: MEDIUM
 package capsule_test
 
@@ -23,7 +23,7 @@ func TestToolCapsule_Add(t *testing.T) {
 
 	testCases := []capsuleTestCase{
 		{
-			name:         "Add capsule with privileged interpreter",
+			name:         "Add capsule with privileged interpreter returns true",
 			toolName:     "Add",
 			args:         []interface{}{capsuleData},
 			isPrivileged: true,
@@ -31,6 +31,17 @@ func TestToolCapsule_Add(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Unexpected error: %v", err)
 				}
+
+				// CRITICAL FIX: Assert that the tool's direct return value is true.
+				resBool, ok := result.(bool)
+				if !ok {
+					t.Fatalf("Expected tool to return a boolean, but got %T", result)
+				}
+				if !resBool {
+					t.Error("Expected tool to return true on success, but it returned false.")
+				}
+
+				// Also verify the side-effect.
 				i := interp.(*interpreter.Interpreter)
 				adminReg := i.CapsuleRegistryForAdmin()
 				c, ok := adminReg.Get("capsule/test-add", "1")

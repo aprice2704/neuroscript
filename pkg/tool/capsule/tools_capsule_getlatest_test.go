@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.1
-// File version: 1
-// Purpose: Contains unit tests for the capsule.GetLatest tool.
-// filename: pkg/tool/capsule/tools_capsule_getlatest_test.go
-// nlines: 44
+// NeuroScript Version: 0.7.2
+// File version: 2
+// Purpose: Corrects the GetLatest tool test to use a custom registry and verify it selects the highest version.
+// filename: pkg/tool/capsule/tools_getlatest_test.go
+// nlines: 42
 // risk_rating: LOW
 package capsule_test
 
@@ -17,13 +17,14 @@ import (
 func TestToolCapsule_GetLatest(t *testing.T) {
 	setup := func(t *testing.T, interp *interpreter.Interpreter) error {
 		customReg := capsule.NewRegistry()
-		customReg.MustRegister(capsule.Capsule{Name: "capsule/multi-ver", Version: "1"})
-		customReg.MustRegister(capsule.Capsule{Name: "capsule/multi-ver", Version: "3"})
-		interpreter.WithCapsuleRegistry(customReg)(interp)
+		customReg.MustRegister(capsule.Capsule{Name: "capsule/multi-ver", Version: "1.0"})
+		customReg.MustRegister(capsule.Capsule{Name: "capsule/multi-ver", Version: "3.0"})
+		customReg.MustRegister(capsule.Capsule{Name: "capsule/multi-ver", Version: "2.5"})
+		interp.CapsuleStore().Add(customReg)
 		return nil
 	}
 	testCase := capsuleTestCase{
-		name:      "Get latest version",
+		name:      "Get latest version from a custom registry",
 		toolName:  "GetLatest",
 		setupFunc: setup,
 		args:      []interface{}{"capsule/multi-ver"},
@@ -35,8 +36,8 @@ func TestToolCapsule_GetLatest(t *testing.T) {
 			if !ok {
 				t.Fatalf("Expected map[string]interface{}, got %T", result)
 			}
-			if resMap["version"] != "3" {
-				t.Errorf("Expected latest version '3', got %v", resMap["version"])
+			if resMap["version"] != "3.0" {
+				t.Errorf("Expected latest version '3.0', got %v", resMap["version"])
 			}
 		},
 	}

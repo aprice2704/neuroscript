@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.1
-// File version: 12
+// NeuroScript Version: 0.7.2
+// File version: 13
 // Purpose: Contains shared unit test helpers for the capsule toolset.
-// filename: pkg/tool/capsule/tools_capsule_test.go
-// nlines: 95
+// filename: pkg/tool/capsule/tools_test.go
+// nlines: 100
 // risk_rating: MEDIUM
 package capsule_test
 
@@ -82,13 +82,6 @@ func testCapsuleToolHelper(t *testing.T, tc capsuleTestCase) {
 	}
 
 	result, err := toolImpl.Func(interp, tc.args)
-
-	if errors.Is(err, policy.ErrPolicy) {
-		if tc.toolName == "Add" && !tc.isPrivileged {
-			return
-		}
-		t.Fatalf("Unexpected policy violation: %v", err)
-	}
 
 	if tc.checkFunc != nil {
 		tc.checkFunc(t, interp, result, err)

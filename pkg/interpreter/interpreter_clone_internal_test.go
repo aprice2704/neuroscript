@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.2
-// File version: 7
-// Purpose: Updates the clone integrity test to correctly handle and verify the new 'emitter' field.
+// File version: 8
+// Purpose: Adds an explicit check to ensure the sandboxDir is correctly propagated to the state of a cloned interpreter.
 // filename: pkg/interpreter/interpreter_clone_internal_test.go
 
 package interpreter
@@ -71,7 +71,18 @@ func TestInterpreter_Clone_Integrity(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create parent interpreter: %v", err)
 	}
+	// Set a specific value to test for propagation.
+	parent.state.sandboxDir = "/test/sandbox/path"
+
 	clone := parent.clone()
+
+	// --- EXPLICIT CHECK FOR SANDBOX PROPAGATION ---
+	// This is the critical check that was missing.
+	if clone.state.sandboxDir != parent.state.sandboxDir {
+		t.Errorf("Sandbox path was not propagated to clone. Parent: '%s', Clone: '%s'",
+			parent.state.sandboxDir, clone.state.sandboxDir)
+	}
+	// --- END EXPLICIT CHECK ---
 
 	// Fields that are EXPECTED to be different (new instances) in the clone.
 	isolatedFields := map[string]bool{

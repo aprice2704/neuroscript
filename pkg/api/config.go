@@ -1,5 +1,5 @@
-// NeuroScript Version: 0.6.0
-// File version: 2
+// NeuroScript Version: 0.7.2
+// File version: 3
 // Purpose: Refactored to use the new fluent policy builder.
 // filename: pkg/api/config.go
 // nlines: 26
@@ -30,6 +30,8 @@ func WithTrustedPolicy(allowedTools []string, grants ...capability.Capability) i
 // pre-configured with a trusted policy. This is the recommended entrypoint for
 // hosts that need to run setup or initialization scripts.
 func NewConfigInterpreter(allowedTools []string, grants []capability.Capability, otherOpts ...Option) *Interpreter {
+	// FIX: The 'otherOpts' were being appended but not passed to New().
+	// This corrects the call to ensure all options, including WithCapsuleAdminRegistry, are applied.
 	opts := []Option{
 		WithTrustedPolicy(allowedTools, grants...),
 	}

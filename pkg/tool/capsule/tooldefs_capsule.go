@@ -1,12 +1,13 @@
-// NeuroScript Version: 0.7.1
-// File version: 3
-// Purpose: Defines the tool specifications for managing documentation capsules.
-// filename: pkg/tool/capsule/tooldefs_capsule.go
-// nlines: 75
+// NeuroScript Version: 0.7.2
+// File version: 5
+// Purpose: Corrects the type reference for RequiredCaps from tool.Capability to capability.Capability.
+// filename: pkg/tool/capsule/tooldefs.go
+// nlines: 78
 // risk_rating: HIGH
 package capsule
 
 import (
+	"github.com/aprice2704/neuroscript/pkg/capability"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
@@ -22,41 +23,35 @@ var CapsuleToolsToRegister = []tool.ToolImplementation{
 			Group:       Group,
 			Description: "Lists the IDs of all available documentation capsules.",
 			ReturnType:  tool.ArgTypeSliceString,
-			Example:     `capsule.List()`,
 		},
-		Func:          toolListCapsules,
+		Func:          listCapsulesFunc,
 		RequiresTrust: false,
-		Effects:       []string{"readonly"},
 	},
 	{
 		Spec: tool.ToolSpec{
 			Name:        "Read",
 			Group:       Group,
-			Description: "Reads the content and metadata of a specific capsule by its full ID (e.g., 'capsule/aeiou@2').",
+			Description: "Reads a capsule by its full ID ('name@version') or the latest version by name.",
 			Args: []tool.ArgSpec{
-				{Name: "id", Type: tool.ArgTypeString, Description: "The fully qualified ID of the capsule.", Required: true},
+				{Name: "id", Type: tool.ArgTypeString, Required: true},
 			},
 			ReturnType: tool.ArgTypeMap,
-			Example:    `capsule.Read("capsule/aeiou@2")`,
 		},
-		Func:          toolReadCapsule,
+		Func:          readCapsuleFunc,
 		RequiresTrust: false,
-		Effects:       []string{"readonly"},
 	},
 	{
 		Spec: tool.ToolSpec{
 			Name:        "GetLatest",
 			Group:       Group,
-			Description: "Gets the latest version of a capsule by its logical name (e.g., 'capsule/aeiou').",
+			Description: "Gets the latest version of a capsule by its logical name.",
 			Args: []tool.ArgSpec{
-				{Name: "name", Type: tool.ArgTypeString, Description: "The logical name of the capsule.", Required: true},
+				{Name: "name", Type: tool.ArgTypeString, Required: true},
 			},
 			ReturnType: tool.ArgTypeMap,
-			Example:    `capsule.GetLatest("capsule/aeiou")`,
 		},
-		Func:          toolGetLatestCapsule,
+		Func:          getLatestCapsuleFunc,
 		RequiresTrust: false,
-		Effects:       []string{"readonly"},
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -64,13 +59,14 @@ var CapsuleToolsToRegister = []tool.ToolImplementation{
 			Group:       Group,
 			Description: "Adds a new capsule to the runtime registry. Requires a privileged interpreter.",
 			Args: []tool.ArgSpec{
-				{Name: "capsuleData", Type: tool.ArgTypeMap, Description: "A map containing the capsule fields (name, version, content, etc.).", Required: true},
+				{Name: "capsuleData", Type: tool.ArgTypeMap, Required: true},
 			},
-			ReturnType: tool.ArgTypeNil,
-			Example:    `capsule.Add({"name":"capsule/my-new-one","version":"1","content":"Hello"})`,
+			ReturnType: tool.ArgTypeBool,
 		},
-		Func:          toolAddCapsule,
+		Func:          addCapsuleFunc,
 		RequiresTrust: true,
-		Effects:       []string{"capsule:write"},
+		RequiredCaps: []capability.Capability{ // <-- CORRECTED
+			{Resource: "capsule", Verbs: []string{"write"}, Scopes: []string{"*"}},
+		},
 	},
 }

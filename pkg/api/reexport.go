@@ -1,8 +1,7 @@
 // NeuroScript Version: 0.7.2
-// File version: 36
+// File version: 37
 // Purpose: Adds the WithCapsuleAdminRegistry option to allow hosts to inject a writable capsule registry.
 // filename: pkg/api/reexport.go
-
 package api
 
 import (
@@ -34,29 +33,31 @@ type (
 		Sum  [32]byte
 		Sig  []byte
 	}
-	Option             = interpreter.InterpreterOption
-	ExecPolicy         = policy.ExecPolicy
-	ExecContext        = policy.ExecContext // Re-export the type
-	Capability         = capability.Capability
-	AIProvider         = provider.AIProvider
-	ToolImplementation = tool.ToolImplementation
-	ToolRegistry       = tool.ToolRegistry
-	ArgSpec            = tool.ArgSpec
-	Runtime            = tool.Runtime
-	ToolFunc           = tool.ToolFunc
-	ToolSpec           = tool.ToolSpec
-	FullName           = types.FullName
-	ToolName           = types.ToolName
-	ToolGroup          = types.ToolGroup
-	ArgType            = tool.ArgType
-	CapsuleRegistry    = capsule.Registry
-	AgentModel         = types.AgentModel
-	AgentModelReader   = interfaces.AgentModelReader
-	AgentModelAdmin    = interfaces.AgentModelAdmin
-	LLMClient          = interfaces.LLMClient
-	GrantSet           = capability.GrantSet
-	RootNode           = ast.Node
-	Program            = ast.Program
+	Option               = interpreter.InterpreterOption
+	ExecPolicy           = policy.ExecPolicy
+	ExecContext          = policy.ExecContext // Re-export the type
+	Capability           = capability.Capability
+	AIProvider           = provider.AIProvider
+	ToolImplementation   = tool.ToolImplementation
+	ToolRegistry         = tool.ToolRegistry
+	ArgSpec              = tool.ArgSpec
+	Runtime              = tool.Runtime
+	ToolFunc             = tool.ToolFunc
+	ToolSpec             = tool.ToolSpec
+	FullName             = types.FullName
+	ToolName             = types.ToolName
+	ToolGroup            = types.ToolGroup
+	ArgType              = tool.ArgType
+	CapsuleRegistry      = capsule.Registry
+	AdminCapsuleRegistry = capsule.Registry // The new type for writable registries
+	Capsule              = capsule.Capsule  // So hosts can construct capsules
+	AgentModel           = types.AgentModel
+	AgentModelReader     = interfaces.AgentModelReader
+	AgentModelAdmin      = interfaces.AgentModelAdmin
+	LLMClient            = interfaces.LLMClient
+	GrantSet             = capability.GrantSet
+	RootNode             = ast.Node
+	Program              = ast.Program
 
 	// --- LLM Telemetry Emitter ---
 	Emitter            = interfaces.Emitter
@@ -130,17 +131,18 @@ const (
 )
 
 var (
-	NewCapability          = capability.New
-	ParseCapability        = capability.Parse
-	MustParse              = capability.MustParse
-	NewWithVerbs           = capability.NewWithVerbs
-	NewLoopController      = aeiou.NewLoopController
-	NewReplayCache         = aeiou.NewReplayCache
-	NewProgressTracker     = aeiou.NewProgressTracker
-	NewMagicVerifier       = aeiou.NewMagicVerifier
-	ComputeHostDigest      = aeiou.ComputeHostDigest
-	NewRotatingKeyProvider = aeiou.NewRotatingKeyProvider
-	NewCapsuleRegistry     = capsule.NewRegistry
-	NewPolicyBuilder       = policy.NewBuilder
-	DecodeWithRegistry     = canon.DecodeWithRegistry
+	NewCapability           = capability.New
+	ParseCapability         = capability.Parse
+	MustParse               = capability.MustParse
+	NewWithVerbs            = capability.NewWithVerbs
+	NewLoopController       = aeiou.NewLoopController
+	NewReplayCache          = aeiou.NewReplayCache
+	NewProgressTracker      = aeiou.NewProgressTracker
+	NewMagicVerifier        = aeiou.NewMagicVerifier
+	ComputeHostDigest       = aeiou.ComputeHostDigest
+	NewRotatingKeyProvider  = aeiou.NewRotatingKeyProvider
+	NewCapsuleRegistry      = capsule.NewRegistry
+	NewAdminCapsuleRegistry = capsule.NewRegistry // The new constructor
+	NewPolicyBuilder        = policy.NewBuilder
+	DecodeWithRegistry      = canon.DecodeWithRegistry
 )

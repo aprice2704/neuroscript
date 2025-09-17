@@ -1,5 +1,5 @@
-// NeuroScript Version: 0.7.1
-// File version: 1
+// NeuroScript Version: 0.7.2
+// File version: 2
 // Purpose: Registers the 'capsule' toolset with the NeuroScript engine.
 // filename: pkg/tool/capsule/register.go
 // nlines: 15

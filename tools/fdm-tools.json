@@ -799,6 +799,134 @@
   },
   {
     "spec": {
+      "name": "unlock",
+      "groupname": "fdm.kms",
+      "fullname": "",
+      "description": "Unseals the Key Management Service. Privileged.",
+      "args": [
+        {
+          "name": "passphrase",
+          "type": "string",
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "raw_key_b64",
+          "type": "string",
+          "description": "",
+          "required": false
+        }
+      ],
+      "returnType": "map"
+    },
+    "requiresTrust": true,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "lock",
+      "groupname": "fdm.kms",
+      "fullname": "",
+      "description": "Seals the Key Management Service. Privileged.",
+      "returnType": "map"
+    },
+    "requiresTrust": true,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "status",
+      "groupname": "fdm.kms",
+      "fullname": "",
+      "description": "Gets the current status of the Key Management Service.",
+      "returnType": "map"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "generate",
+      "groupname": "fdm.kms",
+      "fullname": "",
+      "description": "Generates a new named key. Privileged.",
+      "args": [
+        {
+          "name": "label",
+          "type": "string",
+          "description": "",
+          "required": true
+        },
+        {
+          "name": "kind",
+          "type": "string",
+          "description": "One of: Ed25519, X25519, HMAC, AES256",
+          "required": true
+        }
+      ],
+      "returnType": "map"
+    },
+    "requiresTrust": true,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "sign",
+      "groupname": "fdm.kms",
+      "fullname": "",
+      "description": "Signs a message with a named key.",
+      "args": [
+        {
+          "name": "label",
+          "type": "string",
+          "description": "",
+          "required": true
+        },
+        {
+          "name": "data_b64",
+          "type": "string",
+          "description": "",
+          "required": true
+        },
+        {
+          "name": "key_id",
+          "type": "string",
+          "description": "",
+          "required": false
+        }
+      ],
+      "returnType": "map"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_public",
+      "groupname": "fdm.kms",
+      "fullname": "",
+      "description": "Retrieves the public key for a named asymmetric key.",
+      "args": [
+        {
+          "name": "label",
+          "type": "string",
+          "description": "",
+          "required": true
+        },
+        {
+          "name": "key_id",
+          "type": "string",
+          "description": "",
+          "required": false
+        }
+      ],
+      "returnType": "map"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
       "name": "add_mount",
       "groupname": "fdm.persist_admin",
       "fullname": "",
@@ -919,6 +1047,28 @@
         }
       ],
       "returnType": "string"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_startup_capsule",
+      "groupname": "agent",
+      "fullname": "",
+      "description": "Retrieves the agent's private startup capsule data from the FDM.",
+      "returnType": "any"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_identity",
+      "groupname": "agent",
+      "fullname": "",
+      "description": "Retrieves the agent's own core identity attributes.",
+      "returnType": "map"
     },
     "requiresTrust": false,
     "signatureChecksum": ""
