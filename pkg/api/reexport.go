@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.2
-// File version: 37
-// Purpose: Adds the WithCapsuleAdminRegistry option to allow hosts to inject a writable capsule registry.
+// File version: 38
+// Purpose: Corrects the AdminCapsuleRegistry alias to point to the public CapsuleRegistry type, resolving the export issue.
 // filename: pkg/api/reexport.go
 package api
 
@@ -49,8 +49,8 @@ type (
 	ToolGroup            = types.ToolGroup
 	ArgType              = tool.ArgType
 	CapsuleRegistry      = capsule.Registry
-	AdminCapsuleRegistry = capsule.Registry // The new type for writable registries
-	Capsule              = capsule.Capsule  // So hosts can construct capsules
+	AdminCapsuleRegistry = CapsuleRegistry // FIX: Alias the public type to make it exportable.
+	Capsule              = capsule.Capsule // So hosts can construct capsules
 	AgentModel           = types.AgentModel
 	AgentModelReader     = interfaces.AgentModelReader
 	AgentModelAdmin      = interfaces.AgentModelAdmin

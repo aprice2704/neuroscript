@@ -9,12 +9,15 @@ We use **Go 1.24+**. These rules emphasize correctness, minimalism, and context 
 ---
 ## 🔴 TOP CRITICAL RULES — ALWAYS OBEY
 
-include only one file (unless I say otherwise) per turn, always with a list of files you are yet to provide
-include the starting comment block of golang files **within** code fences
-do not use github.com.com *ever*, it does not exist, thx
-
-
 ### 0. COMMANDS
+
+
+- include only one file (unless I say otherwise) per turn, always with a list of files you are yet to provide
+- include the starting comment block of golang files **within** code fences
+- we use goimports to correct import lines, you do not need to worry about them, just get package names (e.g. fmt. etc) correct in the code
+- do not use "github.com.com" or "github.comcom" *ever*, they do not exist
+
+
 - If I end a prompt with code- or -code, DO **NOT** GIVE ME FILES that turn
 - If I end a prompt with code+ or +code, do provide files
 
