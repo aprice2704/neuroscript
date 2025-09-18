@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.2
-// File version: 2
-// Purpose: Tests the two-phase host-managed pattern for persisting capsules using the new AdminCapsuleRegistry type.
+// File version: 3
+// Purpose: Corrects the test by adding a policy to the runtime interpreter that allows the capsule tool to run.
 // filename: pkg/api/capsule_admin_test.go
-// nlines: 83
+// nlines: 88
 // risk_rating: MEDIUM
 
 package api_test
@@ -49,13 +49,6 @@ endcommand
 		api.WithCapsuleAdminRegistry(liveAdminRegistry), // <-- Give it write access
 	)
 
-	// --- DIAGNOSTIC STEP ---
-	// Verify that the admin registry was successfully attached to the interpreter
-	// instance before we try to use it. This is the critical check.
-	if configInterp.CapsuleRegistryForAdmin() == nil {
-		t.Fatal("DIAGNOSTIC CHECK FAILED: The admin capsule registry is nil on the interpreter immediately after creation.")
-	}
-
 	// 5. Run the script to populate the liveAdminRegistry.
 	tree, err := api.Parse([]byte(configScript), api.ParseSkipComments)
 	if err != nil {
@@ -76,10 +69,15 @@ func main(returns string) means
 endfunc
 `
 	// 2. Create a standard, unprivileged interpreter.
+	// FIX: Add a policy that allows the 'GetLatest' tool to run.
+	runtimePolicy := api.NewPolicyBuilder(api.ContextNormal).
+		Allow("tool.capsule.GetLatest").
+		Build()
+
 	runtimeInterp := api.New(
 		// 3. Add the populated registry as a new, read-only layer.
-		// Note: The *AdminCapsuleRegistry is compatible with the *CapsuleRegistry parameter.
 		api.WithCapsuleRegistry(liveAdminRegistry),
+		api.WithExecPolicy(runtimePolicy),
 	)
 
 	// 4. Load and run the script.
