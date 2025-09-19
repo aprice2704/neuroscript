@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.2
-// Purpose: CRITICAL FIX - Add blank import for toolbundles to ensure tools are registered at startup.
+// File version: 0.1.3
+// Purpose: CRITICAL FIX - Add blank import for toolbundles to ensure tools are registered at startup. FEAT: Add build-time variable injection for versioning.
 // filename: cmd/nslsp/main.go
-// nlines: 55
+// nlines: 63
 // risk_rating: LOW
 
 package main
@@ -17,12 +17,24 @@ import (
 	"github.com/sourcegraph/jsonrpc2"
 )
 
-// This version will be our ground truth.
-const serverVersion = "1.0.2"
+var buildDate string // These variables are set by the linker during the build process.
 
 func main() {
-	logger := log.New(os.Stderr, "[nslsp] ", log.LstdFlags|log.Lshortfile)
-	logger.Printf("--- NeuroScript Language Server STARTING - VERSION %s ---", serverVersion)
+
+	// THE FIX IS HERE: Log to a file instead of stderr.
+	logFile, err := os.OpenFile("/tmp/nslsp.log", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
+	if err != nil {
+		// If we can't create the log file, we can't run.
+		// A silent exit is bad, but logging to stderr would break the client.
+		// In a real-world scenario, you might try a fallback path.
+		return
+	}
+	defer logFile.Close()
+
+	logger := log.New(logFile, "[nslsp] ", log.LstdFlags|log.Lshortfile)
+
+	logger.Printf("--- NeuroScript Language Server ---\n\tVersion: %s",
+		buildDate)
 
 	server := nslsp.NewServer(logger)
 

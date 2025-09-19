@@ -1,8 +1,8 @@
 # NeuroScript Version: 0.3.0
-# File version: 14
-# Purpose: Build system configuration for the NeuroScript project.
+# File version: 16
+# Purpose: Build system configuration for the NeuroScript project. FEAT: Standardized build-time variable injection for both nslsp and ng.
 # filename: Makefile
-# nlines: 139
+# nlines: 144
 # risk_rating: LOW
 
 # Directories
@@ -23,12 +23,16 @@ else
 endif
 
 # --- Versioning ---
-G4_VERSION := $(shell grep -m 1 -i 'NeuroScript Version:' $(G4_FILE) | awk '{print $$NF}')
-BUILD_TIMESTAMP := $(shell TZ='America/Los_Angeles' date +'%Y%m%d%H%M')
+G4_VERSION      := $(shell grep -m 1 -i 'NeuroScript Version:' $(G4_FILE) | awk '{print $$NF}')
+GIT_COMMIT      := $(shell git rev-parse HEAD)
+BUILD_DATE      := $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
+
 
 # --- Go Build Configuration ---
 GO := go
-GOFLAGS := -ldflags="-X 'main.AppVersion=$(BUILD_TIMESTAMP)'"
+# THE FIX IS HERE: A single, consistent set of linker flags for all binaries.
+# Assumes the target main packages (ng, nslsp) have 'version', 'commit', and 'buildDate' variables.
+LDFLAGS := -ldflags="-X 'main.version=$(G4_VERSION)' -X 'main.commit=$(GIT_COMMIT)' -X 'main.buildDate=$(BUILD_DATE)'"
 
 # Find all .go files in the project to use as dependencies
 ALL_PKG_GO_FILES   := $(shell find $(PKG_DIR) -name '*.go')
@@ -62,11 +66,12 @@ install: $(BIN_INSTALL_DIR)/nslsp $(BIN_INSTALL_DIR)/ng
 
 $(BIN_INSTALL_DIR)/nslsp: $(NSLSP_GO_FILES) $(ALL_PKG_GO_FILES) $(ANTLR_STAMP_FILE)
 	@echo "--> Installing nslsp Go binary to $(BIN_INSTALL_DIR)..."
-	$(GO) install $(GOFLAGS) ./cmd/nslsp
+	$(GO) install $(LDFLAGS) ./cmd/nslsp
 
 $(BIN_INSTALL_DIR)/ng: $(NG_GO_FILES) $(ALL_PKG_GO_FILES) $(ANTLR_STAMP_FILE)
 	@echo "--> Installing ng Go binary to $(BIN_INSTALL_DIR)..."
-	$(GO) install $(GOFLAGS) ./cmd/ng
+	# Note: This assumes cmd/ng/main.go is updated to use version, commit, and buildDate vars.
+	$(GO) install $(LDFLAGS) ./cmd/ng
 	@echo "--> Updating alltools.md documentation..."
 	@$(BIN_INSTALL_DIR)/ng -trusted-config ./library/list_tools.ns.txt > alltools.md
 

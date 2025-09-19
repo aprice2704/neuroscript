@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.0
-// File version: 2
-// Purpose: Provides utilities for extracting and validating metadata.
+// File version: 3
+// Purpose: Provides utilities for extracting and validating metadata, exporting NormalizeKey.
 // filename: pkg/metadata/utility.go
 // nlines: 98
 // risk_rating: LOW
@@ -24,9 +24,9 @@ var (
 // keyNormalizeRegex is used to remove characters that are ignored during key matching.
 var keyNormalizeRegex = regexp.MustCompile(`[._-]+`)
 
-// normalizeKey implements the key matching rule from the spec:
+// NormalizeKey implements the key matching rule from the spec:
 // "the case of the letters, and the characters underscore, dot and dash (_.-) are ignored"
-func normalizeKey(key string) string {
+func NormalizeKey(key string) string {
 	lower := strings.ToLower(key)
 	return keyNormalizeRegex.ReplaceAllString(lower, "")
 }
@@ -42,14 +42,14 @@ func NewExtractor(s Store) *Extractor {
 	// We create a new store with normalized keys for efficient lookups.
 	normalizedStore := make(Store)
 	for k, v := range s {
-		normalizedStore[normalizeKey(k)] = v
+		normalizedStore[NormalizeKey(k)] = v
 	}
 	return &Extractor{store: normalizedStore}
 }
 
 // Get retrieves a value by key. Returns the value and true if the key exists.
 func (e *Extractor) Get(key string) (string, bool) {
-	val, ok := e.store[normalizeKey(key)]
+	val, ok := e.store[NormalizeKey(key)]
 	return val, ok
 }
 
@@ -63,7 +63,7 @@ func (e *Extractor) GetOr(key string, defaultValue string) string {
 
 // MustGet retrieves a value by key. It returns the value, or an empty string if not found.
 func (e *Extractor) MustGet(key string) string {
-	return e.store[normalizeKey(key)]
+	return e.store[NormalizeKey(key)]
 }
 
 // GetInt retrieves a value by key and attempts to parse it as an integer.
@@ -98,7 +98,7 @@ func (e *Extractor) GetIntOr(key string, defaultValue int) (int, error) {
 func (e *Extractor) CheckRequired(keys ...string) error {
 	var missing []string
 	for _, k := range keys {
-		if _, ok := e.store[normalizeKey(k)]; !ok {
+		if _, ok := e.store[NormalizeKey(k)]; !ok {
 			missing = append(missing, k)
 		}
 	}

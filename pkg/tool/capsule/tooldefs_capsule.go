@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.2
-// File version: 5
-// Purpose: Corrects the type reference for RequiredCaps from tool.Capability to capability.Capability.
+// File version: 7
+// Purpose: Updates the 'Add' tool's return type to map.
 // filename: pkg/tool/capsule/tooldefs.go
 // nlines: 78
 // risk_rating: HIGH
@@ -57,15 +57,15 @@ var CapsuleToolsToRegister = []tool.ToolImplementation{
 		Spec: tool.ToolSpec{
 			Name:        "Add",
 			Group:       Group,
-			Description: "Adds a new capsule to the runtime registry. Requires a privileged interpreter.",
+			Description: "Adds a new capsule to the runtime registry by parsing its content. Requires a privileged interpreter.",
 			Args: []tool.ArgSpec{
-				{Name: "capsuleData", Type: tool.ArgTypeMap, Required: true},
+				{Name: "capsuleContent", Type: tool.ArgTypeString, Required: true},
 			},
-			ReturnType: tool.ArgTypeBool,
+			ReturnType: tool.ArgTypeMap,
 		},
 		Func:          addCapsuleFunc,
 		RequiresTrust: true,
-		RequiredCaps: []capability.Capability{ // <-- CORRECTED
+		RequiredCaps: []capability.Capability{
 			{Resource: "capsule", Verbs: []string{"write"}, Scopes: []string{"*"}},
 		},
 	},

@@ -15,6 +15,7 @@ All metadata is expressed as a simple key-value pair on a single line, intended 
     -   Must be camelCase. Parsers must treat keys as case-insensitive.
     -   Must match the character set [a-zA-Z0-9_.-]+.-   Separator: A single colon (:) must follow the key.
 -   Value: The value is the remainder of the line. Parsers must trim leading and trailing whitespace from the value.
+-   Blank lines are not permitted in metadata blocks and will be considered boundaries of them.
 
 ### 1.1 Key Matching
 

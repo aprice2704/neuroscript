@@ -1,6 +1,13 @@
 Executing trusted config script: ./library/list_tools.ns.txt
 Interpreter created with elevated privileges.
+[DEBUG] ExecWithInterpreter: Admin registry is NIL on internal interpreter before ExecuteCommands.
 Running procedure 'main'...
+
+[DEBUG] >>> CLONING INTERPRETER (Parent ID: interp-0772bac6) <<<
+[DEBUG] PARENT interp-0772bac6: Has a NIL admin registry at clone time. THIS IS LIKELY THE CAUSE OF THE BUG.
+[DEBUG] CLONE interp-33179bcd: Has a NIL admin registry after assignment.
+[DEBUG] >>> CLONING COMPLETE (Clone ID: interp-33179bcd) <<<
+
 Compact Tool List:
 tool.account.Delete(name:string) -> bool [caps: account:admin:*]
 tool.account.Exists(name:string) -> bool [caps: account:read:*]
@@ -13,6 +20,7 @@ tool.agentmodel.List() -> slice_string [caps: model:read:*]
 tool.agentmodel.Register(name:string, config:map) -> bool [caps: model:admin:*]
 tool.agentmodel.Select(name:string?) -> string [caps: model:read:*]
 tool.agentmodel.Update(name:string, updates:map) -> bool [caps: model:admin:*]
+tool.capsule.Add(capsuleContent:string) -> map [caps: capsule:write:*]
 tool.capsule.GetLatest(name:string) -> map
 tool.capsule.List() -> slice_string
 tool.capsule.Read(id:string) -> map
@@ -284,18 +292,25 @@ _None_
 **Returns:** (`bool`) 
 ---
 
-## `tool.capsule.GetLatest`
-**Description:** Gets the latest version of a capsule by its logical name (e.g., 'capsule/aeiou').
+## `tool.capsule.Add`
+**Description:** Adds a new capsule to the runtime registry by parsing its content. Requires a privileged interpreter.
+
+**Required Capabilities:**
+* `capsule:write:*`
 
 **Parameters:**
-* `name` (`string`): The logical name of the capsule.
+* `capsuleContent` (`string`): 
 
 **Returns:** (`map`) 
+---
 
-**Example:**
-```neuroscript
-capsule.GetLatest("capsule/aeiou")
-```
+## `tool.capsule.GetLatest`
+**Description:** Gets the latest version of a capsule by its logical name.
+
+**Parameters:**
+* `name` (`string`): 
+
+**Returns:** (`map`) 
 ---
 
 ## `tool.capsule.List`
@@ -305,25 +320,15 @@ capsule.GetLatest("capsule/aeiou")
 _None_
 
 **Returns:** (`slice_string`) 
-
-**Example:**
-```neuroscript
-capsule.List()
-```
 ---
 
 ## `tool.capsule.Read`
-**Description:** Reads the content and metadata of a specific capsule by its full ID (e.g., 'capsule/aeiou@2').
+**Description:** Reads a capsule by its full ID ('name@version') or the latest version by name.
 
 **Parameters:**
-* `id` (`string`): The fully qualified ID of the capsule.
+* `id` (`string`): 
 
 **Returns:** (`map`) 
-
-**Example:**
-```neuroscript
-capsule.Read("capsule/aeiou@2")
-```
 ---
 
 ## `tool.debug.dumpClones`

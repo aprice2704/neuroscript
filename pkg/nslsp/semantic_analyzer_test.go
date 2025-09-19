@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.6.0
-// File version: 8
-// Purpose: Updated tests to use the server.interpreter.ToolRegistry() method.
+// NeuroScript Version: 0.7.0
+// File version: 10
+// Purpose: Updated tests to provide the new SymbolManager dependency when creating a SemanticAnalyzer.
 // filename: pkg/nslsp/semantic_analyzer_test.go
-// nlines: 155
+// nlines: 165
 // risk_rating: MEDIUM
 
 package nslsp
@@ -13,7 +13,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/parser"
@@ -24,7 +23,6 @@ import (
 func TestSemanticAnalyzer_BuiltInTools(t *testing.T) {
 	// --- Setup: Create a server to get a real tool registry ---
 	server := NewServer(log.New(io.Discard, "", 0))
-	// THE FIX IS HERE: Access the tool registry via the interpreter and its method.
 	registry := server.interpreter.ToolRegistry()
 	if registry == nil {
 		t.Fatal("Failed to get tool registry from new server instance.")
@@ -32,34 +30,36 @@ func TestSemanticAnalyzer_BuiltInTools(t *testing.T) {
 
 	parserAPI := parser.NewParserAPI(nil)
 	isDebug := os.Getenv("DEBUG_LSP_HOVER_TEST") != ""
-	analyzer := NewSemanticAnalyzer(registry, NewExternalToolManager(), isDebug)
+	// THE FIX IS HERE
+	symbolManager := NewSymbolManager(log.New(io.Discard, "", 0))
+	analyzer := NewSemanticAnalyzer(registry, NewExternalToolManager(), symbolManager, isDebug)
 
 	t.Logf("[SemanticAnalyzerTest] Tool registry initialized with %d tools for test run.", registry.NTools())
 
 	testCases := []struct {
-		name              string
-		script            string
-		expectedErrorMsgs []string
+		name         string
+		script       string
+		expectedCode interface{} // Can be nil if no error is expected
 	}{
 		{
-			name:              "Valid: Correct tool and argument count (Mixed Case)",
-			script:            "func M() means\n  set x = tool.FS.Read(\"/path/to/file\")\nendfunc",
-			expectedErrorMsgs: []string{},
+			name:         "Valid: Correct tool and argument count (Mixed Case)",
+			script:       "func M() means\n  set x = tool.FS.Read(\"/path/to/file\")\nendfunc",
+			expectedCode: nil,
 		},
 		{
-			name:              "Invalid: Undefined tool",
-			script:            "func M() means\n  set x = tool.nonexistent.Tool()\nendfunc",
-			expectedErrorMsgs: []string{"Tool 'tool.nonexistent.Tool' is not defined."},
+			name:         "Invalid: Undefined tool",
+			script:       "func M() means\n  set x = tool.nonexistent.Tool()\nendfunc",
+			expectedCode: string(DiagCodeToolNotFound),
 		},
 		{
-			name:              "Invalid: Too few arguments for tool.FS.Read",
-			script:            "func M() means\n  set x = tool.FS.Read()\nendfunc",
-			expectedErrorMsgs: []string{"Expected 1 argument(s) for tool 'tool.FS.Read', but got 0."},
+			name:         "Invalid: Too few arguments for tool.FS.Read",
+			script:       "func M() means\n  set x = tool.FS.Read()\nendfunc",
+			expectedCode: string(DiagCodeArgCountMismatch),
 		},
 		{
-			name:              "Invalid: Too many arguments for tool.FS.Read",
-			script:            "func M() means\n  set x = tool.FS.Read(\"a\", \"b\")\nendfunc",
-			expectedErrorMsgs: []string{"Expected 1 argument(s) for tool 'tool.FS.Read', but got 2."},
+			name:         "Invalid: Too many arguments for tool.FS.Read",
+			script:       "func M() means\n  set x = tool.FS.Read(\"a\", \"b\")\nendfunc",
+			expectedCode: string(DiagCodeArgCountMismatch),
 		},
 	}
 
@@ -75,14 +75,19 @@ func TestSemanticAnalyzer_BuiltInTools(t *testing.T) {
 
 			diagnostics := analyzer.Analyze(tree)
 
-			if len(diagnostics) != len(tc.expectedErrorMsgs) {
-				t.Fatalf("Expected %d diagnostic(s), but got %d. Diagnostics: %v", len(tc.expectedErrorMsgs), len(diagnostics), diagnostics)
+			if tc.expectedCode == nil {
+				if len(diagnostics) != 0 {
+					t.Fatalf("Expected 0 diagnostics, but got %d. Diagnostics: %v", len(diagnostics), diagnostics)
+				}
+				return
 			}
 
-			for i, expectedMsg := range tc.expectedErrorMsgs {
-				if !strings.Contains(diagnostics[i].Message, expectedMsg) {
-					t.Errorf("Expected diagnostic message to contain '%s', but got '%s'", expectedMsg, diagnostics[i].Message)
-				}
+			if len(diagnostics) != 1 {
+				t.Fatalf("Expected 1 diagnostic, but got %d. Diagnostics: %v", len(diagnostics), diagnostics)
+			}
+
+			if diagnostics[0].Code != tc.expectedCode {
+				t.Errorf("Expected diagnostic code '%v', but got '%v'", tc.expectedCode, diagnostics[0].Code)
 			}
 		})
 	}
@@ -120,28 +125,30 @@ func TestSemanticAnalyzer_WithExternalTools(t *testing.T) {
 	externalManager := NewExternalToolManager()
 	externalManager.LoadFromPaths(log.New(io.Discard, "", 0), tempDir, []string{"external-tools.json"})
 
-	analyzer := NewSemanticAnalyzer(nil, externalManager, false)
+	// THE FIX IS HERE
+	symbolManager := NewSymbolManager(log.New(io.Discard, "", 0))
+	analyzer := NewSemanticAnalyzer(nil, externalManager, symbolManager, false)
 
 	// 3. Define test cases
 	testCases := []struct {
-		name              string
-		script            string
-		expectedErrorMsgs []string
+		name         string
+		script       string
+		expectedCode interface{}
 	}{
 		{
-			name:              "Valid: Correct external tool and argument count",
-			script:            "func M() means\n  set x = tool.fdm.core.SaveMemory(\"handle1\")\nendfunc",
-			expectedErrorMsgs: []string{},
+			name:         "Valid: Correct external tool and argument count",
+			script:       "func M() means\n  set x = tool.fdm.core.SaveMemory(\"handle1\")\nendfunc",
+			expectedCode: nil,
 		},
 		{
-			name:              "Invalid: Too few arguments for external tool",
-			script:            "func M() means\n  set x = tool.fdm.core.SaveMemory()\nendfunc",
-			expectedErrorMsgs: []string{"Expected 1 argument(s) for tool 'tool.fdm.core.SaveMemory', but got 0."},
+			name:         "Invalid: Too few arguments for external tool",
+			script:       "func M() means\n  set x = tool.fdm.core.SaveMemory()\nendfunc",
+			expectedCode: string(DiagCodeArgCountMismatch),
 		},
 		{
-			name:              "Invalid: Undefined external tool in known group",
-			script:            "func M() means\n  set x = tool.fdm.core.DeleteMemory()\nendfunc",
-			expectedErrorMsgs: []string{"Tool 'tool.fdm.core.DeleteMemory' is not defined."},
+			name:         "Invalid: Undefined external tool in known group",
+			script:       "func M() means\n  set x = tool.fdm.core.DeleteMemory()\nendfunc",
+			expectedCode: string(DiagCodeToolNotFound),
 		},
 	}
 
@@ -154,13 +161,17 @@ func TestSemanticAnalyzer_WithExternalTools(t *testing.T) {
 			}
 			diagnostics := analyzer.Analyze(tree)
 
-			if len(diagnostics) != len(tc.expectedErrorMsgs) {
-				t.Fatalf("Expected %d diagnostic(s), but got %d. Diagnostics: %v", len(tc.expectedErrorMsgs), len(diagnostics), diagnostics)
-			}
-			for i, expectedMsg := range tc.expectedErrorMsgs {
-				if !strings.Contains(diagnostics[i].Message, expectedMsg) {
-					t.Errorf("Expected diagnostic message to contain '%s', but got '%s'", expectedMsg, diagnostics[i].Message)
+			if tc.expectedCode == nil {
+				if len(diagnostics) != 0 {
+					t.Fatalf("Expected 0 diagnostics, but got %d.", len(diagnostics))
 				}
+				return
+			}
+			if len(diagnostics) != 1 {
+				t.Fatalf("Expected 1 diagnostic, but got %d.", len(diagnostics))
+			}
+			if diagnostics[0].Code != tc.expectedCode {
+				t.Errorf("Expected diagnostic code '%v', but got '%v'", tc.expectedCode, diagnostics[0].Code)
 			}
 		})
 	}

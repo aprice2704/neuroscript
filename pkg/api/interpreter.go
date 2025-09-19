@@ -8,7 +8,6 @@ package api
 
 import (
 	"errors"
-	"fmt"
 	"io"
 
 	"github.com/aprice2704/neuroscript/pkg/capsule"
@@ -30,7 +29,7 @@ type Interpreter struct {
 // New creates a new, persistent NeuroScript interpreter instance.
 func New(opts ...Option) *Interpreter {
 	// --- DEBUG ---
-	fmt.Printf("[DEBUG] api.New() called with %d options.\n", len(opts))
+	//fmt.Printf("[DEBUG] api.New() called with %d options.\n", len(opts))
 	i := interpreter.NewInterpreter(opts...)
 	if i.ExecPolicy == nil {
 		i.ExecPolicy = &policy.ExecPolicy{
@@ -43,11 +42,11 @@ func New(opts ...Option) *Interpreter {
 	i.RegisterProvider("google", googleProvider)
 
 	// --- DEBUG ---
-	if i.CapsuleRegistryForAdmin() != nil {
-		fmt.Println("[DEBUG] api.New(): Admin registry is PRESENT after initialization.")
-	} else {
-		fmt.Println("[DEBUG] api.New(): Admin registry is NIL after initialization.")
-	}
+	// if i.CapsuleRegistryForAdmin() != nil {
+	// 	fmt.Println("[DEBUG] api.New(): Admin registry is PRESENT after initialization.")
+	// } else {
+	// 	fmt.Println("[DEBUG] api.New(): Admin registry is NIL after initialization.")
+	// }
 	return &Interpreter{internal: i}
 }
 
@@ -100,11 +99,11 @@ func (i *Interpreter) CapsuleStore() *capsule.Store {
 func (i *Interpreter) CapsuleRegistryForAdmin() *AdminCapsuleRegistry {
 	// --- DEBUG ---
 	reg := i.internal.CapsuleRegistryForAdmin()
-	if reg != nil {
-		fmt.Println("[DEBUG] api.Interpreter.CapsuleRegistryForAdmin(): Returning PRESENT admin registry.")
-	} else {
-		fmt.Println("[DEBUG] api.Interpreter.CapsuleRegistryForAdmin(): Returning NIL admin registry.")
-	}
+	// if reg != nil {
+	// 	fmt.Println("[DEBUG] api.Interpreter.CapsuleRegistryForAdmin(): Returning PRESENT admin registry.")
+	// } else {
+	// 	fmt.Println("[DEBUG] api.Interpreter.CapsuleRegistryForAdmin(): Returning NIL admin registry.")
+	// }
 	return reg
 }
 

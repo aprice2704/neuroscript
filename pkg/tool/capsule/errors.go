@@ -15,5 +15,5 @@ var (
 
 	// ErrInvalidCapsuleData is returned by the Add tool when the provided
 	// map is missing required fields or has incorrect types.
-	ErrInvalidCapsuleData = errors.New("invalid capsule data: map must contain non-empty 'name' and 'version' string fields")
+	ErrInvalidCapsuleData = errors.New("invalid capsule data: map must contain non-empt 'id' and 'version' string fields")
 )

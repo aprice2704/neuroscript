@@ -1,13 +1,14 @@
 // NeuroScript Version: 0.7.2
-// File version: 4
-// Purpose: Updates negative-path tests to check for the correct sentinel errors instead of fragile string comparisons.
+// File version: 7
+// Purpose: Updates the negative test for the 'Add' tool to correctly test for missing id/version, not missing serialization.
 // filename: pkg/tool/capsule/tools_capsule_negative_test.go
-// nlines: 90
+// nlines: 120
 // risk_rating: MEDIUM
 package capsule_test
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -42,32 +43,81 @@ func TestToolCapsule_NegativeCases(t *testing.T) {
 		testCapsuleToolHelper(t, testCase)
 	})
 
-	// --- Add Negative Cases ---
-	t.Run("Add fails with non-map argument", func(t *testing.T) {
+	t.Run("Read returns error map for non-existent capsule", func(t *testing.T) {
 		testCase := capsuleTestCase{
-			name:         "Add with non-map arg",
-			toolName:     "Add",
-			args:         []interface{}{"not-a-map"},
-			isPrivileged: true,
-			// CRITICAL FIX: Check for the sentinel error.
-			wantToolErrIs: toolcapsule.ErrInvalidCapsuleData,
+			name:     "Read non-existent",
+			toolName: "Read",
+			args:     []interface{}{"capsule/no-such-capsule@99"},
+			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error) {
+				if err != nil {
+					t.Fatalf("Unexpected tool error: %v", err)
+				}
+				unwrapped := lang.Unwrap(result.(lang.Value))
+				resMap, ok := unwrapped.(map[string]interface{})
+				if !ok {
+					t.Fatalf("Expected unwrapped result to be a map, but got %T", unwrapped)
+				}
+				if resMap["code"] != "not_found" {
+					t.Errorf("Expected error code 'not_found', got %v", resMap["code"])
+				}
+			},
 		}
 		testCapsuleToolHelper(t, testCase)
 	})
 
-	t.Run("Add fails with missing name field", func(t *testing.T) {
-		badData := map[string]interface{}{
-			// "name": "is missing",
-			"version": "1",
-			"content": "test",
-		}
+	t.Run("Read returns error map for malformed ID", func(t *testing.T) {
 		testCase := capsuleTestCase{
-			name:         "Add with missing name",
-			toolName:     "Add",
-			args:         []interface{}{badData},
-			isPrivileged: true,
-			// CRITICAL FIX: Check for the sentinel error.
+			name:     "Read malformed ID",
+			toolName: "Read",
+			args:     []interface{}{"capsule/aeiou"}, // Missing @version
+			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error) {
+				if err != nil {
+					t.Fatalf("Unexpected tool error: %v", err)
+				}
+				unwrapped := lang.Unwrap(result.(lang.Value))
+				resMap, ok := unwrapped.(map[string]interface{})
+				if !ok {
+					t.Fatalf("Expected unwrapped result to be a map, but got %T", unwrapped)
+				}
+				if resMap["code"] != "invalid_argument" {
+					t.Errorf("Expected error code 'invalid_argument', got %v", resMap["code"])
+				}
+			},
+		}
+		testCapsuleToolHelper(t, testCase)
+	})
+
+	// --- Add Negative Cases ---
+	t.Run("Add fails with non-string argument", func(t *testing.T) {
+		testCase := capsuleTestCase{
+			name:          "Add with non-string arg",
+			toolName:      "Add",
+			args:          []interface{}{12345}, // Not a string
+			isPrivileged:  true,
+			wantToolErrIs: lang.ErrInvalidArgument,
+		}
+		testCapsuleToolHelper(t, testCase)
+	})
+
+	t.Run("Add fails with missing required metadata", func(t *testing.T) {
+		// This content now includes serialization, so the parse will succeed,
+		// but the subsequent check for 'id' and 'version' will fail.
+		badContent := `This content is missing the required id and version.
+::serialization: md`
+		testCase := capsuleTestCase{
+			name:          "Add with missing metadata",
+			toolName:      "Add",
+			args:          []interface{}{badContent},
+			isPrivileged:  true,
 			wantToolErrIs: toolcapsule.ErrInvalidCapsuleData,
+			checkFunc: func(t *testing.T, interp tool.Runtime, result interface{}, err error) {
+				if !errors.Is(err, toolcapsule.ErrInvalidCapsuleData) {
+					t.Fatalf("Expected error wrapping [%v], but got: %v", toolcapsule.ErrInvalidCapsuleData, err)
+				}
+				if !strings.Contains(err.Error(), "missing required metadata keys: [id version]") {
+					t.Errorf("Expected error to mention missing keys, but it did not. Got: %v", err)
+				}
+			},
 		}
 		testCapsuleToolHelper(t, testCase)
 	})

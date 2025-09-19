@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.1
-// File version: 3
-// Purpose: Implements a layered, version-aware registry store for capsules, allowing hosts to add their own.
+// NeuroScript Version: 0.7.2
+// File version: 5
+// Purpose: Tightens the capsule name validation regex to allow only letters, numbers, underscores, and hyphens.
 // filename: pkg/capsule/registry.go
-// nlines: 220
+// nlines: 226
 // risk_rating: HIGH
 
 package capsule
@@ -35,13 +35,16 @@ type Capsule struct {
 
 var (
 	// nameRE validates the <name> part of a capsule id.
-	nameRE = regexp.MustCompile(`^capsule/[a-z0-9._-]+$`)
+	nameRE = regexp.MustCompile(`^capsule/[a-z0-9_-]+$`)
 )
 
 // ValidateName returns nil if name is well-formed.
 func ValidateName(name string) error {
 	if !nameRE.MatchString(name) {
-		return errors.New("invalid capsule name; expected capsule/<name>")
+		return errors.New("invalid capsule name; expected capsule/<name> with only a-z, 0-9, _, -")
+	}
+	if strings.Contains(name, "@") {
+		return errors.New("invalid capsule name; cannot contain '@'")
 	}
 	return nil
 }
@@ -68,6 +71,10 @@ func (r *Registry) Register(c Capsule) error {
 	}
 	if c.Version == "" {
 		return errors.New("capsule version cannot be empty")
+	}
+	// Enforce integer-only versions
+	if _, err := strconv.Atoi(c.Version); err != nil {
+		return fmt.Errorf("capsule version must be an integer, but got %q", c.Version)
 	}
 
 	if c.Content != "" && c.SHA256 == "" {
@@ -126,6 +133,8 @@ func (r *Registry) GetLatest(name string) (Capsule, bool) {
 		if err1 == nil && err2 == nil {
 			return v1 > v2
 		}
+		// Fallback for non-integer versions, though Register now prevents them.
+		// Kept for theoretical backward compatibility or other registry sources.
 		sv1 := versionKeys[i]
 		if !strings.HasPrefix(sv1, "v") {
 			sv1 = "v" + sv1

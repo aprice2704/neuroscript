@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.0
-// File version: 1
-// Purpose: Contains aggressive stress tests for the Markdown metadata parser.
+// File version: 2
+// Purpose: Contains aggressive stress tests for the Markdown metadata parser, corrected to align with new contiguity rules.
 // filename: pkg/metadata/markdown_insane_test.go
 // nlines: 125
 // risk_rating: LOW
@@ -60,8 +60,9 @@ func TestMarkdownParser_InsaneCases(t *testing.T) {
 
 ::key2: val2
 `,
-			wantContent: "Content.",
-			wantMeta:    metadata.Store{"key1": "val1", "key2": "val2"},
+			// CORRECTED: The blank lines are a boundary. `::key1` is content.
+			wantContent: "Content.\n::key1: val1\n\n",
+			wantMeta:    metadata.Store{"key2": "val2"},
 		},
 		{
 			name:        "Tab characters as whitespace",

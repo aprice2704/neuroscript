@@ -1,12 +1,15 @@
 // NeuroScript Version: 0.7.2
-// File version: 20
-// Purpose: FIX: Corrects a critical bug by ensuring the adminCapsuleRegistry is propagated to cloned interpreters. ADDED EXTENSIVE DEBUGGING.
+// File version: 22
+// Purpose: [DEBUG] Adds extensive logging to the clone method to trace the propagation of custom I/O functions and the admin registry.
 // filename: pkg/interpreter/interpreter_clone.go
+// nlines: 105
+// risk_rating: HIGH
 
 package interpreter
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/google/uuid"
 )
@@ -15,31 +18,21 @@ import (
 // It shares persistent state (stores, tools, config) by reference,
 // but creates an isolated variable scope and a context-aware tool registry view.
 func (i *Interpreter) clone() *Interpreter {
-	// --- MORE DEBUGGING ---
-	fmt.Printf("\n[DEBUG] >>> CLONING INTERPRETER (Parent ID: %s) <<<\n", i.id)
-	if i.adminCapsuleRegistry != nil {
-		fmt.Printf("[DEBUG] PARENT %s: Has a NON-NIL admin registry at clone time.\n", i.id)
-	} else {
-		fmt.Printf("[DEBUG] PARENT %s: Has a NIL admin registry at clone time. THIS IS LIKELY THE CAUSE OF THE BUG.\n", i.id)
-	}
-	// --- END DEBUGGING ---
+	// --- VERBOSE DEBUGGING ---
+	fmt.Fprintf(os.Stderr, "\n[CLONE START] Parent ID: %s | customEmitFunc is nil: %t\n", i.id, i.customEmitFunc == nil)
 
 	clone := &Interpreter{
 		// Assign a new unique ID to the clone
 		id: fmt.Sprintf("interp-%s", uuid.NewString()[:8]),
 
 		// Share core state by reference for persistence
-		logger:       i.logger,
-		fileAPI:      i.fileAPI,
-		eventManager: i.eventManager,
-		aiWorker:     i.aiWorker,
-		stdout:       i.stdout,
-		stdin:        i.stdin,
-		stderr:       i.stderr,
-		// --- BUG FIX ---
-		// The admin capsule registry must be copied from the parent to the clone.
-		// Without this, privileged tools like 'tool.capsule.Add' will fail
-		// when executed in a sandboxed procedure or command block.
+		logger:                    i.logger,
+		fileAPI:                   i.fileAPI,
+		eventManager:              i.eventManager,
+		aiWorker:                  i.aiWorker,
+		stdout:                    i.stdout,
+		stdin:                     i.stdin,
+		stderr:                    i.stderr,
 		adminCapsuleRegistry:      i.adminCapsuleRegistry,
 		maxLoopIterations:         i.maxLoopIterations,
 		bufferManager:             i.bufferManager,
@@ -54,20 +47,16 @@ func (i *Interpreter) clone() *Interpreter {
 		aiTranscript:              i.aiTranscript,
 		transientPrivateKey:       i.transientPrivateKey,
 		turnCtx:                   i.turnCtx,
-		customEmitFunc:            i.customEmitFunc,
-		customWhisperFunc:         i.customWhisperFunc,
 		eventHandlerErrorCallback: i.eventHandlerErrorCallback,
 		emitter:                   i.emitter,
+
+		// --- BUG FIX & VERIFICATION ---
+		// Propagate the custom I/O functions from the parent.
+		customEmitFunc:    i.customEmitFunc,
+		customWhisperFunc: i.customWhisperFunc,
 	}
 
-	// --- MORE DEBUGGING ---
-	if clone.adminCapsuleRegistry != nil {
-		fmt.Printf("[DEBUG] CLONE %s: Has a NON-NIL admin registry after assignment.\n", clone.id)
-	} else {
-		fmt.Printf("[DEBUG] CLONE %s: Has a NIL admin registry after assignment.\n", clone.id)
-	}
-	fmt.Printf("[DEBUG] >>> CLONING COMPLETE (Clone ID: %s) <<<\n\n", clone.id)
-	// --- END DEBUGGING ---
+	fmt.Fprintf(os.Stderr, "[CLONE MID]   New Clone ID: %s | customEmitFunc is nil after copy: %t\n", clone.id, clone.customEmitFunc == nil)
 
 	if i.tools != nil {
 		clone.tools = i.tools.NewViewForInterpreter(clone)
@@ -81,7 +70,6 @@ func (i *Interpreter) clone() *Interpreter {
 
 	root := clone.rootInterpreter()
 
-	// FAIL-FAST: A properly constructed interpreter always has a root.
 	if root == nil {
 		panic(fmt.Sprintf(
 			"FATAL: Interpreter (ID: %s) has a nil root. This should not be possible.",
@@ -89,12 +77,9 @@ func (i *Interpreter) clone() *Interpreter {
 		))
 	}
 
-	// Add the clone to the root's registry.
 	root.cloneRegistryMu.Lock()
 	defer root.cloneRegistryMu.Unlock()
 
-	// FAIL-FAST: If the root's registry is nil, it means the root interpreter
-	// was not created via NewInterpreter(). This is a critical state corruption.
 	if root.cloneRegistry == nil {
 		panic(fmt.Sprintf(
 			"FATAL: The root interpreter (ID: %s, clone's parent) has a nil cloneRegistry. It was likely created incorrectly without using NewInterpreter().",
@@ -103,7 +88,6 @@ func (i *Interpreter) clone() *Interpreter {
 	}
 	root.cloneRegistry = append(root.cloneRegistry, clone)
 
-	// Copy global variables from the root's state.
 	root.state.variablesMu.RLock()
 	defer root.state.variablesMu.RUnlock()
 	for name, value := range root.state.variables {
@@ -118,6 +102,8 @@ func (i *Interpreter) clone() *Interpreter {
 	if clone.customWhisperFunc == nil {
 		clone.customWhisperFunc = clone.defaultWhisperFunc
 	}
+
+	fmt.Fprintf(os.Stderr, "[CLONE END]   Parent ID: %s -> New Clone ID: %s successfully registered with root.\n\n", i.id, clone.id)
 
 	return clone
 }

@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.1
-// File version: 5
-// Purpose: Added HasEmitFunc() to the public API to allow hosts to check if a custom emit function has been configured.
+// NeuroScript Version: 0.7.2
+// File version: 6
+// Purpose: Adds HasEmitFunc() to the public API to allow hosts to check if a custom emit function has been configured.
 // filename: pkg/interpreter/interpreter_api.go
 // nlines: 140
 // risk_rating: LOW

@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.3.1
-// File version: 0.0.5
-// Purpose: Standardized argument validation to use ErrArgumentMismatch instead of ErrInvalidArgument for consistency with test expectations.
+// NeuroScript Version: 0.5.2
+// File version: 1
+// Purpose: Corrected Substring and Replace tools to properly coerce floating-point numbers into integers for index and count arguments, resolving runtime errors.
 // nlines: 280
 // risk_rating: LOW
 // filename: pkg/tool/strtools/tools_string.go
@@ -15,6 +15,17 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
+
+// toInt64 robustly converts an interface{} to int64, handling float64.
+func toInt64(v interface{}) (int64, bool) {
+	if i, ok := v.(int64); ok {
+		return i, true
+	}
+	if f, ok := v.(float64); ok {
+		return int64(f), true
+	}
+	return 0, false
+}
 
 // --- Tool Implementations ---
 
@@ -37,8 +48,9 @@ func toolStringSubstring(interpreter tool.Runtime, args []interface{}) (interfac
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.Substring: expected 3 arguments (input_string, start_index, length)", lang.ErrArgumentMismatch)
 	}
 	inputStr, okStr := args[0].(string)
-	startIndexRaw, okStart := args[1].(int64)
-	lengthRaw, okLen := args[2].(int64)
+	// FIX: Use the robust toInt64 helper to coerce numeric types.
+	startIndexRaw, okStart := toInt64(args[1])
+	lengthRaw, okLen := toInt64(args[2])
 
 	if !okStr {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("String.Substring: input_string argument must be a string, got %T", args[0]), lang.ErrArgumentMismatch)
@@ -280,7 +292,8 @@ func toolStringReplace(interpreter tool.Runtime, args []interface{}) (interface{
 	inputStr, okStr := args[0].(string)
 	oldSubstr, okOld := args[1].(string)
 	newSubstr, okNew := args[2].(string)
-	countRaw, okCount := args[3].(int64)
+	// FIX: Use the robust toInt64 helper to coerce numeric types.
+	countRaw, okCount := toInt64(args[3])
 
 	if !okStr {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("String.Replace: input_string argument must be a string, got %T", args[0]), lang.ErrArgumentMismatch)

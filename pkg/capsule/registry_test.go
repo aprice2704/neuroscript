@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.1
-// File version: 6
-// Purpose: Corrected the test to use a mock interpreter to properly initialize the capsule tool.
+// NeuroScript Version: 0.7.2
+// File version: 8
+// Purpose: Adds a test case to ensure capsule names with dots are now invalid.
 // filename: pkg/capsule/registry_test.go
-// nlines: 140
+// nlines: 156
 // risk_rating: MEDIUM
 package capsule_test
 
@@ -45,19 +45,48 @@ func TestRegistry_ComputesSHAWhenEmpty(t *testing.T) {
 	}
 }
 
-func TestRegistry_MustRegisterPanicsOnBadName(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatalf("MustRegister should panic on invalid name")
-		}
-	}()
-	reg := capsule.NewRegistry()
-	reg.MustRegister(capsule.Capsule{
-		Name:    "Capsule/BadUpper", // invalid: uppercase "C"
-		Version: "1",
-		MIME:    "text/plain",
-		Content: "x",
-	})
+func TestRegistry_MustRegisterPanicsOnInvalidInput(t *testing.T) {
+	cases := []struct {
+		name    string
+		capsule capsule.Capsule
+	}{
+		{
+			name: "Invalid uppercase name",
+			capsule: capsule.Capsule{
+				Name: "Capsule/BadUpper", Version: "1", Content: "x",
+			},
+		},
+		{
+			name: "Invalid name with @",
+			capsule: capsule.Capsule{
+				Name: "capsule/bad@name", Version: "1", Content: "x",
+			},
+		},
+		{
+			name: "Non-integer version",
+			capsule: capsule.Capsule{
+				Name: "capsule/good-name", Version: "1.2.3", Content: "x",
+			},
+		},
+		{
+			name: "Empty version",
+			capsule: capsule.Capsule{
+				Name: "capsule/good-name", Version: "", Content: "x",
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r == nil {
+					t.Fatalf("MustRegister should have panicked but did not")
+				}
+			}()
+			reg := capsule.NewRegistry()
+			reg.MustRegister(tc.capsule)
+		})
+	}
 }
 
 func TestStore_ListOrderingByPriorityThenID(t *testing.T) {
@@ -103,12 +132,6 @@ func TestStore_GetLatest(t *testing.T) {
 	// Shadowed by reg1
 	reg2.MustRegister(capsule.Capsule{Name: name, Version: "99", Content: "v99"})
 
-	// Semver in reg2
-	semverName := "capsule/semver-test"
-	reg2.MustRegister(capsule.Capsule{Name: semverName, Version: "1.0.0"})
-	reg2.MustRegister(capsule.Capsule{Name: semverName, Version: "1.1.0"})
-	reg2.MustRegister(capsule.Capsule{Name: semverName, Version: "0.9.0"})
-
 	store := capsule.NewStore(reg1, reg2)
 
 	// Test case 1: GetLatest finds latest in the first registry and stops.
@@ -120,16 +143,7 @@ func TestStore_GetLatest(t *testing.T) {
 		t.Errorf("GetLatest version mismatch: got %s, want 10 (should ignore v99 in reg2)", latest.Version)
 	}
 
-	// Test case 2: GetLatest finds latest in a subsequent registry.
-	latestSemver, ok := store.GetLatest(semverName)
-	if !ok {
-		t.Fatalf("GetLatest(%q) failed", semverName)
-	}
-	if latestSemver.Version != "1.1.0" {
-		t.Errorf("GetLatest semver mismatch: got %s, want 1.1.0", latestSemver.Version)
-	}
-
-	// Test case 3: Not found
+	// Test case 2: Not found
 	_, ok = store.GetLatest("capsule/not-found")
 	if ok {
 		t.Error("GetLatest found a capsule that does not exist")
@@ -143,6 +157,8 @@ func TestValidateNameCases(t *testing.T) {
 	}{
 		{"capsule/aeiou", true},
 		{"capsule/foo-bar_9", true},
+		{"capsule/with.dot", false},  // dot not allowed
+		{"capsule/with@at", false},   // @ not allowed
 		{"Capsule/bad", false},       // uppercase not allowed
 		{"capsule/Bad", false},       // uppercase in name
 		{"capsule/space bad", false}, // space

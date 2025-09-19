@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.0
-// File version: 4
-// Purpose: Implements a metadata parser for Markdown files.
+// File version: 18
+// Purpose: Implements a metadata parser for Markdown files, enforcing that metadata blocks must be contiguous and cannot contain blank lines.
 // filename: pkg/metadata/markdown.go
-// nlines: 67
+// nlines: 83
 // risk_rating: LOW
 package metadata
 
@@ -12,8 +12,12 @@ import (
 	"strings"
 )
 
-// metaRegex captures the key and value, trimming trailing whitespace from the value group.
-var metaRegex = regexp.MustCompile(`^::\s*([a-zA-Z0-9_.-]+)\s*:\s*(.*?)\s*$`)
+// MetaRegex captures the key and value from a metadata line. It is exported for use in other packages.
+var MetaRegex = regexp.MustCompile(`^::\s*([a-zA-Z0-9_.-]+)\s*:\s*(.*?)\s*$`)
+
+func init() {
+	RegisterParser("md", func() Parser { return NewMarkdownParser() })
+}
 
 // MarkdownParser implements the Parser interface for markdown files.
 // It expects metadata to be in a block at the very end of the file.
@@ -26,51 +30,60 @@ func NewMarkdownParser() *MarkdownParser {
 
 // Parse extracts metadata from the end of a reader's content.
 func (p *MarkdownParser) Parse(r io.Reader) (Store, []byte, error) {
-	content, err := io.ReadAll(r)
+	contentBytes, err := io.ReadAll(r)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	store := make(Store)
-	lines := strings.Split(string(content), "\n")
+	content := strings.ReplaceAll(string(contentBytes), "\r\n", "\n")
+	lines := strings.Split(content, "\n")
+	//log.Printf("[DEBUG] markdown.Parse: Total lines received: %d", len(lines))
 
-	// Find the start of the metadata block by scanning from the end.
-	metaStartLine := -1
+	// Find the start of the last contiguous block of metadata lines.
+	// Blank lines are not allowed in the metadata block.
+	metaStartLine := len(lines)
 	for i := len(lines) - 1; i >= 0; i-- {
 		line := lines[i]
 		trimmedLine := strings.TrimSpace(line)
-		if trimmedLine == "" {
-			continue // Skip trailing blank lines
-		}
-		// A line is part of the metadata block only if it matches the full regex.
-		if !metaRegex.MatchString(line) {
-			break // Found the last line of content before metadata
-		}
-		metaStartLine = i
-	}
+		isMeta := MetaRegex.MatchString(line)
+		//	log.Printf("[DEBUG] line[%d]: q=%q | isMeta=%v", i, line, isMeta)
 
-	if metaStartLine == -1 {
-		return store, content, nil // No metadata block found
+		if trimmedLine == "" {
+			// If we haven't found the block yet, this is just trailing whitespace.
+			// If we HAVE found the block, this terminates it.
+			if metaStartLine != len(lines) {
+				break // Terminate the block if a blank line is found above it.
+			}
+			continue
+		}
+
+		if isMeta {
+			metaStartLine = i // This line is part of the block.
+		} else {
+			// This is a content line, so the block (if any) starts on the next line.
+			metaStartLine = i + 1
+			break
+		}
 	}
+	//log.Printf("[DEBUG] markdown.Parse: Final metaStartLine: %d", metaStartLine)
 
 	// Parse the metadata lines
 	for i := metaStartLine; i < len(lines); i++ {
 		line := lines[i]
-		if strings.TrimSpace(line) == "" {
-			continue
-		}
-		matches := metaRegex.FindStringSubmatch(line)
+		// We can now safely assume no blank lines are in the metadata block itself.
+		matches := MetaRegex.FindStringSubmatch(line)
 		if len(matches) == 3 {
 			key := strings.ToLower(matches[1])
-			// The regex now handles trailing space, but we still trim the value
-			// to handle leading space and to be fully compliant with the spec.
 			val := strings.TrimSpace(matches[2])
 			store[key] = val
+			//	log.Printf("[DEBUG] markdown.Parse: Stored meta: {%q: %q}", key, val)
 		}
 	}
 
-	// Join the content lines before the metadata block
-	contentBytes := []byte(strings.Join(lines[:metaStartLine], "\n"))
+	contentBody := strings.Join(lines[:metaStartLine], "\n")
+	contentBody = strings.TrimRight(contentBody, " \t")
 
-	return store, contentBytes, nil
+	//	log.Printf("[DEBUG] markdown.Parse: Final content returned: %q", contentBody)
+	return store, []byte(contentBody), nil
 }

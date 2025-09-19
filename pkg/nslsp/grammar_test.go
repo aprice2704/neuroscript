@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.6.0
-// File version: 7
-// Purpose: Refactored to use the new centralized test helper and updated the SemanticAnalyzer constructor call.
+// NeuroScript Version: 0.7.0
+// File version: 10
+// Purpose: FIX: Disabled the workspace-aware symbol manager for this test by passing nil, as it's designed to validate grammar in isolation.
 // filename: pkg/nslsp/grammar_test.go
-// nlines: 80
+// nlines: 83
 // risk_rating: LOW
 
 package nslsp
@@ -23,10 +23,10 @@ func TestGrammarFiles_NoError(t *testing.T) {
 	// --- Setup ---
 	interp := testutil.NewTestInterpreterWithAllTools(t)
 	registry := interp.ToolRegistry()
-
 	parserAPI := parser.NewParserAPI(nil)
-	// ** THE FIX IS HERE: Pass a new ExternalToolManager to the analyzer constructor **
-	analyzer := NewSemanticAnalyzer(registry, NewExternalToolManager(), false)
+
+	// ** THE FIX IS HERE: Pass a nil SymbolManager to disable workspace scanning for this test. **
+	analyzer := NewSemanticAnalyzer(registry, NewExternalToolManager(), nil, false)
 
 	t.Logf("[GrammarTest] Tool registry initialized with %d tools for test run.", registry.NTools())
 

@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.1
-// File version: 39 (FINAL DEBUG)
-// Purpose: [DEBUG] Added a signal to check if customEmitFunc is nil.
+// NeuroScript Version: 0.7.2
+// File version: 40
+// Purpose: [DEBUG] Adds a signal to check if customEmitFunc is nil or valid at the moment of execution.
 // filename: pkg/interpreter/interpreter_steps_simple.go
 // nlines: 188
 // risk_rating: HIGH
@@ -9,6 +9,7 @@ package interpreter
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -16,8 +17,6 @@ import (
 
 // executeReturn handles the "return" step.
 func (i *Interpreter) executeReturn(step ast.Step) (lang.Value, bool, error) {
-
-	fmt.Printf("in executeReturn -------------> %v step", step)
 
 	if len(step.Values) == 0 {
 		return &lang.NilValue{}, true, nil
@@ -30,9 +29,6 @@ func (i *Interpreter) executeReturn(step ast.Step) (lang.Value, bool, error) {
 			errMsg := "evaluating return expression"
 			return nil, true, lang.WrapErrorWithPosition(err, step.Values[0].GetPos(), errMsg)
 		}
-		// =========================================================================
-		fmt.Printf(">>>> [DEBUG] executeReturn: Evaluated return value is: %#v\n", evaluatedValue)
-		// =========================================================================
 		return evaluatedValue, true, nil
 	}
 
@@ -51,12 +47,13 @@ func (i *Interpreter) executeReturn(step ast.Step) (lang.Value, bool, error) {
 
 // executeEmit handles the "emit" statement.
 func (i *Interpreter) executeEmit(step ast.Step) (lang.Value, error) {
-	// FINAL DEBUG SIGNAL
-	// if i.customEmitFunc == nil {
-	// 	fmt.Fprintf(os.Stderr, "\n--- SIGNAL: executeEmit REACHED, but customEmitFunc is NIL ---\n")
-	// } else {
-	// 	fmt.Fprintf(os.Stderr, "\n--- SIGNAL: executeEmit REACHED with a VALID customEmitFunc ---\n")
-	// }
+	// --- VERBOSE DEBUGGING ---
+	if i.customEmitFunc == nil {
+		fmt.Fprintf(os.Stderr, "\n--- SIGNAL: executeEmit REACHED on ID %s, but customEmitFunc is NIL ---\n\n", i.id)
+	} else {
+		fmt.Fprintf(os.Stderr, "\n--- SIGNAL: executeEmit REACHED on ID %s with a VALID customEmitFunc ---\n\n", i.id)
+	}
+	// --- END DEBUGGING ---
 
 	if len(step.Values) == 0 {
 		return &lang.NilValue{}, nil

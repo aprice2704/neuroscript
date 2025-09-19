@@ -1,19 +1,24 @@
 // NeuroScript Version: 0.7.2
-// File version: 7
-// Purpose: Implements the Go functions for the capsule toolset, now returning sentinel errors for invalid input.
+// File version: 1
+// Purpose: Consolidates capsule tool definitions and implementations into a single file to resolve scoping issues.
 // filename: pkg/tool/capsule/tools.go
-// nlines: 148
+// nlines: 190
 // risk_rating: HIGH
 package capsule
 
 import (
+	"bytes"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/capsule"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/metadata"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
+
+// --- Tool Functions ---
 
 // capsuleRuntime defines the interface we expect from the runtime
 // for capsule store read operations.
@@ -107,38 +112,41 @@ func getLatestCapsuleFunc(rt tool.Runtime, args []interface{}) (interface{}, err
 }
 
 func addCapsuleFunc(rt tool.Runtime, args []interface{}) (interface{}, error) {
+	fmt.Fprintf(os.Stderr, "\n[CAPSULE DEBUG] --- tool.capsule.Add called ---\n")
 	reg, err := getCapsuleRegistryForAdmin(rt)
 	if err != nil {
 		return nil, err
 	}
-	data, ok := args[0].(map[string]interface{})
+	capsuleContent, ok := args[0].(string)
 	if !ok {
-		return nil, ErrInvalidCapsuleData
+		return nil, lang.ErrInvalidArgument
 	}
 
-	getString := func(key string) string {
-		if val, ok := data[key].(string); ok {
-			return val
-		}
-		return ""
+	meta, contentBody, _, err := metadata.ParseWithAutoDetect(strings.NewReader(capsuleContent))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse capsule content: %w", err)
+	}
+
+	extractor := metadata.NewExtractor(meta)
+	if err := extractor.CheckRequired("id", "version"); err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrInvalidCapsuleData, err)
 	}
 
 	newCap := capsule.Capsule{
-		Name:    getString("name"),
-		Version: getString("version"),
-		Content: getString("content"),
-	}
-
-	if newCap.Name == "" || newCap.Version == "" {
-		return nil, ErrInvalidCapsuleData
+		Name:    extractor.MustGet("id"),
+		Version: extractor.MustGet("version"),
+		Content: string(bytes.TrimSpace(contentBody)),
 	}
 
 	if err := reg.Register(newCap); err != nil {
-		// Propagate the specific validation error from the registry.
 		return nil, fmt.Errorf("failed to register new capsule: %w", err)
 	}
 
-	return true, nil
+	return map[string]interface{}{
+		"id":          newCap.Name,
+		"version":     newCap.Version,
+		"description": extractor.GetOr("description", ""),
+	}, nil
 }
 
 func capsuleToMap(c capsule.Capsule) map[string]interface{} {

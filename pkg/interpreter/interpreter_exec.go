@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.1
-// File version: 82
-// Purpose: [DEBUG] Added the interpreter's unique ID to the stderr debug logs.
+// NeuroScript Version: 0.7.2
+// File version: 83
+// Purpose: [DEBUG] Adds the interpreter's unique ID to the stderr debug logs for detailed step tracing.
 // filename: pkg/interpreter/interpreter_exec.go
 // nlines: 250
 // risk_rating: HIGH
@@ -101,6 +101,10 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 		var stepResult lang.Value
 		var stepErr error
 		stepTypeLower := strings.ToLower(step.Type)
+
+		// --- MORE DEBUGGING ---
+		fmt.Fprintf(os.Stderr, "[EXEC STEP] ID: %s | Step: %s | Subject: %s\n", i.id, stepTypeLower, getStepSubjectForLogging(step))
+		// --- END DEBUGGING ---
 
 		switch stepTypeLower {
 		// ... (cases unchanged) ...

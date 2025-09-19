@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.1
-// File version: 1
-// Purpose: Tests the layering and override behavior of the interpreter's capsule store.
+// File version: 2
+// Purpose: Corrected capsule version string in test to be an integer, fixing the panic.
 // filename: pkg/interpreter/interpreter_capsule_store_test.go
 // nlines: 75
 // risk_rating: LOW
@@ -19,7 +19,7 @@ func TestInterpreter_CapsuleStoreLayering(t *testing.T) {
 		customRegistry := capsule.NewRegistry()
 		customCapsule := capsule.Capsule{
 			Name:    "capsule/custom",
-			Version: "1.0.0",
+			Version: "1", // FIX: Version must be an integer string.
 			Content: "This is a custom capsule.",
 		}
 		customRegistry.MustRegister(customCapsule)
@@ -36,8 +36,8 @@ func TestInterpreter_CapsuleStoreLayering(t *testing.T) {
 		}
 
 		// 4. Assert that the correct capsule was retrieved.
-		if retrieved.ID != "capsule/custom@1.0.0" {
-			t.Errorf("Retrieved capsule ID mismatch. Got: %s, Want: %s", retrieved.ID, "capsule/custom@1.0.0")
+		if retrieved.ID != "capsule/custom@1" {
+			t.Errorf("Retrieved capsule ID mismatch. Got: %s, Want: %s", retrieved.ID, "capsule/custom@1")
 		}
 		if retrieved.Content != "This is a custom capsule." {
 			t.Errorf("Retrieved capsule content mismatch.")

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.2
-// File version: 3
-// Purpose: Corrects the test by adding a policy to the runtime interpreter that allows the capsule tool to run.
+// File version: 6
+// Purpose: Corrected the config script to use a NeuroScript raw string literal within a Go raw string literal, fixing the parsing and argument-passing error for the tool call.
 // filename: pkg/api/capsule_admin_test.go
-// nlines: 88
+// nlines: 90
 // risk_rating: MEDIUM
 
 package api_test
@@ -27,15 +27,19 @@ func TestAdminCapsuleRegistry_PersistencePattern(t *testing.T) {
 	}
 
 	// 2. Define the trusted script that will add a new capsule.
+	// This uses a Go raw string to define the script, which in turn
+	// uses a NeuroScript raw string for the tool argument.
 	configScript := `
 command
-    must tool.capsule.Add({\
-        "name": "capsule/host-persisted-prompt",\
-        "version": "1.1",\
-        "content": "This prompt was added via an admin registry."\
-    })
+    set s = "::id: capsule/host-persisted-prompt\n"
+	set s = s + "::version: 1\n"
+    set s = s + "::serialization: ns\n"
+    set s = s + "::description: A test capsule.\n"
+    set s = s + "This prompt was added via an admin registry.\n"
+    must tool.capsule.Add(s)
 endcommand
 `
+
 	// 3. Create a privileged policy for the config interpreter.
 	allowedTools := []string{"tool.capsule.Add"}
 	requiredGrants := []api.Capability{
@@ -69,7 +73,6 @@ func main(returns string) means
 endfunc
 `
 	// 2. Create a standard, unprivileged interpreter.
-	// FIX: Add a policy that allows the 'GetLatest' tool to run.
 	runtimePolicy := api.NewPolicyBuilder(api.ContextNormal).
 		Allow("tool.capsule.GetLatest").
 		Build()

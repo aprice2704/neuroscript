@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.0
-// File version: 2
-// Purpose: Contains robust tests for the Markdown metadata parser.
+// File version: 3
+// Purpose: Contains robust tests for the Markdown metadata parser, corrected to align with new contiguity rules.
 // filename: pkg/metadata/markdown_test.go
 // nlines: 154
 // risk_rating: LOW
@@ -91,8 +91,9 @@ More content.
 
 ::key2: val2
 `,
-			wantContent: "Content.",
-			wantMeta:    metadata.Store{"key1": "val1", "key2": "val2"},
+			// CORRECTED: The blank line is a boundary. `::key1` is content.
+			wantContent: "Content.\n::key1: val1\n",
+			wantMeta:    metadata.Store{"key2": "val2"},
 		},
 		{
 			name: "Malformed metadata line is ignored",

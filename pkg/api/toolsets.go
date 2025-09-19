@@ -22,6 +22,7 @@ import (
 	_ "github.com/aprice2704/neuroscript/pkg/tool/list"
 	_ "github.com/aprice2704/neuroscript/pkg/tool/maths"
 	_ "github.com/aprice2704/neuroscript/pkg/tool/meta"
+	_ "github.com/aprice2704/neuroscript/pkg/tool/metadata"
 	_ "github.com/aprice2704/neuroscript/pkg/tool/ns_event"
 	_ "github.com/aprice2704/neuroscript/pkg/tool/os"
 	_ "github.com/aprice2704/neuroscript/pkg/tool/script"
