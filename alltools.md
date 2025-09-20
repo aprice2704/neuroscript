@@ -2,12 +2,6 @@ Executing trusted config script: ./library/list_tools.ns.txt
 Interpreter created with elevated privileges.
 [DEBUG] ExecWithInterpreter: Admin registry is NIL on internal interpreter before ExecuteCommands.
 Running procedure 'main'...
-
-[DEBUG] >>> CLONING INTERPRETER (Parent ID: interp-0772bac6) <<<
-[DEBUG] PARENT interp-0772bac6: Has a NIL admin registry at clone time. THIS IS LIKELY THE CAUSE OF THE BUG.
-[DEBUG] CLONE interp-33179bcd: Has a NIL admin registry after assignment.
-[DEBUG] >>> CLONING COMPLETE (Clone ID: interp-33179bcd) <<<
-
 Compact Tool List:
 tool.account.Delete(name:string) -> bool [caps: account:admin:*]
 tool.account.Exists(name:string) -> bool [caps: account:read:*]
@@ -69,6 +63,9 @@ tool.math.Subtract(num1:float, num2:float) -> float
 tool.Meta.GetToolSpecificationsJSON() -> string
 tool.Meta.ListTools() -> string
 tool.Meta.ToolsHelp(filter:string?) -> string
+tool.metadata.Detect(content:string) -> string
+tool.metadata.NormalizeKey(key:string) -> string
+tool.metadata.Parse(content:string) -> map
 tool.ns_event.Compose(kind:string, payload:map, id:string?, agent_id:string?) -> map
 tool.ns_event.GetAllPayloads(event_object:map) -> slice
 tool.ns_event.GetEventShape() -> map
@@ -1094,6 +1091,33 @@ ListTools()
 ToolsHelp(filter: "FS")
 Meta.ToolsHelp()
 ```
+---
+
+## `tool.metadata.Detect`
+**Description:** Detects the serialization format ('md' or 'ns') of a string content by checking for a '::serialization:' key.
+
+**Parameters:**
+* `content` (`string`): 
+
+**Returns:** (`string`) 
+---
+
+## `tool.metadata.NormalizeKey`
+**Description:** Normalizes a metadata key by converting it to lowercase and removing '.', '_', and '-' characters.
+
+**Parameters:**
+* `key` (`string`): 
+
+**Returns:** (`string`) 
+---
+
+## `tool.metadata.Parse`
+**Description:** Auto-detects serialization and parses content into a metadata map and a content body string.
+
+**Parameters:**
+* `content` (`string`): 
+
+**Returns:** (`map`) 
 ---
 
 ## `tool.ns_event.Compose`

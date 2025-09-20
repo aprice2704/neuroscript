@@ -10,7 +10,6 @@ package interpreter
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
@@ -103,11 +102,10 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 		stepTypeLower := strings.ToLower(step.Type)
 
 		// --- MORE DEBUGGING ---
-		fmt.Fprintf(os.Stderr, "[EXEC STEP] ID: %s | Step: %s | Subject: %s\n", i.id, stepTypeLower, getStepSubjectForLogging(step))
-		// --- END DEBUGGING ---
+		// fmt.Fprintf(os.Stderr, "[EXEC STEP] ID: %s | Step: %s | Subject: %s\n", i.id, stepTypeLower, getStepSubjectForLogging(step))
+		// // --- END DEBUGGING ---
 
 		switch stepTypeLower {
-		// ... (cases unchanged) ...
 		case "set", "assign":
 			stepResult, stepErr = i.executeSet(step)
 		case "call":
@@ -206,15 +204,15 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 
 		if stepErr != nil {
 			rtErr := ensureRuntimeError(stepErr, step.GetPos(), stepTypeLower)
-			fmt.Fprintf(os.Stderr, "\n>>> [EXEC DEBUG %s] Error in step '%s': %v\n", i.id, stepTypeLower, rtErr)
-			fmt.Fprintf(os.Stderr, ">>> [EXEC DEBUG %s] isInHandler flag is: %t\n", i.id, isInHandler)
+			// fmt.Fprintf(os.Stderr, "\n>>> [EXEC DEBUG %s] Error in step '%s': %v\n", i.id, stepTypeLower, rtErr)
+			// fmt.Fprintf(os.Stderr, ">>> [EXEC DEBUG %s] isInHandler flag is: %t\n", i.id, isInHandler)
 
 			if errors.Is(rtErr.Unwrap(), lang.ErrBreak) || errors.Is(rtErr.Unwrap(), lang.ErrContinue) {
 				return nil, false, wasCleared, rtErr
 			}
 
 			if isInHandler {
-				fmt.Fprintf(os.Stderr, ">>> [EXEC DEBUG %s] In handler, propagating error up to caller (e.g., EmitEvent).\n\n", i.id)
+				// fmt.Fprintf(os.Stderr, ">>> [EXEC DEBUG %s] In handler, propagating error up to caller (e.g., EmitEvent).\n\n", i.id)
 				return nil, false, false, rtErr
 			}
 
