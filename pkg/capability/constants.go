@@ -9,15 +9,18 @@ package capability
 
 // Standard capability resources.
 const (
-	ResFS     = "fs"
-	ResNet    = "net"
-	ResEnv    = "env"
-	ResModel  = "model"
-	ResTool   = "tool"
-	ResSecret = "secret"
-	ResBudget = "budget"
-	ResBus    = "bus"
-	ResCrypto = "crypto"
+	ResFS      = "fs"
+	ResNet     = "net"
+	ResEnv     = "env"
+	ResModel   = "model"
+	ResTool    = "tool"
+	ResSecret  = "secret"
+	ResBudget  = "budget"
+	ResBus     = "bus"
+	ResCrypto  = "crypto"
+	ResAccount = "account"
+	ResCapsule = "capsule"
+	ResIPC     = "ipc"
 )
 
 // Standard capability verbs.

@@ -97,7 +97,9 @@ const (
 	ResSecret  = capability.ResSecret
 	ResBudget  = capability.ResBudget
 	ResBus     = capability.ResBus
-	ResCapsule = "capsule" // Define capsule as a resource
+	ResCapsule = capability.ResCapsule
+	ResAccount = capability.ResAccount
+	ResIPC     = capability.ResIPC
 
 	VerbRead  = capability.VerbRead
 	VerbWrite = capability.VerbWrite

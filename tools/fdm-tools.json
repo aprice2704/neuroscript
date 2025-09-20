@@ -48,6 +48,12 @@
           "type": "string",
           "description": "The NeuroScript source code for the agent.",
           "required": true
+        },
+        {
+          "name": "charter_capsule_id",
+          "type": "string",
+          "description": "The NodeID of the agent's charter capsule.",
+          "required": false
         }
       ],
       "returnType": "map"
@@ -60,8 +66,64 @@
       "name": "is_identity_set",
       "groupname": "fdm.admin",
       "fullname": "",
-      "description": "Returns true if the FDM core identity has already been set (e.g., from env vars).",
+      "description": "Returns true if the FDM core identity has already been set.",
       "returnType": "bool"
+    },
+    "requiresTrust": true,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "grant_caps",
+      "groupname": "fdm.admin",
+      "fullname": "",
+      "description": "Grants one or more capabilities to an agent by creating grant nodes.",
+      "args": [
+        {
+          "name": "agent_did",
+          "type": "string",
+          "description": "",
+          "required": true
+        },
+        {
+          "name": "capabilities",
+          "type": "slice",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "slice"
+    },
+    "requiresTrust": true,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "set_agent_descriptor",
+      "groupname": "fdm.admin",
+      "fullname": "",
+      "description": "Creates or updates an agent's runtime descriptor node.",
+      "args": [
+        {
+          "name": "agent_did",
+          "type": "string",
+          "description": "",
+          "required": true
+        },
+        {
+          "name": "interpreter",
+          "type": "string",
+          "description": "",
+          "required": true
+        },
+        {
+          "name": "default_tools",
+          "type": "slice",
+          "description": "",
+          "required": false
+        }
+      ],
+      "returnType": "map"
     },
     "requiresTrust": true,
     "signatureChecksum": ""
@@ -650,6 +712,35 @@
   },
   {
     "spec": {
+      "name": "Send",
+      "groupname": "FDM.IPC",
+      "fullname": "",
+      "description": "Encodes arbitrary data into a high-performance binary envelope and sends it to a connected IPC client like Lotfi.",
+      "args": [
+        {
+          "name": "data",
+          "type": "any",
+          "description": "The data (map, list, string, etc.) to send.",
+          "required": true
+        }
+      ],
+      "returnType": "bool",
+      "returnHelp": "Returns true on success, false otherwise."
+    },
+    "requiresTrust": false,
+    "requiredCaps": [
+      {
+        "Resource": "ipc",
+        "Verbs": [
+          "write"
+        ],
+        "Scopes": null
+      }
+    ],
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
       "name": "FindSymbol",
       "groupname": "FDM.SIO",
       "fullname": "",
@@ -701,37 +792,6 @@
         "Scopes": null
       }
     ],
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "init_identity",
-      "groupname": "fdm.admin",
-      "fullname": "",
-      "description": "Initializes a new identity (FDM or SAI), persists it, and returns the details. Privileged.",
-      "args": [
-        {
-          "name": "name",
-          "type": "string",
-          "description": "The human-readable name for the identity (e.g., 'fdm-instance-main' or 'sai-primary').",
-          "required": true
-        },
-        {
-          "name": "storage_uri",
-          "type": "string",
-          "description": "The persistence URI to save the identity to (e.g., 'store://sys/system/identity').",
-          "required": true
-        },
-        {
-          "name": "set_as_core",
-          "type": "bool",
-          "description": "If true, sets this identity as the active FDM instance identity.",
-          "required": false
-        }
-      ],
-      "returnType": "map"
-    },
-    "requiresTrust": true,
     "signatureChecksum": ""
   },
   {
@@ -1054,7 +1114,7 @@
   {
     "spec": {
       "name": "get_startup_capsule",
-      "groupname": "agent",
+      "groupname": "fdm.agent",
       "fullname": "",
       "description": "Retrieves the agent's private startup capsule data from the FDM.",
       "returnType": "any"
@@ -1065,7 +1125,7 @@
   {
     "spec": {
       "name": "get_identity",
-      "groupname": "agent",
+      "groupname": "fdm.agent",
       "fullname": "",
       "description": "Retrieves the agent's own core identity attributes.",
       "returnType": "map"
