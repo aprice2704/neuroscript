@@ -306,6 +306,98 @@
   },
   {
     "spec": {
+      "name": "CreateNode",
+      "groupname": "FDM",
+      "fullname": "",
+      "description": "Creates a new node in the FDM.",
+      "args": [
+        {
+          "name": "type",
+          "type": "string",
+          "description": "",
+          "required": true
+        },
+        {
+          "name": "fields",
+          "type": "map",
+          "description": "",
+          "required": false
+        }
+      ],
+      "returnType": "map",
+      "returnHelp": "Returns a map representing the newly created node, including its ID."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "GetNode",
+      "groupname": "FDM",
+      "fullname": "",
+      "description": "Retrieves a node by its ID from the FDM.",
+      "args": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "map",
+      "returnHelp": "Returns a map representing the node's data, or nil if not found."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "DeleteNode",
+      "groupname": "FDM",
+      "fullname": "",
+      "description": "Deletes a node by its ID from the FDM.",
+      "args": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "bool",
+      "returnHelp": "Returns true on success."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "Query",
+      "groupname": "FDM",
+      "fullname": "",
+      "description": "Performs a filtered query for nodes in the FDM.",
+      "args": [
+        {
+          "name": "filter",
+          "type": "map",
+          "description": "A map defining the filter criteria (e.g., {'type': 'agent'}).",
+          "required": true
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "description": "An optional maximum number of results to return.",
+          "required": false
+        }
+      ],
+      "returnType": "slice_map",
+      "returnHelp": "Returns a list of maps, where each map represents a matched node."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
       "name": "RegisterOverlay",
       "groupname": "FDM",
       "fullname": "",
@@ -554,72 +646,6 @@
   },
   {
     "spec": {
-      "name": "CreateNode",
-      "groupname": "FDM",
-      "fullname": "",
-      "description": "Creates a new node in the FDM.",
-      "args": [
-        {
-          "name": "type",
-          "type": "string",
-          "description": "",
-          "required": true
-        },
-        {
-          "name": "fields",
-          "type": "map",
-          "description": "",
-          "required": false
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map representing the newly created node, including its ID."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "GetNode",
-      "groupname": "FDM",
-      "fullname": "",
-      "description": "Retrieves a node by its ID from the FDM.",
-      "args": [
-        {
-          "name": "id",
-          "type": "string",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map representing the node's data, or nil if not found."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "DeleteNode",
-      "groupname": "FDM",
-      "fullname": "",
-      "description": "Deletes a node by its ID from the FDM.",
-      "args": [
-        {
-          "name": "id",
-          "type": "string",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "bool",
-      "returnHelp": "Returns true on success."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
       "name": "ListDir",
       "groupname": "FDM.FS",
       "fullname": "",
@@ -800,6 +826,14 @@
       "groupname": "fdm.agent",
       "fullname": "",
       "description": "",
+      "args": [
+        {
+          "name": "did",
+          "type": "string",
+          "description": "The decentralized identifier of the agent.",
+          "required": true
+        }
+      ],
       "returnType": "map"
     },
     "requiresTrust": false,
