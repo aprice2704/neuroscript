@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.2
-// File version: 71
-// Purpose: Adds a field for the LLM telemetry emitter to the Interpreter struct.
+// NeuroScript Version: 0.7.3
+// File version: 73
+// Purpose: Corrects the function call to NewAgentModelAdmin to resolve a compiler error.
 // filename: pkg/interpreter/interpreter.go
 
 package interpreter
@@ -81,6 +81,24 @@ func (i *Interpreter) SetEmitter(e interfaces.Emitter) {
 // SetAITranscript sets the writer for logging AI prompts.
 func (i *Interpreter) SetAITranscript(w io.Writer) {
 	i.aiTranscript = w
+}
+
+// SetAccountStore replaces the interpreter's default account store with a host-provided one.
+func (i *Interpreter) SetAccountStore(store *account.Store) {
+	if i.root != nil {
+		i.root.SetAccountStore(store)
+		return
+	}
+	i.accountStore = store
+}
+
+// SetAgentModelStore replaces the interpreter's default agent model store with a host-provided one.
+func (i *Interpreter) SetAgentModelStore(store *agentmodel.AgentModelStore) {
+	if i.root != nil {
+		i.root.SetAgentModelStore(store)
+		return
+	}
+	i.modelStore = store
 }
 
 func NewInterpreter(opts ...InterpreterOption) *Interpreter {

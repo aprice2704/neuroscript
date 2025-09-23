@@ -9,6 +9,7 @@ tool.account.List() -> slice_string [caps: account:read:*]
 tool.account.Register(name:string, config:map) -> bool [caps: account:admin:*]
 tool.aeiou.ComposeEnvelope(userdata:string, actions:string, scratchpad:string?, output:string?) -> string
 tool.agentmodel.Delete(name:string) -> bool [caps: model:admin:*]
+tool.agentmodel.Exists(name:string) -> bool [caps: model:read:*]
 tool.agentmodel.Get(name:string) -> map [caps: model:read:*]
 tool.agentmodel.List() -> slice_string [caps: model:read:*]
 tool.agentmodel.Register(name:string, config:map) -> bool [caps: model:admin:*]
@@ -92,6 +93,7 @@ tool.str.FromBase64(encoded_string:string) -> string
 tool.str.FromHex(encoded_string:string) -> string
 tool.str.HasPrefix(input_string:string, prefix:string) -> bool
 tool.str.HasSuffix(input_string:string, suffix:string) -> bool
+tool.str.Inspect(input_variable:any, max_length:int?, max_depth:int?) -> string
 tool.str.Join(string_list:slice_string, separator:string) -> string
 tool.str.Length(input_string:string) -> int
 tool.str.LineCount(content_string:string) -> int
@@ -223,6 +225,18 @@ account.Register("openai-prod", {"kind": "llm", "provider": "openai", "apiKey": 
 
 **Parameters:**
 * `name` (`string`): The logical name of the model to delete.
+
+**Returns:** (`bool`) 
+---
+
+## `tool.agentmodel.Exists`
+**Description:** Checks if an agent model with the given name is registered.
+
+**Required Capabilities:**
+* `model:read:*`
+
+**Parameters:**
+* `name` (`string`): The logical name of the model to check.
 
 **Returns:** (`bool`) 
 ---
@@ -1544,6 +1558,24 @@ tool.HasPrefix("filename.txt", "filename") // Returns true
 **Example:**
 ```neuroscript
 tool.HasSuffix("document.doc", ".doc") // Returns true
+```
+---
+
+## `tool.str.Inspect`
+**Description:** Returns a human-readable, truncated string representation of any variable. Useful for debugging complex data like maps and lists.
+
+**Category:** String Formatting
+
+**Parameters:**
+* `input_variable` (`any`): The variable to inspect.
+* `max_length` (`int`): (optional) The maximum length for strings before truncation. Default: 128.
+* `max_depth` (`int`): (optional) The maximum depth to recurse into nested structures. Default: 5.
+
+**Returns:** (`string`) Returns a formatted string representing the variable.
+
+**Example:**
+```neuroscript
+str.Inspect(my_map, max_length: 64, max_depth: 2)
 ```
 ---
 

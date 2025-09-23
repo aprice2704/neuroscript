@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.0
-// File version: 7
-// Purpose: Removed the incorrect key-casing fix to ensure Get returns snake_case keys.
+// NeuroScript Version: 0.7.3
+// File version: 8
+// Purpose: Implemented the new 'Exists' tool function.
 // filename: pkg/tool/agentmodel/tools_agentmodel.go
-// nlines: 144
+// nlines: 161
 // risk_rating: HIGH
 package agentmodel
 
@@ -133,6 +133,19 @@ func toolGetAgentModel(rt tool.Runtime, args []interface{}) (interface{}, error)
 	}
 
 	return lang.Wrap(modelMap)
+}
+
+func toolAgentModelExists(rt tool.Runtime, args []interface{}) (interface{}, error) {
+	reader, err := getAgentModelReader(rt)
+	if err != nil {
+		return nil, err
+	}
+	name, ok := args[0].(string)
+	if !ok {
+		return nil, fmt.Errorf("argument 'name' must be a string")
+	}
+	_, found := reader.Get(types.AgentModelName(name))
+	return found, nil
 }
 
 func toolSelectAgentModel(rt tool.Runtime, args []interface{}) (interface{}, error) {

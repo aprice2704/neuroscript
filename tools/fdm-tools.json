@@ -44,15 +44,21 @@
           "required": true
         },
         {
-          "name": "script_source",
+          "name": "script_capsule",
           "type": "string",
-          "description": "The NeuroScript source code for the agent.",
+          "description": "The capsule URI for the agent's script (e.g., 'capsule/my-agent').",
+          "required": true
+        },
+        {
+          "name": "agent_model",
+          "type": "string",
+          "description": "The registered name of the model for the agent (e.g., 'gpt-4o').",
           "required": true
         },
         {
           "name": "charter_capsule_id",
           "type": "string",
-          "description": "The NodeID of the agent's charter capsule.",
+          "description": "The capsule name/URI for the agent's charter (e.g., 'capsule/sai_charter').",
           "required": false
         }
       ],
@@ -126,6 +132,122 @@
       "returnType": "map"
     },
     "requiresTrust": true,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_sai_did",
+      "groupname": "fdm.admin",
+      "fullname": "",
+      "description": "Returns the DID of the Supervising AI (SAI), which is the core identity of the FDM.",
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "set_sai_did",
+      "groupname": "fdm.admin",
+      "fullname": "",
+      "description": "Sets the DID of the Supervising AI (SAI) for the FDM instance. Privileged.",
+      "args": [
+        {
+          "name": "did",
+          "type": "string",
+          "description": "The DID to set for the SAI.",
+          "required": true
+        }
+      ],
+      "returnType": "bool"
+    },
+    "requiresTrust": true,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "Publish",
+      "groupname": "FDM.Bus",
+      "fullname": "",
+      "description": "Publishes a message to a topic on the FDM event bus (fire-and-forget).",
+      "args": [
+        {
+          "name": "topic",
+          "type": "string",
+          "description": "The topic to publish to (e.g., 'fdm.fsync.apply').",
+          "required": true
+        },
+        {
+          "name": "payload",
+          "type": "string",
+          "description": "The JSON-encoded string payload of the message.",
+          "required": true
+        },
+        {
+          "name": "scope",
+          "type": "string",
+          "description": "Optional scope for routing (e.g., 'fso:default').",
+          "required": false
+        },
+        {
+          "name": "correlationId",
+          "type": "string",
+          "description": "Optional ID for correlating messages.",
+          "required": false
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "description": "Optional source identifier. If not provided, defaults to the executing agent's DID.",
+          "required": false
+        }
+      ],
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "Request",
+      "groupname": "FDM.Bus",
+      "fullname": "",
+      "description": "Sends a request message and waits for a reply.",
+      "args": [
+        {
+          "name": "topic",
+          "type": "string",
+          "description": "The topic to send the request to.",
+          "required": true
+        },
+        {
+          "name": "payload",
+          "type": "string",
+          "description": "The JSON-encoded string payload of the request.",
+          "required": true
+        },
+        {
+          "name": "scope",
+          "type": "string",
+          "description": "Optional scope for routing.",
+          "required": false
+        },
+        {
+          "name": "timeoutMs",
+          "type": "int",
+          "description": "Optional timeout in milliseconds. Defaults to 5000 (5s).",
+          "required": false
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "description": "Optional source identifier. If not provided, defaults to the executing agent's DID.",
+          "required": false
+        }
+      ],
+      "returnType": "string"
+    },
+    "requiresTrust": false,
     "signatureChecksum": ""
   },
   {
@@ -845,6 +967,20 @@
       "groupname": "fdm.agent",
       "fullname": "",
       "description": "",
+      "args": [
+        {
+          "name": "did",
+          "type": "string",
+          "description": "The DID of the agent to modify.",
+          "required": true
+        },
+        {
+          "name": "modelName",
+          "type": "string",
+          "description": "The registered name of the model to assign (e.g., 'gpt-4o').",
+          "required": true
+        }
+      ],
       "returnType": "map"
     },
     "requiresTrust": false,
@@ -887,6 +1023,88 @@
         }
       ],
       "returnType": "bool"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_payload",
+      "groupname": "fdm.events",
+      "fullname": "",
+      "description": "Extracts the payload from a standard event object.",
+      "args": [
+        {
+          "name": "event_object",
+          "type": "map",
+          "description": "The event object received by an 'on event' handler.",
+          "required": true
+        }
+      ],
+      "returnType": "map"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_id",
+      "groupname": "fdm.events",
+      "fullname": "",
+      "description": "Extracts the message ID from a standard event object.",
+      "args": [
+        {
+          "name": "event_object",
+          "type": "map",
+          "description": "The event object received by an 'on event' handler.",
+          "required": true
+        }
+      ],
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_kind",
+      "groupname": "fdm.events",
+      "fullname": "",
+      "description": "Extracts the kind (topic) from a standard event object.",
+      "args": [
+        {
+          "name": "event_object",
+          "type": "map",
+          "description": "The event object received by an 'on event' handler.",
+          "required": true
+        }
+      ],
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "compose",
+      "groupname": "fdm.events",
+      "fullname": "",
+      "description": "Composes a new, standard event object suitable for sending with fdm.bus.send.",
+      "args": [
+        {
+          "name": "kind",
+          "type": "string",
+          "description": "The kind (topic) for the new event, e.g., 'agent.pong'.",
+          "required": true
+        },
+        {
+          "name": "payload",
+          "type": "map",
+          "description": "A map containing the data for the event payload.",
+          "required": true
+        }
+      ],
+      "returnType": "map"
     },
     "requiresTrust": false,
     "signatureChecksum": ""
@@ -1147,10 +1365,65 @@
   },
   {
     "spec": {
-      "name": "get_startup_capsule",
+      "name": "get_identity",
       "groupname": "fdm.agent",
       "fullname": "",
-      "description": "Retrieves the agent's private startup capsule data from the FDM.",
+      "description": "Retrieves the agent's own core identity attributes.",
+      "returnType": "map"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_model",
+      "groupname": "fdm.agent",
+      "fullname": "",
+      "description": "Retrieves the agent's own default agent_model node.",
+      "returnType": "map"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_node",
+      "groupname": "fdm.agent",
+      "fullname": "",
+      "description": "Retrieves the agent's own FDM node.",
+      "returnType": "map"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_model_name",
+      "groupname": "fdm.agent",
+      "fullname": "",
+      "description": "Retrieves the registered name of the agent's own default agent_model.",
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_noetic_script",
+      "groupname": "fdm.agent",
+      "fullname": "",
+      "description": "Retrieves the agent's own startup (Noetic) script source.",
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_charter_capsule",
+      "groupname": "fdm.agent",
+      "fullname": "",
+      "description": "Retrieves the contents of the agent's charter capsule.",
       "returnType": "any"
     },
     "requiresTrust": false,
@@ -1158,11 +1431,22 @@
   },
   {
     "spec": {
-      "name": "get_identity",
+      "name": "get_message_handler_capsule",
       "groupname": "fdm.agent",
       "fullname": "",
-      "description": "Retrieves the agent's own core identity attributes.",
-      "returnType": "map"
+      "description": "Retrieves the contents of the agent's message handler capsule.",
+      "returnType": "any"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_noetic_capsule",
+      "groupname": "fdm.agent",
+      "fullname": "",
+      "description": "Retrieves the agent's private Noetic capsule data from the FDM by searching for it.",
+      "returnType": "any"
     },
     "requiresTrust": false,
     "signatureChecksum": ""

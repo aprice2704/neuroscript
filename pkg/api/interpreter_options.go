@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.2
-// File version: 41
-// Purpose: Consolidates all interpreter configuration options into a single file for better organization.
+// NeuroScript Version: 0.7.3
+// File version: 42
+// Purpose: Adds WithAccountStore and WithAgentModelStore options for host-managed state.
 // filename: pkg/api/interpreter_options.go
-// nlines: 88
+// nlines: 108
 // risk_rating: LOW
 
 package api
@@ -100,6 +100,24 @@ func WithEmitFunc(f func(Value)) Option {
 // callback for handling errors that occur within event handlers.
 func WithEventHandlerErrorCallback(f func(eventName, source string, err *RuntimeError)) Option {
 	return interpreter.WithEventHandlerErrorCallback(f)
+}
+
+// WithAccountStore provides a host-managed AccountStore to the interpreter.
+func WithAccountStore(store *AccountStore) Option {
+	return func(i *interpreter.Interpreter) {
+		if store != nil {
+			i.SetAccountStore(store)
+		}
+	}
+}
+
+// WithAgentModelStore provides a host-managed AgentModelStore to the interpreter.
+func WithAgentModelStore(store *AgentModelStore) Option {
+	return func(i *interpreter.Interpreter) {
+		if store != nil {
+			i.SetAgentModelStore(store)
+		}
+	}
 }
 
 // RegisterCriticalErrorHandler allows the host application to override the default

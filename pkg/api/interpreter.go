@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.2
-// File version: 42
-// Purpose: Removes With... option helpers, which are now consolidated in interpreter_options.go.
+// NeuroScript Version: 0.7.3
+// File version: 43
+// Purpose: Ensures host-provided stores are correctly passed to the internal interpreter.
 // filename: pkg/api/interpreter.go
 // nlines: 158
 // risk_rating: HIGH
@@ -28,8 +28,6 @@ type Interpreter struct {
 
 // New creates a new, persistent NeuroScript interpreter instance.
 func New(opts ...Option) *Interpreter {
-	// --- DEBUG ---
-	//fmt.Printf("[DEBUG] api.New() called with %d options.\n", len(opts))
 	i := interpreter.NewInterpreter(opts...)
 	if i.ExecPolicy == nil {
 		i.ExecPolicy = &policy.ExecPolicy{
@@ -37,16 +35,10 @@ func New(opts ...Option) *Interpreter {
 			Allow:   []string{},
 		}
 	}
-	// The internal interpreter is now expected to initialize its own capsule store.
+
 	googleProvider := google.New()
 	i.RegisterProvider("google", googleProvider)
 
-	// --- DEBUG ---
-	// if i.CapsuleRegistryForAdmin() != nil {
-	// 	fmt.Println("[DEBUG] api.New(): Admin registry is PRESENT after initialization.")
-	// } else {
-	// 	fmt.Println("[DEBUG] api.New(): Admin registry is NIL after initialization.")
-	// }
 	return &Interpreter{internal: i}
 }
 
@@ -97,14 +89,7 @@ func (i *Interpreter) CapsuleStore() *capsule.Store {
 // CapsuleRegistryForAdmin returns the interpreter's administrative capsule registry,
 // which is required for privileged tools that add or modify capsules.
 func (i *Interpreter) CapsuleRegistryForAdmin() *AdminCapsuleRegistry {
-	// --- DEBUG ---
-	reg := i.internal.CapsuleRegistryForAdmin()
-	// if reg != nil {
-	// 	fmt.Println("[DEBUG] api.Interpreter.CapsuleRegistryForAdmin(): Returning PRESENT admin registry.")
-	// } else {
-	// 	fmt.Println("[DEBUG] api.Interpreter.CapsuleRegistryForAdmin(): Returning NIL admin registry.")
-	// }
-	return reg
+	return i.internal.CapsuleRegistryForAdmin()
 }
 
 // Load injects a parsed program into the interpreter via the interface.

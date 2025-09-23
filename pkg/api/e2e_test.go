@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.0
-// File version: 13
-// Purpose: Corrects the map literal syntax in the determinism test.
+// File version: 14
+// Purpose: Corrects the map literal syntax in the determinism test and updates Load calls to use the new LoaderConfig.
 // filename: pkg/api/e2e_test.go
 // nlines: 120+
 // risk_rating: HIGH

@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.0
-// File version: 11
-// Purpose: Updated Get test to assert that the returned key is the correct snake_case 'account_name'.
+// NeuroScript Version: 0.7.3
+// File version: 12
+// Purpose: Adds a new test case for the 'Exists' tool.
 // filename: pkg/tool/agentmodel/tools_agentmodel_test.go
-// nlines: 253
+// nlines: 284
 // risk_rating: MEDIUM
 
 package agentmodel_test
@@ -233,6 +233,43 @@ func TestToolAgentModel_Get(t *testing.T) {
 					t.Errorf("Expected account_name 'test-account', got %v", val)
 				}
 			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testAgentModelToolHelper(t, tt)
+		})
+	}
+}
+
+func TestToolAgentModel_Exists(t *testing.T) {
+	setup := func(t *testing.T, interp *interpreter.Interpreter) error {
+		config := newValidModelConfig("p1", "m1")
+		return interp.AgentModelsAdmin().Register("existing-model", config)
+	}
+
+	tests := []agentModelTestCase{
+		{
+			name:       "Success: Model exists",
+			toolName:   "Exists",
+			args:       []interface{}{"existing-model"},
+			setupFunc:  setup,
+			wantResult: true,
+		},
+		{
+			name:       "Success: Model does not exist",
+			toolName:   "Exists",
+			args:       []interface{}{"non-existent-model"},
+			setupFunc:  setup,
+			wantResult: false,
+		},
+		{
+			name:       "Success: Model exists (case-insensitive)",
+			toolName:   "Exists",
+			args:       []interface{}{"EXISTING-MODEL"},
+			setupFunc:  setup,
+			wantResult: true,
 		},
 	}
 

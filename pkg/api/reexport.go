@@ -1,11 +1,13 @@
-// NeuroScript Version: 0.7.2
-// File version: 38
-// Purpose: Corrects the AdminCapsuleRegistry alias to point to the public CapsuleRegistry type, resolving the export issue.
+// NeuroScript Version: 0.7.3
+// File version: 39
+// Purpose: Re-exports the AccountStore and AgentModelStore types and their constructors for host-managed persistence.
 // filename: pkg/api/reexport.go
 package api
 
 import (
+	"github.com/aprice2704/neuroscript/pkg/account"
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
+	"github.com/aprice2704/neuroscript/pkg/agentmodel"
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/canon"
 	"github.com/aprice2704/neuroscript/pkg/capability"
@@ -58,6 +60,8 @@ type (
 	GrantSet             = capability.GrantSet
 	RootNode             = ast.Node
 	Program              = ast.Program
+	AccountStore         = account.Store
+	AgentModelStore      = agentmodel.AgentModelStore
 
 	// --- LLM Telemetry Emitter ---
 	Emitter            = interfaces.Emitter
@@ -147,4 +151,6 @@ var (
 	NewAdminCapsuleRegistry = capsule.NewRegistry // The new constructor
 	NewPolicyBuilder        = policy.NewBuilder
 	DecodeWithRegistry      = canon.DecodeWithRegistry
+	NewAccountStore         = account.NewStore
+	NewAgentModelStore      = agentmodel.NewAgentModelStore
 )

@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.0
-// File version: 3
-// Purpose: Added the 'Select' tool definition to align with the advanced test suite.
+// NeuroScript Version: 0.7.3
+// File version: 4
+// Purpose: Added the 'Exists' tool definition.
 // filename: pkg/tool/agentmodel/tooldefs_agentmodel.go
 // nlines: 137
 // risk_rating: HIGH
@@ -104,6 +104,22 @@ var AgentModelToolsToRegister = []tool.ToolImplementation{
 			ReturnType: tool.ArgTypeString,
 		},
 		Func:          toolSelectAgentModel,
+		RequiresTrust: false,
+		RequiredCaps: []capability.Capability{
+			{Resource: "model", Verbs: []string{"read"}, Scopes: []string{"*"}},
+		},
+	},
+	{
+		Spec: tool.ToolSpec{
+			Name:        "Exists",
+			Group:       Group,
+			Description: "Checks if an agent model with the given name is registered.",
+			Args: []tool.ArgSpec{
+				{Name: "name", Type: tool.ArgTypeString, Description: "The logical name of the model to check.", Required: true},
+			},
+			ReturnType: tool.ArgTypeBool,
+		},
+		Func:          toolAgentModelExists,
 		RequiresTrust: false,
 		RequiredCaps: []capability.Capability{
 			{Resource: "model", Verbs: []string{"read"}, Scopes: []string{"*"}},

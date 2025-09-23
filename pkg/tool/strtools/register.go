@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 3
-// Purpose: Implements self-registration for the strtools toolset, including codecs and regex.
+// File version: 4
+// Purpose: Implements self-registration for the strtools toolset, including formatters.
 // filename: pkg/tool/strtools/register.go
 package strtools
 
@@ -11,6 +11,7 @@ import "github.com/aprice2704/neuroscript/pkg/tool"
 func init() {
 	allTools := append(stringToolsToRegister, stringCodecToolsToRegister...)
 	allTools = append(allTools, stringRegexToolsToRegister...)
+	allTools = append(allTools, stringFormatToolsToRegister...) // Added this line
 	tool.AddToolsetRegistration(
 		"strtools",
 		tool.CreateRegistrationFunc("strtools", allTools),
