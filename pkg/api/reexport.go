@@ -1,7 +1,9 @@
 // NeuroScript Version: 0.7.3
-// File version: 39
-// Purpose: Re-exports the AccountStore and AgentModelStore types and their constructors for host-managed persistence.
+// File version: 43
+// Purpose: Re-exports the concrete store types and the Account struct for host-managed state.
 // filename: pkg/api/reexport.go
+// nlines: 105
+// risk_rating: LOW
 package api
 
 import (
@@ -51,17 +53,21 @@ type (
 	ToolGroup            = types.ToolGroup
 	ArgType              = tool.ArgType
 	CapsuleRegistry      = capsule.Registry
-	AdminCapsuleRegistry = CapsuleRegistry // FIX: Alias the public type to make it exportable.
+	AdminCapsuleRegistry = CapsuleRegistry
 	Capsule              = capsule.Capsule // So hosts can construct capsules
 	AgentModel           = types.AgentModel
+	Account              = account.Account // FIX: Export the Account struct type
 	AgentModelReader     = interfaces.AgentModelReader
 	AgentModelAdmin      = interfaces.AgentModelAdmin
+	AccountReader        = interfaces.AccountReader
+	AccountAdmin         = interfaces.AccountAdmin
 	LLMClient            = interfaces.LLMClient
 	GrantSet             = capability.GrantSet
 	RootNode             = ast.Node
 	Program              = ast.Program
-	AccountStore         = account.Store
-	AgentModelStore      = agentmodel.AgentModelStore
+	// FIX: Export the concrete internal store types for host lifecycle management.
+	AccountStore    = account.Store
+	AgentModelStore = agentmodel.AgentModelStore
 
 	// --- LLM Telemetry Emitter ---
 	Emitter            = interfaces.Emitter
@@ -70,26 +76,18 @@ type (
 	LLMCallFailureInfo = interfaces.LLMCallFailureInfo
 
 	// --- AEIOU v3 Host Components ---
-	// LoopControl holds the parsed result of an AEIOU LOOP signal. (DEPRECATED)
 	LoopControl struct {
 		Control string
 		Notes   string
 		Reason  string
 	}
-	// HostContext provides the necessary host-side information for a turn.
-	HostContext = aeiou.HostContext
-	// Decision represents the outcome of a turn.
-	Decision = aeiou.Decision
-	// LoopController orchestrates the host's decision-making process.
-	LoopController = aeiou.LoopController
-	// ReplayCache detects and prevents token replay attacks.
-	ReplayCache = aeiou.ReplayCache
-	// ProgressTracker detects repetitive, non-progressing loops.
+	HostContext     = aeiou.HostContext
+	Decision        = aeiou.Decision
+	LoopController  = aeiou.LoopController
+	ReplayCache     = aeiou.ReplayCache
 	ProgressTracker = aeiou.ProgressTracker
-	// KeyProvider is an interface for looking up public keys.
-	KeyProvider = aeiou.KeyProvider
-	// MagicVerifier parses and validates AEIOU v3 control tokens.
-	MagicVerifier = aeiou.MagicVerifier
+	KeyProvider     = aeiou.KeyProvider
+	MagicVerifier   = aeiou.MagicVerifier
 )
 
 const (
@@ -148,7 +146,7 @@ var (
 	ComputeHostDigest       = aeiou.ComputeHostDigest
 	NewRotatingKeyProvider  = aeiou.NewRotatingKeyProvider
 	NewCapsuleRegistry      = capsule.NewRegistry
-	NewAdminCapsuleRegistry = capsule.NewRegistry // The new constructor
+	NewAdminCapsuleRegistry = capsule.NewRegistry
 	NewPolicyBuilder        = policy.NewBuilder
 	DecodeWithRegistry      = canon.DecodeWithRegistry
 	NewAccountStore         = account.NewStore

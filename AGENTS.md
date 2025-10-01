@@ -12,7 +12,7 @@ We use **Go 1.24+**. These rules emphasize correctness, minimalism, and context 
 ### 0. COMMANDS
 
 
-- include only one file (unless I say otherwise) per turn, always with a list of files you are yet to provide
+- include only one file (unless I say otherwise) per turn, always end with a list of files you are yet to provide
 - include the starting comment block of golang files **within** code fences
 - we use goimports to correct import lines, you do not need to worry about them, just get package names (e.g. fmt. etc) correct in the code
 - do not use "github.com.com" or "github.comcom" *ever*, they do not exist
@@ -24,10 +24,12 @@ We use **Go 1.24+**. These rules emphasize correctness, minimalism, and context 
 
 ### 1. Understand Context First
 - Always review `.md` docs and relevant Go code **before** making changes.  
-- Fix compiler/test failures with **minimal, targeted edits**. Do not “tidy up” unrelated code.  
+- Fix compiler/test failures with **minimal, targeted edits**. Do not “tidy up” unrelated code.
+- When working on test failures -- focus on **ONE FILE** (or one test) AT MOST until it is fixed. This is more efficient than trying to fix several at once.
 
 ### 1b. DEBUG OUTPUT
-- If you don't fix all related bugs in a file in **two** attempts, you **do NOT** understand the problem, however confident you feel. **IMMEDIATELY** add debug output. Given enough debug output, all bugs are shallow.
+- when debugging test fails ADD DEBUG OUTPUT using PRINTF to stderr **EVERY** TURN until **I** say the test PASSES.
+- I repeat: **IMMEDIATELY** add debug output and keep adding it, NEVER REMOVE IT EXCEPT BY DIRECT REQUEST. Given enough debug output, all bugs are shallow.
 
 ### 2. Import Hygiene
 - Never output `github.comcom` or `.com.com` It must always be `github.com`.  

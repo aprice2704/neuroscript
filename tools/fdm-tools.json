@@ -252,182 +252,6 @@
   },
   {
     "spec": {
-      "name": "CreateRoot",
-      "groupname": "FDM.Forum",
-      "fullname": "",
-      "description": "Creates a new root node for a discussion forum or thread.",
-      "args": [
-        {
-          "name": "title",
-          "type": "string",
-          "description": "The title of the discussion.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the NodeID of the newly created disc_root node."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "Post",
-      "groupname": "FDM.Forum",
-      "fullname": "",
-      "description": "Posts a new message to a discussion thread.",
-      "args": [
-        {
-          "name": "rootID",
-          "type": "string",
-          "description": "The NodeID of the discussion root (disc_root).",
-          "required": true
-        },
-        {
-          "name": "parentID",
-          "type": "string",
-          "description": "The NodeID of the message being replied to. If empty, this is a top-level post.",
-          "required": false
-        },
-        {
-          "name": "markdown",
-          "type": "string",
-          "description": "The markdown content of the message.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the NodeID of the newly created disc_msg node."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "Vote",
-      "groupname": "FDM.Forum",
-      "fullname": "",
-      "description": "Submits a unipolar (+1/support, 0/abstain) vote for a message.",
-      "args": [
-        {
-          "name": "msgID",
-          "type": "string",
-          "description": "",
-          "required": true
-        },
-        {
-          "name": "value",
-          "type": "float",
-          "description": "The vote value, typically 1.0 for 'yes' or 0.0 for 'no'.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the NodeID of the newly created disc_vote node."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "Rate",
-      "groupname": "FDM.Forum",
-      "fullname": "",
-      "description": "Submits a bipolar (-1..+1) quality rating for a message.",
-      "args": [
-        {
-          "name": "msgID",
-          "type": "string",
-          "description": "",
-          "required": true
-        },
-        {
-          "name": "rating",
-          "type": "float",
-          "description": "The rating value between -1.0 and 1.0.",
-          "required": true
-        },
-        {
-          "name": "reason",
-          "type": "string",
-          "description": "An optional brief justification for the rating.",
-          "required": false
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the NodeID of the newly created disc_feedback node."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "Summarize",
-      "groupname": "FDM.Forum",
-      "fullname": "",
-      "description": "Generates a summary node for a message using its aggregated vote and rating data.",
-      "args": [
-        {
-          "name": "msgID",
-          "type": "string",
-          "description": "The NodeID of the message to summarize.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the NodeID of the newly created disc_summary node."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "ListThread",
-      "groupname": "FDM.Forum",
-      "fullname": "",
-      "description": "Lists all messages in a discussion thread, sorted by timestamp.",
-      "args": [
-        {
-          "name": "rootID",
-          "type": "string",
-          "description": "The NodeID of the discussion root to list.",
-          "required": true
-        }
-      ],
-      "returnType": "slice_map",
-      "returnHelp": "Returns a list of maps, where each map is a full message node."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "GetContextBundle",
-      "groupname": "FDM.Forum",
-      "fullname": "",
-      "description": "Gets the last N messages of a thread as a single formatted string, suitable for an AI prompt.",
-      "args": [
-        {
-          "name": "rootID",
-          "type": "string",
-          "description": "The NodeID of the discussion root.",
-          "required": true
-        },
-        {
-          "name": "count",
-          "type": "int",
-          "description": "The number of recent messages to get (default 20, max 20).",
-          "required": false
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns a single string with messages formatted as '[author]: content'."
-    },
-    "requiresTrust": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
       "name": "CreateNode",
       "groupname": "FDM",
       "fullname": "",
@@ -1111,6 +935,182 @@
   },
   {
     "spec": {
+      "name": "CreateRoot",
+      "groupname": "FDM.Forum",
+      "fullname": "",
+      "description": "Creates a new root node for a discussion forum or thread.",
+      "args": [
+        {
+          "name": "title",
+          "type": "string",
+          "description": "The title of the discussion.",
+          "required": true
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns the NodeID of the newly created disc_root node."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "Post",
+      "groupname": "FDM.Forum",
+      "fullname": "",
+      "description": "Posts a new message to a discussion thread.",
+      "args": [
+        {
+          "name": "rootID",
+          "type": "string",
+          "description": "The NodeID of the discussion root (disc_root).",
+          "required": true
+        },
+        {
+          "name": "parentID",
+          "type": "string",
+          "description": "The NodeID of the message being replied to. If empty, this is a top-level post.",
+          "required": false
+        },
+        {
+          "name": "markdown",
+          "type": "string",
+          "description": "The markdown content of the message.",
+          "required": true
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns the NodeID of the newly created disc_msg node."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "Vote",
+      "groupname": "FDM.Forum",
+      "fullname": "",
+      "description": "Submits a unipolar (+1/support, 0/abstain) vote for a message.",
+      "args": [
+        {
+          "name": "msgID",
+          "type": "string",
+          "description": "",
+          "required": true
+        },
+        {
+          "name": "value",
+          "type": "float",
+          "description": "The vote value, typically 1.0 for 'yes' or 0.0 for 'no'.",
+          "required": true
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns the NodeID of the newly created disc_vote node."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "Rate",
+      "groupname": "FDM.Forum",
+      "fullname": "",
+      "description": "Submits a bipolar (-1..+1) quality rating for a message.",
+      "args": [
+        {
+          "name": "msgID",
+          "type": "string",
+          "description": "",
+          "required": true
+        },
+        {
+          "name": "rating",
+          "type": "float",
+          "description": "The rating value between -1.0 and 1.0.",
+          "required": true
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "description": "An optional brief justification for the rating.",
+          "required": false
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns the NodeID of the newly created disc_feedback node."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "Summarize",
+      "groupname": "FDM.Forum",
+      "fullname": "",
+      "description": "Generates a summary node for a message using its aggregated vote and rating data.",
+      "args": [
+        {
+          "name": "msgID",
+          "type": "string",
+          "description": "The NodeID of the message to summarize.",
+          "required": true
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns the NodeID of the newly created disc_summary node."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "ListThread",
+      "groupname": "FDM.Forum",
+      "fullname": "",
+      "description": "Lists all messages in a discussion thread, sorted by timestamp.",
+      "args": [
+        {
+          "name": "rootID",
+          "type": "string",
+          "description": "The NodeID of the discussion root to list.",
+          "required": true
+        }
+      ],
+      "returnType": "slice_map",
+      "returnHelp": "Returns a list of maps, where each map is a full message node."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "GetContextBundle",
+      "groupname": "FDM.Forum",
+      "fullname": "",
+      "description": "Gets the last N messages of a thread as a single formatted string, suitable for an AI prompt.",
+      "args": [
+        {
+          "name": "rootID",
+          "type": "string",
+          "description": "The NodeID of the discussion root.",
+          "required": true
+        },
+        {
+          "name": "count",
+          "type": "int",
+          "description": "The number of recent messages to get (default 20, max 20).",
+          "required": false
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns a single string with messages formatted as '[author]: content'."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
       "name": "unlock",
       "groupname": "fdm.kms",
       "fullname": "",
@@ -1447,6 +1447,75 @@
       "fullname": "",
       "description": "Retrieves the agent's private Noetic capsule data from the FDM by searching for it.",
       "returnType": "any"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "ForumCreateRoot",
+      "groupname": "fdm.agent",
+      "fullname": "",
+      "description": "Creates a new root node for a discussion forum.",
+      "args": [
+        {
+          "name": "title",
+          "type": "string",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "ForumPost",
+      "groupname": "fdm.agent",
+      "fullname": "",
+      "description": "Posts a message to a discussion forum.",
+      "args": [
+        {
+          "name": "rootID",
+          "type": "string",
+          "description": "",
+          "required": true
+        },
+        {
+          "name": "parentID",
+          "type": "string",
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "markdown",
+          "type": "string",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "ForumListThread",
+      "groupname": "fdm.agent",
+      "fullname": "",
+      "description": "Lists all messages in a discussion thread.",
+      "args": [
+        {
+          "name": "rootID",
+          "type": "string",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "slice_map"
     },
     "requiresTrust": false,
     "signatureChecksum": ""
