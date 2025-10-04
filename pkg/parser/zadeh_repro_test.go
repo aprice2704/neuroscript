@@ -33,7 +33,7 @@ func main() means
     set mime_types = ["image/png"]
     set plan_id = tool.FDM.Plan.AddExcludeMIMETypes(plan_id, mime_types)
 
-    set plan_id = tool.FDM.Plan.AddOverlay(plan_id, "fso")
+    set plan_id = tool.FDM.Plan.AddOverlay(plan_id, leaf.OverlayFSO)
 
     emit "--- Executing Ingest Plan ---"
     set success = tool.FDM.Repo.Ingest(plan_id)

@@ -1,7 +1,4 @@
-Executing trusted config script: ./library/list_tools.ns.txt
-Interpreter created with elevated privileges.
 [DEBUG] ExecWithInterpreter: Admin registry is NIL on internal interpreter before ExecuteCommands.
-Running procedure 'main'...
 Compact Tool List:
 tool.account.Delete(name:string) -> bool [caps: account:admin:*]
 tool.account.Exists(name:string) -> bool [caps: account:read:*]
@@ -2192,5 +2189,3 @@ handle = tool.Tree.LoadJSON("{\"key\":\"value\"}"); tool.Tree.ToJSON(handle)
 ---
 
 
-Trusted config script finished successfully.
-NeuroScript application finished.

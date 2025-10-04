@@ -713,6 +713,150 @@
   },
   {
     "spec": {
+      "name": "get_discussion",
+      "groupname": "FDM.Overlays",
+      "fullname": "",
+      "description": "Returns the canonical name of the discussion overlay.",
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_fco",
+      "groupname": "FDM.Overlays",
+      "fullname": "",
+      "description": "Returns the canonical name of the File Content Overlay (FCO).",
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_fileoverlay",
+      "groupname": "FDM.Overlays",
+      "fullname": "",
+      "description": "Returns the canonical name of the File Overlay.",
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_fso",
+      "groupname": "FDM.Overlays",
+      "fullname": "",
+      "description": "Returns the canonical name of the Filesystem Overlay.",
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_fvo",
+      "groupname": "FDM.Overlays",
+      "fullname": "",
+      "description": "Returns the canonical name of the File Version Overlay.",
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_legacy",
+      "groupname": "FDM.Overlays",
+      "fullname": "",
+      "description": "Returns the canonical name of the legacy overlay.",
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_natlang",
+      "groupname": "FDM.Overlays",
+      "fullname": "",
+      "description": "Returns the canonical name of the natural language overlay.",
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_neuromorphic",
+      "groupname": "FDM.Overlays",
+      "fullname": "",
+      "description": "Returns the canonical name of the Neuromorphic Overlay.",
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_plan",
+      "groupname": "FDM.Overlays",
+      "fullname": "",
+      "description": "Returns the canonical name of the plan overlay.",
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_sio",
+      "groupname": "FDM.Overlays",
+      "fullname": "",
+      "description": "Returns the canonical name of the Symbol Index Overlay (SIO).",
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_summary",
+      "groupname": "FDM.Overlays",
+      "fullname": "",
+      "description": "Returns the canonical name of the summary overlay.",
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_welcome",
+      "groupname": "FDM.Overlays",
+      "fullname": "",
+      "description": "Returns the canonical name of the welcome overlay.",
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "List",
+      "groupname": "FDM.Services",
+      "fullname": "",
+      "description": "Lists the status of all registered FDM services.",
+      "returnType": "slice_map",
+      "returnHelp": "Returns a list of maps, each representing a service with its ID, status, priority, and info."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
       "name": "FindSymbol",
       "groupname": "FDM.SIO",
       "fullname": "",
@@ -1435,17 +1579,6 @@
       "groupname": "fdm.agent",
       "fullname": "",
       "description": "Retrieves the contents of the agent's message handler capsule.",
-      "returnType": "any"
-    },
-    "requiresTrust": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "get_noetic_capsule",
-      "groupname": "fdm.agent",
-      "fullname": "",
-      "description": "Retrieves the agent's private Noetic capsule data from the FDM by searching for it.",
       "returnType": "any"
     },
     "requiresTrust": false,

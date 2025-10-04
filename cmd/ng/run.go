@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 20
-// Purpose: Allows trusted config scripts to call any tool by default (*).
+// File version: 21
+// Purpose: Ensure interpreter output is correctly piped to stdout.
 // filename: cmd/ng/run.go
-// nlines: 202
+// nlines: 178
 // risk_rating: HIGH
 package main
 
@@ -48,7 +48,7 @@ func Run(cfg CliConfig) int {
 
 	// --- Execute Trusted Config Script ---
 	if cfg.TrustedConfig != "" {
-		fmt.Printf("Executing trusted config script: %s\n", cfg.TrustedConfig)
+		fmt.Fprintf(os.Stderr, "Executing trusted config script: %s\n", cfg.TrustedConfig)
 		requiredGrants := []api.Capability{
 			{Resource: "model", Verbs: []string{"admin"}, Scopes: []string{"*"}},
 			{Resource: "model", Verbs: []string{"use"}, Scopes: []string{"*"}},
@@ -62,21 +62,11 @@ func Run(cfg CliConfig) int {
 		trustedInterp := api.NewConfigInterpreter(
 			allowedTools,
 			requiredGrants,
-			// api.WithStdout(os.Stdout), // This was not working as expected.
+			api.WithStdout(os.Stdout), // FIX: Re-enable direct stdout piping.
 			api.WithStderr(os.Stderr),
 		)
 
-		// FIX: Explicitly set a handler for the 'emit' command to ensure output.
-		trustedInterp.SetEmitFunc(func(v api.Value) {
-			val, err := api.Unwrap(v)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "[emit error] %v\n", err)
-				return
-			}
-			fmt.Println(val)
-		})
-
-		fmt.Println("Interpreter created with elevated privileges.")
+		fmt.Fprintln(os.Stderr, "Interpreter created with elevated privileges.")
 
 		args := stringSliceToAnySlice(cfg.TrustedTargetArgs)
 		err := executeScript(ctx, trustedInterp, cfg.TrustedConfig, cfg.TrustedConfigTarget, args)
@@ -84,7 +74,7 @@ func Run(cfg CliConfig) int {
 			fmt.Fprintf(os.Stderr, "Error in trusted config script '%s': %v\n", cfg.TrustedConfig, err)
 			return 1
 		}
-		fmt.Println("Trusted config script finished successfully.")
+		fmt.Fprintln(os.Stderr, "Trusted config script finished successfully.")
 	}
 
 	// --- Determine Mode of Operation ---
@@ -97,19 +87,11 @@ func Run(cfg CliConfig) int {
 	if scriptToRunNonTUI != "" || cfg.TuiMode || cfg.ReplMode {
 		// api.New() now handles registration of default providers automatically.
 		interp = api.New(
+			api.WithStdout(os.Stdout), // FIX: Ensure standard interpreter also pipes to stdout.
 			api.WithStderr(os.Stderr),
 		)
-		// Also apply the emit fix to the standard interpreter.
-		interp.SetEmitFunc(func(v api.Value) {
-			val, err := api.Unwrap(v)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "[emit error] %v\n", err)
-				return
-			}
-			fmt.Println(val)
-		})
 
-		fmt.Println("Interpreter created with standard privileges.")
+		fmt.Fprintln(os.Stderr, "Interpreter created with standard privileges.")
 	}
 
 	// TUI Mode (Conceptual)
@@ -120,14 +102,14 @@ func Run(cfg CliConfig) int {
 
 	// Non-TUI Script Execution
 	if scriptToRunNonTUI != "" {
-		fmt.Printf("Executing script: %s\n", scriptToRunNonTUI)
+		fmt.Fprintf(os.Stderr, "Executing script: %s\n", scriptToRunNonTUI)
 		args := stringSliceToAnySlice(cfg.ProcArgs)
 		err := executeScript(ctx, interp, scriptToRunNonTUI, cfg.TargetArg, args)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Script execution failed for '%s': %v\n", scriptToRunNonTUI, err)
 			return 1
 		}
-		fmt.Println("Script finished successfully.")
+		fmt.Fprintln(os.Stderr, "Script finished successfully.")
 		return 0
 	}
 
@@ -141,7 +123,7 @@ func Run(cfg CliConfig) int {
 		fmt.Println("No action specified. Use -trusted-config, -script <file>, -tui, or -repl.")
 	}
 
-	fmt.Println("NeuroScript application finished.")
+	fmt.Fprintln(os.Stderr, "NeuroScript application finished.")
 	return 0
 }
 
@@ -161,7 +143,7 @@ func executeScript(ctx context.Context, interp *api.Interpreter, scriptPath stri
 	}
 
 	if target != "" {
-		fmt.Printf("Running procedure '%s'...\n", target)
+		fmt.Fprintf(os.Stderr, "Running procedure '%s'...\n", target)
 		if _, err := api.RunProcedure(ctx, interp, target, args...); err != nil {
 			return fmt.Errorf("error executing procedure '%s': %w", target, err)
 		}
