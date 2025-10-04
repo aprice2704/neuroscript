@@ -8,7 +8,6 @@
 package api
 
 import (
-	"fmt"
 	"io"
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
@@ -70,11 +69,11 @@ func WithCapsuleRegistry(registry *CapsuleRegistry) Option {
 // This is for trusted, configuration contexts where scripts need to persist new capsules.
 func WithCapsuleAdminRegistry(registry *AdminCapsuleRegistry) Option {
 	// --- DEBUG ---
-	if registry != nil {
-		fmt.Println("[DEBUG] WithCapsuleAdminRegistry(): Creating option with a PRESENT registry.")
-	} else {
-		fmt.Println("[DEBUG] WithCapsuleAdminRegistry(): Creating option with a NIL registry.")
-	}
+	// if registry != nil {
+	// 	fmt.Println("[DEBUG] WithCapsuleAdminRegistry(): Creating option with a PRESENT registry.")
+	// } else {
+	// 	fmt.Println("[DEBUG] WithCapsuleAdminRegistry(): Creating option with a NIL registry.")
+	// }
 	return interpreter.WithCapsuleAdminRegistry(registry)
 }
 

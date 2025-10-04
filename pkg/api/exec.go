@@ -51,11 +51,11 @@ func ExecWithInterpreter(ctx context.Context, interp *Interpreter, tree *Tree) (
 	// --- DEBUG ---
 	// This is the final check. Does the *internal* interpreter have the admin
 	// registry right before we tell it to execute the command?
-	if interp.internal.CapsuleRegistryForAdmin() != nil {
-		fmt.Println("[DEBUG] ExecWithInterpreter: Admin registry is PRESENT on internal interpreter before ExecuteCommands.")
-	} else {
-		fmt.Println("[DEBUG] ExecWithInterpreter: Admin registry is NIL on internal interpreter before ExecuteCommands.")
-	}
+	// if interp.internal.CapsuleRegistryForAdmin() != nil {
+	// 	// fmt.Println("[DEBUG] ExecWithInterpreter: Admin registry is PRESENT on internal interpreter before ExecuteCommands.")
+	// } else {
+	// 	// fmt.Println("[DEBUG] ExecWithInterpreter: Admin registry is NIL on internal interpreter before ExecuteCommands.")
+	// }
 	// --- END DEBUG ---
 
 	// 2. Execute top-level command blocks.
