@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.3
-// File version: 42
-// Purpose: Adds WithAccountStore and WithAgentModelStore options for host-managed state.
+// File version: 43
+// Purpose: Adds WithFunctionsFrom option to allow sharing of function definitions between interpreters.
 // filename: pkg/api/interpreter_options.go
-// nlines: 108
+// nlines: 125
 // risk_rating: LOW
 
 package api
@@ -68,12 +68,6 @@ func WithCapsuleRegistry(registry *CapsuleRegistry) Option {
 // WithCapsuleAdminRegistry provides a writable capsule registry to the interpreter.
 // This is for trusted, configuration contexts where scripts need to persist new capsules.
 func WithCapsuleAdminRegistry(registry *AdminCapsuleRegistry) Option {
-	// --- DEBUG ---
-	// if registry != nil {
-	// 	fmt.Println("[DEBUG] WithCapsuleAdminRegistry(): Creating option with a PRESENT registry.")
-	// } else {
-	// 	fmt.Println("[DEBUG] WithCapsuleAdminRegistry(): Creating option with a NIL registry.")
-	// }
 	return interpreter.WithCapsuleAdminRegistry(registry)
 }
 

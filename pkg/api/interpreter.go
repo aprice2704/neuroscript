@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.3
-// File version: 43
-// Purpose: Ensures host-provided stores are correctly passed to the internal interpreter.
+// File version: 45
+// Purpose: Adds the CopyFunctionsFrom method for selectively inheriting function definitions.
 // filename: pkg/api/interpreter.go
-// nlines: 158
+// nlines: 180
 // risk_rating: HIGH
 package api
 
@@ -152,4 +152,14 @@ func ParseLoopControl(output string) (*LoopControl, error) {
 func (i *Interpreter) GetVariable(name string) (Value, bool) {
 	val, exists := i.internal.GetVariable(name)
 	return val, exists
+}
+
+// CopyFunctionsFrom copies only the function definitions from a source interpreter
+// into the receiver. It does not copy event handlers, command blocks, or runtime state.
+// It will return an error if a function being copied already exists.
+func (i *Interpreter) CopyFunctionsFrom(source *Interpreter) error {
+	if source == nil || source.internal == nil {
+		return errors.New("source interpreter cannot be nil")
+	}
+	return i.internal.CopyProceduresFrom(source.internal)
 }
