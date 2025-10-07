@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.6.0
-// File version: 64
-// Purpose: [DEBUG] Added logging to the tool-not-found error path.
+// NeuroScript Version: 0.7.4
+// File version: 65
+// Purpose: Updates the tool call dispatch logic to use the configurable 'runtime' field instead of the interpreter itself.
 // filename: pkg/interpreter/evaluation_main.go
 // nlines: 280
 // risk_rating: HIGH
@@ -223,7 +223,7 @@ func (e *evaluation) evaluateCall(n *ast.CallableExprNode) (lang.Value, error) {
 			unwrappedArgs[i] = lang.Unwrap(v)
 		}
 
-		result, err := toolImpl.Func(e.i, unwrappedArgs)
+		result, err := toolImpl.Func(e.i.runtime, unwrappedArgs)
 		if err != nil {
 			return nil, lang.NewRuntimeError(lang.ErrorCodeToolExecutionFailed, fmt.Sprintf("tool '%s' execution failed", toolImpl.Spec.Name), err).WithPosition(n.StartPos)
 		}

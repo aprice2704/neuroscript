@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.2
-// File version: 6
-// Purpose: Adds HasEmitFunc() to the public API to allow hosts to check if a custom emit function has been configured.
+// NeuroScript Version: 0.7.4
+// File version: 7
+// Purpose: Adds SetRuntime() to the public API to allow hosts to inject a custom runtime context.
 // filename: pkg/interpreter/interpreter_api.go
-// nlines: 140
+// nlines: 154
 // risk_rating: LOW
 
 package interpreter
@@ -19,6 +19,17 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/provider"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
+
+// SetRuntime allows the host application to set a custom runtime context.
+// This is used to pass host-specific information (like actor identity) to tools.
+func (i *Interpreter) SetRuntime(rt tool.Runtime) {
+	if rt == nil {
+		// If a nil runtime is provided, default back to the interpreter itself.
+		i.runtime = i
+	} else {
+		i.runtime = rt
+	}
+}
 
 // PromptUser satisfies the tool.Runtime interface for user interaction.
 func (i *Interpreter) PromptUser(prompt string) (string, error) {

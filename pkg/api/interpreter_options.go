@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.3
-// File version: 43
-// Purpose: Adds WithFunctionsFrom option to allow sharing of function definitions between interpreters.
+// NeuroScript Version: 0.7.4
+// File version: 44
+// Purpose: Adds WithRuntime option for custom runtime context injection.
 // filename: pkg/api/interpreter_options.go
-// nlines: 125
+// nlines: 139
 // risk_rating: LOW
 
 package api
@@ -136,5 +136,14 @@ func WithInterpreter(existing *Interpreter) Option {
 		if existing != nil && existing.internal != nil {
 			*i = *existing.internal
 		}
+	}
+}
+
+// WithRuntime creates an interpreter option to set a custom runtime context.
+// This allows the host application to inject its own state (like actor identity)
+// into the tool execution environment.
+func WithRuntime(rt Runtime) Option {
+	return func(i *interpreter.Interpreter) {
+		i.SetRuntime(rt)
 	}
 }

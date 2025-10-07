@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.2
-// File version: 22
-// Purpose: [DEBUG] Adds extensive logging to the clone method to trace the propagation of custom I/O functions and the admin registry.
+// NeuroScript Version: 0.7.4
+// File version: 23
+// Purpose: Propagates the new 'runtime' field to cloned interpreters.
 // filename: pkg/interpreter/interpreter_clone.go
-// nlines: 105
+// nlines: 106
 // risk_rating: HIGH
 
 package interpreter
@@ -49,6 +49,7 @@ func (i *Interpreter) clone() *Interpreter {
 		turnCtx:                   i.turnCtx,
 		eventHandlerErrorCallback: i.eventHandlerErrorCallback,
 		emitter:                   i.emitter,
+		runtime:                   i.runtime, // Propagate the custom runtime.
 
 		// --- BUG FIX & VERIFICATION ---
 		// Propagate the custom I/O functions from the parent.

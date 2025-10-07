@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.3
-// File version: 45
-// Purpose: Adds the CopyFunctionsFrom method for selectively inheriting function definitions.
+// NeuroScript Version: 0.7.4
+// File version: 47
+// Purpose: Exposes Account and AgentModel stores via public accessors for custom runtime wrappers.
 // filename: pkg/api/interpreter.go
-// nlines: 180
+// nlines: 206
 // risk_rating: HIGH
 package api
 
@@ -40,6 +40,25 @@ func New(opts ...Option) *Interpreter {
 	i.RegisterProvider("google", googleProvider)
 
 	return &Interpreter{internal: i}
+}
+
+// Accounts returns the account store associated with the interpreter.
+// This is needed for custom runtime wrappers to satisfy the tool.Runtime interface.
+func (i *Interpreter) Accounts() *AccountStore {
+	return i.internal.AccountStore()
+}
+
+// AgentModels returns the agent model store associated with the interpreter.
+// This is needed for custom runtime wrappers to satisfy the tool.Runtime interface.
+func (i *Interpreter) AgentModels() *AgentModelStore {
+	return i.internal.AgentModelStore()
+}
+
+// SetRuntime allows the host application to set a custom runtime context that will
+// be passed to all executed tools. This is the primary mechanism for injecting
+// host-specific state, such as actor identity, into the NeuroScript environment.
+func (i *Interpreter) SetRuntime(rt Runtime) {
+	i.internal.SetRuntime(rt)
 }
 
 // SetSandboxDir sets the secure root directory for all subsequent file operations

@@ -1,7 +1,9 @@
-// NeuroScript Version: 0.7.3
-// File version: 73
-// Purpose: Corrects the function call to NewAgentModelAdmin to resolve a compiler error.
+// NeuroScript Version: 0.7.4
+// File version: 75
+// Purpose: Adds public accessors for accountStore and modelStore to support custom runtimes.
 // filename: pkg/interpreter/interpreter.go
+// nlines: 163
+// risk_rating: MEDIUM
 
 package interpreter
 
@@ -37,6 +39,7 @@ type Interpreter struct {
 	fileAPI                   interfaces.FileAPI
 	state                     *interpreterState
 	tools                     tool.ToolRegistry
+	runtime                   tool.Runtime // The runtime context passed to tools.
 	eventManager              *EventManager
 	evaluate                  *evaluation
 	aiWorker                  interfaces.LLMClient
@@ -71,6 +74,16 @@ type Interpreter struct {
 	// --- Clone Tracking for Debugging ---
 	cloneRegistry   []*Interpreter
 	cloneRegistryMu sync.Mutex
+}
+
+// AccountStore returns the account store associated with the interpreter.
+func (i *Interpreter) AccountStore() *account.Store {
+	return i.rootInterpreter().accountStore
+}
+
+// AgentModelStore returns the agent model store associated with the interpreter.
+func (i *Interpreter) AgentModelStore() *agentmodel.AgentModelStore {
+	return i.rootInterpreter().modelStore
 }
 
 // SetEmitter sets the LLM telemetry emitter for the interpreter.
@@ -119,7 +132,8 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	}
 	i.evaluate = &evaluation{i: i}
 	i.tools = tool.NewToolRegistry(i)
-	i.root = nil // This is the root interpreter
+	i.runtime = i // By default, the interpreter is its own runtime.
+	i.root = nil  // This is the root interpreter
 	i.modelStore = agentmodel.NewAgentModelStore()
 	i.accountStore = account.NewStore()
 
