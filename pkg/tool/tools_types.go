@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 21
-// Purpose: Broke import cycle by removing ExecPolicy from Runtime and implementing policy.ToolSpecProvider.
+// File version: 22
+// Purpose: Added RequiresID field to ToolSpec for FDM Zadeh integration.
 // filename: pkg/tool/tool_types.go
-// nlines: 151
+// nlines: 152
 // risk_rating: HIGH
 
 package tool
@@ -93,6 +93,7 @@ type ToolImplementation struct {
 	Spec              ToolSpec                `json:"spec"`
 	Func              ToolFunc                `json:"-"`
 	RequiresTrust     bool                    `json:"requiresTrust"`
+	RequiresID        bool                    `json:"requiresId,omitempty"`
 	RequiredCaps      []capability.Capability `json:"requiredCaps,omitempty"`
 	Effects           []string                `json:"effects,omitempty"`
 	SignatureChecksum string                  `json:"signatureChecksum"`

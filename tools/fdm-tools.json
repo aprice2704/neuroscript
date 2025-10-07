@@ -713,10 +713,10 @@
   },
   {
     "spec": {
-      "name": "get_discussion",
+      "name": "get_forum",
       "groupname": "FDM.Overlays",
       "fullname": "",
-      "description": "Returns the canonical name of the discussion overlay.",
+      "description": "Returns the canonical name of the forum overlay.",
       "returnType": "string"
     },
     "requiresTrust": false,
@@ -839,6 +839,102 @@
       "fullname": "",
       "description": "Returns the canonical name of the welcome overlay.",
       "returnType": "string"
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "Create",
+      "groupname": "FDM.Project",
+      "fullname": "",
+      "description": "Creates a new project node.",
+      "args": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "A unique machine-readable ID for the project (e.g., 'fdm-core').",
+          "required": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "description": "The human-readable name of the project.",
+          "required": true
+        },
+        {
+          "name": "repos",
+          "type": "slice",
+          "description": "A list of repository URLs.",
+          "required": false
+        },
+        {
+          "name": "goals",
+          "type": "slice",
+          "description": "A list of high-level goals for the project.",
+          "required": false
+        },
+        {
+          "name": "overlays",
+          "type": "slice",
+          "description": "A list of overlays to associate with the project.",
+          "required": false
+        },
+        {
+          "name": "teamGroupID",
+          "type": "string",
+          "description": "The NodeID of the group/group node representing the project team.",
+          "required": false
+        }
+      ],
+      "returnType": "map",
+      "returnHelp": "Returns a map representing the newly created project node."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "Get",
+      "groupname": "FDM.Project",
+      "fullname": "",
+      "description": "Retrieves a project node by its unique project ID.",
+      "args": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "The unique machine-readable ID of the project to retrieve.",
+          "required": true
+        }
+      ],
+      "returnType": "map",
+      "returnHelp": "Returns a map representing the project node, or nil if not found."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "Update",
+      "groupname": "FDM.Project",
+      "fullname": "",
+      "description": "Updates fields on an existing project node.",
+      "args": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "The unique ID of the project to update.",
+          "required": true
+        },
+        {
+          "name": "fields",
+          "type": "map",
+          "description": "A map of field names to new values.",
+          "required": true
+        }
+      ],
+      "returnType": "map",
+      "returnHelp": "Returns a map representing the updated project node."
     },
     "requiresTrust": false,
     "signatureChecksum": ""
@@ -993,6 +1089,7 @@
       "returnType": "bool"
     },
     "requiresTrust": false,
+    "requiresId": true,
     "signatureChecksum": ""
   },
   {
@@ -1075,6 +1172,7 @@
       "returnType": "map"
     },
     "requiresTrust": false,
+    "requiresId": true,
     "signatureChecksum": ""
   },
   {
@@ -1082,17 +1180,43 @@
       "name": "CreateRoot",
       "groupname": "FDM.Forum",
       "fullname": "",
-      "description": "Creates a new root node for a discussion forum or thread.",
+      "description": "Creates a new standalone root node for a forum or thread.",
       "args": [
         {
           "name": "title",
           "type": "string",
-          "description": "The title of the discussion.",
+          "description": "The title of the forum.",
           "required": true
         }
       ],
       "returnType": "string",
-      "returnHelp": "Returns the NodeID of the newly created disc_root node."
+      "returnHelp": "Returns the NodeID of the newly created forum_root node."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "CreateForProject",
+      "groupname": "FDM.Forum",
+      "fullname": "",
+      "description": "Creates a new forum root and links it to a project.",
+      "args": [
+        {
+          "name": "projectID",
+          "type": "string",
+          "description": "The NodeID of the project to associate with.",
+          "required": true
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "description": "The title of the new forum.",
+          "required": true
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns the NodeID of the newly created forum_root node."
     },
     "requiresTrust": false,
     "signatureChecksum": ""
@@ -1102,12 +1226,12 @@
       "name": "Post",
       "groupname": "FDM.Forum",
       "fullname": "",
-      "description": "Posts a new message to a discussion thread.",
+      "description": "Posts a new message to a forum thread.",
       "args": [
         {
           "name": "rootID",
           "type": "string",
-          "description": "The NodeID of the discussion root (disc_root).",
+          "description": "The NodeID of the forum root (forum_root).",
           "required": true
         },
         {
@@ -1124,7 +1248,7 @@
         }
       ],
       "returnType": "string",
-      "returnHelp": "Returns the NodeID of the newly created disc_msg node."
+      "returnHelp": "Returns the NodeID of the newly created forum_msg node."
     },
     "requiresTrust": false,
     "signatureChecksum": ""
@@ -1150,7 +1274,7 @@
         }
       ],
       "returnType": "string",
-      "returnHelp": "Returns the NodeID of the newly created disc_vote node."
+      "returnHelp": "Returns the NodeID of the newly created forum_vote node."
     },
     "requiresTrust": false,
     "signatureChecksum": ""
@@ -1182,7 +1306,7 @@
         }
       ],
       "returnType": "string",
-      "returnHelp": "Returns the NodeID of the newly created disc_feedback node."
+      "returnHelp": "Returns the NodeID of the newly created forum_feedback node."
     },
     "requiresTrust": false,
     "signatureChecksum": ""
@@ -1202,7 +1326,7 @@
         }
       ],
       "returnType": "string",
-      "returnHelp": "Returns the NodeID of the newly created disc_summary node."
+      "returnHelp": "Returns the NodeID of the newly created forum_summary node."
     },
     "requiresTrust": false,
     "signatureChecksum": ""
@@ -1212,12 +1336,12 @@
       "name": "ListThread",
       "groupname": "FDM.Forum",
       "fullname": "",
-      "description": "Lists all messages in a discussion thread, sorted by timestamp.",
+      "description": "Lists all messages in a forum thread, sorted by timestamp.",
       "args": [
         {
           "name": "rootID",
           "type": "string",
-          "description": "The NodeID of the discussion root to list.",
+          "description": "The NodeID of the forum root to list.",
           "required": true
         }
       ],
@@ -1237,7 +1361,7 @@
         {
           "name": "rootID",
           "type": "string",
-          "description": "The NodeID of the discussion root.",
+          "description": "The NodeID of the forum root.",
           "required": true
         },
         {
@@ -1249,6 +1373,18 @@
       ],
       "returnType": "string",
       "returnHelp": "Returns a single string with messages formatted as '[author]: content'."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "ListForums",
+      "groupname": "FDM.Forum",
+      "fullname": "",
+      "description": "Lists all available forums with their core metadata.",
+      "returnType": "slice_map",
+      "returnHelp": "Returns a list of maps, where each map represents a forum root."
     },
     "requiresTrust": false,
     "signatureChecksum": ""
@@ -1509,6 +1645,18 @@
   },
   {
     "spec": {
+      "name": "ListProjects",
+      "groupname": "FDM.Project",
+      "fullname": "",
+      "description": "Lists all available projects with their core metadata.",
+      "returnType": "slice_map",
+      "returnHelp": "Returns a list of maps, where each map represents a project."
+    },
+    "requiresTrust": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
       "name": "get_identity",
       "groupname": "fdm.agent",
       "fullname": "",
@@ -1580,75 +1728,6 @@
       "fullname": "",
       "description": "Retrieves the contents of the agent's message handler capsule.",
       "returnType": "any"
-    },
-    "requiresTrust": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "ForumCreateRoot",
-      "groupname": "fdm.agent",
-      "fullname": "",
-      "description": "Creates a new root node for a discussion forum.",
-      "args": [
-        {
-          "name": "title",
-          "type": "string",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "string"
-    },
-    "requiresTrust": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "ForumPost",
-      "groupname": "fdm.agent",
-      "fullname": "",
-      "description": "Posts a message to a discussion forum.",
-      "args": [
-        {
-          "name": "rootID",
-          "type": "string",
-          "description": "",
-          "required": true
-        },
-        {
-          "name": "parentID",
-          "type": "string",
-          "description": "",
-          "required": false
-        },
-        {
-          "name": "markdown",
-          "type": "string",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "string"
-    },
-    "requiresTrust": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "ForumListThread",
-      "groupname": "fdm.agent",
-      "fullname": "",
-      "description": "Lists all messages in a discussion thread.",
-      "args": [
-        {
-          "name": "rootID",
-          "type": "string",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "slice_map"
     },
     "requiresTrust": false,
     "signatureChecksum": ""

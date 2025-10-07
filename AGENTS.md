@@ -26,6 +26,9 @@ We use **Go 1.24+**. These rules emphasize correctness, minimalism, and context 
 - Always review `.md` docs and relevant Go code **before** making changes.  
 - Fix compiler/test failures with **minimal, targeted edits**. Do not “tidy up” unrelated code.
 - When working on test failures -- focus on **ONE FILE** (or one test) AT MOST until it is fixed. This is more efficient than trying to fix several at once.
+- The ***ONLY*** package from ns that host programs may import is:
+             github.com/aprice2704/neuroscript/pkg/api
+NO OTHERS. NONE. ONLY API. NOT ANYTHING ELSE.
 
 ### 1b. DEBUG OUTPUT
 - when debugging test fails ADD DEBUG OUTPUT using PRINTF to stderr **EVERY** TURN until **I** say the test PASSES.
@@ -34,6 +37,7 @@ We use **Go 1.24+**. These rules emphasize correctness, minimalism, and context 
 ### 2. Import Hygiene
 - Never output `github.comcom` or `.com.com` It must always be `github.com`.  
 - In `.md` files, do **not** wrap Go import paths in markdown links.
+- We use goimports: get the package prefixes right in the code and goimports will take care of the imports. Conversly, broken imports always get corrected without you, so fixing them will not help.
 
 ### 3. Full & Functional Files
 - Always deliver **complete files** in inline code boxes please. 
