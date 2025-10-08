@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.2
-// File version: 14
-// Purpose: Corrected Load calls to wrap the *ast.Program in an *interfaces.Tree, conforming to the dependency-injected API.
+// NeuroScript Version: 0.7.4
+// File version: 17
+// Purpose: Adds RunScriptWithInterpreter, a non-destructive variant that uses AppendScript to preserve interpreter state before execution.
 // filename: pkg/api/exec.go
-// nlines: 98
+// nlines: 125
 // risk_rating: HIGH
 
 package api
@@ -30,6 +30,8 @@ func ExecInNewInterpreter(ctx context.Context, src string, opts ...interpreter.I
 }
 
 // ExecWithInterpreter executes top-level 'command' blocks using a persistent interpreter.
+// NOTE: This function is destructive. It calls interp.Load(), which resets the
+// interpreter's state, wiping any existing function definitions before execution.
 func ExecWithInterpreter(ctx context.Context, interp *Interpreter, tree *Tree) (Value, error) {
 	if interp == nil || interp.internal == nil {
 		return nil, fmt.Errorf("ExecWithInterpreter requires a non-nil interpreter")
@@ -48,15 +50,36 @@ func ExecWithInterpreter(ctx context.Context, interp *Interpreter, tree *Tree) (
 		return nil, fmt.Errorf("failed to load program into interpreter: %w", err)
 	}
 
-	// --- DEBUG ---
-	// This is the final check. Does the *internal* interpreter have the admin
-	// registry right before we tell it to execute the command?
-	// if interp.internal.CapsuleRegistryForAdmin() != nil {
-	// 	// fmt.Println("[DEBUG] ExecWithInterpreter: Admin registry is PRESENT on internal interpreter before ExecuteCommands.")
-	// } else {
-	// 	// fmt.Println("[DEBUG] ExecWithInterpreter: Admin registry is NIL on internal interpreter before ExecuteCommands.")
-	// }
-	// --- END DEBUG ---
+	// 2. Execute top-level command blocks.
+	finalValue, err := interp.ExecuteCommands()
+	if err != nil {
+		return nil, err
+	}
+
+	return finalValue, nil
+}
+
+// RunScriptWithInterpreter loads and executes a script using a persistent
+// interpreter in a non-destructive way. It uses AppendScript to merge the new
+// definitions, preserving the interpreter's existing state, before running any
+// top-level command blocks.
+func RunScriptWithInterpreter(ctx context.Context, interp *Interpreter, tree *Tree) (Value, error) {
+	if interp == nil || interp.internal == nil {
+		return nil, fmt.Errorf("RunScriptWithInterpreter requires a non-nil interpreter")
+	}
+	if tree == nil || tree.Root == nil {
+		return nil, fmt.Errorf("cannot execute a nil tree")
+	}
+
+	program, ok := tree.Root.(*ast.Program)
+	if !ok {
+		return nil, fmt.Errorf("internal error: tree root is not a runnable *ast.Program, but %T", tree.Root)
+	}
+
+	// 1. Append the program's definitions to the interpreter to avoid wiping its state.
+	if err := interp.AppendScript(&interfaces.Tree{Root: program}); err != nil {
+		return nil, fmt.Errorf("failed to append program to interpreter: %w", err)
+	}
 
 	// 2. Execute top-level command blocks.
 	finalValue, err := interp.ExecuteCommands()

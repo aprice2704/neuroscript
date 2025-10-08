@@ -35,6 +35,7 @@ var (
 	ErrFailStatement       = lang.ErrFailStatement
 	ErrDivisionByZero      = lang.ErrDivisionByZero
 	ErrProcedureExists     = lang.ErrProcedureExists
+	ErrRuntimeAlreadySet   = lang.ErrRuntimeAlreadySet // New: For set-once runtime guard.
 
 	// --- Policy & Security Errors ---
 	ErrToolNotAllowed    = lang.ErrToolNotAllowed

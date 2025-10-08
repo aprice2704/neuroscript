@@ -23,5 +23,6 @@ const (
 
 var (
 	// ErrPolicyViolation is returned when a call is rejected by a security or execution policy.
-	ErrPolicyViolation = errors.New("policy violation")
+	ErrPolicyViolation   = errors.New("policy violation")
+	ErrRuntimeAlreadySet = errors.New("a runtime has already been set on this interpreter")
 )

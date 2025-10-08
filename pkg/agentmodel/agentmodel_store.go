@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 12
-// Purpose: Corrected mapstructure decoding logic for updates and backward compatibility.
+// File version: 14
+// Purpose: FIX: Add back NewAgentModelAdmin and NewAgentModelReader as facades to keep tests working.
 // filename: pkg/agentmodel/agentmodel_store.go
-// nlines: 119
+// nlines: 139
 // risk_rating: HIGH
 
 package agentmodel
@@ -32,15 +32,11 @@ func NewAgentModelStore() *AgentModelStore {
 
 // ---------- reader view ----------
 
-type agentModelReaderView struct {
+type readerView struct {
 	s *AgentModelStore
 }
 
-func NewAgentModelReader(s *AgentModelStore) interfaces.AgentModelReader {
-	return &agentModelReaderView{s: s}
-}
-
-func (v *agentModelReaderView) List() []types.AgentModelName {
+func (v *readerView) List() []types.AgentModelName {
 	v.s.mu.RLock()
 	defer v.s.mu.RUnlock()
 	out := make([]types.AgentModelName, 0, len(v.s.m))
@@ -50,7 +46,7 @@ func (v *agentModelReaderView) List() []types.AgentModelName {
 	return out
 }
 
-func (v *agentModelReaderView) Get(name types.AgentModelName) (any, bool) {
+func (v *readerView) Get(name types.AgentModelName) (any, bool) {
 	key := strings.ToLower(string(name))
 	v.s.mu.RLock()
 	defer v.s.mu.RUnlock()
@@ -60,22 +56,18 @@ func (v *agentModelReaderView) Get(name types.AgentModelName) (any, bool) {
 
 // ---------- admin view (policy-gated) ----------
 
-type agentModelAdminView struct {
+type adminView struct {
 	s   *AgentModelStore
 	pol *policy.ExecPolicy
 }
 
-func NewAgentModelAdmin(s *AgentModelStore, pol *policy.ExecPolicy) interfaces.AgentModelAdmin {
-	return &agentModelAdminView{s: s, pol: pol}
+func (v *adminView) List() []types.AgentModelName { return NewReader(v.s).List() }
+
+func (v *adminView) Get(name types.AgentModelName) (any, bool) {
+	return NewReader(v.s).Get(name)
 }
 
-func (v *agentModelAdminView) List() []types.AgentModelName { return NewAgentModelReader(v.s).List() }
-
-func (v *agentModelAdminView) Get(name types.AgentModelName) (any, bool) {
-	return NewAgentModelReader(v.s).Get(name)
-}
-
-func (v *agentModelAdminView) Register(name types.AgentModelName, cfg map[string]any) error {
+func (v *adminView) Register(name types.AgentModelName, cfg map[string]any) error {
 	if err := v.ensureConfigContext(); err != nil {
 		return err
 	}
@@ -97,25 +89,7 @@ func (v *agentModelAdminView) Register(name types.AgentModelName, cfg map[string
 	return nil
 }
 
-// RegisterFromModel provides a type-safe way to register a pre-constructed AgentModel.
-func (v *agentModelAdminView) RegisterFromModel(model types.AgentModel) error {
-	if err := v.ensureConfigContext(); err != nil {
-		return err
-	}
-	key := strings.ToLower(string(model.Name))
-
-	v.s.mu.Lock()
-	defer v.s.mu.Unlock()
-
-	if _, exists := v.s.m[key]; exists {
-		return lang.ErrDuplicateKey
-	}
-
-	v.s.m[key] = model
-	return nil
-}
-
-func (v *agentModelAdminView) Update(name types.AgentModelName, updates map[string]any) error {
+func (v *adminView) Update(name types.AgentModelName, updates map[string]any) error {
 	if err := v.ensureConfigContext(); err != nil {
 		return err
 	}
@@ -138,7 +112,7 @@ func (v *agentModelAdminView) Update(name types.AgentModelName, updates map[stri
 	return nil
 }
 
-func (v *agentModelAdminView) Delete(name types.AgentModelName) bool {
+func (v *adminView) Delete(name types.AgentModelName) bool {
 	if err := v.ensureConfigContext(); err != nil {
 		return false
 	}
@@ -155,12 +129,27 @@ func (v *agentModelAdminView) Delete(name types.AgentModelName) bool {
 
 // ---------- helpers ----------
 
-func (v *agentModelAdminView) ensureConfigContext() error {
+func (v *adminView) ensureConfigContext() error {
 	if v.pol == nil || v.pol.Context != policy.ContextConfig {
 		return policy.ErrTrust
 	}
 	return nil
 }
+
+// --- FIX: Add back constructor facades to keep tests working ---
+func NewAgentModelReader(s *AgentModelStore) interfaces.AgentModelReader {
+	return &readerView{s: s}
+}
+
+func NewAgentModelAdmin(s *AgentModelStore, pol *policy.ExecPolicy) interfaces.AgentModelAdmin {
+	return &adminView{s: s, pol: pol}
+}
+
+// Aliases for the constructors, used in ax_env_impl.go
+var NewReader = NewAgentModelReader
+var NewAdmin = NewAgentModelAdmin
+
+// --- END FIX ---
 
 func modelFromCfg(name types.AgentModelName, cfg map[string]any, base *types.AgentModel) (types.AgentModel, error) {
 	out := types.AgentModel{Name: name} // Always start fresh
@@ -182,7 +171,6 @@ func modelFromCfg(name types.AgentModelName, cfg map[string]any, base *types.Age
 	}
 
 	// --- Handle Deprecated Fields for backward compatibility ---
-	// Only overwrite nested fields if the deprecated top-level field was explicitly in the input map.
 	if val, ok := cfg["temperature"]; ok {
 		if f, isF := val.(float64); isF {
 			out.Generation.Temperature = f

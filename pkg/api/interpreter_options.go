@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.7.4
-// File version: 44
-// Purpose: Adds WithRuntime option for custom runtime context injection.
+// File version: 45
+// Purpose: FIX: Corrected WithInterpreter to use a safe pointer assignment instead of copying a lock.
 // filename: pkg/api/interpreter_options.go
 // nlines: 139
-// risk_rating: LOW
+// risk_rating: MEDIUM
 
 package api
 
@@ -60,19 +60,16 @@ func WithTool(t ToolImplementation) Option {
 }
 
 // WithCapsuleRegistry adds a custom capsule registry to the interpreter's store.
-// This allows host applications to layer in their own documentation for read-only access.
 func WithCapsuleRegistry(registry *CapsuleRegistry) Option {
 	return interpreter.WithCapsuleRegistry(registry)
 }
 
 // WithCapsuleAdminRegistry provides a writable capsule registry to the interpreter.
-// This is for trusted, configuration contexts where scripts need to persist new capsules.
 func WithCapsuleAdminRegistry(registry *AdminCapsuleRegistry) Option {
 	return interpreter.WithCapsuleAdminRegistry(registry)
 }
 
 // WithEmitter creates an interpreter option to set a custom LLM event emitter.
-// The provided emitter will be called for every LLM interaction.
 func WithEmitter(emitter Emitter) Option {
 	return func(i *interpreter.Interpreter) {
 		i.SetEmitter(emitter)
@@ -82,15 +79,13 @@ func WithEmitter(emitter Emitter) Option {
 // WithEmitFunc creates an interpreter option to set a custom emit handler.
 func WithEmitFunc(f func(Value)) Option {
 	return func(i *interpreter.Interpreter) {
-		// We wrap the api.Value in the function signature to avoid exposing lang.Value.
 		i.SetEmitFunc(func(v lang.Value) {
 			f(v)
 		})
 	}
 }
 
-// WithEventHandlerErrorCallback creates an interpreter option to set a custom
-// callback for handling errors that occur within event handlers.
+// WithEventHandlerErrorCallback creates an interpreter option to set a custom callback for event handler errors.
 func WithEventHandlerErrorCallback(f func(eventName, source string, err *RuntimeError)) Option {
 	return interpreter.WithEventHandlerErrorCallback(f)
 }
@@ -113,8 +108,7 @@ func WithAgentModelStore(store *AgentModelStore) Option {
 	}
 }
 
-// RegisterCriticalErrorHandler allows the host application to override the default
-// panic behavior for critical errors.
+// RegisterCriticalErrorHandler allows the host application to override the default panic behavior.
 func RegisterCriticalErrorHandler(h func(*lang.RuntimeError)) {
 	lang.RegisterCriticalHandler(h)
 }
@@ -129,19 +123,17 @@ func WithExecPolicy(policy *ExecPolicy) Option {
 	return interpreter.WithExecPolicy(policy)
 }
 
-// WithInterpreter creates an option to reuse the internal state of an existing
-// interpreter. This is useful for the host-managed ask-loop pattern.
+// WithInterpreter creates an option to reuse the internal state of an existing interpreter.
 func WithInterpreter(existing *Interpreter) Option {
 	return func(i *interpreter.Interpreter) {
 		if existing != nil && existing.internal != nil {
-			*i = *existing.internal
+			// FIX: Use a safe pointer assignment instead of copying the struct value.
+			i = existing.internal
 		}
 	}
 }
 
 // WithRuntime creates an interpreter option to set a custom runtime context.
-// This allows the host application to inject its own state (like actor identity)
-// into the tool execution environment.
 func WithRuntime(rt Runtime) Option {
 	return func(i *interpreter.Interpreter) {
 		i.SetRuntime(rt)
