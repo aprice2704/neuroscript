@@ -11,6 +11,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/provider/google"
+	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
 // Interpreter is a facade over the internal interpreter, providing a stable,
@@ -34,4 +35,12 @@ func New(opts ...Option) *Interpreter {
 	i.RegisterProvider("google", googleProvider)
 
 	return &Interpreter{internal: i}
+}
+
+func (i *Interpreter) InternalRuntime() tool.Runtime {
+	return i.runtime
+}
+
+func (i *Interpreter) ExecPolicy() *policy.ExecPolicy {
+	return i.internal.ExecPolicy
 }
