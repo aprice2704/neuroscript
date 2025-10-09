@@ -1,5 +1,5 @@
-// NeuroScript Version: 0.6.0
-// File version: 2
+// NeuroScript Version: 0.8.0
+// File version: 4
 // Purpose: Contains tests to verify the policy gate's "fail closed" or "secure by default" behavior.
 // filename: pkg/interpreter/policy_gate_fail_safe_test.go
 // nlines: 130
@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/capability"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 )
 
@@ -40,7 +41,7 @@ var (
 func TestPolicyGate_FailSafeBehavior(t *testing.T) {
 	testCases := []struct {
 		name        string
-		policy      *policy.ExecPolicy
+		policy      *interfaces.ExecPolicy
 		toolToCall  policy.ToolMeta
 		expectErrIs error
 		description string
@@ -54,28 +55,29 @@ func TestPolicyGate_FailSafeBehavior(t *testing.T) {
 		},
 		{
 			name:        "Empty Policy - NoReqs Tool",
-			policy:      &policy.ExecPolicy{Allow: []string{}}, // An empty policy is the most restrictive.
+			policy:      &interfaces.ExecPolicy{Allow: []string{}}, // An empty policy is the most restrictive.
 			toolToCall:  failSafeNoReqsTool,
 			expectErrIs: policy.ErrPolicy,
 			description: "An empty policy has no 'Allow' list, so it should deny all calls.",
 		},
 		{
-			name:        "Empty Policy - Trust Tool",
-			policy:      &policy.ExecPolicy{Allow: []string{}},
-			toolToCall:  failSafeTrustReqTool,
-			expectErrIs: policy.ErrTrust,
-			description: "The trust check runs first; an untrusted context with a trusted tool should fail.",
+			name:       "Empty Policy - Trust Tool",
+			policy:     &interfaces.ExecPolicy{Allow: []string{}},
+			toolToCall: failSafeTrustReqTool,
+			// FIX: The allow/deny check runs before the trust check.
+			expectErrIs: policy.ErrPolicy,
+			description: "With an empty allow list, the policy check fails before the trust check is reached.",
 		},
 		{
 			name:        "Empty Policy - Caps Tool",
-			policy:      &policy.ExecPolicy{Allow: []string{}},
+			policy:      &interfaces.ExecPolicy{Allow: []string{}},
 			toolToCall:  failSafeCapsReqTool,
 			expectErrIs: policy.ErrPolicy, // Fails on the allow list check before the capability check.
 			description: "An empty policy denies the tool before the capability check is even reached.",
 		},
 		{
 			name: "Normal Context - Trust Tool",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 			},
@@ -85,7 +87,7 @@ func TestPolicyGate_FailSafeBehavior(t *testing.T) {
 		},
 		{
 			name: "Allow All, No Grants - Caps Tool",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 				Grants:  capability.NewGrantSet(nil, capability.Limits{}), // No grants provided.
@@ -96,7 +98,7 @@ func TestPolicyGate_FailSafeBehavior(t *testing.T) {
 		},
 		{
 			name: "Allow All, No Grants - NoReqs Tool",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 				Grants:  capability.NewGrantSet(nil, capability.Limits{}),
@@ -114,7 +116,7 @@ func TestPolicyGate_FailSafeBehavior(t *testing.T) {
 			// The actual check is `policy.CanCall`, so we call it directly.
 			var err error
 			if tc.policy != nil {
-				err = tc.policy.CanCall(tc.toolToCall)
+				err = policy.CanCall(tc.policy, tc.toolToCall, nil)
 			}
 
 			if !errors.Is(err, tc.expectErrIs) {

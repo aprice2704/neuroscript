@@ -155,3 +155,29 @@ func main() {
 	fmt.Printf("User runner found service account: %v\n", ok)
 }
 ```
+---
+
+# Addendum: Executing Command Blocks with LoadScript
+
+This section explains the new, explicit pattern for executing top-level command blocks on a user runner, which is distinct from calling a named func.
+
+## The LoadScript -> Execute Pattern
+
+To provide more flexibility, the ax.Runner interface now includes a LoadScript method. This leads to a clear, two-step pattern for running commands:
+
+1.  runner.LoadScript(script []byte): First, you call this method. It parses the entire script and loads all its contents—both func definitions and command blocks—into the runner's memory. Crucially, it does not execute anything. This allows you to load a script once and potentially make multiple calls to its functions without re-parsing.
+
+2.  runner.Execute(): After loading a script, you can call this method to run only the top-level command blocks that were loaded from that script. If the script contained no command block, this method does nothing.
+
+This separation is powerful. It lets you treat a script as either a runnable set of commands, a library of functions to be called, or both.
+
+### Code Example
+
+Here is how to execute a simple command block on a user runner:
+
+go // Assume 'userRunner' is an existing ax.Runner  commandScript := `     # This command block will be executed.     command         emit "User command executed successfully."     endcommand      # This function is loaded but not run by Execute().     func do_something() means         # ...     endfunc `  // Step 1: Load the script into the runner. if err := userRunner.LoadScript([]byte(commandScript)); err != nil {     // handle parsing/loading error     panic(err) }  // Step 2: Execute the loaded command block. result, err := userRunner.Execute() if err != nil {     // handle execution error     panic(err) }  fmt.Println("Command block returned:", result) 
+
+### Summary of Use Cases
+
+- To run command blocks: Use runner.LoadScript(src) followed by runner.Execute().
+- To run a specific func: Use the api.AXRunScript(runner, src, "funcName") helper for convenience, or runner.LoadScript(src) followed by runner.Run("funcName") for more control.

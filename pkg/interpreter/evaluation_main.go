@@ -1,5 +1,5 @@
-// NeuroScript Version: 0.7.4
-// File version: 65
+// NeuroScript Version: 0.8.0
+// File version: 66
 // Purpose: Updates the tool call dispatch logic to use the configurable 'runtime' field instead of the interpreter itself.
 // filename: pkg/interpreter/evaluation_main.go
 // nlines: 280
@@ -198,7 +198,14 @@ func (e *evaluation) evaluateCall(n *ast.CallableExprNode) (lang.Value, error) {
 				RequiredCaps:  toolImpl.RequiredCaps,
 				Effects:       toolImpl.Effects,
 			}
-			if err := e.i.ExecPolicy.CanCall(meta); err != nil {
+			specFetcher := func(name string) (policy.ToolSpecProvider, bool) {
+				impl, found := e.i.tools.GetTool(types.FullName(name))
+				if !found {
+					return nil, false
+				}
+				return impl.Spec, true
+			}
+			if err := policy.CanCall(e.i.ExecPolicy, meta, specFetcher); err != nil {
 				return nil, lang.NewRuntimeError(lang.ErrorCodePolicy, fmt.Sprintf("tool call '%s' rejected by policy", toolImpl.FullName), err).WithPosition(n.StartPos)
 			}
 		}

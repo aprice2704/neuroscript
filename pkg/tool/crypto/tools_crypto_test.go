@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.5.2
-// File version: 3
-// Purpose: Tests for JWT cryptographic tools. Corrected tool registration loop.
+// NeuroScript Version: 0.8.0
+// File version: 9
+// Purpose: Tests for JWT cryptographic tools. Corrected policy check by removing invalid type assertion.
 // filename: pkg/tool/crypto/tools_crypto_test.go
-// nlines: 104
+// nlines: 101
 // risk_rating: MEDIUM
 
 package crypto
@@ -93,7 +93,7 @@ func TestToolJWT(t *testing.T) {
 		Build() // No Grant this time
 
 	toolMeta := policy.ToolMeta{Name: string(signFullName), RequiredCaps: signTool.RequiredCaps}
-	err = restrictedPolicy.CanCall(toolMeta)
+	err = policy.CanCall(restrictedPolicy, toolMeta, nil)
 	if !errors.Is(err, policy.ErrCapability) {
 		t.Errorf("Calling SignJWT without capability should result in ErrCapability, but got %v", err)
 	}

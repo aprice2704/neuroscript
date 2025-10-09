@@ -26,9 +26,11 @@ We use **Go 1.24+**. These rules emphasize correctness, minimalism, and context 
 - Always review `.md` docs and relevant Go code **before** making changes.  
 - Fix compiler/test failures with **minimal, targeted edits**. Do not “tidy up” unrelated code.
 - When working on test failures -- focus on **ONE FILE** (or one test) AT MOST until it is fixed. This is more efficient than trying to fix several at once.
-- The ***ONLY*** package from ns that host programs may import is:
-             github.com/aprice2704/neuroscript/pkg/api
-NO OTHERS. NONE. ONLY API. NOT ANYTHING ELSE.
+- The ***ONLY*** packages from ns that host programs may import are:
+            github.com/aprice2704/neuroscript/pkg/ax   (preferred) 
+             github.com/aprice2704/neuroscript/pkg/api  (disfavoured)
+             github.com/aprice2704/neuroscript/pkg/interfaces (ditto)
+NO OTHERS. NONE. NOT ANYTHING ELSE.
 
 ### 1b. DEBUG OUTPUT
 - when debugging test fails ADD DEBUG OUTPUT using PRINTF to stderr **EVERY** TURN until **I** say the test PASSES.

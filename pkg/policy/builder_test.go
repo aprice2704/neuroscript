@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.0
-// File version: 4
-// Purpose: Provides unit tests for the fluent policy builder, updated for deny-by-default.
+// NeuroScript Version: 0.8.0
+// File version: 5
+// Purpose: Provides unit tests for the fluent policy builder, updated for deny-by-default and the new standalone CanCall function.
 // filename: pkg/policy/builder_test.go
-// nlines: 94
+// nlines: 102
 // risk_rating: LOW
 
 package policy
@@ -12,10 +12,11 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/capability"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 func TestPolicyBuilder(t *testing.T) {
-	expectedPolicy := &ExecPolicy{
+	expectedPolicy := &interfaces.ExecPolicy{
 		Context: ContextNormal,
 		Allow:   []string{"tool.fs.*", "tool.net.fetch"},
 		Deny:    []string{"tool.fs.delete"},
@@ -96,7 +97,7 @@ func TestPolicyBuilder_DefaultIsDeny(t *testing.T) {
 
 	// Verify that this default-constructed policy denies a tool call.
 	tool := ToolMeta{Name: "any.tool"}
-	if err := p.CanCall(tool); err != ErrPolicy {
+	if err := CanCall(p, tool, nil); err != ErrPolicy {
 		t.Errorf("expected ErrPolicy for default policy, got %v", err)
 	}
 }

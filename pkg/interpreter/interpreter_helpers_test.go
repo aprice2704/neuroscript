@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/policy"
@@ -49,7 +50,7 @@ func (m *mockAskProviderV3) Chat(ctx context.Context, req provider.AIRequest) (*
 func setupAskTestV3(t *testing.T) (*interpreter.Interpreter, *mockAskProviderV3) {
 	t.Helper()
 
-	permissivePolicy := &policy.ExecPolicy{
+	permissivePolicy := &interfaces.ExecPolicy{
 		Context: policy.ContextConfig, // FIX: Use config context for trusted operations
 		Allow:   []string{"*"},
 	}

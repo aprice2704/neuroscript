@@ -37,7 +37,7 @@ type agentModelTestCase struct {
 func newAgentModelTestInterpreter(t *testing.T) *interpreter.Interpreter {
 	t.Helper()
 
-	testPolicy := &policy.ExecPolicy{
+	testPolicy := &interfaces.ExecPolicy{
 		Context: policy.ContextConfig,
 		Allow:   []string{"tool.agentmodel.*"},
 		Grants: capability.NewGrantSet(

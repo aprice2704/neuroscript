@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	cap "github.com/aprice2704/neuroscript/pkg/capability"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 )
 
@@ -43,7 +44,7 @@ type AgentModelEnvelope struct {
 // ValidateAgentModelEnvelope checks that the current ExecPolicy grants are
 // sufficient to use this AgentModel: env keys, network hosts, model use grant,
 // and (optionally) budget currency/limits.
-func ValidateAgentModelEnvelope(p *policy.ExecPolicy, env AgentModelEnvelope) error {
+func ValidateAgentModelEnvelope(p *interfaces.ExecPolicy, env AgentModelEnvelope) error {
 	if p == nil {
 		return fmt.Errorf("policy: %w", policy.ErrPolicy)
 	}

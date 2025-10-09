@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.0
-// File version: 4
-// Purpose: Provides a fluent builder for creating ExecPolicy instances. Changed default to deny-by-default.
+// NeuroScript Version: 0.8.0
+// File version: 5
+// Purpose: FIX: Refactored to build and return the neutral *interfaces.ExecPolicy type.
 // filename: pkg/policy/builder.go
 // nlines: 119
 // risk_rating: MEDIUM
@@ -9,22 +9,20 @@ package policy
 
 import (
 	"github.com/aprice2704/neuroscript/pkg/capability"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 // Builder is a fluent API for constructing ExecPolicy objects.
 type Builder struct {
-	policy *ExecPolicy
+	policy *interfaces.ExecPolicy
 }
 
-// NewBuilder creates a new builder for an ExecPolicy. By default, the policy
-// is configured to "deny-by-default".
-func NewBuilder(context ExecContext) *Builder {
-	p := &ExecPolicy{
+// NewBuilder creates a new builder for an ExecPolicy.
+func NewBuilder(context interfaces.ExecContext) *Builder {
+	p := &interfaces.ExecPolicy{
 		Context: context,
-		// CRITICAL: Initialize with a non-nil, empty slice. This activates the
-		// "deny-by-default" logic in the disallowed() function.
-		Allow: []string{},
-		Deny:  []string{},
+		Allow:   []string{},
+		Deny:    []string{},
 		Grants: capability.GrantSet{
 			Grants:   []capability.Capability{},
 			Limits:   capability.Limits{},
@@ -34,25 +32,22 @@ func NewBuilder(context ExecContext) *Builder {
 	return &Builder{policy: p}
 }
 
-// Allow sets the tool allow list. If this method is never called, all tools
-// are allowed unless explicitly denied. If called (even with no args),
-// the policy switches to "deny by default".
+// Allow sets the tool allow list.
 func (b *Builder) Allow(tools ...string) *Builder {
 	if b.policy.Allow == nil {
 		b.policy.Allow = []string{}
 	}
-	b.policy.MergeAllows(tools...)
+	b.policy.Allow = dedupMerge(b.policy.Allow, tools...)
 	return b
 }
 
-// Deny adds tools to the deny list. Deny rules always take precedence.
+// Deny adds tools to the deny list.
 func (b *Builder) Deny(tools ...string) *Builder {
-	b.policy.MergeDenies(tools...)
+	b.policy.Deny = dedupMerge(b.policy.Deny, tools...)
 	return b
 }
 
 // Grant adds a capability grant by parsing a capability string.
-// It will panic if the string is invalid. Use GrantCap for pre-validated caps.
 func (b *Builder) Grant(capStr string) *Builder {
 	capa := capability.MustParse(capStr)
 	b.policy.Grants.Grants = append(b.policy.Grants.Grants, capa)
@@ -107,8 +102,7 @@ func (b *Builder) LimitToolCalls(tool string, maxCalls int) *Builder {
 }
 
 // Build finalizes and returns the constructed ExecPolicy.
-func (b *Builder) Build() *ExecPolicy {
-	// Ensure counters are non-nil on the final product.
+func (b *Builder) Build() *interfaces.ExecPolicy {
 	if b.policy.Grants.Counters == nil {
 		b.policy.Grants.Counters = capability.NewCounters()
 	}

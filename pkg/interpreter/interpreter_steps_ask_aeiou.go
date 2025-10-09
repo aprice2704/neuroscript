@@ -1,13 +1,16 @@
 // NeuroScript Version: 0.7.0
-// File version: 4.0.0
-// Purpose: Updated to reflect its role in the AEIOU v3 protocol; this function executes the ACTIONS block from a V3 envelope and captures emit/whisper outputs for the host loop.
+// File version: 5
+// Purpose: [DEBUG] Adds logging at the start of the function to verify the context of the incoming interpreter clone.
 // filename: pkg/interpreter/interpreter_steps_ask_aeiou.go
-// nlines: 60
-// risk_rating: MEDIUM
+// nlines: 71
+// risk_rating: HIGH
 
 package interpreter
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/parser"
@@ -17,6 +20,16 @@ import (
 // within a cloned interpreter instance to isolate its state. It captures all
 // 'emit' and 'whisper' statements for the host loop to process.
 func executeAeiouTurn(i *Interpreter, env *aeiou.Envelope, actionEmits *[]string, actionWhispers *map[string]lang.Value) error {
+	// --- NEW DEBUGGING ---
+	if i.turnCtx != nil {
+		sid, _ := i.turnCtx.Value(aeiou.SessionIDKey).(string)
+		turn, _ := i.turnCtx.Value(aeiou.TurnIndexKey).(int)
+		fmt.Fprintf(os.Stderr, "[DEBUG executeAeiouTurn] START. Interp ID: %s, SID: %q, Turn: %d\n", i.id, sid, turn)
+	} else {
+		fmt.Fprintf(os.Stderr, "[DEBUG executeAeiouTurn] START. Interp ID: %s, Context is NIL\n", i.id)
+	}
+	// --- END NEW DEBUGGING ---
+
 	if env.Actions == "" {
 		return nil // Nothing to execute
 	}

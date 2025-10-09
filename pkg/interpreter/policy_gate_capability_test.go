@@ -1,5 +1,5 @@
-// NeuroScript Version: 0.6.0
-// File version: 1
+// NeuroScript Version: 0.8.0
+// File version: 2
 // Purpose: Contains policy gate tests for capability grant matching.
 // filename: pkg/interpreter/policy_gate_capability_test.go
 // nlines: 160
@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/capability"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 )
 
@@ -146,12 +147,12 @@ func TestPolicyGate_Capabilities(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			policy := &policy.ExecPolicy{
+			p := &interfaces.ExecPolicy{
 				Context: policy.ContextConfig, // Use config to bypass trust checks
 				Allow:   []string{"*"},
 				Grants:  capability.NewGrantSet(tc.grants, capability.Limits{}),
 			}
-			err := policy.CanCall(tc.tool)
+			err := policy.CanCall(p, tc.tool, nil)
 			if !errors.Is(err, tc.expectErrIs) {
 				t.Errorf("Expected error '%v', but got '%v'", tc.expectErrIs, err)
 			}

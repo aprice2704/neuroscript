@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.0
-// File version: 5
-// Purpose: Exported CalculateChecksum for use in external tests.
+// NeuroScript Version: 0.8.0
+// File version: 8
+// Purpose: FIX: Refactored CanCall from a method to a standalone function to break the dependency on the ExecPolicy struct. Removed local ExecContext constants.
 // filename: pkg/policy/policy.go
-// nlines: 187
+// nlines: 161
 // risk_rating: HIGH
 
 package policy
@@ -15,35 +15,33 @@ import (
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/capability"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // ToolSpecProvider is an interface that a tool specification must satisfy
-// for the policy engine to perform integrity checks. This breaks the import cycle.
+// for the policy engine to perform integrity checks.
 type ToolSpecProvider interface {
 	FullNameForChecksum() types.FullName
 	ReturnTypeForChecksum() string
 	ArgCountForChecksum() int
 }
 
-// ExecContext represents the interpreter's trust context for the current run.
-type ExecContext string
+// LiveToolSpecFetcher is a function type for fetching tool specs at runtime.
+type LiveToolSpecFetcher func(name string) (ToolSpecProvider, bool)
 
-const (
-	ContextConfig ExecContext = "config"
-	ContextNormal ExecContext = "normal"
-	ContextTest   ExecContext = "test"
+// ExecContext is an alias for the neutral interface type.
+type ExecContext = interfaces.ExecContext
+
+var (
+	// These are now defined in interfaces, but aliased here for convenience
+	// within this package. Consumers should use the re-exported constants from api.
+	ContextConfig = interfaces.ContextConfig
+	ContextNormal = interfaces.ContextNormal
+	ContextTest   = interfaces.ContextTest
+	ContextUser   = interfaces.ContextUser
 )
-
-// ExecPolicy contains allow/deny lists, capability grants, and counters/limits.
-type ExecPolicy struct {
-	Context             ExecContext
-	Allow               []string
-	Deny                []string
-	Grants              capability.GrantSet
-	LiveToolSpecFetcher func(name string) (ToolSpecProvider, bool)
-}
 
 // ToolMeta describes a tool for policy evaluation.
 type ToolMeta struct {
@@ -63,8 +61,8 @@ var (
 )
 
 // AllowAll creates a new policy that permits any tool call.
-func AllowAll() *ExecPolicy {
-	return &ExecPolicy{
+func AllowAll() *interfaces.ExecPolicy {
+	return &interfaces.ExecPolicy{
 		Context: ContextTest,
 		Allow:   []string{"*"},
 		Deny:    []string{},
@@ -74,9 +72,9 @@ func AllowAll() *ExecPolicy {
 	}
 }
 
-// CanCall enforces all security checks in the correct order.
-func (p *ExecPolicy) CanCall(t ToolMeta) error {
-	if err := p.validateIntegrity(t); err != nil {
+// CanCall enforces all security checks on the given policy in the correct order.
+func CanCall(p *interfaces.ExecPolicy, t ToolMeta, fetcher LiveToolSpecFetcher) error {
+	if err := validateIntegrity(p, t, fetcher); err != nil {
 		return err
 	}
 	if t.RequiresTrust && p.Context != ContextConfig {
@@ -91,17 +89,17 @@ func (p *ExecPolicy) CanCall(t ToolMeta) error {
 	return p.Grants.CountToolCall(t.Name)
 }
 
-func (p *ExecPolicy) validateIntegrity(t ToolMeta) error {
+func validateIntegrity(p *interfaces.ExecPolicy, t ToolMeta, fetcher LiveToolSpecFetcher) error {
 	if t.Name == "" || !validToolNameRegex.MatchString(t.Name) {
 		msg := fmt.Sprintf("invalid tool name format '%s'", t.Name)
 		return lang.NewRuntimeError(lang.ErrorCodeSubsystemCompromised, msg, lang.ErrSubsystemCompromised)
 	}
 
-	if p.LiveToolSpecFetcher == nil {
+	if fetcher == nil {
 		return nil
 	}
 
-	spec, found := p.LiveToolSpecFetcher(t.Name)
+	spec, found := fetcher(t.Name)
 	if !found {
 		msg := fmt.Sprintf("tool spec for '%s' not found in registry for validation", t.Name)
 		return lang.NewRuntimeError(lang.ErrorCodeSubsystemCompromised, msg, lang.ErrSubsystemCompromised)
@@ -122,8 +120,7 @@ func CalculateChecksum(spec ToolSpecProvider) string {
 	return fmt.Sprintf("sha256:%x", hash)
 }
 
-// disallowed decides policy outcome. Deny rules override allow rules.
-// If an allow list is provided (even if empty), a tool must match it.
+// disallowed decides policy outcome.
 func disallowed(name string, allow, deny []string) bool {
 	if matchAny(name, deny) {
 		return true // Explicitly denied.
@@ -164,14 +161,6 @@ func patMatch(s, p string) bool {
 	return ls == lp
 }
 
-func (p *ExecPolicy) MergeAllows(more ...string) {
-	p.Allow = dedupMerge(p.Allow, more...)
-}
-
-func (p *ExecPolicy) MergeDenies(more ...string) {
-	p.Deny = dedupMerge(p.Deny, more...)
-}
-
 func dedupMerge(base []string, more ...string) []string {
 	seen := make(map[string]struct{}, len(base)+len(more))
 	out := make([]string, 0, len(base)+len(more))
@@ -196,12 +185,4 @@ func dedupMerge(base []string, more ...string) []string {
 		}
 	}
 	return out
-}
-
-func BuildGrants(grants []capability.Capability, limits capability.Limits) capability.GrantSet {
-	return capability.GrantSet{
-		Grants:   grants,
-		Limits:   limits,
-		Counters: capability.NewCounters(),
-	}
 }

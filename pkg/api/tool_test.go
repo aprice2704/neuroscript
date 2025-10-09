@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/api"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 )
@@ -27,7 +28,7 @@ func do_math(returns number) means
 endfunc
 `
 	// 2. Create an interpreter with a policy that explicitly allows the 'Add' tool.
-	policy := &policy.ExecPolicy{
+	policy := &interfaces.ExecPolicy{
 		Context: policy.ContextNormal,
 		Allow:   []string{"tool.math.Add"},
 	}
@@ -77,7 +78,7 @@ func TestAPI_CustomToolWithDottedGroup(t *testing.T) {
 	}
 
 	// 3. Create an interpreter with the custom tool and a policy to allow it.
-	policy := &policy.ExecPolicy{
+	policy := &interfaces.ExecPolicy{
 		Context: policy.ContextNormal,
 		Allow:   []string{"tool.xx.bleat"},
 	}

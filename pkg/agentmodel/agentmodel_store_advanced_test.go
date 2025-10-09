@@ -14,6 +14,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
@@ -96,7 +97,7 @@ func newFullConfig(name, provider, model string) (map[string]interface{}, types.
 
 func TestAgentModelStore_FullConfigParsing(t *testing.T) {
 	store := NewAgentModelStore()
-	admin := NewAgentModelAdmin(store, &policy.ExecPolicy{Context: policy.ContextConfig})
+	admin := NewAgentModelAdmin(store, &interfaces.ExecPolicy{Context: policy.ContextConfig})
 	cfg, expectedModel := newFullConfig("full-model", "test-provider", "test-model-123")
 
 	if err := admin.Register("full-model", cfg); err != nil {
@@ -118,7 +119,7 @@ func TestAgentModelStore_FullConfigParsing(t *testing.T) {
 
 func TestAgentModelStore_PartialUpdate(t *testing.T) {
 	store := NewAgentModelStore()
-	admin := NewAgentModelAdmin(store, &policy.ExecPolicy{Context: policy.ContextConfig})
+	admin := NewAgentModelAdmin(store, &interfaces.ExecPolicy{Context: policy.ContextConfig})
 	cfg, _ := newFullConfig("partial-update-model", "p1", "m1")
 
 	if err := admin.Register("partial-update-model", cfg); err != nil {
@@ -167,7 +168,7 @@ func TestAgentModelStore_ConfigTypeMismatch(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			store := NewAgentModelStore() // Use a fresh store for each sub-test
-			admin := NewAgentModelAdmin(store, &policy.ExecPolicy{Context: policy.ContextConfig})
+			admin := NewAgentModelAdmin(store, &interfaces.ExecPolicy{Context: policy.ContextConfig})
 			modelName := types.AgentModelName("model-" + tc.name)
 
 			cfg := map[string]interface{}{
@@ -188,7 +189,7 @@ func TestAgentModelStore_ConfigTypeMismatch(t *testing.T) {
 
 func TestAgentModelStore_Concurrency(t *testing.T) {
 	store := NewAgentModelStore()
-	admin := NewAgentModelAdmin(store, &policy.ExecPolicy{Context: policy.ContextConfig})
+	admin := NewAgentModelAdmin(store, &interfaces.ExecPolicy{Context: policy.ContextConfig})
 	reader := NewAgentModelReader(store)
 	numGoroutines := 50
 	numModels := 10

@@ -13,7 +13,6 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/capsule"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/policy"
 )
 
 // InterpreterOption defines a function signature for configuring an Interpreter.
@@ -78,7 +77,7 @@ func WithGlobals(globals map[string]interface{}) InterpreterOption {
 }
 
 // WithExecPolicy applies a runtime execution policy to the interpreter.
-func WithExecPolicy(policy *policy.ExecPolicy) InterpreterOption {
+func WithExecPolicy(policy *interfaces.ExecPolicy) InterpreterOption {
 	return func(i *Interpreter) {
 		i.ExecPolicy = policy
 	}

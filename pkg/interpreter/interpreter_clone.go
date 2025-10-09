@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.4
-// File version: 23
-// Purpose: Propagates the new 'runtime' field to cloned interpreters.
+// File version: 28
+// Purpose: FIX: A clone's runtime must be itself, not its parent's, to ensure tool calls receive the correct, current execution context. Adds extensive debug logging for runtime pointers.
 // filename: pkg/interpreter/interpreter_clone.go
-// nlines: 106
+// nlines: 115
 // risk_rating: HIGH
 
 package interpreter
@@ -20,6 +20,7 @@ import (
 func (i *Interpreter) clone() *Interpreter {
 	// --- VERBOSE DEBUGGING ---
 	fmt.Fprintf(os.Stderr, "\n[CLONE START] Parent ID: %s | customEmitFunc is nil: %t\n", i.id, i.customEmitFunc == nil)
+	fmt.Fprintf(os.Stderr, "[CLONE RUNTIME DEBUG] Parent ID: %s, Parent Addr: %p, Parent Runtime Addr: %p\n", i.id, i, i.runtime)
 
 	clone := &Interpreter{
 		// Assign a new unique ID to the clone
@@ -46,17 +47,25 @@ func (i *Interpreter) clone() *Interpreter {
 		root:                      i.rootInterpreter(),
 		aiTranscript:              i.aiTranscript,
 		transientPrivateKey:       i.transientPrivateKey,
-		turnCtx:                   i.turnCtx,
 		eventHandlerErrorCallback: i.eventHandlerErrorCallback,
 		emitter:                   i.emitter,
-		runtime:                   i.runtime, // Propagate the custom runtime.
+		// The runtime is set below after the clone is fully constructed.
 
-		// --- BUG FIX & VERIFICATION ---
+		// Propagate the turn context from the parent. This is critical for AEIOU.
+		turnCtx: i.turnCtx,
+
 		// Propagate the custom I/O functions from the parent.
 		customEmitFunc:    i.customEmitFunc,
 		customWhisperFunc: i.customWhisperFunc,
 	}
 
+	// --- CORE BUG FIX ---
+	// The runtime context for a clone must be the clone itself. Previously, it
+	// was inheriting the parent's runtime (clone.runtime = i.runtime), causing
+	// tool calls within the clone to receive a stale context from an ancestor.
+	clone.runtime = clone
+
+	fmt.Fprintf(os.Stderr, "[CLONE RUNTIME DEBUG] Clone ID: %s,  Clone Addr: %p,  Clone Runtime Addr: %p\n", clone.id, clone, clone.runtime)
 	fmt.Fprintf(os.Stderr, "[CLONE MID]   New Clone ID: %s | customEmitFunc is nil after copy: %t\n", clone.id, clone.customEmitFunc == nil)
 
 	if i.tools != nil {

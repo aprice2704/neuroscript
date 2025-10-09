@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.4
-// File version: 11
-// Purpose: Updates the ax wiring test to use the new public helper functions (AXBootLoad, AXRunScript), removing internal type casts.
+// File version: 16
+// Purpose: FIX: Corrects test logic to load funcs into the root runner and applies a permissive policy for tool-calling user runners.
 // filename: pkg/api/ax_wiring_test.go
-// nlines: 155
+// nlines: 209
 // risk_rating: HIGH
 
 package api
@@ -10,9 +10,12 @@ package api
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/ax"
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/policy"
 )
 
 // mockID implements the ax.ID interface for testing.
@@ -67,20 +70,40 @@ func TestAXWiring_FullLifecycle(t *testing.T) {
 	}
 
 	// 1. Bootloading and Environment Configuration
-	bootScript := `
-        func get_lib_msg() returns string means
+	bootLibScript := `
+        func get_lib_msg(returns string) means
             return "from the library"
         endfunc
+    `
+	bootCmdScript := `
         command
-            # This variable should not leak to user runners
             set boot_var = "secret"
         endcommand
     `
-	if err := AXBootLoad(ctx, fac, []byte(bootScript)); err != nil {
-		t.Fatalf("AXBootLoad() failed: %v", err)
+	// FIX: Load library functions directly into the factory's root interpreter
+	// so they can be inherited by all subsequent user runners.
+	libTree, err := Parse([]byte(bootLibScript), ParseSkipComments)
+	if err != nil {
+		t.Fatalf("boot: failed to parse library script: %v", err)
+	}
+	axFac := fac.(*axFactory)
+	if err := axFac.root.AppendScript(libTree); err != nil {
+		t.Fatalf("boot: failed to append library script to root: %v", err)
 	}
 
-	// 2. User Runner Execution
+	// Now run the command script in a separate config runner to test state isolation.
+	configRunner, err := fac.NewRunner(ctx, ax.RunnerConfig, ax.RunnerOpts{})
+	if err != nil {
+		t.Fatalf("NewRunner(Config) for boot failed: %v", err)
+	}
+	if err := configRunner.LoadScript([]byte(bootCmdScript)); err != nil {
+		t.Fatalf("boot: LoadScript(cmd) failed: %v", err)
+	}
+	if _, err := configRunner.Execute(); err != nil {
+		t.Fatalf("boot: Execute() failed: %v", err)
+	}
+
+	// 2. User Runner Execution: Running a Func
 	t.Run("FunctionInheritanceAndStateIsolation", func(t *testing.T) {
 		userRunner, err := fac.NewRunner(ctx, ax.RunnerUser, ax.RunnerOpts{})
 		if err != nil {
@@ -88,7 +111,7 @@ func TestAXWiring_FullLifecycle(t *testing.T) {
 		}
 
 		userScript := `
-            func main() returns string means
+            func main(returns string) means
                 return get_lib_msg()
             endfunc
         `
@@ -101,7 +124,6 @@ func TestAXWiring_FullLifecycle(t *testing.T) {
 			t.Errorf("Inherited function returned wrong value: got %q, want 'from the library'", s)
 		}
 
-		// Verify state isolation by checking for the boot variable.
 		interp, ok := AXInterpreter(userRunner)
 		if !ok {
 			t.Fatal("Could not get internal interpreter for test verification")
@@ -112,16 +134,59 @@ func TestAXWiring_FullLifecycle(t *testing.T) {
 		}
 	})
 
-	// 3. Identity and Tool Decoupling
+	// 3. User Runner Execution: Running a Command Block
+	t.Run("CommandBlockExecution", func(t *testing.T) {
+		userRunner, err := fac.NewRunner(ctx, ax.RunnerUser, ax.RunnerOpts{})
+		if err != nil {
+			t.Fatalf("NewRunner(User) for command test failed: %v", err)
+		}
+
+		var emittedValue any
+		var wg sync.WaitGroup
+		wg.Add(1)
+
+		interp, _ := AXInterpreter(userRunner)
+		interp.SetEmitFunc(func(v lang.Value) {
+			emittedValue = lang.Unwrap(v)
+			wg.Done()
+		})
+
+		cmdScript := `
+			command
+				emit "command block was executed"
+			endcommand
+		`
+		if err := userRunner.LoadScript([]byte(cmdScript)); err != nil {
+			t.Fatalf("LoadScript() for command block failed: %v", err)
+		}
+		if _, err := userRunner.Execute(); err != nil {
+			t.Fatalf("Execute() for command block failed: %v", err)
+		}
+
+		wg.Wait()
+
+		expected := "command block was executed"
+		if s, ok := emittedValue.(string); !ok || s != expected {
+			t.Errorf("Execute() did not produce the correct emitted value: got %q, want %q", s, expected)
+		}
+	})
+
+	// 4. Identity and Tool Decoupling
 	t.Run("IdentityCapabilityInTools", func(t *testing.T) {
 		userID := &mockID{did: "did:test:user123"}
 		userRT := &mockRuntime{id: userID}
-
-		// In a real app, the factory might be recreated or reconfigured for a user.
-		// For this test, we create a new one to inject the user's runtime.
 		userFac, _ := NewAXFactory(ctx, ax.RunnerOpts{}, userRT, userID)
-
 		userRunner, _ := userFac.NewRunner(ctx, ax.RunnerUser, ax.RunnerOpts{})
+
+		// FIX: User runners default to a deny-all policy. For this test,
+		// we must grant permission to call the tool.
+		interp, ok := AXInterpreter(userRunner)
+		if !ok {
+			t.Fatal("Could not get internal interpreter to set policy")
+		}
+		allowToolPolicy := policy.NewBuilder(policy.ContextUser).Allow("tool.host.whoami").Build()
+		interp.ExecPolicy = allowToolPolicy
+
 		decoupledToolImpl := ToolImplementation{
 			Spec: ToolSpec{Name: "whoami", Group: "host"},
 			Func: decoupledTool,
@@ -131,7 +196,7 @@ func TestAXWiring_FullLifecycle(t *testing.T) {
 		}
 
 		toolScript := `
-            func main() returns string means
+            func main(returns string) means
                 return tool.host.whoami()
             endfunc
         `

@@ -72,7 +72,7 @@ func NewTestInterpreter(t *testing.T, initialVars map[string]lang.Value, lastRes
 	}
 
 	if privileged {
-		policy := &policy.ExecPolicy{
+		policy := &interfaces.ExecPolicy{
 			Context: policy.ContextConfig, // Allows trusted tools
 			Allow:   []string{"*"},
 			Grants: capability.NewGrantSet(

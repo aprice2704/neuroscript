@@ -63,7 +63,7 @@ endfunc
 	// 3. Create a parent interpreter and configure it with the admin registry.
 	interp := interpreter.NewInterpreter(
 		interpreter.WithLogger(logging.NewTestLogger(t)),
-		interpreter.WithExecPolicy(&policy.ExecPolicy{Context: policy.ContextConfig, Allow: []string{"*"}}),
+		interpreter.WithExecPolicy(&interfaces.ExecPolicy{Context: policy.ContextConfig, Allow: []string{"*"}}),
 		interpreter.WithCapsuleAdminRegistry(liveAdminRegistry),
 	)
 

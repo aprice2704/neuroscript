@@ -1,13 +1,15 @@
 // NeuroScript Version: 0.7.4
-// File version: 3
-// Purpose: Adds a public Clone() method to the Interpreter facade.
+// File version: 8
+// Purpose: FIX: Added extensive debug logging to Clone and SetRuntime to trace identity propagation.
 // filename: pkg/api/interpreter_methods.go
-// nlines: 147
+// nlines: 162
 // risk_rating: HIGH
 
 package api
 
 import (
+	"context"
+	"fmt"
 	"io"
 
 	"github.com/aprice2704/neuroscript/pkg/capsule"
@@ -29,8 +31,14 @@ func (i *Interpreter) AgentModels() *AgentModelStore {
 
 // SetRuntime allows the host application to set a custom runtime context.
 func (i *Interpreter) SetRuntime(rt Runtime) {
+	fmt.Printf("[API SetRuntime] Setting runtime on facade %p. Type: %T\n", i, rt)
 	i.internal.SetRuntime(rt)
 	i.runtime = rt
+}
+
+// SetTurnContext sets the context for the current AEIOU turn.
+func (i *Interpreter) SetTurnContext(ctx context.Context) {
+	i.internal.SetTurnContext(ctx)
 }
 
 // SetSandboxDir sets the secure root directory for file operations.
@@ -114,19 +122,24 @@ func (i *Interpreter) ToolRegistry() tool.ToolRegistry {
 // Clone creates a new interpreter that inherits the parent's full state,
 // including procedures and variables.
 func (i *Interpreter) Clone() *Interpreter {
+	fmt.Printf("[API CLONE START] Parent facade %p runtime is type: %T\n", i, i.runtime)
 	clonedInternal := i.internal.Clone()
 	newFacade := &Interpreter{
 		internal: clonedInternal,
 	}
-	// The runtime needs to be re-wrapped if it was a hostRuntime
+
 	if hr, ok := i.runtime.(*hostRuntime); ok {
+		fmt.Printf("[API CLONE hostRuntime] Parent has hostRuntime. ID: %s. Wrapping new internal clone.\n", hr.id.DID())
 		newFacade.runtime = &hostRuntime{
-			Runtime: clonedInternal, // The new internal interp is the base runtime
+			Runtime: clonedInternal,
 			id:      hr.id,
 		}
 	} else {
+		fmt.Printf("[API CLONE non-hostRuntime] Parent has non-host runtime.\n")
 		newFacade.runtime = clonedInternal
 	}
+
 	clonedInternal.SetRuntime(newFacade.runtime)
+	fmt.Printf("[API CLONE END] Cloned facade %p runtime is now: %T\n", newFacade, newFacade.runtime)
 	return newFacade
 }

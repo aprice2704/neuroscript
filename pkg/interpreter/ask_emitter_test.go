@@ -64,7 +64,7 @@ func TestInterpreter_Ask_EmitterIntegration(t *testing.T) {
 	provider := test.New()
 	providerName := "test-provider"
 
-	configPolicy := &policy.ExecPolicy{
+	configPolicy := &interfaces.ExecPolicy{
 		Context: policy.ContextConfig,
 		Grants: capability.NewGrantSet(
 			[]capability.Capability{

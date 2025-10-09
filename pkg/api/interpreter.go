@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.4
-// File version: 1
-// Purpose: Defines the core Interpreter facade struct and its constructor.
+// NeuroScript Version: 0.8.0
+// File version: 2
+// Purpose: FIX: Updated to use the neutral interfaces.ExecPolicy type.
 // filename: pkg/api/interpreter.go
 // nlines: 36
 // risk_rating: LOW
@@ -8,27 +8,25 @@
 package api
 
 import (
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/provider/google"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
-// Interpreter is a facade over the internal interpreter, providing a stable,
-// high-level API for embedding NeuroScript.
+// Interpreter is a facade over the internal interpreter.
 type Interpreter struct {
 	internal *interpreter.Interpreter
-	runtime  Runtime // Stored on the facade for the ax Identity() method.
+	runtime  Runtime
 }
 
 // New creates a new, persistent NeuroScript interpreter instance.
 func New(opts ...Option) *Interpreter {
 	i := interpreter.NewInterpreter(opts...)
 	if i.ExecPolicy == nil {
-		i.ExecPolicy = &policy.ExecPolicy{
-			Context: policy.ContextNormal,
-			Allow:   []string{},
-		}
+		// Default to a deny-by-default policy if none is provided.
+		i.ExecPolicy = policy.NewBuilder(policy.ContextNormal).Build()
 	}
 
 	googleProvider := google.New()
@@ -41,6 +39,6 @@ func (i *Interpreter) InternalRuntime() tool.Runtime {
 	return i.runtime
 }
 
-func (i *Interpreter) ExecPolicy() *policy.ExecPolicy {
+func (i *Interpreter) ExecPolicy() *interfaces.ExecPolicy {
 	return i.internal.ExecPolicy
 }

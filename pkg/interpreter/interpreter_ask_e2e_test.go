@@ -151,7 +151,7 @@ func setupE2ETest(t *testing.T, mockAPIKey string) (*interpreter.Interpreter, *m
 	const mockEnvVar = "MOCK_API_KEY_ENV_VAR"
 	t.Setenv(mockEnvVar, mockAPIKey)
 
-	configPolicy := &policy.ExecPolicy{
+	configPolicy := &interfaces.ExecPolicy{
 		Context: policy.ContextConfig,
 		Allow:   []string{"tool.agentmodel.*", "tool.account.*", "tool.os.Getenv", "tool.aeiou.*"},
 		Grants: capability.NewGrantSet(

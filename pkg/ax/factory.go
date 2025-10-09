@@ -1,3 +1,10 @@
+// NeuroScript Version: 0.8.0
+// File version: 2
+// Purpose: Removes the deprecated EnvCap from the factory interface.
+// filename: pkg/ax/factory.go
+// nlines: 16
+// risk_rating: LOW
+
 package ax
 
 import "context"
@@ -19,6 +26,5 @@ type RunnerOpts struct {
 // RunnerFactory creates runners bound to a RunEnv.
 // A single factory instance can mint both user and config runners.
 type RunnerFactory interface {
-	EnvCap // expose the shared environment
 	NewRunner(ctx context.Context, mode RunnerMode, opts RunnerOpts) (Runner, error)
 }

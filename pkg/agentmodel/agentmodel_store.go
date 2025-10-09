@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.0
-// File version: 14
-// Purpose: FIX: Add back NewAgentModelAdmin and NewAgentModelReader as facades to keep tests working.
+// NeuroScript Version: 0.8.0
+// File version: 17
+// Purpose: FIX: Restored NewAgentModelAdmin and NewAgentModelReader facades to fix test compilation.
 // filename: pkg/agentmodel/agentmodel_store.go
-// nlines: 139
+// nlines: 142
 // risk_rating: HIGH
 
 package agentmodel
@@ -36,6 +36,10 @@ type readerView struct {
 	s *AgentModelStore
 }
 
+func NewReader(s *AgentModelStore) interfaces.AgentModelReader {
+	return &readerView{s: s}
+}
+
 func (v *readerView) List() []types.AgentModelName {
 	v.s.mu.RLock()
 	defer v.s.mu.RUnlock()
@@ -58,7 +62,11 @@ func (v *readerView) Get(name types.AgentModelName) (any, bool) {
 
 type adminView struct {
 	s   *AgentModelStore
-	pol *policy.ExecPolicy
+	pol *interfaces.ExecPolicy
+}
+
+func NewAdmin(s *AgentModelStore, pol *interfaces.ExecPolicy) interfaces.AgentModelAdmin {
+	return &adminView{s: s, pol: pol}
 }
 
 func (v *adminView) List() []types.AgentModelName { return NewReader(v.s).List() }
@@ -138,16 +146,12 @@ func (v *adminView) ensureConfigContext() error {
 
 // --- FIX: Add back constructor facades to keep tests working ---
 func NewAgentModelReader(s *AgentModelStore) interfaces.AgentModelReader {
-	return &readerView{s: s}
+	return NewReader(s)
 }
 
-func NewAgentModelAdmin(s *AgentModelStore, pol *policy.ExecPolicy) interfaces.AgentModelAdmin {
-	return &adminView{s: s, pol: pol}
+func NewAgentModelAdmin(s *AgentModelStore, pol *interfaces.ExecPolicy) interfaces.AgentModelAdmin {
+	return NewAdmin(s, pol)
 }
-
-// Aliases for the constructors, used in ax_env_impl.go
-var NewReader = NewAgentModelReader
-var NewAdmin = NewAgentModelAdmin
 
 // --- END FIX ---
 

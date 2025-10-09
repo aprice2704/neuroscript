@@ -60,10 +60,10 @@ func (v *readerView) Get(name string) (any, bool) {
 
 type adminView struct {
 	s   *Store
-	pol *policy.ExecPolicy
+	pol *interfaces.ExecPolicy
 }
 
-func NewAdmin(s *Store, pol *policy.ExecPolicy) interfaces.AccountAdmin {
+func NewAdmin(s *Store, pol *interfaces.ExecPolicy) interfaces.AccountAdmin {
 	return &adminView{s: s, pol: pol}
 }
 

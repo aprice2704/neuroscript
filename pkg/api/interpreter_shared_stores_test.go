@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.3
-// File version: 2
-// Purpose: Corrects the test script to use lowercase tool names and proper line continuations.
+// NeuroScript Version: 0.8.0
+// File version: 5
+// Purpose: Confirms that shared stores can be used across interpreters, relying on the corrected re-exported constructors.
 // filename: pkg/api/interpreter_shared_stores_test.go
 // nlines: 127
 // risk_rating: HIGH

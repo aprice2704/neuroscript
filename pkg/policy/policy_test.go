@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.0
-// File version: 4
-// Purpose: Corrected mock fetcher to return the policy.ToolSpecProvider interface.
+// NeuroScript Version: 0.8.0
+// File version: 5
+// Purpose: Corrected tests to use interfaces.ExecPolicy and the new standalone policy.CanCall function.
 // filename: pkg/policy/policy_test.go
-// nlines: 369
+// nlines: 143
 // risk_rating: MEDIUM
 
 package policy
@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/capability"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
@@ -53,7 +54,7 @@ func TestAllowAll(t *testing.T) {
 		t.Errorf("expected Allow list ['*'], got %v", p.Allow)
 	}
 	tool := ToolMeta{Name: "any.tool.whatsoever"}
-	if err := p.CanCall(tool); err != nil {
+	if err := CanCall(p, tool, nil); err != nil {
 		t.Fatalf("AllowAll policy should have allowed tool call, but got err: %v", err)
 	}
 }
@@ -65,31 +66,31 @@ func TestGate_IntegrityCheck(t *testing.T) {
 
 	testCases := []struct {
 		name    string
-		policy  *ExecPolicy
+		policy  *interfaces.ExecPolicy
 		tool    ToolMeta
 		wantErr error
 	}{
 		{
 			name:    "Fail - Invalid tool name format",
-			policy:  &ExecPolicy{Context: ContextTest, LiveToolSpecFetcher: fetcher},
+			policy:  &interfaces.ExecPolicy{Context: ContextTest},
 			tool:    ToolMeta{Name: "bad-name!"},
 			wantErr: lang.ErrSubsystemCompromised,
 		},
 		{
 			name:    "Fail - Tool spec not found",
-			policy:  &ExecPolicy{Context: ContextTest, LiveToolSpecFetcher: fetcher},
+			policy:  &interfaces.ExecPolicy{Context: ContextTest},
 			tool:    ToolMeta{Name: "non.existent.tool"},
 			wantErr: lang.ErrSubsystemCompromised,
 		},
 		{
 			name:    "Fail - Checksum mismatch",
-			policy:  &ExecPolicy{Context: ContextTest, LiveToolSpecFetcher: fetcher},
+			policy:  &interfaces.ExecPolicy{Context: ContextTest},
 			tool:    ToolMeta{Name: "valid.tool", SignatureChecksum: "sha256:invalid"},
 			wantErr: lang.ErrSubsystemCompromised,
 		},
 		{
 			name:    "Success - Valid checksum",
-			policy:  &ExecPolicy{Context: ContextTest, LiveToolSpecFetcher: fetcher, Allow: []string{"*"}},
+			policy:  &interfaces.ExecPolicy{Context: ContextTest, Allow: []string{"*"}},
 			tool:    ToolMeta{Name: "valid.tool", SignatureChecksum: validChecksum},
 			wantErr: nil,
 		},
@@ -97,7 +98,7 @@ func TestGate_IntegrityCheck(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := tc.policy.CanCall(tc.tool)
+			err := CanCall(tc.policy, tc.tool, fetcher)
 			if !errors.Is(err, tc.wantErr) {
 				t.Fatalf("expected error %v, got %v", tc.wantErr, err)
 			}
@@ -107,19 +108,19 @@ func TestGate_IntegrityCheck(t *testing.T) {
 
 func TestGate_Disallowed_EmptyAllowList(t *testing.T) {
 	// An empty but non-nil allow list should deny everything.
-	p := ExecPolicy{
+	p := interfaces.ExecPolicy{
 		Context: ContextConfig,
 		Allow:   []string{}, // Empty, active allow list
 	}
 	tool := ToolMeta{Name: "any.tool"}
-	if err := p.CanCall(tool); !errors.Is(err, ErrPolicy) {
+	if err := CanCall(&p, tool, nil); !errors.Is(err, ErrPolicy) {
 		t.Fatalf("expected ErrPolicy for empty allow list, got %v", err)
 	}
 }
 
 func TestGate_CallCountLimit(t *testing.T) {
 	toolName := "limited.tool"
-	p := ExecPolicy{
+	p := interfaces.ExecPolicy{
 		Context: ContextConfig,
 		Allow:   []string{toolName},
 		Grants: capability.GrantSet{
@@ -132,12 +133,12 @@ func TestGate_CallCountLimit(t *testing.T) {
 	tool := ToolMeta{Name: toolName}
 
 	// First call should succeed
-	if err := p.CanCall(tool); err != nil {
+	if err := CanCall(&p, tool, nil); err != nil {
 		t.Fatalf("first call should be allowed, but got: %v", err)
 	}
 
 	// Second call should fail with a limit error.
-	err := p.CanCall(tool)
+	err := CanCall(&p, tool, nil)
 	if !errors.Is(err, capability.ErrToolExceeded) {
 		t.Fatalf("second call should fail with %v, but got: %v", capability.ErrToolExceeded, err)
 	}

@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.2
-// File version: 7
-// Purpose: Updates the negative test for the 'Add' tool to correctly test for missing id/version, not missing serialization.
+// NeuroScript Version: 0.8.0
+// File version: 13
+// Purpose: FIX: Removed the invalid type assertion to resolve the compiler error.
 // filename: pkg/tool/capsule/tools_capsule_negative_test.go
 // nlines: 120
 // risk_rating: MEDIUM
@@ -133,11 +133,11 @@ func TestToolCapsule_NegativeCases(t *testing.T) {
 		toolImpl, _ := interp.ToolRegistry().GetTool(fullname)
 
 		meta := policy.ToolMeta{
-			Name:          string(toolImpl.FullName),
+			Name:          string(toolImpl.Name()),
 			RequiresTrust: toolImpl.RequiresTrust,
 			RequiredCaps:  toolImpl.RequiredCaps,
 		}
-		err := interp.ExecPolicy.CanCall(meta)
+		err := policy.CanCall(interp.ExecPolicy, meta, nil)
 
 		if !errors.Is(err, policy.ErrCapability) {
 			t.Errorf("Expected policy.ErrCapability due to missing grant, but got: %v", err)

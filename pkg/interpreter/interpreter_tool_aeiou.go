@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 5
-// Purpose: Corrected all calls to lang.NewRuntimeError to use ErrorCode integer constants instead of sentinel error variables, resolving all compiler errors.
+// File version: 7
+// Purpose: [DEBUG] Adds detailed context logging directly within getHostContext to diagnose the persistent context loss issue.
 // filename: pkg/interpreter/interpreter_tool_aeiou.go
-// nlines: 115
+// nlines: 121
 // risk_rating: HIGH
 
 package interpreter
@@ -10,6 +10,8 @@ package interpreter
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"os"
 
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -64,7 +66,6 @@ func makeMagicToolFunc(magicTool *aeiou.MagicTool) tool.ToolFunc {
 		if err != nil {
 			return nil, err
 		}
-		// TODO: This should be derived from the key management system, not hardcoded.
 		hostCtx.KeyID = "transient-key-01"
 		hostCtx.TTL = 120 // 2 minute default TTL
 
@@ -105,17 +106,26 @@ func mapToControlPayload(params map[string]interface{}) (*aeiou.ControlPayload, 
 }
 
 func getHostContext(ctx context.Context) (*aeiou.HostContext, error) {
-	sid, ok := ctx.Value(aeiouSessionIDKey).(string)
+	// --- MORE DEBUGGING ---
+	if ctx == nil {
+		fmt.Fprintf(os.Stderr, "[DEBUG getHostContext] Received a NIL context!\n")
+	} else {
+		sid, sidOK := ctx.Value(aeiou.SessionIDKey).(string)
+		turn, turnOK := ctx.Value(aeiou.TurnIndexKey).(int)
+		nonce, nonceOK := ctx.Value(aeiou.TurnNonceKey).(string)
+		fmt.Fprintf(os.Stderr, "[DEBUG getHostContext] Context received. SID OK: %t (val: %q), Turn OK: %t (val: %d), Nonce OK: %t (val: %q)\n", sidOK, sid, turnOK, turn, nonceOK, nonce)
+	}
+	// --- END DEBUGGING ---
+
+	sid, ok := ctx.Value(aeiou.SessionIDKey).(string)
 	if !ok {
-		// No specific ErrorCodeContext exists; internal error is appropriate
-		// as this indicates a host-side setup failure.
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "AEIOU session ID not found in turn context", nil)
 	}
-	turn, ok := ctx.Value(aeiouTurnIndexKey).(int)
+	turn, ok := ctx.Value(aeiou.TurnIndexKey).(int)
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "AEIOU turn index not found in turn context", nil)
 	}
-	nonce, ok := ctx.Value(aeiouTurnNonceKey).(string)
+	nonce, ok := ctx.Value(aeiou.TurnNonceKey).(string)
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "AEIOU turn nonce not found in turn context", nil)
 	}

@@ -19,8 +19,8 @@ import (
 )
 
 func TestAgentModelStore_Register(t *testing.T) {
-	adminPolicy := &policy.ExecPolicy{Context: policy.ContextConfig}
-	userPolicy := &policy.ExecPolicy{Context: policy.ContextNormal}
+	adminPolicy := &interfaces.ExecPolicy{Context: policy.ContextConfig}
+	userPolicy := &interfaces.ExecPolicy{Context: policy.ContextNormal}
 
 	testCases := []struct {
 		name    string
@@ -83,8 +83,8 @@ func TestAgentModelStore_Register(t *testing.T) {
 }
 
 func TestAgentModelStore_Update(t *testing.T) {
-	adminPolicy := &policy.ExecPolicy{Context: policy.ContextConfig}
-	userPolicy := &policy.ExecPolicy{Context: policy.ContextNormal}
+	adminPolicy := &interfaces.ExecPolicy{Context: policy.ContextConfig}
+	userPolicy := &interfaces.ExecPolicy{Context: policy.ContextNormal}
 	existingModel := types.AgentModel{Name: "gpt-4", Provider: "openai", Model: "gpt-4"}
 
 	testCases := []struct {
@@ -142,8 +142,8 @@ func TestAgentModelStore_Update(t *testing.T) {
 }
 
 func TestAgentModelStore_Delete(t *testing.T) {
-	adminPolicy := &policy.ExecPolicy{Context: policy.ContextConfig}
-	userPolicy := &policy.ExecPolicy{Context: policy.ContextNormal}
+	adminPolicy := &interfaces.ExecPolicy{Context: policy.ContextConfig}
+	userPolicy := &interfaces.ExecPolicy{Context: policy.ContextNormal}
 	existingModel := types.AgentModel{Name: "gpt-4"}
 
 	testCases := []struct {

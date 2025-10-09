@@ -14,6 +14,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/api"
 	"github.com/aprice2704/neuroscript/pkg/capability"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/policy"
@@ -36,7 +37,7 @@ endfunc
 `
 	// Manually construct the policy to include limits, as the high-level
 	// helpers do not support them. This is the correct pattern for this test.
-	policy := &policy.ExecPolicy{
+	policy := &interfaces.ExecPolicy{
 		Context: policy.ContextNormal,
 		Allow:   []string{"tool.test.count"},
 		Deny:    []string{},

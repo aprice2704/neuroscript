@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.0
-// File version: 3
-// Purpose: Updated test configurations to use snake_case keys.
+// NeuroScript Version: 0.8.0
+// File version: 4
+// Purpose: Updated test configurations to use snake_case keys and proper ExecContext types.
 // filename: pkg/account/store_test.go
-// nlines: 191
+// nlines: 193
 // risk_rating: LOW
 
 package account_test
@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/account"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 )
@@ -36,7 +37,7 @@ func TestStoreAndReader(t *testing.T) {
 	}
 
 	reader := account.NewReader(s)
-	admin := account.NewAdmin(s, &policy.ExecPolicy{Context: policy.ContextConfig})
+	admin := account.NewAdmin(s, &interfaces.ExecPolicy{Context: policy.ContextConfig})
 
 	// 1. Test empty state
 	if len(reader.List()) != 0 {
@@ -87,13 +88,13 @@ func TestStoreAndReader(t *testing.T) {
 }
 
 func TestAdminView_Register(t *testing.T) {
-	configPolicy := &policy.ExecPolicy{Context: policy.ContextConfig}
+	configPolicy := &interfaces.ExecPolicy{Context: policy.ContextConfig}
 	// Use a different, valid context for the negative test case.
-	invalidContextPolicy := &policy.ExecPolicy{Context: "invalid-context"}
+	invalidContextPolicy := &interfaces.ExecPolicy{Context: policy.ContextNormal}
 
 	testCases := []struct {
 		name      string
-		adminPol  *policy.ExecPolicy
+		adminPol  *interfaces.ExecPolicy
 		setupFunc func(t *testing.T, s *account.Store)
 		accName   string
 		accCfg    map[string]interface{}
@@ -154,7 +155,7 @@ func TestAdminView_Register(t *testing.T) {
 }
 
 func TestAdminView_Delete(t *testing.T) {
-	configPolicy := &policy.ExecPolicy{Context: policy.ContextConfig}
+	configPolicy := &interfaces.ExecPolicy{Context: policy.ContextConfig}
 	s := account.NewStore()
 	admin := account.NewAdmin(s, configPolicy)
 	reader := account.NewReader(s)
@@ -179,7 +180,7 @@ func TestAdminView_Delete(t *testing.T) {
 	}
 
 	// Test wrong policy context
-	invalidContextPolicy := &policy.ExecPolicy{Context: "invalid-context"}
+	invalidContextPolicy := &interfaces.ExecPolicy{Context: policy.ContextNormal}
 	runtimeAdmin := account.NewAdmin(s, invalidContextPolicy)
 	if err := admin.Register("another-acc", newValidConfig()); err != nil {
 		t.Fatalf("Setup failed: %v", err)

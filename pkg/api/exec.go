@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.4
-// File version: 17
-// Purpose: Adds RunScriptWithInterpreter, a non-destructive variant that uses AppendScript to preserve interpreter state before execution.
+// File version: 23
+// Purpose: FIX: RunProcedure now manually clones the interpreter facade before execution, ensuring the hostRuntime is correctly propagated to the sandboxed clone where tools are run.
 // filename: pkg/api/exec.go
-// nlines: 125
+// nlines: 145
 // risk_rating: HIGH
 
 package api
@@ -11,7 +11,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 
+	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
@@ -29,9 +31,19 @@ func ExecInNewInterpreter(ctx context.Context, src string, opts ...interpreter.I
 	return ExecWithInterpreter(ctx, interp, tree)
 }
 
+// defensiveSetTurnContext prevents a non-nil but empty context (like context.Background())
+// from overwriting a valid, inherited AEIOU context.
+func defensiveSetTurnContext(interp *Interpreter, ctx context.Context) {
+	if ctx == nil {
+		return
+	}
+	// Only set the context if the new context actually contains an AEIOU session ID.
+	if sid, ok := ctx.Value(aeiou.SessionIDKey).(string); ok && sid != "" {
+		interp.SetTurnContext(ctx)
+	}
+}
+
 // ExecWithInterpreter executes top-level 'command' blocks using a persistent interpreter.
-// NOTE: This function is destructive. It calls interp.Load(), which resets the
-// interpreter's state, wiping any existing function definitions before execution.
 func ExecWithInterpreter(ctx context.Context, interp *Interpreter, tree *Tree) (Value, error) {
 	if interp == nil || interp.internal == nil {
 		return nil, fmt.Errorf("ExecWithInterpreter requires a non-nil interpreter")
@@ -45,12 +57,12 @@ func ExecWithInterpreter(ctx context.Context, interp *Interpreter, tree *Tree) (
 		return nil, fmt.Errorf("internal error: tree root is not a runnable *ast.Program, but %T", tree.Root)
 	}
 
-	// 1. Load the program by wrapping the ast.Program in an interfaces.Tree.
 	if err := interp.Load(&interfaces.Tree{Root: program}); err != nil {
 		return nil, fmt.Errorf("failed to load program into interpreter: %w", err)
 	}
 
-	// 2. Execute top-level command blocks.
+	defensiveSetTurnContext(interp, ctx)
+
 	finalValue, err := interp.ExecuteCommands()
 	if err != nil {
 		return nil, err
@@ -60,9 +72,7 @@ func ExecWithInterpreter(ctx context.Context, interp *Interpreter, tree *Tree) (
 }
 
 // RunScriptWithInterpreter loads and executes a script using a persistent
-// interpreter in a non-destructive way. It uses AppendScript to merge the new
-// definitions, preserving the interpreter's existing state, before running any
-// top-level command blocks.
+// interpreter in a non-destructive way.
 func RunScriptWithInterpreter(ctx context.Context, interp *Interpreter, tree *Tree) (Value, error) {
 	if interp == nil || interp.internal == nil {
 		return nil, fmt.Errorf("RunScriptWithInterpreter requires a non-nil interpreter")
@@ -76,12 +86,12 @@ func RunScriptWithInterpreter(ctx context.Context, interp *Interpreter, tree *Tr
 		return nil, fmt.Errorf("internal error: tree root is not a runnable *ast.Program, but %T", tree.Root)
 	}
 
-	// 1. Append the program's definitions to the interpreter to avoid wiping its state.
 	if err := interp.AppendScript(&interfaces.Tree{Root: program}); err != nil {
 		return nil, fmt.Errorf("failed to append program to interpreter: %w", err)
 	}
 
-	// 2. Execute top-level command blocks.
+	defensiveSetTurnContext(interp, ctx)
+
 	finalValue, err := interp.ExecuteCommands()
 	if err != nil {
 		return nil, err
@@ -119,6 +129,23 @@ func RunProcedure(ctx context.Context, interp *Interpreter, name string, args ..
 	if interp == nil {
 		return nil, fmt.Errorf("RunProcedure requires a non-nil interpreter")
 	}
+
+	// --- CORE BUG FIX ---
+	// The internal interpreter always runs procedures in a sandboxed clone.
+	// To ensure the API-level 'hostRuntime' wrapper is preserved, we must
+	// manually clone the facade here. This calls api.Interpreter.Clone(),
+	// which correctly re-wraps the new internal clone's runtime.
+	fmt.Fprintf(os.Stderr, "[DEBUG RunProcedure] Cloning facade before execution. Parent runtime is %T\n", interp.runtime)
+	execClone := interp.Clone()
+
+	if ctx != nil {
+		sid, _ := ctx.Value(aeiou.SessionIDKey).(string)
+		turn, _ := ctx.Value(aeiou.TurnIndexKey).(int)
+		fmt.Fprintf(os.Stderr, "[DEBUG RunProcedure] Setting context on CLONED interpreter with SID: %q, Turn: %d\n", sid, turn)
+		defensiveSetTurnContext(execClone, ctx)
+	}
+	fmt.Fprintf(os.Stderr, "[DEBUG RunProcedure] Executing on cloned facade. Clone runtime is %T\n", execClone.runtime)
+
 	wrappedArgs := make([]lang.Value, len(args))
 	for i, arg := range args {
 		var err error
@@ -127,5 +154,6 @@ func RunProcedure(ctx context.Context, interp *Interpreter, name string, args ..
 			return nil, fmt.Errorf("error converting argument %d for procedure '%s': %w", i, name, err)
 		}
 	}
-	return interp.Run(name, wrappedArgs...)
+	// Execute on the clone, which now has the correct runtime.
+	return execClone.Run(name, wrappedArgs...)
 }

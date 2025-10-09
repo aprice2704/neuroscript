@@ -1,5 +1,5 @@
-// NeuroScript Version: 0.6.0
-// File version: 3
+// NeuroScript Version: 0.8.0
+// File version: 4
 // Purpose: Corrected variable shadowing to resolve compiler errors.
 // filename: pkg/interpreter/policy_gate_privileged_tools.go
 // nlines: 83
@@ -11,8 +11,10 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	_ "github.com/aprice2704/neuroscript/pkg/toolbundles/all" // Ensure all tools are registered for the test
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // TestPolicyGate_BlocksAllPrivilegedToolsInNormalContext verifies that the policy gate
@@ -24,7 +26,7 @@ import (
 func TestPolicyGate_BlocksAllPrivilegedToolsInNormalContext(t *testing.T) {
 	// 1. Setup an interpreter with a restrictive policy.
 	// This policy simulates a standard, untrusted execution environment.
-	p := &policy.ExecPolicy{
+	p := &interfaces.ExecPolicy{
 		Context: policy.ContextNormal,
 		Allow:   []string{"*"}, // Allow all tools by name, so only trust/capability checks are tested.
 	}
@@ -38,6 +40,14 @@ func TestPolicyGate_BlocksAllPrivilegedToolsInNormalContext(t *testing.T) {
 	// 3. Get all registered tools.
 	allTools := interp.ToolRegistry().ListTools()
 	t.Logf("Found %d registered tools to check against the policy gate.", len(allTools))
+
+	specFetcher := func(name string) (policy.ToolSpecProvider, bool) {
+		impl, found := interp.ToolRegistry().GetTool(types.FullName(name))
+		if !found {
+			return nil, false
+		}
+		return impl.Spec, true
+	}
 
 	// 4. Iterate and test each tool against the policy.
 	privilegedToolsFound := 0
@@ -60,7 +70,7 @@ func TestPolicyGate_BlocksAllPrivilegedToolsInNormalContext(t *testing.T) {
 			}
 
 			// 5. Directly check the policy gate's decision, avoiding tool execution.
-			err := p.CanCall(meta)
+			err := policy.CanCall(p, meta, specFetcher)
 
 			// 6. Assert that the tool was blocked with the correct error.
 			if err == nil {

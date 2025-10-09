@@ -33,7 +33,7 @@ func setupTestApp(t *testing.T) *App {
 	app, _ := NewApp(&cfg, logger, llmClient)
 
 	// FIX: Add a permissive policy for testing to grant necessary capabilities.
-	policy := &policy.ExecPolicy{
+	policy := &interfaces.ExecPolicy{
 		Context: policy.ContextNormal,
 		Allow:   []string{"*"}, // Allow all tools by name for testing.
 		Grants: capability.GrantSet{

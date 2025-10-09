@@ -12,11 +12,12 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/capability"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 )
 
-func runPolicyIntegrationTest(t *testing.T, p *policy.ExecPolicy, script string) (*Interpreter, error) {
+func runPolicyIntegrationTest(t *testing.T, p *interfaces.ExecPolicy, script string) (*Interpreter, error) {
 	t.Helper()
 	interp := NewInterpreter(WithExecPolicy(p))
 	_ = interp.SetInitialVariable("dummy_var", lang.StringValue{Value: "dummy"})
@@ -33,7 +34,7 @@ func runPolicyIntegrationTest(t *testing.T, p *policy.ExecPolicy, script string)
 
 func TestPolicyGate_Integration(t *testing.T) {
 	t.Run("Failure: tool.agentmodel.register is trusted", func(t *testing.T) {
-		p := &policy.ExecPolicy{
+		p := &interfaces.ExecPolicy{
 			Context: policy.ContextNormal,
 			Allow:   []string{"*"},
 			Grants: capability.NewGrantSet(
@@ -51,7 +52,7 @@ func TestPolicyGate_Integration(t *testing.T) {
 	})
 
 	t.Run("Success: tool.agentmodel.register with correct policy", func(t *testing.T) {
-		p := &policy.ExecPolicy{
+		p := &interfaces.ExecPolicy{
 			Context: policy.ContextConfig,
 			Allow:   []string{"tool.agentmodel.*"},
 			Grants: capability.NewGrantSet(
@@ -72,7 +73,7 @@ func TestPolicyGate_Integration(t *testing.T) {
 
 	t.Run("Failure: tool.os.getenv without capability", func(t *testing.T) {
 		t.Setenv("MY_SECRET", "12345")
-		p := &policy.ExecPolicy{
+		p := &interfaces.ExecPolicy{
 			Context: policy.ContextConfig,
 			Allow:   []string{"tool.os.getenv"},
 			Grants:  capability.NewGrantSet(nil, capability.Limits{}),
@@ -87,7 +88,7 @@ func TestPolicyGate_Integration(t *testing.T) {
 
 	t.Run("Success: tool.os.getenv with capability", func(t *testing.T) {
 		t.Setenv("MY_SECRET", "12345")
-		p := &policy.ExecPolicy{
+		p := &interfaces.ExecPolicy{
 			Context: policy.ContextConfig,
 			Allow:   []string{"tool.os.getenv"},
 			Grants: capability.NewGrantSet(

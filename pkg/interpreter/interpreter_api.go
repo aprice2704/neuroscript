@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.7.4
-// File version: 7
-// Purpose: Adds SetRuntime() to the public API to allow hosts to inject a custom runtime context.
+// File version: 11
+// Purpose: [DEBUG] Enhances debug loggers to trace both the session ID and the turn index from the AEIOU context.
 // filename: pkg/interpreter/interpreter_api.go
-// nlines: 154
-// risk_rating: LOW
+// nlines: 162
+// risk_rating: HIGH
 
 package interpreter
 
@@ -11,8 +11,10 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
+	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -21,10 +23,8 @@ import (
 )
 
 // SetRuntime allows the host application to set a custom runtime context.
-// This is used to pass host-specific information (like actor identity) to tools.
 func (i *Interpreter) SetRuntime(rt tool.Runtime) {
 	if rt == nil {
-		// If a nil runtime is provided, default back to the interpreter itself.
 		i.runtime = i
 	} else {
 		i.runtime = rt
@@ -142,17 +142,26 @@ func (i *Interpreter) GetAndClearWhisperBuffer() string {
 	return i.bufferManager.GetAndClear(DefaultSelfHandle)
 }
 
-// GetTurnContext returns the context for the current AEIOU turn. This is intended
-// to satisfy the tool.Runtime interface so tools can access session data.
+// GetTurnContext returns the context for the current AEIOU turn.
 func (i *Interpreter) GetTurnContext() context.Context {
 	if i.turnCtx == nil {
+		fmt.Fprintf(os.Stderr, "[DEBUG GetTurnContext] Interp ID: %s, Context is NIL\n", i.id)
 		return context.Background()
 	}
+	sid, _ := i.turnCtx.Value(aeiou.SessionIDKey).(string)
+	turn, _ := i.turnCtx.Value(aeiou.TurnIndexKey).(int)
+	fmt.Fprintf(os.Stderr, "[DEBUG GetTurnContext] Interp ID: %s, SID: %q, Turn: %d\n", i.id, sid, turn)
 	return i.turnCtx
 }
 
-// setTurnContext sets the context for the current turn. This is used internally
-// by the host loop controller in 'ask'.
-func (i *Interpreter) setTurnContext(ctx context.Context) {
+// SetTurnContext sets the context for the current turn.
+func (i *Interpreter) SetTurnContext(ctx context.Context) {
 	i.turnCtx = ctx
+	if ctx == nil {
+		fmt.Fprintf(os.Stderr, "[DEBUG SetTurnContext] Interp ID: %s, Setting context to NIL\n", i.id)
+		return
+	}
+	sid, _ := ctx.Value(aeiou.SessionIDKey).(string)
+	turn, _ := ctx.Value(aeiou.TurnIndexKey).(int)
+	fmt.Fprintf(os.Stderr, "[DEBUG SetTurnContext] Interp ID: %s, Setting context with SID: %q, Turn: %d\n", i.id, sid, turn)
 }

@@ -1,16 +1,18 @@
-// NeuroScript Version: 0.7.4
-// File version: 8
-// Purpose: FIX: Implemented the Clone() method for the ax.Runner interface. ADD: Implemented ax.CloneCap and the Lookup method for ax.Tools.
+// NeuroScript Version: 0.8.0
+// File version: 10
+// Purpose: Implements the ax.Runner interface using the new Parcel/Catalogs model.
 // filename: pkg/api/ax_runner_impl.go
-// nlines: 99
+// nlines: 115
 // risk_rating: HIGH
 
 package api
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/ax"
+	"github.com/aprice2704/neuroscript/pkg/ax/contract"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
@@ -25,9 +27,9 @@ func (h *hostRuntime) Identity() ax.ID { return h.id }
 
 // axRunner is the concrete implementation of the ax.Runner interface.
 type axRunner struct {
-	env  *axRunEnv
-	host *hostRuntime
-	itp  *Interpreter
+	parcel   contract.RunnerParcel
+	catalogs contract.SharedCatalogs
+	itp      *Interpreter
 }
 
 // axTools adapts the internal ToolRegistry to the ax.Tools interface.
@@ -51,10 +53,26 @@ var _ ax.Runner = (*axRunner)(nil)
 var _ ax.CloneCap = (*axRunner)(nil)
 var _ ax.IdentityCap = (*hostRuntime)(nil)
 var _ ax.Tools = (*axTools)(nil)
+var _ contract.ParcelProvider = (*axRunner)(nil)
 
-func (r *axRunner) Env() ax.RunEnv { return r.env }
+// func (r *axRunner) Env() ax.RunEnv { return &axRunEnv{root: r.itp} }
+
+// --- ParcelProvider Implementation ---
+func (r *axRunner) GetParcel() contract.RunnerParcel  { return r.parcel }
+func (r *axRunner) SetParcel(p contract.RunnerParcel) { r.parcel = p }
 
 // --- RunnerCore Implementation ---
+
+func (r *axRunner) LoadScript(script []byte) error {
+	tree, err := Parse(script, ParseSkipComments)
+	if err != nil {
+		return fmt.Errorf("ax load script: failed to parse source: %w", err)
+	}
+	if err := r.itp.AppendScript(tree); err != nil {
+		return fmt.Errorf("ax load script: failed to load definitions: %w", err)
+	}
+	return nil
+}
 
 func (r *axRunner) Execute() (any, error) { return r.itp.Execute() }
 
@@ -77,8 +95,8 @@ func (r *axRunner) EmitEvent(name, src string, payload any) {
 
 // --- Capability Interfaces ---
 
-func (r *axRunner) Identity() ax.ID { return r.host.id }
-func (r *axRunner) Tools() ax.Tools { return &axTools{itp: r.itp} }
+func (r *axRunner) Identity() ax.ID { return r.parcel.Identity() }
+func (r *axRunner) Tools() ax.Tools { return r.catalogs.Tools() }
 
 func (r *axRunner) CopyFunctionsFrom(src ax.RunnerCore) error {
 	other, ok := src.(*axRunner)
@@ -91,16 +109,11 @@ func (r *axRunner) CopyFunctionsFrom(src ax.RunnerCore) error {
 // Clone implements the ax.CloneCap interface.
 func (r *axRunner) Clone() ax.Runner {
 	clonedItp := r.itp.Clone()
-	// The new host runtime points to the new cloned interpreter's internal instance
-	newHost := &hostRuntime{
-		Runtime: clonedItp.internal,
-		id:      r.host.id,
-	}
-	clonedItp.SetRuntime(newHost)
 
+	// The parcel is copied by reference. The engine handles sandboxing exec state.
 	return &axRunner{
-		env:  r.env, // Env is shared
-		host: newHost,
-		itp:  clonedItp,
+		parcel:   r.parcel,
+		catalogs: r.catalogs,
+		itp:      clonedItp,
 	}
 }

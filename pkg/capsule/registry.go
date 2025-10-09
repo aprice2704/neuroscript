@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.2
-// File version: 5
-// Purpose: Tightens the capsule name validation regex to allow only letters, numbers, underscores, and hyphens.
+// NeuroScript Version: 0.8.0
+// File version: 6
+// Purpose: FIX: Added a Registry(index) method to the Store to allow safe access to specific registry layers.
 // filename: pkg/capsule/registry.go
-// nlines: 226
+// nlines: 236
 // risk_rating: HIGH
 
 package capsule
@@ -133,8 +133,6 @@ func (r *Registry) GetLatest(name string) (Capsule, bool) {
 		if err1 == nil && err2 == nil {
 			return v1 > v2
 		}
-		// Fallback for non-integer versions, though Register now prevents them.
-		// Kept for theoretical backward compatibility or other registry sources.
 		sv1 := versionKeys[i]
 		if !strings.HasPrefix(sv1, "v") {
 			sv1 = "v" + sv1
@@ -185,6 +183,17 @@ func (s *Store) Add(r *Registry) {
 	s.registries = append(s.registries, r)
 }
 
+// Registry returns the capsule registry at the given index (layer).
+// It returns nil if the index is out of bounds.
+func (s *Store) Registry(index int) *Registry {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if index < 0 || index >= len(s.registries) {
+		return nil
+	}
+	return s.registries[index]
+}
+
 // Get finds a specific capsule version, searching registries in order.
 func (s *Store) Get(name, version string) (Capsule, bool) {
 	s.mu.RLock()
@@ -203,13 +212,11 @@ func (s *Store) GetLatest(name string) (Capsule, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	for _, r := range s.registries {
-		// Check if the name exists at all in this registry layer.
 		r.mu.RLock()
 		_, ok := r.capsules[name]
 		r.mu.RUnlock()
 
 		if ok {
-			// If it exists, get the latest from this layer and stop searching.
 			return r.GetLatest(name)
 		}
 	}
@@ -217,7 +224,6 @@ func (s *Store) GetLatest(name string) (Capsule, bool) {
 }
 
 // List returns all capsules from all registries, sorted by priority then ID.
-// It does not handle potential duplicates across registries.
 func (s *Store) List() []Capsule {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

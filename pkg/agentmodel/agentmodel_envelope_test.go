@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/capability"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 )
 
@@ -30,20 +31,20 @@ func TestValidateAgentModelEnvelope(t *testing.T) {
 
 	testCases := []struct {
 		name     string
-		policy   *policy.ExecPolicy
+		policy   *interfaces.ExecPolicy
 		envelope AgentModelEnvelope
 		wantErr  error
 	}{
 		{
 			name: "Success - Valid policy",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Grants: capability.GrantSet{Grants: validGrants},
 			},
 			envelope: baseEnvelope,
 		},
 		{
 			name: "Fail - Missing network grant",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Grants: capability.GrantSet{Grants: []capability.Capability{
 					{Resource: "env", Verbs: []string{"read"}, Scopes: []string{"openai_api_key"}},
 					{Resource: "model", Verbs: []string{"use"}, Scopes: []string{"test-model"}},
@@ -54,7 +55,7 @@ func TestValidateAgentModelEnvelope(t *testing.T) {
 		},
 		{
 			name: "Fail - Missing env grant",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Grants: capability.GrantSet{Grants: []capability.Capability{
 					{Resource: "net", Verbs: []string{"read"}, Scopes: []string{"api.openai.com"}},
 					{Resource: "model", Verbs: []string{"use"}, Scopes: []string{"test-model"}},
@@ -65,7 +66,7 @@ func TestValidateAgentModelEnvelope(t *testing.T) {
 		},
 		{
 			name: "Fail - Missing model grant",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Grants: capability.GrantSet{Grants: []capability.Capability{
 					{Resource: "net", Verbs: []string{"read"}, Scopes: []string{"api.openai.com"}},
 					{Resource: "env", Verbs: []string{"read"}, Scopes: []string{"openai_api_key"}},
@@ -76,7 +77,7 @@ func TestValidateAgentModelEnvelope(t *testing.T) {
 		},
 		{
 			name: "Fail - Per-call budget too low",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Grants: capability.GrantSet{
 					Grants: validGrants,
 					Limits: capability.Limits{BudgetPerCallCents: map[string]int{"CAD": 49}},
@@ -93,7 +94,7 @@ func TestValidateAgentModelEnvelope(t *testing.T) {
 		},
 		{
 			name: "Fail - Per-run budget too low",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Grants: capability.GrantSet{
 					Grants: validGrants,
 					Limits: capability.Limits{BudgetPerRunCents: map[string]int{"CAD": 1499}},

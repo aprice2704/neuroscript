@@ -1,9 +1,9 @@
-// NeuroScript Version: 0.7.0
-// File version: 13
-// Purpose: Corrected the test to align with the V3 'ask' statement, which generates a JSON object in the USERDATA section, and updated agent registration to use native Go types. Made the result check less brittle.
+// NeuroScript Version: 0.7.4
+// File version: 16
+// Purpose: FIX: Passes the required turn context directly to RunProcedure, which now correctly propagates it to the interpreter and its clones.
 // filename: pkg/api/autoprovider_test.go
-// nlines: 100
-// risk_rating: LOW
+// nlines: 104
+// risk_rating: HIGH
 
 package api_test
 
@@ -16,6 +16,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/provider/test"
+	"github.com/google/uuid"
 )
 
 // TestAPI_AutoProviderRegistration verifies that a provider registered via the
@@ -24,16 +25,15 @@ func TestAPI_AutoProviderRegistration(t *testing.T) {
 	// 1. Define a script that uses an AgentModel.
 	scriptContent := `
 func main(returns string) means
-    # The 'ask' statement uses an AgentModel, which in turn uses our registered provider.
     ask "test_agent", "What is a large language model?" into result
     return result
 endfunc
 `
 	// 2. Configure a policy that allows running in a trusted 'config' context.
-	// This is required to call RegisterAgentModel.
-	configPolicy := &policy.ExecPolicy{
-		Context: policy.ContextConfig,
-	}
+	configPolicy := policy.NewBuilder(api.ContextConfig).
+		Allow("tool.aeiou.magic"). // The bootstrap capsule run by the mock provider needs this.
+		Build()
+
 	interp := api.New(interpreter.WithExecPolicy(configPolicy))
 
 	// 3. Register the mock provider.
@@ -57,10 +57,11 @@ endfunc
 		t.Fatalf("api.ExecWithInterpreter failed: %v", err)
 	}
 
-	// 6. Run the procedure.
-	// The 'ask' statement will internally create a V3 envelope with a USERDATA
-	// section like: {"subject":"ask","fields":{"prompt":"What is a large language model?"}}
-	result, err := api.RunProcedure(context.Background(), interp, "main")
+	// 6. Run the procedure, passing the required AEIOU turn context.
+	// The fix in RunProcedure will ensure this context is set on the interpreter
+	// and the fix in clone() ensures it propagates to all child interpreters.
+	turnCtx := api.ContextWithSessionID(context.Background(), uuid.NewString())
+	result, err := api.RunProcedure(turnCtx, interp, "main")
 	if err != nil {
 		t.Fatalf("api.RunProcedure failed unexpectedly: %v", err)
 	}

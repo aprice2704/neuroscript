@@ -24,7 +24,6 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
-	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/google/uuid"
 )
@@ -57,7 +56,7 @@ type Interpreter struct {
 	llmclient                 interfaces.LLMClient
 	skipStdTools              bool
 	modelStore                *agentmodel.AgentModelStore
-	ExecPolicy                *policy.ExecPolicy
+	ExecPolicy                *interfaces.ExecPolicy
 	root                      *Interpreter
 	customEmitFunc            func(lang.Value)
 	customWhisperFunc         func(handle, data lang.Value)

@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/capsule"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/tool"
@@ -33,7 +34,7 @@ type capsuleTestCase struct {
 func newCapsuleTestInterpreter(t *testing.T, isPrivileged bool) *interpreter.Interpreter {
 	t.Helper()
 
-	var testPolicy *policy.ExecPolicy
+	var testPolicy *interfaces.ExecPolicy
 	var opts []interpreter.InterpreterOption
 
 	if isPrivileged {

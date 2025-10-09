@@ -1,5 +1,5 @@
-// NeuroScript Version: 0.6.0
-// File version: 2
+// NeuroScript Version: 0.8.0
+// File version: 3
 // Purpose: Corrected variable shadowing and updated function calls to fix compiler errors.
 // filename: pkg/interpreter/policy_gate_extended_test.go
 // nlines: 250
@@ -13,6 +13,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/agentmodel"
 	"github.com/aprice2704/neuroscript/pkg/capability"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 )
 
@@ -50,14 +51,14 @@ var (
 func TestExecPolicy_CanCall(t *testing.T) {
 	testCases := []struct {
 		name        string
-		policy      *policy.ExecPolicy
+		policy      *interfaces.ExecPolicy
 		tool        policy.ToolMeta
 		expectErrIs error
 	}{
 		// --- Trust Context Tests ---
 		{
 			name: "Success: Trusted tool in config context",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextConfig,
 				Allow:   []string{"*"},
 				Grants: capability.NewGrantSet([]capability.Capability{
@@ -69,7 +70,7 @@ func TestExecPolicy_CanCall(t *testing.T) {
 		},
 		{
 			name: "Failure: Trusted tool in normal context",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 				Grants: capability.NewGrantSet([]capability.Capability{
@@ -81,7 +82,7 @@ func TestExecPolicy_CanCall(t *testing.T) {
 		},
 		{
 			name: "Success: Normal tool in normal context",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 				Grants: capability.NewGrantSet([]capability.Capability{
@@ -95,7 +96,7 @@ func TestExecPolicy_CanCall(t *testing.T) {
 		// --- Allow/Deny Pattern Tests ---
 		{
 			name: "Failure: Deny rule overrides allow rule",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextConfig,
 				Allow:   []string{"tool.agentmodel.*"},
 				Deny:    []string{"tool.agentmodel.register"},
@@ -106,7 +107,7 @@ func TestExecPolicy_CanCall(t *testing.T) {
 		},
 		{
 			name: "Failure: Not in allow list",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextNormal,
 				Allow:   []string{"tool.fs.*"},
 				Grants:  capability.NewGrantSet(nil, capability.Limits{}),
@@ -116,7 +117,7 @@ func TestExecPolicy_CanCall(t *testing.T) {
 		},
 		{
 			name: "Success: Allow list with wildcard",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextNormal,
 				Allow:   []string{"tool.http.*"},
 				Grants: capability.NewGrantSet([]capability.Capability{
@@ -128,7 +129,7 @@ func TestExecPolicy_CanCall(t *testing.T) {
 		},
 		{
 			name: "Failure: Deny all",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextNormal,
 				Deny:    []string{"*"},
 				Grants:  capability.NewGrantSet(nil, capability.Limits{}),
@@ -140,7 +141,7 @@ func TestExecPolicy_CanCall(t *testing.T) {
 		// --- Capability Grant Tests ---
 		{
 			name: "Failure: Missing required capability",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 				Grants:  capability.NewGrantSet(nil, capability.Limits{}),
@@ -150,7 +151,7 @@ func TestExecPolicy_CanCall(t *testing.T) {
 		},
 		{
 			name: "Success: Exact capability grant",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 				Grants: capability.NewGrantSet([]capability.Capability{
@@ -162,7 +163,7 @@ func TestExecPolicy_CanCall(t *testing.T) {
 		},
 		{
 			name: "Success: Wildcard scope grant satisfies specific need",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 				Grants: capability.NewGrantSet([]capability.Capability{
@@ -174,7 +175,7 @@ func TestExecPolicy_CanCall(t *testing.T) {
 		},
 		{
 			name: "Failure: Correct resource, wrong verb",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 				Grants: capability.NewGrantSet([]capability.Capability{
@@ -188,7 +189,7 @@ func TestExecPolicy_CanCall(t *testing.T) {
 		// --- Limits and Counters Tests ---
 		{
 			name: "Failure: Per-tool call limit exceeded",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 				Grants: capability.NewGrantSet(
@@ -204,7 +205,7 @@ func TestExecPolicy_CanCall(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// First call
-			err := tc.policy.CanCall(tc.tool)
+			err := policy.CanCall(tc.policy, tc.tool, nil)
 
 			// For the tool limit test, we need to call it twice.
 			if tc.name == "Failure: Per-tool call limit exceeded" {
@@ -212,7 +213,7 @@ func TestExecPolicy_CanCall(t *testing.T) {
 					t.Fatalf("Expected first call to succeed, but got: %v", err)
 				}
 				// Second call should fail
-				err = tc.policy.CanCall(tc.tool)
+				err = policy.CanCall(tc.policy, tc.tool, nil)
 			}
 
 			if !errors.Is(err, tc.expectErrIs) {
@@ -225,13 +226,13 @@ func TestExecPolicy_CanCall(t *testing.T) {
 func TestAgentModelEnvelopeValidation(t *testing.T) {
 	testCases := []struct {
 		name        string
-		policy      *policy.ExecPolicy
+		policy      *interfaces.ExecPolicy
 		envelope    agentmodel.AgentModelEnvelope
 		expectErrIs error
 	}{
 		{
 			name: "Success: All grants and budget sufficient",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextNormal,
 				Grants: capability.NewGrantSet(
 					[]capability.Capability{
@@ -257,7 +258,7 @@ func TestAgentModelEnvelopeValidation(t *testing.T) {
 		},
 		{
 			name: "Failure: Missing model:use grant",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextNormal,
 				Grants: capability.NewGrantSet(
 					[]capability.Capability{
@@ -274,7 +275,7 @@ func TestAgentModelEnvelopeValidation(t *testing.T) {
 		},
 		{
 			name: "Failure: Insufficient per-call budget",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextNormal,
 				Grants: capability.NewGrantSet(
 					[]capability.Capability{{Resource: "model", Verbs: []string{"use"}, Scopes: []string{"*"}}},

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.2
-// File version: 83
-// Purpose: [DEBUG] Adds the interpreter's unique ID to the stderr debug logs for detailed step tracing.
+// File version: 85
+// Purpose: [DEBUG] Adds context logging inside the main step execution loop to trace context loss during script execution.
 // filename: pkg/interpreter/interpreter_exec.go
-// nlines: 250
+// nlines: 268
 // risk_rating: HIGH
 
 package interpreter
@@ -10,14 +10,26 @@ package interpreter
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
+	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 // Execute runs the command blocks from a given AST program.
 func (i *Interpreter) Execute(program *ast.Program) (lang.Value, error) {
+	// --- MORE DEBUGGING ---
+	if i.turnCtx != nil {
+		sid, _ := i.turnCtx.Value(aeiou.SessionIDKey).(string)
+		turn, _ := i.turnCtx.Value(aeiou.TurnIndexKey).(int)
+		fmt.Fprintf(os.Stderr, "[DEBUG Execute START] Interp ID: %s, SID: %q, Turn: %d\n", i.id, sid, turn)
+	} else {
+		fmt.Fprintf(os.Stderr, "[DEBUG Execute START] Interp ID: %s, Context is NIL\n", i.id)
+	}
+	// --- END DEBUGGING ---
+
 	if program == nil {
 		return &lang.NilValue{}, nil
 	}
@@ -97,6 +109,16 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 	finalResult = &lang.NilValue{}
 
 	for _, step := range steps {
+		// --- NEW DEBUGGING ---
+		if i.turnCtx != nil {
+			sid, _ := i.turnCtx.Value(aeiou.SessionIDKey).(string)
+			turn, _ := i.turnCtx.Value(aeiou.TurnIndexKey).(int)
+			fmt.Fprintf(os.Stderr, "[DEBUG recExecuteSteps LOOP] Interp ID: %s, Step: %s, SID: %q, Turn: %d\n", i.id, step.Type, sid, turn)
+		} else {
+			fmt.Fprintf(os.Stderr, "[DEBUG recExecuteSteps LOOP] Interp ID: %s, Step: %s, Context is NIL\n", i.id, step.Type)
+		}
+		// --- END NEW DEBUGGING ---
+
 		var stepResult lang.Value
 		var stepErr error
 		stepTypeLower := strings.ToLower(step.Type)

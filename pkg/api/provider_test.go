@@ -1,9 +1,9 @@
-// NeuroScript Version: 0.7.0
-// File version: 11
-// Purpose: Corrected the agent configuration to use native Go types and a valid JSON structure for the UserData prompt, aligning with V3 'ask' behavior.
+// NeuroScript Version: 0.7.4
+// File version: 14
+// Purpose: FIX: Correctly passes the turn context to RunProcedure to satisfy the AEIOU v3 protocol.
 // filename: pkg/api/provider_test.go
-// nlines: 86
-// risk_rating: LOW
+// nlines: 90
+// risk_rating: HIGH
 
 package api_test
 
@@ -16,6 +16,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/provider/test"
+	"github.com/google/uuid"
 )
 
 func TestAPI_RegisterAndUseProvider(t *testing.T) {
@@ -29,10 +30,11 @@ func main(returns string) means
 endfunc
 `
 	// Create an interpreter with a trusted 'config' context to allow registration.
-	configPolicy := &policy.ExecPolicy{
-		Context: policy.ContextConfig,
-	}
+	configPolicy := policy.NewBuilder(api.ContextConfig).
+		Allow("tool.aeiou.magic"). // The bootstrap capsule needs this.
+		Build()
 	interp := api.New(interpreter.WithExecPolicy(configPolicy))
+
 	interp.RegisterProvider(providerName, test.New())
 
 	// Register an AgentModel configured to use our test provider.
@@ -53,10 +55,9 @@ endfunc
 		t.Fatalf("api.ExecWithInterpreter failed to load definitions: %v", err)
 	}
 
-	// Run the procedure.
-	// The 'ask' statement will internally create a V3 envelope with a USERDATA
-	// section like: {"subject":"ask","fields":{"prompt":"ping"}}
-	result, err := api.RunProcedure(context.Background(), interp, "main")
+	// Run the procedure, passing the required AEIOU turn context.
+	turnCtx := api.ContextWithSessionID(context.Background(), uuid.NewString())
+	result, err := api.RunProcedure(turnCtx, interp, "main")
 	if err != nil {
 		t.Fatalf("api.RunProcedure() failed: %v", err)
 	}

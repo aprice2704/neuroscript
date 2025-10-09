@@ -1,8 +1,7 @@
-// NeuroScript Version: 0.7.2
-// File version: 8
-// Purpose: Adds an explicit check to ensure the sandboxDir is correctly propagated to the state of a cloned interpreter.
+// NeuroScript Version: 0.7.4
+// File version: 9
+// Purpose: Corrected the test's expectation: the 'runtime' field must be ISOLATED in a clone, not shared.
 // filename: pkg/interpreter/interpreter_clone_internal_test.go
-
 package interpreter
 
 import (
@@ -93,6 +92,7 @@ func TestInterpreter_Clone_Integrity(t *testing.T) {
 		"root":            true, // A clone's root points to its parent, so it differs from the parent's root (which is nil).
 		"cloneRegistry":   true, // The clone registry only exists on the root. Clones have a new, empty one.
 		"cloneRegistryMu": true, // Each mutex is a distinct instance.
+		"runtime":         true, // A clone must have itself as the runtime to ensure correct context.
 	}
 
 	parentVal := reflect.ValueOf(parent).Elem()

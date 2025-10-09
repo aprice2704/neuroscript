@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 3
-// Purpose: Updated to use model.AccountName instead of the removed model.SecretRef field.
+// File version: 4
+// Purpose: FIX: Passes the correct, stateful turn context to the AI provider instead of context.Background().
 // filename: pkg/interpreter/interpreter_steps_ask_provider.go
 // nlines: 66
 // risk_rating: MEDIUM
@@ -8,7 +8,6 @@
 package interpreter
 
 import (
-	"context"
 	"fmt"
 	"os"
 
@@ -43,7 +42,8 @@ func callAIProvider(i *Interpreter, model types.AgentModel, withOpts *lang.MapVa
 
 	// Add other 'with' options here as needed...
 
-	resp, err := prov.Chat(context.Background(), req)
+	// FIX: Pass the interpreter's current turn context to the provider.
+	resp, err := prov.Chat(i.GetTurnContext(), req)
 	if err != nil {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeExternal, "AI provider call failed", err).WithPosition(pos)
 	}

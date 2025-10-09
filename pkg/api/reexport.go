@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.3
-// File version: 43
-// Purpose: Re-exports the concrete store types and the Account struct for host-managed state.
+// NeuroScript Version: 0.8.0
+// File version: 51
+// Purpose: FIX: Correctly re-exports agentmodel.AgentModelStore and agentmodel.NewAgentModelStore.
 // filename: pkg/api/reexport.go
-// nlines: 105
+// nlines: 113
 // risk_rating: LOW
 package api
 
@@ -23,7 +23,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
-// Re-exported types for the public API, as per the v0.7 contract.
+// Re-exported types for the public API.
 type (
 	Kind         = types.Kind
 	Position     = types.Position
@@ -38,8 +38,8 @@ type (
 		Sig  []byte
 	}
 	Option               = interpreter.InterpreterOption
-	ExecPolicy           = policy.ExecPolicy
-	ExecContext          = policy.ExecContext // Re-export the type
+	ExecPolicy           = interfaces.ExecPolicy
+	ExecContext          = interfaces.ExecContext
 	Capability           = capability.Capability
 	AIProvider           = provider.AIProvider
 	ToolImplementation   = tool.ToolImplementation
@@ -54,9 +54,9 @@ type (
 	ArgType              = tool.ArgType
 	CapsuleRegistry      = capsule.Registry
 	AdminCapsuleRegistry = CapsuleRegistry
-	Capsule              = capsule.Capsule // So hosts can construct capsules
+	Capsule              = capsule.Capsule
 	AgentModel           = types.AgentModel
-	Account              = account.Account // FIX: Export the Account struct type
+	Account              = account.Account
 	AgentModelReader     = interfaces.AgentModelReader
 	AgentModelAdmin      = interfaces.AgentModelAdmin
 	AccountReader        = interfaces.AccountReader
@@ -65,9 +65,8 @@ type (
 	GrantSet             = capability.GrantSet
 	RootNode             = ast.Node
 	Program              = ast.Program
-	// FIX: Export the concrete internal store types for host lifecycle management.
-	AccountStore    = account.Store
-	AgentModelStore = agentmodel.AgentModelStore
+	AccountStore         = account.Store
+	AgentModelStore      = agentmodel.AgentModelStore // Correctly alias the struct type
 
 	// --- LLM Telemetry Emitter ---
 	Emitter            = interfaces.Emitter
@@ -112,9 +111,10 @@ const (
 
 // Re-exported constants for policy contexts
 const (
-	ContextConfig ExecContext = policy.ContextConfig
-	ContextNormal ExecContext = policy.ContextNormal
-	ContextTest   ExecContext = policy.ContextTest
+	ContextConfig = interfaces.ContextConfig
+	ContextNormal = interfaces.ContextNormal
+	ContextTest   = interfaces.ContextTest
+	ContextUser   = interfaces.ContextUser
 )
 
 const (
@@ -150,5 +150,6 @@ var (
 	NewPolicyBuilder        = policy.NewBuilder
 	DecodeWithRegistry      = canon.DecodeWithRegistry
 	NewAccountStore         = account.NewStore
-	NewAgentModelStore      = agentmodel.NewAgentModelStore
+	NewAgentModelStore      = agentmodel.NewAgentModelStore // Correctly alias the constructor
+	ContextWithSessionID    = aeiou.ContextWithSessionID
 )

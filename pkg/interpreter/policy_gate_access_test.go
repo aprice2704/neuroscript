@@ -1,5 +1,5 @@
-// NeuroScript Version: 0.6.0
-// File version: 1
+// NeuroScript Version: 0.8.0
+// File version: 2
 // Purpose: Contains policy gate tests for trust contexts and allow/deny patterns.
 // filename: pkg/interpreter/policy_gate_access_test.go
 // nlines: 150
@@ -11,6 +11,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 )
 
@@ -33,14 +34,14 @@ var (
 func TestPolicyGate_AccessControl(t *testing.T) {
 	testCases := []struct {
 		name        string
-		policy      *policy.ExecPolicy
+		policy      *interfaces.ExecPolicy
 		tool        policy.ToolMeta
 		expectErrIs error
 	}{
 		// --- Trust Context Scenarios ---
 		{
 			name: "[Trust] Trusted tool succeeds in config context",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextConfig,
 				Allow:   []string{"*"},
 			},
@@ -49,7 +50,7 @@ func TestPolicyGate_AccessControl(t *testing.T) {
 		},
 		{
 			name: "[Trust] Trusted tool fails in normal context",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 			},
@@ -58,7 +59,7 @@ func TestPolicyGate_AccessControl(t *testing.T) {
 		},
 		{
 			name: "[Trust] Trusted tool fails in test context",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextTest,
 				Allow:   []string{"*"},
 			},
@@ -67,7 +68,7 @@ func TestPolicyGate_AccessControl(t *testing.T) {
 		},
 		{
 			name: "[Trust] Normal tool succeeds in normal context",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 			},
@@ -76,7 +77,7 @@ func TestPolicyGate_AccessControl(t *testing.T) {
 		},
 		{
 			name: "[Trust] Normal tool succeeds in config context",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextConfig,
 				Allow:   []string{"*"},
 			},
@@ -87,7 +88,7 @@ func TestPolicyGate_AccessControl(t *testing.T) {
 		// --- Allow/Deny Pattern Scenarios ---
 		{
 			name: "[Allow/Deny] Deny all overrides everything",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextConfig,
 				Allow:   []string{"*"},
 				Deny:    []string{"*"},
@@ -97,7 +98,7 @@ func TestPolicyGate_AccessControl(t *testing.T) {
 		},
 		{
 			name: "[Allow/Deny] Exact deny matches",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextNormal,
 				Allow:   []string{"*"},
 				Deny:    []string{"tool.str.contains"},
@@ -107,7 +108,7 @@ func TestPolicyGate_AccessControl(t *testing.T) {
 		},
 		{
 			name: "[Allow/Deny] Wildcard deny matches",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextNormal,
 				Allow:   []string{"tool.*"},
 				Deny:    []string{"tool.str.*"},
@@ -117,7 +118,7 @@ func TestPolicyGate_AccessControl(t *testing.T) {
 		},
 		{
 			name: "[Allow/Deny] Deny overrides specific allow",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextNormal,
 				Allow:   []string{"tool.str.contains"},
 				Deny:    []string{"tool.str.contains"},
@@ -127,7 +128,7 @@ func TestPolicyGate_AccessControl(t *testing.T) {
 		},
 		{
 			name: "[Allow/Deny] Success with specific allow and no deny",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextNormal,
 				Allow:   []string{"tool.math.add"},
 			},
@@ -136,7 +137,7 @@ func TestPolicyGate_AccessControl(t *testing.T) {
 		},
 		{
 			name: "[Allow/Deny] Failure because not in specific allow list",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextNormal,
 				Allow:   []string{"tool.math.add"}, // str.contains is not in this list
 			},
@@ -145,7 +146,7 @@ func TestPolicyGate_AccessControl(t *testing.T) {
 		},
 		{
 			name: "[Allow/Deny] Default deny when allow list is empty",
-			policy: &policy.ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: policy.ContextNormal,
 				Allow:   []string{}, // Empty allow list means deny everything
 			},
@@ -156,7 +157,7 @@ func TestPolicyGate_AccessControl(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := tc.policy.CanCall(tc.tool)
+			err := policy.CanCall(tc.policy, tc.tool, nil)
 			if !errors.Is(err, tc.expectErrIs) {
 				t.Errorf("Expected error '%v', but got '%v'", tc.expectErrIs, err)
 			}

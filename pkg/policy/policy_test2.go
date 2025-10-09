@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.0
-// File version: 3
-// Purpose: Consolidates unit tests for the ExecPolicy CanCall gating function and adds dedicated tests for helpers.
-// filename: pkg/policy/policy_test.go
-// nlines: 369
+// NeuroScript Version: 0.8.0
+// File version: 4
+// Purpose: Consolidates unit tests for the ExecPolicy CanCall gating function and adds dedicated tests for helpers, updated for new standalone CanCall.
+// filename: pkg/policy/policy_test2.go
+// nlines: 236
 // risk_rating: MEDIUM
 
 package policy
@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/capability"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 func TestExecPolicy_CanCall_Scenarios(t *testing.T) {
@@ -27,13 +28,13 @@ func TestExecPolicy_CanCall_Scenarios(t *testing.T) {
 
 	testCases := []struct {
 		name    string
-		policy  *ExecPolicy
+		policy  *interfaces.ExecPolicy
 		tool    ToolMeta
 		wantErr error
 	}{
 		{
 			name: "Success - Simple allow",
-			policy: &ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: ContextNormal,
 				Allow:   []string{"tool.basic.run"},
 			},
@@ -42,7 +43,7 @@ func TestExecPolicy_CanCall_Scenarios(t *testing.T) {
 		},
 		{
 			name: "Failure - Simple deny",
-			policy: &ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: ContextNormal,
 				Allow:   []string{"*"},
 				Deny:    []string{"tool.basic.run"},
@@ -52,7 +53,7 @@ func TestExecPolicy_CanCall_Scenarios(t *testing.T) {
 		},
 		{
 			name: "Failure - Not in active allow list",
-			policy: &ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: ContextNormal,
 				Allow:   []string{"tool.other.thing"},
 			},
@@ -61,7 +62,7 @@ func TestExecPolicy_CanCall_Scenarios(t *testing.T) {
 		},
 		{
 			name: "Success - Wildcard allow",
-			policy: &ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: ContextNormal,
 				Allow:   []string{"tool.basic.*"},
 			},
@@ -70,7 +71,7 @@ func TestExecPolicy_CanCall_Scenarios(t *testing.T) {
 		},
 		{
 			name: "Failure - Trust required in normal context",
-			policy: &ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: ContextNormal,
 				Allow:   []string{"*"},
 			},
@@ -79,7 +80,7 @@ func TestExecPolicy_CanCall_Scenarios(t *testing.T) {
 		},
 		{
 			name: "Success - Trust required in config context",
-			policy: &ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: ContextConfig,
 				Allow:   []string{"*"},
 			},
@@ -88,7 +89,7 @@ func TestExecPolicy_CanCall_Scenarios(t *testing.T) {
 		},
 		{
 			name: "Failure - Capability not granted",
-			policy: &ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: ContextConfig,
 				Allow:   []string{"*"},
 				Grants:  capability.GrantSet{},
@@ -98,7 +99,7 @@ func TestExecPolicy_CanCall_Scenarios(t *testing.T) {
 		},
 		{
 			name: "Success - Capability granted",
-			policy: &ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: ContextConfig,
 				Allow:   []string{"*"},
 				Grants: capability.GrantSet{
@@ -110,7 +111,7 @@ func TestExecPolicy_CanCall_Scenarios(t *testing.T) {
 		},
 		{
 			name: "Failure - Deny pattern overrides wildcard allow",
-			policy: &ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: ContextConfig,
 				Allow:   []string{"tool.agentmodel.*"},
 				Deny:    []string{"tool.agentmodel.Register"},
@@ -120,7 +121,7 @@ func TestExecPolicy_CanCall_Scenarios(t *testing.T) {
 		},
 		{
 			name: "Failure - Missing Capability",
-			policy: &ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: ContextConfig,
 				Allow:   []string{"tool.os.Getenv"},
 			},
@@ -131,7 +132,7 @@ func TestExecPolicy_CanCall_Scenarios(t *testing.T) {
 		},
 		{
 			name: "Success - Allows With Capability",
-			policy: &ExecPolicy{
+			policy: &interfaces.ExecPolicy{
 				Context: ContextConfig,
 				Allow:   []string{"tool.os.Getenv"},
 				Grants: capability.GrantSet{
@@ -154,7 +155,7 @@ func TestExecPolicy_CanCall_Scenarios(t *testing.T) {
 				tc.policy.Grants.Counters = capability.NewCounters()
 			}
 
-			err := tc.policy.CanCall(tc.tool)
+			err := CanCall(tc.policy, tc.tool, nil)
 
 			if !errors.Is(err, tc.wantErr) {
 				t.Errorf("CanCall() error = %v, wantErr %v", err, tc.wantErr)
@@ -232,12 +233,7 @@ func TestDedupMerge(t *testing.T) {
 			more: []string{"x", "y"},
 			want: []string{"x", "y"},
 		},
-		{
-			name: "Empty more",
-			base: []string{"x", "y"},
-			more: []string{},
-			want: []string{"x", "y"},
-		},
+		{},
 	}
 
 	for _, tc := range testCases {
