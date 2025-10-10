@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.2
-// File version: 1
-// Purpose: Implements the appendScript method to merge script definitions into the interpreter.
+// NeuroScript Version: 0.8.0
+// File version: 2
+// Purpose: Updated to retrieve the logger from the RunnerParcel.
 // filename: pkg/interpreter/interpreter_append.go
 // nlines: 50
 // risk_rating: MEDIUM
@@ -20,7 +20,7 @@ import (
 // It returns an error if a procedure being added already exists.
 func (i *Interpreter) appendScript(tree *interfaces.Tree) error {
 	if tree == nil || tree.Root == nil {
-		i.logger.Warn("AppendScript called with a nil program AST.")
+		i.Logger().Warn("AppendScript called with a nil program AST.")
 		return nil
 	}
 

@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.4
-// File version: 6
-// Purpose: Reverted to a stdlib-only package by replacing internal types with pure Go interfaces for readers and admins.
+// NeuroScript Version: 0.8.0
+// File version: 7
+// Purpose: FEAT: Added ListTools and GetTool methods for host introspection, as required by tools like the LSP.
 // filename: pkg/ax/runenv.go
-// nlines: 39
+// nlines: 48
 // risk_rating: LOW
 
 package ax
@@ -30,6 +30,16 @@ type CapsulesAdmin interface {
 type Tools interface {
 	Register(name string, impl any) error
 	Lookup(name string) (any, bool)
+
+	// ListTools returns all registered tool implementations.
+	// The return type is []any to avoid a dependency on internal types;
+	// consumers should type-assert to []api.ToolImplementation.
+	ListTools() []any
+
+	// GetTool returns a single tool implementation by its fully qualified name.
+	// The return type is any to avoid a dependency on internal types;
+	// consumers should type-assert to api.ToolImplementation.
+	GetTool(name string) (any, bool)
 }
 
 // Shared environment bound to a factory

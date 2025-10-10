@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.0
-// File version: 18.0.0
-// Purpose: Enforced API simplification by rejecting agent model registrations that contain a direct 'api_key'.
+// NeuroScript Version: 0.8.0
+// File version: 19.0.0
+// Purpose: Updated admin functions to retrieve the ExecPolicy from the RunnerParcel.
 // filename: pkg/interpreter/interpreter_agentmodel.go
 // nlines: 80
 // risk_rating: HIGH
@@ -10,6 +10,7 @@ package interpreter
 import (
 	"errors"
 
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
@@ -81,4 +82,11 @@ func (i *Interpreter) GetAgentModel(name types.AgentModelName) (any, bool) {
 
 	reader := i.AgentModels()
 	return reader.Get(name)
+}
+
+func (i *Interpreter) ExecPolicy() *interfaces.ExecPolicy {
+	if i.parcel != nil {
+		return i.parcel.Policy()
+	}
+	return nil
 }

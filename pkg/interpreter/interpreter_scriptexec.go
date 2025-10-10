@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.5.2
-// File version: 2.0.0
-// Purpose: Aligns ExecuteScriptString with the value contract by returning a lang.Value instead of interface{}.
+// NeuroScript Version: 0.8.0
+// File version: 3.0.0
+// Purpose: Replaced direct logger access with the Logger() method.
 // filename: pkg/interpreter/interpreter_scriptexec.go
 // nlines: 80
 // risk_rating: MEDIUM

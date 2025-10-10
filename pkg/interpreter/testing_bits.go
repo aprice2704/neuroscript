@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.1
-// File version: 8
-// Purpose: Added a type-preserving unwrap helper for shape validation in tests.
+// NeuroScript Version: 0.8.0
+// File version: 9
+// Purpose: Updated NewTestInterpreter to correctly initialize the RunnerParcel with the execution policy.
 // filename: pkg/interpreter/testing_bits.go
 // nlines: 120
 // risk_rating: LOW
@@ -72,7 +72,7 @@ func NewTestInterpreter(t *testing.T, initialVars map[string]lang.Value, lastRes
 	}
 
 	if privileged {
-		policy := &interfaces.ExecPolicy{
+		execPolicy := &interfaces.ExecPolicy{
 			Context: policy.ContextConfig, // Allows trusted tools
 			Allow:   []string{"*"},
 			Grants: capability.NewGrantSet(
@@ -85,13 +85,13 @@ func NewTestInterpreter(t *testing.T, initialVars map[string]lang.Value, lastRes
 				capability.Limits{},
 			),
 		}
-		opts = append(opts, WithExecPolicy(policy))
+		opts = append(opts, WithExecPolicy(execPolicy))
 	}
 
 	interp := NewInterpreter(opts...)
 
 	for k, v := range initialVars {
-		if err := interp.SetInitialVariable(k, v); err != nil {
+		if err := interp.SetVariable(k, v); err != nil { // Use SetVariable for local test scope
 			return nil, fmt.Errorf("failed to set initial variable %q: %w", k, err)
 		}
 	}

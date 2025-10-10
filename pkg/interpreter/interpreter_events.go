@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.1
-// File version: 39
-// Purpose: Implements FIXME item to log a warning when an event is emitted with no registered handlers.
+// NeuroScript Version: 0.8.0
+// File version: 40
+// Purpose: Replaced direct logger access with the Logger() method to align with the RunnerParcel model.
 // filename: pkg/interpreter/interpreter_events.go
 // nlines: 90
 // risk_rating: HIGH
@@ -50,7 +50,7 @@ func (i *Interpreter) EmitEvent(eventName string, source string, payload lang.Va
 	i.eventManager.eventHandlersMu.RUnlock()
 
 	if len(handlers) == 0 {
-		i.logger.Warn("Event emitted but no handlers were registered for it", "event_name", eventName, "source", source)
+		i.Logger().Warn("Event emitted but no handlers were registered for it", "event_name", eventName, "source", source)
 		return
 	}
 
@@ -66,7 +66,7 @@ func (i *Interpreter) EmitEvent(eventName string, source string, payload lang.Va
 
 	eventObj, err := i.composeCanonicalEvent(eventName, source, payload)
 	if err != nil {
-		i.logger.Error("Failed to prepare canonical event", "event", eventName, "error", err)
+		i.Logger().Error("Failed to prepare canonical event", "event", eventName, "error", err)
 		return
 	}
 

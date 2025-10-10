@@ -1,15 +1,16 @@
-// NeuroScript Version: 0.7.1
-// File version: 8
-// Purpose: Adds WithCapsuleAdminRegistry option for trusted configuration contexts.
+// NeuroScript Version: 0.8.0
+// File version: 9
+// Purpose: Updates options to configure the RunnerParcel.
 // filename: pkg/interpreter/interpreter_options.go
-// nlines: 94
-// risk_rating: LOW
+// nlines: 100
+// risk_rating: MEDIUM
 
 package interpreter
 
 import (
 	"io"
 
+	"github.com/aprice2704/neuroscript/pkg/ax/contract"
 	"github.com/aprice2704/neuroscript/pkg/capsule"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -29,9 +30,22 @@ func WithoutStandardTools() InterpreterOption {
 
 // --- Functional Options ---
 
+// WithParcel sets the entire runner parcel for the interpreter.
+func WithParcel(p contract.RunnerParcel) InterpreterOption {
+	return func(i *Interpreter) {
+		i.parcel = p
+	}
+}
+
 func WithLogger(logger interfaces.Logger) InterpreterOption {
 	return func(i *Interpreter) {
-		i.logger = logger
+		if i.parcel == nil {
+			i.parcel = contract.NewParcel(nil, nil, logger, nil)
+		} else {
+			i.parcel = i.parcel.Fork(func(m *contract.ParcelMut) {
+				m.Logger = logger
+			})
+		}
 	}
 }
 
@@ -65,21 +79,35 @@ func WithStderr(w io.Writer) InterpreterOption {
 	}
 }
 
-// WithGlobals sets the initial global variables.
+// WithGlobals sets the initial global variables on the parcel.
 func WithGlobals(globals map[string]interface{}) InterpreterOption {
 	return func(i *Interpreter) {
-		for key, val := range globals {
-			if err := i.SetInitialVariable(key, val); err != nil {
-				i.logger.Error("Failed to set initial global variable", "key", key, "error", err)
+		// This is a bit tricky now. We need to create a new parcel with these globals.
+		// For now, let's just log an error if the parcel is already set.
+		if i.parcel != nil && len(i.parcel.Globals()) > 0 {
+			if i.parcel.Logger() != nil {
+				i.parcel.Logger().Error("WithGlobals should be used before other options that create a parcel.")
 			}
+			return
 		}
+		var logger interfaces.Logger
+		if i.parcel != nil {
+			logger = i.parcel.Logger()
+		}
+		i.parcel = contract.NewParcel(nil, nil, logger, globals)
 	}
 }
 
-// WithExecPolicy applies a runtime execution policy to the interpreter.
+// WithExecPolicy applies a runtime execution policy to the interpreter's parcel.
 func WithExecPolicy(policy *interfaces.ExecPolicy) InterpreterOption {
 	return func(i *Interpreter) {
-		i.ExecPolicy = policy
+		if i.parcel == nil {
+			i.parcel = contract.NewParcel(nil, policy, nil, nil)
+		} else {
+			i.parcel = i.parcel.Fork(func(m *contract.ParcelMut) {
+				m.Policy = policy
+			})
+		}
 	}
 }
 

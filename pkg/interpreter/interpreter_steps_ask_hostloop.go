@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.0
-// File version: 16
-// Purpose: FIX: Correctly chains the turn context across loop iterations, preserving the turn index.
+// NeuroScript Version: 0.8.0
+// File version: 17
+// Purpose: Replaced all direct logger access with the Logger() method.
 // filename: pkg/interpreter/interpreter_steps_ask_hostloop.go
 // nlines: 232
 // risk_rating: HIGH
@@ -65,7 +65,7 @@ func (i *Interpreter) runAskHostLoop(pos *types.Position, agentModel *types.Agen
 	replayCache := aeiou.NewReplayCache(100, 5*time.Minute)
 
 	for turn := 1; turn <= maxTurns; turn++ {
-		i.logger.Debug("--- Starting ask loop turn ---", "sid", sessionID, "turn", turn)
+		i.Logger().Debug("--- Starting ask loop turn ---", "sid", sessionID, "turn", turn)
 
 		turnNonce := uuid.NewString()
 		hostCtx := aeiou.HostContext{
@@ -94,7 +94,7 @@ func (i *Interpreter) runAskHostLoop(pos *types.Position, agentModel *types.Agen
 
 		responseEnvelope, _, err := aeiou.Parse(strings.NewReader(aiResp.TextContent))
 		if err != nil {
-			i.logger.Warn("Failed to parse AI response envelope, attempting recovery", "sid", sessionID, "turn", turn, "error", err)
+			i.Logger().Warn("Failed to parse AI response envelope, attempting recovery", "sid", sessionID, "turn", turn, "error", err)
 			diagnosticUserData := fmt.Sprintf(`{"error": "envelope parsing failed", "diagnostic": "%s"}`, err.Error())
 			turnEnvelope = &aeiou.Envelope{
 				UserData: diagnosticUserData,
@@ -146,13 +146,13 @@ func (i *Interpreter) runAskHostLoop(pos *types.Position, agentModel *types.Agen
 
 		digest := aeiou.ComputeHostDigest(fullOutputBody, scratchpadBody)
 		if progressTracker.CheckAndRecord(digest) {
-			i.logger.Warn("Ask loop terminating: no progress detected.", "sid", sessionID, "turn", turn)
+			i.Logger().Warn("Ask loop terminating: no progress detected.", "sid", sessionID, "turn", turn)
 			break
 		}
 
 		decision, err := loopController.ProcessOutput(fullOutputBody, hostCtx, replayCache)
 		if err != nil || decision == nil {
-			i.logger.Debug("Ask loop terminating: no valid V3 control token found or error during processing.", "sid", sessionID, "turn", turn, "error", err)
+			i.Logger().Debug("Ask loop terminating: no valid V3 control token found or error during processing.", "sid", sessionID, "turn", turn, "error", err)
 			break
 		}
 
@@ -161,12 +161,12 @@ func (i *Interpreter) runAskHostLoop(pos *types.Position, agentModel *types.Agen
 				return nil, lang.NewRuntimeError(lang.ErrorCodePolicy, fmt.Sprintf("agent model '%s' attempted to continue a loop but does not have 'toolLoopPermitted' grant", agentModel.Name), nil).WithPosition(pos)
 			}
 		} else {
-			i.logger.Debug("Ask loop terminating: received signal.", "sid", sessionID, "turn", turn, "signal", decision.Action)
+			i.Logger().Debug("Ask loop terminating: received signal.", "sid", sessionID, "turn", turn, "signal", decision.Action)
 			break
 		}
 
 		if turn == maxTurns {
-			i.logger.Warn("Ask loop terminating: max turns reached.", "sid", sessionID, "max_turns", maxTurns)
+			i.Logger().Warn("Ask loop terminating: max turns reached.", "sid", sessionID, "max_turns", maxTurns)
 			break
 		}
 
@@ -180,6 +180,6 @@ func (i *Interpreter) runAskHostLoop(pos *types.Position, agentModel *types.Agen
 		currentCtx = turnCtxForProvider
 	}
 
-	i.logger.Debug("--- EXITING ask host loop ---", "sid", sessionID)
+	i.Logger().Debug("--- EXITING ask host loop ---", "sid", sessionID)
 	return finalResult, nil
 }

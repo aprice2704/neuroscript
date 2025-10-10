@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 66
-// Purpose: Updates the tool call dispatch logic to use the configurable 'runtime' field instead of the interpreter itself.
+// File version: 67
+// Purpose: Updates the policy gate to retrieve the ExecPolicy from the RunnerParcel.
 // filename: pkg/interpreter/evaluation_main.go
 // nlines: 280
 // risk_rating: HIGH
@@ -186,12 +186,13 @@ func (e *evaluation) evaluateCall(n *ast.CallableExprNode) (lang.Value, error) {
 		toolImpl, found := e.i.tools.GetTool(toolNameForLookup)
 		if !found {
 			errMessage := fmt.Sprintf("tool '%s' not found (looked up as '%s')", n.Target.Name, toolNameForLookup)
-			e.i.logger.Errorf("[DEBUG] Point A: Tool not found error created in evaluateCall: %s", errMessage) // DEBUG
+			e.i.Logger().Errorf("[DEBUG] Point A: Tool not found error created in evaluateCall: %s", errMessage) // DEBUG
 			return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, errMessage, lang.ErrToolNotFound).WithPosition(n.StartPos)
 		}
 
 		// --- POLICY GATE ---
-		if e.i.ExecPolicy != nil {
+		execPolicy := e.i.parcel.Policy()
+		if execPolicy != nil {
 			meta := policy.ToolMeta{
 				Name:          strings.ToLower(string(toolImpl.FullName)),
 				RequiresTrust: toolImpl.RequiresTrust,
@@ -205,7 +206,7 @@ func (e *evaluation) evaluateCall(n *ast.CallableExprNode) (lang.Value, error) {
 				}
 				return impl.Spec, true
 			}
-			if err := policy.CanCall(e.i.ExecPolicy, meta, specFetcher); err != nil {
+			if err := policy.CanCall(execPolicy, meta, specFetcher); err != nil {
 				return nil, lang.NewRuntimeError(lang.ErrorCodePolicy, fmt.Sprintf("tool call '%s' rejected by policy", toolImpl.FullName), err).WithPosition(n.StartPos)
 			}
 		}

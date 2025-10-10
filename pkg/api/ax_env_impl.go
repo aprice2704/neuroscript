@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.4
-// File version: 15
-// Purpose: FIX: Corrects method calls to use the proper admin/reader views on the internal stores, resolving all compiler errors.
+// NeuroScript Version: 0.8.0
+// File version: 18
+// Purpose: FIX: Implemented the missing GetTool method to satisfy the ax.Tools interface.
 // filename: pkg/api/ax_env_impl.go
-// nlines: 105
+// nlines: 125
 // risk_rating: HIGH
 
 package api
@@ -63,7 +63,7 @@ func (a *axAgentModelsReader) Get(name string) (map[string]any, bool) {
 type axCapsulesAdmin struct{ itp *Interpreter }
 
 func (a *axCapsulesAdmin) Install(name string, content []byte, meta map[string]any) error {
-	if reg := a.itp.CapsuleRegistryForAdmin(); reg != nil {
+	if reg := a.itp.internal.CapsuleRegistryForAdmin(); reg != nil {
 		// return reg.Install(name, content, meta) // Fictional method
 		return nil
 	}
@@ -74,13 +74,24 @@ type axToolsAdapter struct{ itp *Interpreter }
 
 func (a *axToolsAdapter) Register(name string, impl any) error {
 	if ti, ok := impl.(ToolImplementation); ok {
-		_, err := a.itp.ToolRegistry().RegisterTool(ti)
+		_, err := a.itp.internal.ToolRegistry().RegisterTool(ti)
 		return err
 	}
 	return errors.New("unsupported tool implementation type for ax registration")
 }
 func (a *axToolsAdapter) Lookup(name string) (any, bool) {
-	return a.itp.ToolRegistry().GetTool(types.FullName(name))
+	return a.itp.internal.ToolRegistry().GetTool(types.FullName(name))
+}
+func (a *axToolsAdapter) ListTools() []any {
+	tools := a.itp.internal.ToolRegistry().ListTools()
+	anys := make([]any, len(tools))
+	for i, t := range tools {
+		anys[i] = t
+	}
+	return anys
+}
+func (a *axToolsAdapter) GetTool(name string) (any, bool) {
+	return a.itp.internal.ToolRegistry().GetTool(types.FullName(name))
 }
 
 // --- axRunEnv Implementation ---

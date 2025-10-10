@@ -1,41 +1,40 @@
 // NeuroScript Version: 0.8.0
-// File version: 5
-// Purpose: Confirms that shared stores can be used across interpreters, relying on the corrected re-exported constructors.
+// File version: 7
+// Purpose: REFACTOR: Changed package to `api` to access unexported test helpers and fixed mock field name.
 // filename: pkg/api/interpreter_shared_stores_test.go
-// nlines: 127
+// nlines: 98
 // risk_rating: HIGH
 
-package api_test
+package api
 
 import (
 	"context"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/api"
+	"github.com/aprice2704/neuroscript/pkg/ax"
 )
 
-// TestInterpreter_SharedStores confirms that two separate interpreters can share
-// state by being configured with the same host-managed AccountStore and AgentModelStore.
-func TestInterpreter_SharedStores(t *testing.T) {
-	// --- Phase 1: Host-Level Store Creation ---
+// TestAX_SharedCatalogs confirms that two separate runners created from the same
+// factory can share state via the underlying, host-managed AccountStore and AgentModelStore.
+func TestAX_SharedCatalogs(t *testing.T) {
+	ctx := context.Background()
+	// --- Phase 1: Factory Creation ---
+	// The host application creates the factory once. The factory now implicitly
+	// owns and manages the shared stores (catalogs).
+	factory, err := NewAXFactory(ctx, ax.RunnerOpts{}, &mockRuntime{}, &mockID{did: "did:test:host"})
+	if err != nil {
+		t.Fatalf("NewAXFactory() failed: %v", err)
+	}
 
-	// The host application (e.g., FDM) creates the stores once.
-	sharedAccountStore := api.NewAccountStore()
-	sharedAgentModelStore := api.NewAgentModelStore()
+	// --- Phase 2: Trusted "Writer" Runner ---
 
-	// --- Phase 2: Trusted "Writer" Interpreter ---
-
-	// A script to register a new account and a new agent model.
 	writerScript := `
 command
-    # Register an account that the second interpreter will need.
     must tool.account.register("shared-acct", {\
         "kind": "llm",\
         "provider": "test",\
         "api_key": "key-123"\
     })
-
-    # Register an agent model that uses the shared account.
     must tool.agentmodel.register("shared-model", {\
         "provider": "test",\
         "model": "model-1",\
@@ -43,34 +42,24 @@ command
     })
 endcommand
 `
-	// Configure a trusted interpreter to run the writer script.
-	// It is given write access to the shared stores.
-	writerOpts := []api.Option{
-		api.WithAccountStore(sharedAccountStore),
-		api.WithAgentModelStore(sharedAgentModelStore),
-	}
-	writerAllowedTools := []string{"tool.account.register", "tool.agentmodel.register"}
-	writerGrants := []api.Capability{
-		api.NewWithVerbs(api.ResAccount, []string{api.VerbAdmin}, []string{"*"}),
-		api.NewWithVerbs(api.ResModel, []string{api.VerbAdmin}, []string{"*"}),
-	}
-	writerInterp := api.NewConfigInterpreter(writerAllowedTools, writerGrants, writerOpts...)
-
-	// Run the writer script to populate the shared stores.
-	tree, err := api.Parse([]byte(writerScript), api.ParseSkipComments)
+	// Create a privileged CONFIG runner. It gets access to the factory's RunEnv.
+	writerRunner, err := factory.NewRunner(ctx, ax.RunnerConfig, ax.RunnerOpts{})
 	if err != nil {
-		t.Fatalf("Writer: api.Parse() failed: %v", err)
-	}
-	_, err = api.ExecWithInterpreter(context.Background(), writerInterp, tree)
-	if err != nil {
-		t.Fatalf("Writer: api.ExecWithInterpreter() failed: %v", err)
+		t.Fatalf("Writer: NewRunner(Config) failed: %v", err)
 	}
 
-	// At this point, writerInterp can be discarded, but the shared stores now contain data.
+	// Run the writer script to populate the shared catalogs.
+	if err := writerRunner.LoadScript([]byte(writerScript)); err != nil {
+		t.Fatalf("Writer: LoadScript() failed: %v", err)
+	}
+	if _, err := writerRunner.Execute(); err != nil {
+		t.Fatalf("Writer: Execute() failed: %v", err)
+	}
 
-	// --- Phase 3: Unprivileged "Reader" Interpreter ---
+	// At this point, writerRunner can be discarded. The factory's catalogs now contain data.
 
-	// A script to verify that the data from the writer is accessible.
+	// --- Phase 3: Unprivileged "Reader" Runner ---
+
 	readerScript := `
 func main(returns bool) means
     set model_exists = tool.agentmodel.exists("shared-model")
@@ -78,49 +67,25 @@ func main(returns bool) means
     return model_exists and acct_exists
 endfunc
 `
-	// Configure a new, unprivileged interpreter.
-	// It is given access to the SAME shared stores.
-	readerOpts := []api.Option{
-		api.WithAccountStore(sharedAccountStore),
-		api.WithAgentModelStore(sharedAgentModelStore),
-	}
-	readerAllowedTools := []string{"tool.agentmodel.exists", "tool.account.exists"}
-	readerGrants := []api.Capability{
-		api.NewWithVerbs(api.ResAccount, []string{api.VerbRead}, []string{"*"}),
-		api.NewWithVerbs(api.ResModel, []string{api.VerbRead}, []string{"*"}),
-	}
-	// Note: Using NewConfigInterpreter just for convenience of setting tools/grants.
-	// A standard api.New() with a manually built policy would also work.
-	readerInterp := api.NewConfigInterpreter(readerAllowedTools, readerGrants, readerOpts...)
-
-	// Load the reader script's definitions.
-	tree, err = api.Parse([]byte(readerScript), api.ParseSkipComments)
+	// Create a new, unprivileged USER runner from the SAME factory.
+	readerRunner, err := factory.NewRunner(ctx, ax.RunnerUser, ax.RunnerOpts{})
 	if err != nil {
-		t.Fatalf("Reader: api.Parse() failed: %v", err)
-	}
-	// We need to load the function definition.
-	if err := api.LoadFromUnit(readerInterp, &api.LoadedUnit{Tree: tree}); err != nil {
-		t.Fatalf("Reader: LoadFromUnit() failed: %v", err)
+		t.Fatalf("Reader: NewRunner(User) failed: %v", err)
 	}
 
 	// Run the reader's main procedure.
-	result, err := api.RunProcedure(context.Background(), readerInterp, "main")
+	result, err := AXRunScript(ctx, readerRunner, []byte(readerScript), "main")
 	if err != nil {
-		t.Fatalf("Reader: api.RunProcedure() failed: %v", err)
+		t.Fatalf("Reader: AXRunScript() failed: %v", err)
 	}
 
 	// --- Verification ---
-	unwrapped, err := api.Unwrap(result)
-	if err != nil {
-		t.Fatalf("api.Unwrap() failed: %v", err)
-	}
-
-	finalResult, ok := unwrapped.(bool)
+	finalResult, ok := result.(bool)
 	if !ok {
-		t.Fatalf("Expected a boolean result, but got %T", unwrapped)
+		t.Fatalf("Expected a boolean result, but got %T", result)
 	}
 
 	if !finalResult {
-		t.Error("Test failed: The reader interpreter could not see the state created by the writer interpreter.")
+		t.Error("Test failed: The reader runner could not see the state created by the writer runner.")
 	}
 }

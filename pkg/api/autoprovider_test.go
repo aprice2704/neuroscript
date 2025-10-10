@@ -1,79 +1,74 @@
-// NeuroScript Version: 0.7.4
-// File version: 16
-// Purpose: FIX: Passes the required turn context directly to RunProcedure, which now correctly propagates it to the interpreter and its clones.
+// NeuroScript Version: 0.8.0
+// File version: 18
+// Purpose: FIX: Removed invalid type assertion on the concrete factory type. Changed package to `api` for test helpers.
 // filename: pkg/api/autoprovider_test.go
-// nlines: 104
+// nlines: 86
 // risk_rating: HIGH
 
-package api_test
+package api
 
 import (
 	"context"
 	"strings"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/api"
-	"github.com/aprice2704/neuroscript/pkg/interpreter"
-	"github.com/aprice2704/neuroscript/pkg/policy"
+	"github.com/aprice2704/neuroscript/pkg/ax"
 	"github.com/aprice2704/neuroscript/pkg/provider/test"
 	"github.com/google/uuid"
 )
 
-// TestAPI_AutoProviderRegistration verifies that a provider registered via the
-// top-level API function is correctly configured and accessible to scripts via 'ask'.
 func TestAPI_AutoProviderRegistration(t *testing.T) {
-	// 1. Define a script that uses an AgentModel.
+	ctx := context.Background()
+
+	// --- Phase 1: Factory and Provider Setup ---
+	factory, err := NewAXFactory(ctx, ax.RunnerOpts{}, &mockRuntime{}, &mockID{did: "did:test:host"})
+	if err != nil {
+		t.Fatalf("NewAXFactory() failed: %v", err)
+	}
+
+	factory.root.RegisterProvider("mock", test.New())
+
+	// --- Phase 2: Configuration via a Config Runner ---
+	configScript := `
+	command
+		must tool.agentmodel.register("test_agent", {
+			"provider": "mock",
+			"model": "test-model"
+		})
+	endcommand
+	`
+	configRunner, err := factory.NewRunner(ctx, ax.RunnerConfig, ax.RunnerOpts{})
+	if err != nil {
+		t.Fatalf("NewRunner(Config) failed: %v", err)
+	}
+	if err := configRunner.LoadScript([]byte(configScript)); err != nil {
+		t.Fatalf("LoadScript(Config) failed: %v", err)
+	}
+	if _, err := configRunner.Execute(); err != nil {
+		t.Fatalf("Execute(Config) failed: %v", err)
+	}
+
+	// --- Phase 3: Execution via a User Runner ---
 	scriptContent := `
 func main(returns string) means
     ask "test_agent", "What is a large language model?" into result
     return result
 endfunc
 `
-	// 2. Configure a policy that allows running in a trusted 'config' context.
-	configPolicy := policy.NewBuilder(api.ContextConfig).
-		Allow("tool.aeiou.magic"). // The bootstrap capsule run by the mock provider needs this.
-		Build()
-
-	interp := api.New(interpreter.WithExecPolicy(configPolicy))
-
-	// 3. Register the mock provider.
-	interp.RegisterProvider("mock", test.New())
-
-	// 4. Register an AgentModel using native Go types.
-	agentConfig := map[string]any{
-		"provider": "mock",
-		"model":    "test-model",
-	}
-	if err := interp.RegisterAgentModel("test_agent", agentConfig); err != nil {
-		t.Fatalf("Failed to register agent model: %v", err)
-	}
-
-	// 5. Parse and load the script.
-	tree, err := api.Parse([]byte(scriptContent), api.ParseSkipComments)
+	userRunner, err := factory.NewRunner(ctx, ax.RunnerUser, ax.RunnerOpts{})
 	if err != nil {
-		t.Fatalf("api.Parse failed: %v", err)
-	}
-	if _, err := api.ExecWithInterpreter(context.Background(), interp, tree); err != nil {
-		t.Fatalf("api.ExecWithInterpreter failed: %v", err)
+		t.Fatalf("NewRunner(User) failed: %v", err)
 	}
 
-	// 6. Run the procedure, passing the required AEIOU turn context.
-	// The fix in RunProcedure will ensure this context is set on the interpreter
-	// and the fix in clone() ensures it propagates to all child interpreters.
-	turnCtx := api.ContextWithSessionID(context.Background(), uuid.NewString())
-	result, err := api.RunProcedure(turnCtx, interp, "main")
+	turnCtx := ContextWithSessionID(context.Background(), uuid.NewString())
+	result, err := AXRunScript(turnCtx, userRunner, []byte(scriptContent), "main")
 	if err != nil {
-		t.Fatalf("api.RunProcedure failed unexpectedly: %v", err)
+		t.Fatalf("AXRunScript() failed unexpectedly: %v", err)
 	}
 
-	// 7. Verify the result from the mock provider.
-	unwrapped, err := api.Unwrap(result)
-	if err != nil {
-		t.Fatalf("api.Unwrap failed: %v", err)
-	}
-	val, ok := unwrapped.(string)
+	val, ok := result.(string)
 	if !ok {
-		t.Fatalf("Expected a string return type, but got %T", unwrapped)
+		t.Fatalf("Expected a string return type, but got %T", result)
 	}
 
 	expectedResponse := "large language model"

@@ -1,76 +1,79 @@
-// NeuroScript Version: 0.7.4
-// File version: 14
-// Purpose: FIX: Correctly passes the turn context to RunProcedure to satisfy the AEIOU v3 protocol.
+// NeuroScript Version: 0.8.0
+// File version: 16
+// Purpose: FIX: Removed invalid type assertion on the concrete factory type.
 // filename: pkg/api/provider_test.go
 // nlines: 90
 // risk_rating: HIGH
 
-package api_test
+package api
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/api"
-	"github.com/aprice2704/neuroscript/pkg/interpreter"
-	"github.com/aprice2704/neuroscript/pkg/policy"
+	"github.com/aprice2704/neuroscript/pkg/ax"
 	"github.com/aprice2704/neuroscript/pkg/provider/test"
 	"github.com/google/uuid"
 )
 
 func TestAPI_RegisterAndUseProvider(t *testing.T) {
+	ctx := context.Background()
 	providerName := "test_provider"
 
-	// The NeuroScript code to be executed.
+	// --- Phase 1: Factory and Provider Setup ---
+	factory, err := NewAXFactory(ctx, ax.RunnerOpts{}, &mockRuntime{}, &mockID{did: "did:test:host"})
+	if err != nil {
+		t.Fatalf("NewAXFactory() failed: %v", err)
+	}
+
+	// In a test, we can access the internal root interpreter to register a mock provider.
+	factory.root.RegisterProvider(providerName, test.New())
+
+	// --- Phase 2: Configuration via a Config Runner ---
+	configScript := fmt.Sprintf(`
+	command
+		must tool.agentmodel.register("test_agent", {
+			"provider": "%s",
+			"model":    "default"
+		})
+	endcommand`, providerName)
+
+	configRunner, err := factory.NewRunner(ctx, ax.RunnerConfig, ax.RunnerOpts{})
+	if err != nil {
+		t.Fatalf("NewRunner(Config) failed: %v", err)
+	}
+	if err := configRunner.LoadScript([]byte(configScript)); err != nil {
+		t.Fatalf("LoadScript(Config) failed: %v", err)
+	}
+	if _, err := configRunner.Execute(); err != nil {
+		t.Fatalf("Execute(Config) failed: %v", err)
+	}
+
+	// --- Phase 3: Execution via a User Runner ---
 	scriptContent := `
 func main(returns string) means
     ask "test_agent", "ping" into result
     return result
 endfunc
 `
-	// Create an interpreter with a trusted 'config' context to allow registration.
-	configPolicy := policy.NewBuilder(api.ContextConfig).
-		Allow("tool.aeiou.magic"). // The bootstrap capsule needs this.
-		Build()
-	interp := api.New(interpreter.WithExecPolicy(configPolicy))
-
-	interp.RegisterProvider(providerName, test.New())
-
-	// Register an AgentModel configured to use our test provider.
-	agentConfig := map[string]any{
-		"provider": providerName,
-		"model":    "default",
-	}
-	if err := interp.RegisterAgentModel("test_agent", agentConfig); err != nil {
-		t.Fatalf("Failed to register agent model: %v", err)
-	}
-
-	// Parse and load the script.
-	tree, err := api.Parse([]byte(scriptContent), api.ParseSkipComments)
+	userRunner, err := factory.NewRunner(ctx, ax.RunnerUser, ax.RunnerOpts{})
 	if err != nil {
-		t.Fatalf("api.Parse failed: %v", err)
-	}
-	if _, err := api.ExecWithInterpreter(context.Background(), interp, tree); err != nil {
-		t.Fatalf("api.ExecWithInterpreter failed to load definitions: %v", err)
+		t.Fatalf("NewRunner(User) failed: %v", err)
 	}
 
 	// Run the procedure, passing the required AEIOU turn context.
-	turnCtx := api.ContextWithSessionID(context.Background(), uuid.NewString())
-	result, err := api.RunProcedure(turnCtx, interp, "main")
+	turnCtx := ContextWithSessionID(context.Background(), uuid.NewString())
+	result, err := AXRunScript(turnCtx, userRunner, []byte(scriptContent), "main")
 	if err != nil {
-		t.Fatalf("api.RunProcedure() failed: %v", err)
+		t.Fatalf("AXRunScript() failed: %v", err)
 	}
 
 	// Verify the final result.
-	unwrapped, err := api.Unwrap(result)
-	if err != nil {
-		t.Fatalf("api.Unwrap failed: %v", err)
-	}
-
-	val, ok := unwrapped.(string)
+	val, ok := result.(string)
 	if !ok {
-		t.Fatalf("Expected a string return type, but got %T", unwrapped)
+		t.Fatalf("Expected a string return type, but got %T", result)
 	}
 
 	// The mock provider is hard-coded to return "test_provider_ok:pong" for a "ping" prompt.

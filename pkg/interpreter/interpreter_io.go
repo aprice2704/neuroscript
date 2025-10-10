@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.4.2
-// File version: 2
-// Purpose: Added the Println method to satisfy the tool.Runtime interface.
+// NeuroScript Version: 0.8.0
+// File version: 3
+// Purpose: Replaced direct logger access with the Logger() method.
 // filename: pkg/interpreter/interpreter_io.go
 // nlines: 48
 // risk_rating: LOW
@@ -19,7 +19,7 @@ func (i *Interpreter) Println(a ...any) {
 
 func (i *Interpreter) SetStdout(writer io.Writer) {
 	if writer == nil {
-		i.logger.Warn("Attempted to set nil stdout writer on interpreter, using os.Stdout as fallback.")
+		i.Logger().Warn("Attempted to set nil stdout writer on interpreter, using os.Stdout as fallback.")
 		i.stdout = os.Stdout
 		return
 	}
@@ -35,7 +35,7 @@ func (i *Interpreter) Stdout() io.Writer {
 
 func (i *Interpreter) SetStderr(writer io.Writer) {
 	if writer == nil {
-		i.logger.Warn("Attempted to set nil stderr writer on interpreter, using os.Stderr as fallback.")
+		i.Logger().Warn("Attempted to set nil stderr writer on interpreter, using os.Stderr as fallback.")
 		i.stderr = os.Stderr
 		return
 	}
@@ -51,7 +51,7 @@ func (i *Interpreter) Stderr() io.Writer {
 
 func (i *Interpreter) SetStdin(reader io.Reader) {
 	if reader == nil {
-		i.logger.Warn("Attempted to set nil stdin reader on interpreter, using os.Stdin as fallback.")
+		i.Logger().Warn("Attempted to set nil stdin reader on interpreter, using os.Stdin as fallback.")
 		i.stdin = os.Stdin
 		return
 	}

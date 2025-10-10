@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.4
-// File version: 11
-// Purpose: [DEBUG] Enhances debug loggers to trace both the session ID and the turn index from the AEIOU context.
+// NeuroScript Version: 0.8.0
+// File version: 12
+// Purpose: Updates GetLogger to retrieve the logger from the RunnerParcel.
 // filename: pkg/interpreter/interpreter_api.go
 // nlines: 162
 // risk_rating: HIGH
@@ -18,6 +18,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/provider"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
@@ -102,9 +103,12 @@ func (i *Interpreter) CloneWithNewVariables() *Interpreter {
 	return i.clone()
 }
 
-// GetLogger returns the interpreter's configured logger.
+// GetLogger returns the interpreter's configured logger from the parcel.
 func (i *Interpreter) GetLogger() interfaces.Logger {
-	return i.logger
+	if i.parcel != nil && i.parcel.Logger() != nil {
+		return i.parcel.Logger()
+	}
+	return logging.NewNoOpLogger() // Fallback
 }
 
 // SetLastResult sets the value of the 'last' keyword.

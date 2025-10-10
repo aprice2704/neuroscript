@@ -1,14 +1,13 @@
 // NeuroScript Version: 0.8.0
-// File version: 2
-// Purpose: FIX: Updated to use the neutral interfaces.ExecPolicy type.
+// File version: 3
+// Purpose: FIX: Removed the public ExecPolicy() method to enforce policy management via the ax factory.
 // filename: pkg/api/interpreter.go
-// nlines: 36
+// nlines: 32
 // risk_rating: LOW
 
 package api
 
 import (
-	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/provider/google"
@@ -37,8 +36,4 @@ func New(opts ...Option) *Interpreter {
 
 func (i *Interpreter) InternalRuntime() tool.Runtime {
 	return i.runtime
-}
-
-func (i *Interpreter) ExecPolicy() *interfaces.ExecPolicy {
-	return i.internal.ExecPolicy
 }

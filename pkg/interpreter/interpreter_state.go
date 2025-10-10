@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.5.2
-// File version: 11
-// Purpose: Removed root interpreter delegation from variable getters/setters to fix scoping bugs.
+// NeuroScript Version: 0.8.0
+// File version: 13
+// Purpose: FIX: Corrected Logger() to remove reference to non-existent field and fall back safely.
 // filename: pkg/interpreter/interpreter_state.go
 // nlines: 85
 // risk_rating: HIGH
@@ -12,16 +12,18 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/google/generative-ai-go/genai"
 )
 
 func (i *Interpreter) SandboxDir() string { return i.state.sandboxDir }
 
 func (i *Interpreter) Logger() interfaces.Logger {
-	if i.logger == nil {
-		panic("FATAL: Interpreter logger is nil")
+	if i.parcel != nil && i.parcel.Logger() != nil {
+		return i.parcel.Logger()
 	}
-	return i.logger
+	// Fallback to a no-op logger to guarantee a non-nil return and prevent panics.
+	return logging.NewNoOpLogger()
 }
 
 func (i *Interpreter) FileAPI() interfaces.FileAPI {
@@ -46,14 +48,30 @@ func (i *Interpreter) SetVariable(name string, value lang.Value) error {
 }
 
 // GetVariable is the internal method for retrieving a variable as a lang.Value.
+// It now falls back to the parcel's global variables.
 func (i *Interpreter) GetVariable(name string) (lang.Value, bool) {
+	// Check local scope first
 	i.state.variablesMu.RLock()
-	defer i.state.variablesMu.RUnlock()
-	if i.state.variables == nil {
-		return nil, false
-	}
 	val, exists := i.state.variables[name]
-	return val, exists
+	i.state.variablesMu.RUnlock()
+	if exists {
+		return val, true
+	}
+
+	// Fallback to globals from the parcel
+	if i.parcel != nil {
+		globals := i.parcel.Globals()
+		if globals != nil {
+			if globalVal, ok := globals[name]; ok {
+				// We need to wrap it to lang.Value
+				wrapped, err := lang.Wrap(globalVal)
+				if err == nil {
+					return wrapped, true
+				}
+			}
+		}
+	}
+	return nil, false
 }
 
 // GetVar satisfies the tool.Runtime interface.

@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.0
-// File version: 7
-// Purpose: [DEBUG] Adds detailed context logging directly within getHostContext to diagnose the persistent context loss issue.
+// NeuroScript Version: 0.8.0
+// File version: 8
+// Purpose: Updates AEIOU tool to get the turn context via the interpreter's GetTurnContext method.
 // filename: pkg/interpreter/interpreter_tool_aeiou.go
 // nlines: 121
 // risk_rating: HIGH
@@ -62,7 +62,7 @@ func makeMagicToolFunc(magicTool *aeiou.MagicTool) tool.ToolFunc {
 		if !ok {
 			return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "runtime is not an interpreter", nil)
 		}
-		hostCtx, err := getHostContext(interp.turnCtx)
+		hostCtx, err := getHostContext(interp.GetTurnContext())
 		if err != nil {
 			return nil, err
 		}

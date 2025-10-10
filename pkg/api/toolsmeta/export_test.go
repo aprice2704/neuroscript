@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.0
-// File version: 5
-// Purpose: Made the tool verification more robust by using a case-insensitive comparison.
+// File version: 6
+// Purpose: FIX: Accesses the internal interpreter to get the ToolRegistry for the test, aligning with the new facade pattern.
 // filename: pkg/api/toolsmeta/export_test.go
 // nlines: 61
 // risk_rating: LOW
@@ -19,15 +19,18 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
+type internalInterpreter interface {
+	ToolRegistry() tool.ToolRegistry
+}
+
 func TestExportTools(t *testing.T) {
 	// --- Setup ---
 	tempDir := t.TempDir()
 	outputFile := filepath.Join(tempDir, "test-tools.json")
 
-	// Create a full interpreter to get a populated tool registry.
-	// api.New() automatically registers all standard toolsets.
 	interp := api.New()
-	reg := interp.ToolRegistry()
+	// In a test, it's acceptable to access the internal interpreter to get the registry.
+	reg := interp.InternalRuntime().(internalInterpreter).ToolRegistry()
 
 	// --- Execute ---
 	err := toolsmeta.ExportTools(reg, outputFile)
@@ -64,7 +67,6 @@ func TestExportTools(t *testing.T) {
 	expectedFullName := "tool.fs.read"
 	for _, impl := range toolImpls {
 		actualFullName := api.MakeToolFullName(string(impl.Spec.Group), string(impl.Spec.Name))
-		// FIX: Use a case-insensitive comparison for robustness.
 		if strings.EqualFold(string(actualFullName), expectedFullName) {
 			foundReadTool = true
 			break

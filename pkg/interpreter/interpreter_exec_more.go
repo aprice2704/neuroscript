@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.0
-// File version: 79
-// Purpose: Refactored 'ask' logic into interpreter_ask.go to reduce file size.
+// NeuroScript Version: 0.8.0
+// File version: 80
+// Purpose: Replaced direct logger access with the Logger() method.
 // filename: pkg/interpreter/interpreter_exec_more.go
 // nlines: 250
 // risk_rating: HIGH
@@ -33,7 +33,7 @@ func (i *Interpreter) executeCall(step ast.Step) (lang.Value, error) {
 // 	if i.customEmitFunc != nil {
 // 		i.customEmitFunc(val)
 // 	} else {
-// 		i.logger.Debug("Emit statement executed", "value", val.String())
+// 		i.Logger().Debug("Emit statement executed", "value", val.String())
 // 	}
 // 	return val, nil
 // }
@@ -53,7 +53,7 @@ func (i *Interpreter) executeWhisper(step ast.Step) (lang.Value, error) {
 	if i.customWhisperFunc != nil {
 		i.customWhisperFunc(handleVal, dataVal)
 	} else {
-		i.logger.Debug("Whisper statement executed without a custom handler", "handle", handleVal.String(), "data", dataVal.String())
+		i.Logger().Debug("Whisper statement executed without a custom handler", "handle", handleVal.String(), "data", dataVal.String())
 	}
 	return dataVal, nil
 }

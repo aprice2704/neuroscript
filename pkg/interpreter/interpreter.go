@@ -1,9 +1,9 @@
-// NeuroScript Version: 0.7.4
-// File version: 75
-// Purpose: Adds public accessors for accountStore and modelStore to support custom runtimes.
+// NeuroScript Version: 0.8.0
+// File version: 77
+// Purpose: Removes the obsolete logger and ExecPolicy fields, fully committing to the RunnerParcel as the source of truth.
 // filename: pkg/interpreter/interpreter.go
 // nlines: 163
-// risk_rating: MEDIUM
+// risk_rating: HIGH
 
 package interpreter
 
@@ -19,6 +19,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/agentmodel"
 	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/ax/contract"
 	"github.com/aprice2704/neuroscript/pkg/capability"
 	"github.com/aprice2704/neuroscript/pkg/capsule"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
@@ -34,7 +35,6 @@ const DefaultSelfHandle = "default_self_buffer"
 // Interpreter holds the state for a NeuroScript runtime environment.
 type Interpreter struct {
 	id                        string // Unique ID for this interpreter instance
-	logger                    interfaces.Logger
 	fileAPI                   interfaces.FileAPI
 	state                     *interpreterState
 	tools                     tool.ToolRegistry
@@ -56,7 +56,6 @@ type Interpreter struct {
 	llmclient                 interfaces.LLMClient
 	skipStdTools              bool
 	modelStore                *agentmodel.AgentModelStore
-	ExecPolicy                *interfaces.ExecPolicy
 	root                      *Interpreter
 	customEmitFunc            func(lang.Value)
 	customWhisperFunc         func(handle, data lang.Value)
@@ -70,10 +69,19 @@ type Interpreter struct {
 
 	adminCapsuleRegistry *capsule.Registry // The writable registry for config scripts.
 
+	// --- Runner Parcel ---
+	parcel contract.RunnerParcel
+
 	// --- Clone Tracking for Debugging ---
 	cloneRegistry   []*Interpreter
 	cloneRegistryMu sync.Mutex
 }
+
+// Compile-time check to ensure Interpreter satisfies ParcelProvider.
+var _ contract.ParcelProvider = (*Interpreter)(nil)
+
+func (i *Interpreter) GetParcel() contract.RunnerParcel  { return i.parcel }
+func (i *Interpreter) SetParcel(p contract.RunnerParcel) { i.parcel = p }
 
 // AccountStore returns the account store associated with the interpreter.
 func (i *Interpreter) AccountStore() *account.Store {
@@ -119,7 +127,6 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 		state:             newInterpreterState(),
 		eventManager:      newEventManager(),
 		maxLoopIterations: 1000,
-		logger:            logging.NewNoOpLogger(),
 		stdout:            os.Stdout,
 		stdin:             os.Stdin,
 		stderr:            os.Stderr,
@@ -139,8 +146,14 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	i.bufferManager.Create(DefaultSelfHandle)
 	i.customWhisperFunc = i.defaultWhisperFunc
 
+	// Apply options before parcel creation to get logger and policy
 	for _, opt := range opts {
 		opt(i)
+	}
+
+	// Create the initial parcel if one wasn't provided via options
+	if i.parcel == nil {
+		i.parcel = contract.NewParcel(nil, nil, logging.NewNoOpLogger(), nil)
 	}
 
 	if !i.skipStdTools {
@@ -198,13 +211,13 @@ func (i *Interpreter) SetInitialVariable(name string, value any) error {
 		return fmt.Errorf("failed to wrap initial variable '%s': %w", name, err)
 	}
 	i.state.setVariable(name, wrappedValue)
-	i.state.globalVarNames[name] = true
+	// Globals are now managed by the parcel.
 	return nil
 }
 
 func (i *Interpreter) Load(tree *interfaces.Tree) error {
 	if tree == nil || tree.Root == nil {
-		i.logger.Warn("Load called with a nil program AST.")
+		i.Logger().Warn("Load called with a nil program AST.")
 		i.state.knownProcedures = make(map[string]*ast.Procedure)
 		i.eventManager.eventHandlers = make(map[string][]*ast.OnEventDecl)
 		i.state.commands = []*ast.CommandNode{}
@@ -242,10 +255,10 @@ func (i *Interpreter) SetSandboxDir(path string) {
 
 // GetGrantSet returns the currently active capability grant set for policy enforcement.
 func (i *Interpreter) GetGrantSet() *capability.GrantSet {
-	if i.ExecPolicy == nil {
+	if i.parcel == nil || i.parcel.Policy() == nil {
 		return &capability.GrantSet{}
 	}
-	return &i.ExecPolicy.Grants
+	return &i.parcel.Policy().Grants
 }
 
 func (i *Interpreter) rootInterpreter() *Interpreter {
@@ -263,7 +276,11 @@ func (i *Interpreter) Accounts() interfaces.AccountReader {
 
 func (i *Interpreter) AccountsAdmin() interfaces.AccountAdmin {
 	root := i.rootInterpreter()
-	return account.NewAdmin(root.accountStore, i.ExecPolicy)
+	var execPolicy *interfaces.ExecPolicy
+	if i.parcel != nil {
+		execPolicy = i.parcel.Policy()
+	}
+	return account.NewAdmin(root.accountStore, execPolicy)
 }
 
 func (i *Interpreter) AgentModels() interfaces.AgentModelReader {
@@ -273,7 +290,11 @@ func (i *Interpreter) AgentModels() interfaces.AgentModelReader {
 
 func (i *Interpreter) AgentModelsAdmin() interfaces.AgentModelAdmin {
 	root := i.rootInterpreter()
-	return agentmodel.NewAgentModelAdmin(root.modelStore, i.ExecPolicy)
+	var execPolicy *interfaces.ExecPolicy
+	if i.parcel != nil {
+		execPolicy = i.parcel.Policy()
+	}
+	return agentmodel.NewAgentModelAdmin(root.modelStore, execPolicy)
 }
 
 // CapsuleRegistryForAdmin returns the interpreter's administrative capsule registry.

@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.6.0
-// File version: 3
-// Purpose: Corrected the call to interp.Load to pass the correct AST structure.
+// NeuroScript Version: 0.8.0
+// File version: 4
+// Purpose: Updated to test global variable access via the RunnerParcel.
 // filename: pkg/interpreter/interpreter_globals_test.go
 // nlines: 55
 // risk_rating: LOW
@@ -27,7 +27,7 @@ endfunc
 		"my_global_var": "hello from globals",
 	}
 
-	// Use the standard NewInterpreter with the option to correctly simulate the API usage.
+	// Use the standard NewInterpreter with the option. This now configures the parcel.
 	interp := NewInterpreter(
 		WithGlobals(globals),
 		WithLogger(logging.NewTestLogger(t)),
@@ -47,7 +47,7 @@ endfunc
 		t.Fatalf("Failed to load program: %v", err)
 	}
 
-	// 3. Run the procedure.
+	// 3. Run the procedure. The interpreter should find 'my_global_var' in the parcel.
 	result, runErr := interp.Run("main")
 	if runErr != nil {
 		t.Fatalf("interp.Run() returned an unexpected error: %v", runErr)

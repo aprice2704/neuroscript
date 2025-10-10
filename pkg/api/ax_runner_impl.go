@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 10
-// Purpose: Implements the ax.Runner interface using the new Parcel/Catalogs model.
+// File version: 15
+// Purpose: FIX: Implemented ListTools and GetTool on the axTools struct to fully satisfy the ax.Tools interface, resolving the final compiler errors.
 // filename: pkg/api/ax_runner_impl.go
-// nlines: 115
+// nlines: 130
 // risk_rating: HIGH
 
 package api
@@ -37,7 +37,7 @@ type axTools struct{ itp *Interpreter }
 
 func (t *axTools) Register(name string, impl any) error {
 	if ti, ok := impl.(ToolImplementation); ok {
-		_, err := t.itp.ToolRegistry().RegisterTool(ti)
+		_, err := t.itp.internal.ToolRegistry().RegisterTool(ti)
 		return err
 	}
 	// Fallback for other registration types if necessary in the future.
@@ -45,7 +45,20 @@ func (t *axTools) Register(name string, impl any) error {
 }
 
 func (t *axTools) Lookup(name string) (any, bool) {
-	return t.itp.ToolRegistry().GetTool(types.FullName(name))
+	return t.itp.internal.ToolRegistry().GetTool(types.FullName(name))
+}
+
+func (t *axTools) ListTools() []any {
+	tools := t.itp.internal.ToolRegistry().ListTools()
+	anys := make([]any, len(tools))
+	for i, tool := range tools {
+		anys[i] = tool
+	}
+	return anys
+}
+
+func (t *axTools) GetTool(name string) (any, bool) {
+	return t.itp.internal.ToolRegistry().GetTool(types.FullName(name))
 }
 
 // Compile-time checks
