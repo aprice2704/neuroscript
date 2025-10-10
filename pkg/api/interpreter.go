@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 3
-// Purpose: FIX: Removed the public ExecPolicy() method to enforce policy management via the ax factory.
+// File version: 6
+// Purpose: FIX: Removed incorrect type assertion loop. The functional options pattern correctly handles overriding the default policy.
 // filename: pkg/api/interpreter.go
-// nlines: 32
-// risk_rating: LOW
+// nlines: 35
+// risk_rating: MEDIUM
 
 package api
 
@@ -22,11 +22,13 @@ type Interpreter struct {
 
 // New creates a new, persistent NeuroScript interpreter instance.
 func New(opts ...Option) *Interpreter {
-	i := interpreter.NewInterpreter(opts...)
-	if i.ExecPolicy == nil {
-		// Default to a deny-by-default policy if none is provided.
-		i.ExecPolicy = policy.NewBuilder(policy.ContextNormal).Build()
-	}
+	// Prepend our secure, "deny-all" default policy. If the caller provides
+	// their own WithExecPolicy option, it will run after this one and
+	// correctly override the default.
+	defaultPolicy := policy.NewBuilder(policy.ContextNormal).Build()
+	finalOpts := append([]Option{WithExecPolicy(defaultPolicy)}, opts...)
+
+	i := interpreter.NewInterpreter(finalOpts...)
 
 	googleProvider := google.New()
 	i.RegisterProvider("google", googleProvider)
@@ -35,5 +37,5 @@ func New(opts ...Option) *Interpreter {
 }
 
 func (i *Interpreter) InternalRuntime() tool.Runtime {
-	return i.runtime
+	return i.internal
 }

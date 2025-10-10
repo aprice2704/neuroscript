@@ -1,7 +1,7 @@
-// NeuroScript Version: 0.5.2
-// File version: 3.0.1
-// Purpose: Corrected assignment mismatches in calls to ParseAndGetStream.
-// filename: pkg/interpreter/interpreter_resource_usage_test.go
+// NeuroScript Version: 0.8.0
+// File version: 3.0.2
+// Purpose: FIX: Uses a public setter method (SetMaxLoopIterations) to configure the interpreter for the test, instead of accessing the private field directly.
+// filename: pkg/interpreter/interpreter_resource_use_test.go
 // nlines: 80
 // risk_rating: MEDIUM
 
@@ -55,7 +55,7 @@ func TestResourceUsageLimits(t *testing.T) {
 		`
 		interp, _ := NewTestInterpreter(t, nil, nil, false)
 		// Lower the limit for a faster test
-		interp.maxLoopIterations = 500
+		interp.SetMaxLoopIterations(500)
 
 		// The test now runs the 'main' function from the parsed script.
 		parserAPI := parser.NewParserAPI(interp.GetLogger())

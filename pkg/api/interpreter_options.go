@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.4
-// File version: 45
-// Purpose: FIX: Corrected WithInterpreter to use a safe pointer assignment instead of copying a lock.
+// NeuroScript Version: 0.8.0
+// File version: 48
+// Purpose: FIX: Implemented missing functional options locally to correctly call setters on the internal interpreter, resolving build errors.
 // filename: pkg/api/interpreter_options.go
 // nlines: 139
 // risk_rating: MEDIUM
@@ -66,7 +66,9 @@ func WithCapsuleRegistry(registry *CapsuleRegistry) Option {
 
 // WithCapsuleAdminRegistry provides a writable capsule registry to the interpreter.
 func WithCapsuleAdminRegistry(registry *AdminCapsuleRegistry) Option {
-	return interpreter.WithCapsuleAdminRegistry(registry)
+	return func(i *interpreter.Interpreter) {
+		i.SetCapsuleAdminRegistry(registry)
+	}
 }
 
 // WithEmitter creates an interpreter option to set a custom LLM event emitter.
@@ -128,7 +130,7 @@ func WithInterpreter(existing *Interpreter) Option {
 	return func(i *interpreter.Interpreter) {
 		if existing != nil && existing.internal != nil {
 			// FIX: Use a safe pointer assignment instead of copying the struct value.
-			i = existing.internal
+			*i = *existing.internal
 		}
 	}
 }

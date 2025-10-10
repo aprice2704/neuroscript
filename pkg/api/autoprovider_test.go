@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 18
-// Purpose: FIX: Removed invalid type assertion on the concrete factory type. Changed package to `api` for test helpers.
+// File version: 20
+// Purpose: FIX: Removed invalid type assertion and corrected policy modification to use the interpreter's parcel.
 // filename: pkg/api/autoprovider_test.go
 // nlines: 86
 // risk_rating: HIGH
@@ -26,6 +26,7 @@ func TestAPI_AutoProviderRegistration(t *testing.T) {
 		t.Fatalf("NewAXFactory() failed: %v", err)
 	}
 
+	// FIX: Removed invalid type assertion.
 	factory.root.RegisterProvider("mock", test.New())
 
 	// --- Phase 2: Configuration via a Config Runner ---
@@ -59,6 +60,13 @@ endfunc
 	if err != nil {
 		t.Fatalf("NewRunner(User) failed: %v", err)
 	}
+
+	// A user runner needs permission for the ask statement (model:use)
+	interp, _ := AXInterpreter(userRunner)
+	// FIX: Access the policy via the interpreter's parcel.
+	policy := interp.internal.GetParcel().Policy()
+	policy.Grants.Grants = append(policy.Grants.Grants, MustParse("model:use:*"))
+	policy.Allow = []string{"*"}
 
 	turnCtx := ContextWithSessionID(context.Background(), uuid.NewString())
 	result, err := AXRunScript(turnCtx, userRunner, []byte(scriptContent), "main")

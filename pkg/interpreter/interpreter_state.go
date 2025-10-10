@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 13
-// Purpose: FIX: Corrected Logger() to remove reference to non-existent field and fall back safely.
+// File version: 14
+// Purpose: FEAT: Adds a public SetMaxLoopIterations method to allow configuration from tests and external packages.
 // filename: pkg/interpreter/interpreter_state.go
-// nlines: 85
+// nlines: 90
 // risk_rating: HIGH
 
 package interpreter
@@ -31,6 +31,11 @@ func (i *Interpreter) FileAPI() interfaces.FileAPI {
 		panic("FATAL: Interpreter fileAPI not initialized")
 	}
 	return i.fileAPI
+}
+
+// SetMaxLoopIterations sets the safety limit for the number of iterations in a loop.
+func (i *Interpreter) SetMaxLoopIterations(max int) {
+	i.state.maxLoopIterations = max
 }
 
 // SetVariable is the internal method for setting a variable with a lang.Value.

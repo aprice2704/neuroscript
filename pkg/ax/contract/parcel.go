@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 3
-// Purpose: FIX: Updated to import ExecPolicy and Logger from pkg/interfaces.
+// File version: 4
+// Purpose: FIX: Ensures AEIOU() returns a non-nil struct and Fork() correctly copies the AEIOU context.
 // filename: pkg/ax/contract/parcel.go
 // nlines: 61
 // risk_rating: LOW
@@ -62,11 +62,16 @@ func (p *parcel) Globals() map[string]any {
 
 // Fork creates a shallow copy, applies mutations, and returns the new parcel.
 func (p *parcel) Fork(mut func(*ParcelMut)) RunnerParcel {
+	// Create a shallow copy of the parcel.
 	cp := *p
 
+	// Create a mutable struct for the mutation function.
 	m := ParcelMut{AEIOU: cp.aeiou, ID: cp.id, Logger: cp.log, Policy: cp.pol}
+
+	// Apply the mutations.
 	mut(&m)
 
+	// Update the copied parcel with the mutated values.
 	cp.aeiou, cp.id, cp.log, cp.pol = m.AEIOU, m.ID, m.Logger, m.Policy
 	return &cp
 }

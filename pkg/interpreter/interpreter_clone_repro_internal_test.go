@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.2
-// File version: 1
-// Purpose: Provides a definitive, failing test case to prove that the interpreter's clone() method loses the adminCapsuleRegistry. This is an internal version of the test in pkg/api.
+// NeuroScript Version: 0.8.0
+// File version: 2
+// Purpose: FIX: Updates the test to work with the refactored interpreter by removing the obsolete WithCapsuleAdminRegistry option and verifying the default registry is propagated correctly.
 // filename: pkg/interpreter/clone_repro_internal_test.go
 // nlines: 95
 // risk_rating: HIGH
@@ -12,7 +12,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/capsule"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -57,22 +56,18 @@ func check_clone() means
     must tool.test.probeAdminRegistry()
 endfunc
 `
-	// 2. Create the host-owned admin registry that we expect to be propagated.
-	liveAdminRegistry := capsule.NewRegistry()
-
-	// 3. Create a parent interpreter and configure it with the admin registry.
+	// 2. Create a parent interpreter. It will create its own default capsule registry.
 	interp := interpreter.NewInterpreter(
 		interpreter.WithLogger(logging.NewTestLogger(t)),
 		interpreter.WithExecPolicy(&interfaces.ExecPolicy{Context: policy.ContextConfig, Allow: []string{"*"}}),
-		interpreter.WithCapsuleAdminRegistry(liveAdminRegistry),
 	)
 
-	// 4. Register our probe tool.
+	// 3. Register our probe tool.
 	if _, err := interp.ToolRegistry().RegisterTool(adminRegistryProbeTool); err != nil {
 		t.Fatalf("Failed to register probe tool: %v", err)
 	}
 
-	// 5. Load the script.
+	// 4. Load the script.
 	parserAPI := parser.NewParserAPI(interp.GetLogger())
 	p, pErr := parserAPI.Parse(script)
 	if pErr != nil {
@@ -86,10 +81,10 @@ endfunc
 		t.Fatalf("Load failed: %v", err)
 	}
 
-	// 6. Run the procedure. This will trigger a clone() internally.
+	// 5. Run the procedure. This will trigger a clone() internally.
 	_, err := interp.Run("check_clone")
 
-	// 7. Assert the outcome.
+	// 6. Assert the outcome.
 	if err != nil {
 		var rtErr *lang.RuntimeError
 		if errors.As(err, &rtErr) {

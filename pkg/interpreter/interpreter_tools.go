@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.5.2
-// File version: 15
-// Purpose: Corrected CallTool to properly prepend 'tool.' to the group-qualified name, creating the full canonical key required for registry lookups and resolving the tool-to-tool call failure.
+// NeuroScript Version: 0.8.0
+// File version: 16
+// Purpose: FIX: Replaces direct access to the removed 'tools' field with calls to the ToolRegistry() method.
 // filename: pkg/interpreter/interpreter_tools.go
 // nlines: 60
 // risk_rating: HIGH
@@ -21,7 +21,7 @@ func (i *Interpreter) CallTool(toolName types.FullName, args []any) (any, error)
 	// Since this is on the Runtime, args are already primitives.
 	// We need to wrap them back to lang.Value for ExecuteTool.
 	langArgs := make(map[string]lang.Value)
-	impl, ok := i.tools.GetTool(fullToolNameForLookup)
+	impl, ok := i.ToolRegistry().GetTool(fullToolNameForLookup)
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, "tool not found: "+string(fullToolNameForLookup), lang.ErrToolNotFound)
 	}
@@ -36,7 +36,7 @@ func (i *Interpreter) CallTool(toolName types.FullName, args []any) (any, error)
 		}
 	}
 
-	resultVal, err := i.tools.ExecuteTool(fullToolNameForLookup, langArgs)
+	resultVal, err := i.ToolRegistry().ExecuteTool(fullToolNameForLookup, langArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -46,5 +46,5 @@ func (i *Interpreter) CallTool(toolName types.FullName, args []any) (any, error)
 
 // ExecuteTool is the primary entry point for the interpreter's 'call' statement.
 func (i *Interpreter) ExecuteTool(toolName types.FullName, args map[string]lang.Value) (lang.Value, error) {
-	return i.tools.ExecuteTool(toolName, args)
+	return i.ToolRegistry().ExecuteTool(toolName, args)
 }

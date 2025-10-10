@@ -1,7 +1,7 @@
-// NeuroScript Version: 0.7.2
-// File version: 13
-// Purpose: Contains shared unit test helpers for the capsule toolset.
-// filename: pkg/tool/capsule/tools_test.go
+// NeuroScript Version: 0.8.0
+// File version: 14
+// Purpose: FIX: Removes the obsolete WithCapsuleAdminRegistry option to align with the new interpreter initialization.
+// filename: pkg/tool/capsule/tools_capsule_test.go
 // nlines: 100
 // risk_rating: MEDIUM
 package capsule_test
@@ -11,7 +11,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/capsule"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/policy"
@@ -42,8 +41,8 @@ func newCapsuleTestInterpreter(t *testing.T, isPrivileged bool) *interpreter.Int
 			Allow("tool.capsule.*").
 			Grant("capsule:write:*").
 			Build()
-		adminRegistry := capsule.NewRegistry()
-		opts = append(opts, interpreter.WithCapsuleAdminRegistry(adminRegistry))
+		// The admin registry is now managed internally by the interpreter.
+		// We no longer need WithCapsuleAdminRegistry.
 	} else {
 		testPolicy = policy.NewBuilder(policy.ContextNormal).
 			Allow(

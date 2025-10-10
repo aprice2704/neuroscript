@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 9
-// Purpose: CRITICAL: Removed all public methods that exposed direct access to shared stores (Accounts, Models, Capsules, Tools), forcing consumers to use the ax/contract model.
+// File version: 11
+// Purpose: CRITICAL: Removed direct store access and added interface-based accessors (Accounts, AgentModels, etc.) to support the ax/contract model.
 // filename: pkg/api/interpreter_methods.go
-// nlines: 95
+// nlines: 115
 // risk_rating: HIGH
 
 package api
@@ -83,6 +83,28 @@ func (i *Interpreter) Run(procName string, args ...lang.Value) (Value, error) {
 // EmitEvent sends an event into the interpreter.
 func (i *Interpreter) EmitEvent(eventName string, source string, payload lang.Value) {
 	i.internal.EmitEvent(eventName, source, payload)
+}
+
+// --- AX Interface Accessors ---
+
+func (i *Interpreter) Accounts() interfaces.AccountReader {
+	return i.internal.Accounts()
+}
+
+func (i *Interpreter) AccountsAdmin() interfaces.AccountAdmin {
+	return i.internal.AccountsAdmin()
+}
+
+func (i *Interpreter) AgentModels() interfaces.AgentModelReader {
+	return i.internal.AgentModels()
+}
+
+func (i *Interpreter) AgentModelsAdmin() interfaces.AgentModelAdmin {
+	return i.internal.AgentModelsAdmin()
+}
+
+func (i *Interpreter) CapsuleRegistryForAdmin() *AdminCapsuleRegistry {
+	return i.internal.CapsuleRegistryForAdmin()
 }
 
 // Clone creates a new interpreter that inherits the parent's full state,

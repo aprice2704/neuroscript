@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 29
-// Purpose: Refactored to pass the RunnerParcel by reference and removed the obsolete globals-to-locals copying logic.
+// File version: 31
+// Purpose: FIX: Clones the EventManager correctly instead of accessing the removed state.eventHandlers field.
 // filename: pkg/interpreter/interpreter_clone.go
-// nlines: 100
+// nlines: 79
 // risk_rating: HIGH
 
 package interpreter
@@ -11,65 +11,45 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/google/uuid"
 )
 
 // clone creates a new interpreter instance for sandboxing.
-// It shares persistent state (stores, tools, config) by reference,
-// but creates an isolated variable scope and a context-aware tool registry view.
+// It shares the RunnerParcel and SharedCatalogs by reference,
+// but creates an isolated execution state (variables, stack, etc.).
 func (i *Interpreter) clone() *Interpreter {
-	// --- VERBOSE DEBUGGING ---
-	fmt.Fprintf(os.Stderr, "\n[CLONE START] Parent ID: %s | customEmitFunc is nil: %t\n", i.id, i.customEmitFunc == nil)
-	fmt.Fprintf(os.Stderr, "[CLONE RUNTIME DEBUG] Parent ID: %s, Parent Addr: %p, Parent Runtime Addr: %p\n", i.id, i, i.runtime)
+	fmt.Fprintf(os.Stderr, "\n[CLONE START] Parent ID: %s\n", i.id)
 
 	clone := &Interpreter{
-		// Assign a new unique ID to the clone
 		id: fmt.Sprintf("interp-%s", uuid.NewString()[:8]),
 
-		// --- Runner Parcel ---
-		// The parcel is passed by reference (pointer copy).
-		parcel: i.parcel,
+		// --- AX Contracts ---
+		// Pass parcel and catalogs by reference (pointer copy).
+		parcel:   i.parcel,
+		catalogs: i.catalogs,
 
-		// Share core state by reference for persistence
+		// --- Share core state by reference ---
 		fileAPI:                   i.fileAPI,
-		eventManager:              i.eventManager,
 		aiWorker:                  i.aiWorker,
 		stdout:                    i.stdout,
 		stdin:                     i.stdin,
 		stderr:                    i.stderr,
-		adminCapsuleRegistry:      i.adminCapsuleRegistry,
-		maxLoopIterations:         i.maxLoopIterations,
 		bufferManager:             i.bufferManager,
 		objectCache:               i.objectCache,
 		llmclient:                 i.llmclient,
-		skipStdTools:              i.skipStdTools,
-		modelStore:                i.modelStore,
-		accountStore:              i.accountStore,
-		capsuleStore:              i.capsuleStore,
 		root:                      i.rootInterpreter(),
 		aiTranscript:              i.aiTranscript,
 		transientPrivateKey:       i.transientPrivateKey,
-		eventHandlerErrorCallback: i.eventHandlerErrorCallback,
 		emitter:                   i.emitter,
-		// The runtime is set below after the clone is fully constructed.
-
-		// Propagate the turn context from the parent. This is critical for AEIOU.
-		turnCtx: i.turnCtx,
-
-		// Propagate the custom I/O functions from the parent.
-		customEmitFunc:    i.customEmitFunc,
-		customWhisperFunc: i.customWhisperFunc,
+		customEmitFunc:            i.customEmitFunc,
+		customWhisperFunc:         i.customWhisperFunc,
+		eventHandlerErrorCallback: i.eventHandlerErrorCallback,
+		eventManager:              newEventManager(), // Initialize a new manager for the clone
 	}
 
 	// The runtime context for a clone must be the clone itself.
 	clone.runtime = clone
-
-	fmt.Fprintf(os.Stderr, "[CLONE RUNTIME DEBUG] Clone ID: %s,  Clone Addr: %p,  Clone Runtime Addr: %p\n", clone.id, clone, clone.runtime)
-	fmt.Fprintf(os.Stderr, "[CLONE MID]   New Clone ID: %s | customEmitFunc is nil after copy: %t\n", clone.id, clone.customEmitFunc == nil)
-
-	if i.tools != nil {
-		clone.tools = i.tools.NewViewForInterpreter(clone)
-	}
 
 	// Create a fresh execution state.
 	clone.state = newInterpreterState()
@@ -77,8 +57,15 @@ func (i *Interpreter) clone() *Interpreter {
 	clone.state.providers = i.state.providers
 	clone.state.knownProcedures = i.state.knownProcedures
 
-	// The old logic for copying globals into the local variable map has been removed.
-	// Globals are now accessed read-only via `i.parcel.Globals()`.
+	// Event handlers are stateful to the interpreter instance, not shared globally.
+	// We must deep-copy the handlers from the parent.
+	if i.eventManager != nil {
+		for eventName, handlers := range i.eventManager.eventHandlers {
+			handlersCopy := make([]*ast.OnEventDecl, len(handlers))
+			copy(handlersCopy, handlers)
+			clone.eventManager.eventHandlers[eventName] = handlersCopy
+		}
+	}
 
 	root := clone.rootInterpreter()
 	if root == nil {
@@ -86,11 +73,11 @@ func (i *Interpreter) clone() *Interpreter {
 	}
 
 	root.cloneRegistryMu.Lock()
-	defer root.cloneRegistryMu.Unlock()
 	if root.cloneRegistry == nil {
 		panic(fmt.Sprintf("FATAL: Root interpreter (ID: %s) has a nil cloneRegistry.", root.id))
 	}
 	root.cloneRegistry = append(root.cloneRegistry, clone)
+	root.cloneRegistryMu.Unlock()
 
 	clone.evaluate = &evaluation{i: clone}
 
@@ -98,7 +85,7 @@ func (i *Interpreter) clone() *Interpreter {
 		clone.customWhisperFunc = clone.defaultWhisperFunc
 	}
 
-	fmt.Fprintf(os.Stderr, "[CLONE END]   Parent ID: %s -> New Clone ID: %s successfully registered with root.\n\n", i.id, clone.id)
+	fmt.Fprintf(os.Stderr, "[CLONE END] Parent ID: %s -> New Clone ID: %s registered with root.\n\n", i.id, clone.id)
 
 	return clone
 }

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 15
-// Purpose: FIX: Implemented ListTools and GetTool on the axTools struct to fully satisfy the ax.Tools interface, resolving the final compiler errors.
+// File version: 18
+// Purpose: FIX: Removed duplicate axTools adapter and corrected ParcelProvider method signature to resolve compiler errors.
 // filename: pkg/api/ax_runner_impl.go
 // nlines: 130
 // risk_rating: HIGH
@@ -8,13 +8,13 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/ax"
 	"github.com/aprice2704/neuroscript/pkg/ax/contract"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // hostRuntime augments the existing tool.Runtime with the ax.IdentityCap.
@@ -32,43 +32,11 @@ type axRunner struct {
 	itp      *Interpreter
 }
 
-// axTools adapts the internal ToolRegistry to the ax.Tools interface.
-type axTools struct{ itp *Interpreter }
-
-func (t *axTools) Register(name string, impl any) error {
-	if ti, ok := impl.(ToolImplementation); ok {
-		_, err := t.itp.internal.ToolRegistry().RegisterTool(ti)
-		return err
-	}
-	// Fallback for other registration types if necessary in the future.
-	return errors.New("unsupported tool implementation type for ax registration")
-}
-
-func (t *axTools) Lookup(name string) (any, bool) {
-	return t.itp.internal.ToolRegistry().GetTool(types.FullName(name))
-}
-
-func (t *axTools) ListTools() []any {
-	tools := t.itp.internal.ToolRegistry().ListTools()
-	anys := make([]any, len(tools))
-	for i, tool := range tools {
-		anys[i] = tool
-	}
-	return anys
-}
-
-func (t *axTools) GetTool(name string) (any, bool) {
-	return t.itp.internal.ToolRegistry().GetTool(types.FullName(name))
-}
-
 // Compile-time checks
 var _ ax.Runner = (*axRunner)(nil)
 var _ ax.CloneCap = (*axRunner)(nil)
 var _ ax.IdentityCap = (*hostRuntime)(nil)
-var _ ax.Tools = (*axTools)(nil)
 var _ contract.ParcelProvider = (*axRunner)(nil)
-
-// func (r *axRunner) Env() ax.RunEnv { return &axRunEnv{root: r.itp} }
 
 // --- ParcelProvider Implementation ---
 func (r *axRunner) GetParcel() contract.RunnerParcel  { return r.parcel }
@@ -90,15 +58,8 @@ func (r *axRunner) LoadScript(script []byte) error {
 func (r *axRunner) Execute() (any, error) { return r.itp.Execute() }
 
 func (r *axRunner) Run(proc string, args ...any) (any, error) {
-	vs := make([]lang.Value, len(args))
-	for i, a := range args {
-		v, err := lang.Wrap(a)
-		if err != nil {
-			return nil, err
-		}
-		vs[i] = v
-	}
-	return r.itp.Run(proc, vs...)
+	// RunProcedure is used because it handles the required internal cloning.
+	return RunProcedure(context.Background(), r.itp, proc, args...)
 }
 
 func (r *axRunner) EmitEvent(name, src string, payload any) {

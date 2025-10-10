@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 8.0.0
-// Purpose: Removed the obsolete globalVarNames field.
+// File version: 8.0.1
+// Purpose: FIX: Uses the public EvaluateExpression method instead of the private evaluate field.
 // filename: pkg/interpreter/interpreter_state_2.go
 // nlines: 55
 // risk_rating: LOW
@@ -26,6 +26,7 @@ type interpreterState struct {
 	errorHandlerStack [][]*ast.Step
 	sandboxDir        string
 	vectorIndex       map[string][]float32
+	maxLoopIterations int // Moved from Interpreter struct
 
 	// --- Provider State ---
 	providers   map[string]provider.AIProvider
@@ -40,11 +41,12 @@ type EventManager struct {
 
 func newInterpreterState() *interpreterState {
 	return &interpreterState{
-		variables:       make(map[string]lang.Value),
-		knownProcedures: make(map[string]*ast.Procedure),
-		commands:        []*ast.CommandNode{},
-		stackFrames:     []string{},
-		providers:       make(map[string]provider.AIProvider),
+		variables:         make(map[string]lang.Value),
+		knownProcedures:   make(map[string]*ast.Procedure),
+		commands:          []*ast.CommandNode{},
+		stackFrames:       []string{},
+		providers:         make(map[string]provider.AIProvider),
+		maxLoopIterations: 1000, // Default value
 	}
 }
 
@@ -67,7 +69,7 @@ func (em *EventManager) register(decl *ast.OnEventDecl, i *Interpreter) error {
 	em.eventHandlersMu.Lock()
 	defer em.eventHandlersMu.Unlock()
 
-	eventName, err := i.evaluate.Expression(decl.EventNameExpr)
+	eventName, err := i.EvaluateExpression(decl.EventNameExpr)
 	if err != nil {
 		return lang.WrapErrorWithPosition(err, decl.EventNameExpr.GetPos(), "evaluating event name expression")
 	}

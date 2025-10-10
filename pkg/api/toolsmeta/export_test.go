@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.6.0
-// File version: 6
+// NeuroScript Version: 0.8.0
+// File version: 7
 // Purpose: FIX: Accesses the internal interpreter to get the ToolRegistry for the test, aligning with the new facade pattern.
 // filename: pkg/api/toolsmeta/export_test.go
-// nlines: 61
+// nlines: 65
 // risk_rating: LOW
 
 package toolsmeta_test
@@ -28,9 +28,13 @@ func TestExportTools(t *testing.T) {
 	tempDir := t.TempDir()
 	outputFile := filepath.Join(tempDir, "test-tools.json")
 
+	// Create a new interpreter via the facade to get a populated tool registry.
 	interp := api.New()
-	// In a test, it's acceptable to access the internal interpreter to get the registry.
-	reg := interp.InternalRuntime().(internalInterpreter).ToolRegistry()
+	internal := interp.InternalRuntime().(internalInterpreter)
+	reg := internal.ToolRegistry()
+	if reg == nil {
+		t.Fatal("Tool registry from internal interpreter was nil")
+	}
 
 	// --- Execute ---
 	err := toolsmeta.ExportTools(reg, outputFile)

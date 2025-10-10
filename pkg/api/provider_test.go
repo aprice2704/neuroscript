@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 16
-// Purpose: FIX: Removed invalid type assertion on the concrete factory type.
+// File version: 22
+// Purpose: FIX: Correctly appends to the Grants slice instead of calling a non-existent method.
 // filename: pkg/api/provider_test.go
 // nlines: 90
 // risk_rating: HIGH
@@ -28,7 +28,6 @@ func TestAPI_RegisterAndUseProvider(t *testing.T) {
 		t.Fatalf("NewAXFactory() failed: %v", err)
 	}
 
-	// In a test, we can access the internal root interpreter to register a mock provider.
 	factory.root.RegisterProvider(providerName, test.New())
 
 	// --- Phase 2: Configuration via a Config Runner ---
@@ -62,6 +61,13 @@ endfunc
 	if err != nil {
 		t.Fatalf("NewRunner(User) failed: %v", err)
 	}
+
+	// A user runner needs permission for the ask statement (model:use)
+	interp, _ := AXInterpreter(userRunner)
+	policy := interp.internal.GetParcel().Policy()
+	// FIX: Append directly to the public Grants slice.
+	policy.Grants.Grants = append(policy.Grants.Grants, MustParse("model:use:*"))
+	policy.Allow = []string{"*"}
 
 	// Run the procedure, passing the required AEIOU turn context.
 	turnCtx := ContextWithSessionID(context.Background(), uuid.NewString())

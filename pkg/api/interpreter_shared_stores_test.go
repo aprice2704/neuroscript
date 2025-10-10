@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 7
-// Purpose: REFACTOR: Changed package to `api` to access unexported test helpers and fixed mock field name.
+// File version: 9
+// Purpose: REFACTOR: Corrected test to modify the policy via the interpreter's parcel, aligning with the new ax model.
 // filename: pkg/api/interpreter_shared_stores_test.go
 // nlines: 98
 // risk_rating: HIGH
@@ -72,6 +72,12 @@ endfunc
 	if err != nil {
 		t.Fatalf("Reader: NewRunner(User) failed: %v", err)
 	}
+
+	// The user runner needs permission to call the tools.
+	interp, _ := AXInterpreter(readerRunner)
+	// FIX: Access the policy via the interpreter's parcel.
+	policy := interp.internal.GetParcel().Policy()
+	policy.Allow = []string{"tool.agentmodel.exists", "tool.account.exists"}
 
 	// Run the reader's main procedure.
 	result, err := AXRunScript(ctx, readerRunner, []byte(readerScript), "main")

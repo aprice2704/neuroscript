@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 45
-// Purpose: Added detailed step-dumping to the error message for nil collection expressions to help diagnose AST builder bugs.
+// File version: 46
+// Purpose: FIX: Accesses maxLoopIterations via the interpreter's state field (i.state.maxLoopIterations).
 // filename: pkg/interpreter/interpreter_steps_blocks.go
 // nlines: 205
 // risk_rating: HIGH
@@ -43,8 +43,8 @@ func (i *Interpreter) executeWhile(step ast.Step, isInHandler bool, activeError 
 	result = &lang.NilValue{}
 
 	for iteration := 0; ; iteration++ {
-		if iteration >= i.maxLoopIterations {
-			return nil, false, false, lang.NewRuntimeError(lang.ErrorCodeResourceExhaustion, fmt.Sprintf("exceeded max iterations (%d)", i.maxLoopIterations), lang.ErrMaxIterationsExceeded).WithPosition(step.GetPos())
+		if iteration >= i.state.maxLoopIterations {
+			return nil, false, false, lang.NewRuntimeError(lang.ErrorCodeResourceExhaustion, fmt.Sprintf("exceeded max iterations (%d)", i.state.maxLoopIterations), lang.ErrMaxIterationsExceeded).WithPosition(step.GetPos())
 		}
 
 		condResult, evalErr := i.evaluate.Expression(step.Cond)
@@ -128,8 +128,8 @@ func (i *Interpreter) executeFor(step ast.Step, isInHandler bool, activeError *l
 	result = &lang.NilValue{}
 
 	for iteration, item := range itemsToIterate {
-		if iteration >= i.maxLoopIterations {
-			return nil, false, false, lang.NewRuntimeError(lang.ErrorCodeResourceExhaustion, fmt.Sprintf("exceeded max iterations (%d)", i.maxLoopIterations), lang.ErrMaxIterationsExceeded).WithPosition(step.GetPos())
+		if iteration >= i.state.maxLoopIterations {
+			return nil, false, false, lang.NewRuntimeError(lang.ErrorCodeResourceExhaustion, fmt.Sprintf("exceeded max iterations (%d)", i.state.maxLoopIterations), lang.ErrMaxIterationsExceeded).WithPosition(step.GetPos())
 		}
 
 		if setErr := i.SetVariable(step.LoopVarName, item); setErr != nil {

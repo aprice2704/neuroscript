@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 12
-// Purpose: Updates GetLogger to retrieve the logger from the RunnerParcel.
+// File version: 17
+// Purpose: FEAT: Adds public setters for stores and other host-configurable components as requested by the API team.
 // filename: pkg/interpreter/interpreter_api.go
-// nlines: 162
+// nlines: 205
 // risk_rating: HIGH
 
 package interpreter
@@ -11,11 +11,16 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
+	"github.com/aprice2704/neuroscript/pkg/account"
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
+	"github.com/aprice2704/neuroscript/pkg/agentmodel"
 	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/ax/contract"
+	"github.com/aprice2704/neuroscript/pkg/capsule"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
@@ -47,32 +52,30 @@ func (i *Interpreter) PromptUser(prompt string) (string, error) {
 
 // RegisterProvider allows the host application to register a concrete AIProvider implementation.
 func (i *Interpreter) RegisterProvider(name string, p provider.AIProvider) {
-	if i.root != nil {
-		i.root.RegisterProvider(name, p)
-		return
+	root := i.rootInterpreter()
+	root.state.providersMu.Lock()
+	defer root.state.providersMu.Unlock()
+	if root.state.providers == nil {
+		root.state.providers = make(map[string]provider.AIProvider)
 	}
-	i.state.providersMu.Lock()
-	defer i.state.providersMu.Unlock()
-	if i.state.providers == nil {
-		i.state.providers = make(map[string]provider.AIProvider)
-	}
-	i.state.providers[name] = p
+	root.state.providers[name] = p
 }
 
 // GetProvider retrieves a registered AIProvider by name.
 func (i *Interpreter) GetProvider(name string) (provider.AIProvider, bool) {
-	if i.root != nil {
-		return i.root.GetProvider(name)
-	}
-	i.state.providersMu.RLock()
-	defer i.state.providersMu.RUnlock()
-	p, found := i.state.providers[name]
+	root := i.rootInterpreter()
+	root.state.providersMu.RLock()
+	defer root.state.providersMu.RUnlock()
+	p, found := root.state.providers[name]
 	return p, found
 }
 
 // NTools returns the number of registered tools.
 func (i *Interpreter) NTools() (ntools int) {
-	return i.tools.NTools()
+	if tr, ok := i.catalogs.Tools().(tool.ToolRegistry); ok {
+		return tr.NTools()
+	}
+	return 0
 }
 
 // LLM returns the configured LLM client.
@@ -86,11 +89,6 @@ func (i *Interpreter) KnownProcedures() map[string]*ast.Procedure {
 		return make(map[string]*ast.Procedure)
 	}
 	return i.state.knownProcedures
-}
-
-// ToolRegistry returns the interpreter's tool registry.
-func (i *Interpreter) ToolRegistry() tool.ToolRegistry {
-	return i.tools
 }
 
 // CloneForEventHandler creates a sandboxed clone for event handling.
@@ -146,26 +144,78 @@ func (i *Interpreter) GetAndClearWhisperBuffer() string {
 	return i.bufferManager.GetAndClear(DefaultSelfHandle)
 }
 
-// GetTurnContext returns the context for the current AEIOU turn.
+// GetTurnContext reconstructs a context.Context from the parcel's HostContext.
 func (i *Interpreter) GetTurnContext() context.Context {
-	if i.turnCtx == nil {
-		fmt.Fprintf(os.Stderr, "[DEBUG GetTurnContext] Interp ID: %s, Context is NIL\n", i.id)
+	if i.parcel == nil {
+		fmt.Fprintf(os.Stderr, "[DEBUG GetTurnContext] Interp ID: %s, Parcel is NIL\n", i.id)
 		return context.Background()
 	}
-	sid, _ := i.turnCtx.Value(aeiou.SessionIDKey).(string)
-	turn, _ := i.turnCtx.Value(aeiou.TurnIndexKey).(int)
-	fmt.Fprintf(os.Stderr, "[DEBUG GetTurnContext] Interp ID: %s, SID: %q, Turn: %d\n", i.id, sid, turn)
-	return i.turnCtx
+
+	hostCtx := i.parcel.AEIOU()
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, aeiou.SessionIDKey, hostCtx.SessionID)
+	ctx = context.WithValue(ctx, aeiou.TurnIndexKey, hostCtx.TurnIndex)
+	ctx = context.WithValue(ctx, aeiou.TurnNonceKey, hostCtx.TurnNonce)
+
+	fmt.Fprintf(os.Stderr, "[DEBUG GetTurnContext] Interp ID: %s, SID: %q, Turn: %d\n", i.id, hostCtx.SessionID, hostCtx.TurnIndex)
+	return ctx
 }
 
-// SetTurnContext sets the context for the current turn.
+// SetTurnContext extracts data from a context.Context and stores it in the parcel's HostContext.
 func (i *Interpreter) SetTurnContext(ctx context.Context) {
-	i.turnCtx = ctx
-	if ctx == nil {
-		fmt.Fprintf(os.Stderr, "[DEBUG SetTurnContext] Interp ID: %s, Setting context to NIL\n", i.id)
+	if i.parcel == nil {
+		fmt.Fprintf(os.Stderr, "[DEBUG SetTurnContext] Interp ID: %s, cannot set context on NIL parcel\n", i.id)
 		return
 	}
+
 	sid, _ := ctx.Value(aeiou.SessionIDKey).(string)
 	turn, _ := ctx.Value(aeiou.TurnIndexKey).(int)
+	nonce, _ := ctx.Value(aeiou.TurnNonceKey).(string)
+
 	fmt.Fprintf(os.Stderr, "[DEBUG SetTurnContext] Interp ID: %s, Setting context with SID: %q, Turn: %d\n", i.id, sid, turn)
+
+	i.parcel = i.parcel.Fork(func(m *contract.ParcelMut) {
+		m.AEIOU = &aeiou.HostContext{
+			SessionID: sid,
+			TurnIndex: turn,
+			TurnNonce: nonce,
+		}
+	})
+}
+
+// SetCapsuleAdminRegistry sets the primary (admin) capsule registry.
+// This is intended for setup and testing, and replaces the existing capsule store.
+func (i *Interpreter) SetCapsuleAdminRegistry(registry *capsule.Registry) {
+	root := i.rootInterpreter()
+	if sc, ok := root.catalogs.(*sharedCatalogs); ok {
+		sc.capsules = capsule.NewStore(registry)
+	}
+}
+
+// SetAccountStore sets the account store for the interpreter.
+// This is intended for setup and testing.
+func (i *Interpreter) SetAccountStore(store *account.Store) {
+	root := i.rootInterpreter()
+	if sc, ok := root.catalogs.(*sharedCatalogs); ok {
+		sc.accounts = store
+	}
+}
+
+// SetAgentModelStore sets the agent model store for the interpreter.
+// This is intended for setup and testing.
+func (i *Interpreter) SetAgentModelStore(store *agentmodel.AgentModelStore) {
+	root := i.rootInterpreter()
+	if sc, ok := root.catalogs.(*sharedCatalogs); ok {
+		sc.agentModels = store
+	}
+}
+
+// SetAITranscript sets the writer for logging AI prompts and responses.
+func (i *Interpreter) SetAITranscript(w io.Writer) {
+	i.aiTranscript = w
+}
+
+// SetEmitter sets the LLM telemetry emitter for the interpreter.
+func (i *Interpreter) SetEmitter(e interfaces.Emitter) {
+	i.emitter = e
 }

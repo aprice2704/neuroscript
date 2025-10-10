@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 5
-// Purpose: [DEBUG] Adds logging at the start of the function to verify the context of the incoming interpreter clone.
+// File version: 6
+// Purpose: FIX: Uses the GetTurnContext() method instead of the removed turnCtx field to access the turn's context.
 // filename: pkg/interpreter/interpreter_steps_ask_aeiou.go
 // nlines: 71
 // risk_rating: HIGH
@@ -8,6 +8,7 @@
 package interpreter
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -21,12 +22,13 @@ import (
 // 'emit' and 'whisper' statements for the host loop to process.
 func executeAeiouTurn(i *Interpreter, env *aeiou.Envelope, actionEmits *[]string, actionWhispers *map[string]lang.Value) error {
 	// --- NEW DEBUGGING ---
-	if i.turnCtx != nil {
-		sid, _ := i.turnCtx.Value(aeiou.SessionIDKey).(string)
-		turn, _ := i.turnCtx.Value(aeiou.TurnIndexKey).(int)
+	turnCtx := i.GetTurnContext()
+	if turnCtx != nil && turnCtx != context.Background() {
+		sid, _ := turnCtx.Value(aeiou.SessionIDKey).(string)
+		turn, _ := turnCtx.Value(aeiou.TurnIndexKey).(int)
 		fmt.Fprintf(os.Stderr, "[DEBUG executeAeiouTurn] START. Interp ID: %s, SID: %q, Turn: %d\n", i.id, sid, turn)
 	} else {
-		fmt.Fprintf(os.Stderr, "[DEBUG executeAeiouTurn] START. Interp ID: %s, Context is NIL\n", i.id)
+		fmt.Fprintf(os.Stderr, "[DEBUG executeAeiouTurn] START. Interp ID: %s, Context is NIL or empty\n", i.id)
 	}
 	// --- END NEW DEBUGGING ---
 

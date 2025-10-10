@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.4
-// File version: 1
-// Purpose: Contains tests for the AX factory creation and bootloading process.
+// NeuroScript Version: 0.8.0
+// File version: 3
+// Purpose: FIX: Removed invalid type assertion on the concrete factory type, resolving the build error.
 // filename: pkg/api/ax_boot_test.go
 // nlines: 45
 // risk_rating: MEDIUM
@@ -40,7 +40,7 @@ func TestAX_BootProcess(t *testing.T) {
 		t.Fatalf("boot: failed to parse library script: %v", err)
 	}
 
-	// FIX: Don't use a type assertion on a concrete type. Access the field directly.
+	// FIX: Removed invalid type assertion. 'fac' is already the concrete type.
 	if err := fac.root.AppendScript(libTree); err != nil {
 		t.Fatalf("boot: failed to append library script to root: %v", err)
 	}

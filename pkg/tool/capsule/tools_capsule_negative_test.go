@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 13
-// Purpose: FIX: Removed the invalid type assertion to resolve the compiler error.
+// File version: 15
+// Purpose: FIX: Imports the 'contract' package and uses contract.ParcelMut to resolve the final compile error.
 // filename: pkg/tool/capsule/tools_capsule_negative_test.go
 // nlines: 120
 // risk_rating: MEDIUM
@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/ax/contract"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/tool"
@@ -124,10 +125,13 @@ func TestToolCapsule_NegativeCases(t *testing.T) {
 
 	// --- Policy Negative Cases ---
 	t.Run("Add fails in config context without capability grant", func(t *testing.T) {
-		interp := newCapsuleTestInterpreter(t, true)
-		interp.ExecPolicy = policy.NewBuilder(policy.ContextConfig).
+		policyWithoutGrant := policy.NewBuilder(policy.ContextConfig).
 			Allow("tool.capsule.Add").
 			Build()
+		interp := newCapsuleTestInterpreter(t, true)
+		interp.SetParcel(interp.GetParcel().Fork(func(m *contract.ParcelMut) {
+			m.Policy = policyWithoutGrant
+		}))
 
 		fullname := types.MakeFullName("capsule", "Add")
 		toolImpl, _ := interp.ToolRegistry().GetTool(fullname)
@@ -137,7 +141,7 @@ func TestToolCapsule_NegativeCases(t *testing.T) {
 			RequiresTrust: toolImpl.RequiresTrust,
 			RequiredCaps:  toolImpl.RequiredCaps,
 		}
-		err := policy.CanCall(interp.ExecPolicy, meta, nil)
+		err := policy.CanCall(interp.GetParcel().Policy(), meta, nil)
 
 		if !errors.Is(err, policy.ErrCapability) {
 			t.Errorf("Expected policy.ErrCapability due to missing grant, but got: %v", err)

@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.2
-// File version: 3
-// Purpose: Refactored to use the new fluent policy builder.
+// NeuroScript Version: 0.8.0
+// File version: 4
+// Purpose: Refactored to use the new fluent policy builder and the correct WithExecPolicy option.
 // filename: pkg/api/config.go
 // nlines: 26
 // risk_rating: MEDIUM
@@ -21,9 +21,9 @@ func WithTrustedPolicy(allowedTools []string, grants ...capability.Capability) i
 	}
 	policy := builder.Build()
 
-	return func(i *interpreter.Interpreter) {
-		i.ExecPolicy = policy
-	}
+	// FIX: Use the public WithExecPolicy option to apply the policy instead of
+	// trying to access the unexported field directly.
+	return WithExecPolicy(policy)
 }
 
 // NewConfigInterpreter is a convenience function that creates a new interpreter

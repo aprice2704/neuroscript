@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.2
-// File version: 85
-// Purpose: [DEBUG] Adds context logging inside the main step execution loop to trace context loss during script execution.
+// NeuroScript Version: 0.8.0
+// File version: 86
+// Purpose: FIX: Replaces direct access to the removed `turnCtx` field with calls to `GetTurnContext()`.
 // filename: pkg/interpreter/interpreter_exec.go
 // nlines: 268
 // risk_rating: HIGH
@@ -21,9 +21,10 @@ import (
 // Execute runs the command blocks from a given AST program.
 func (i *Interpreter) Execute(program *ast.Program) (lang.Value, error) {
 	// --- MORE DEBUGGING ---
-	if i.turnCtx != nil {
-		sid, _ := i.turnCtx.Value(aeiou.SessionIDKey).(string)
-		turn, _ := i.turnCtx.Value(aeiou.TurnIndexKey).(int)
+	ctx := i.GetTurnContext()
+	if ctx != nil {
+		sid, _ := ctx.Value(aeiou.SessionIDKey).(string)
+		turn, _ := ctx.Value(aeiou.TurnIndexKey).(int)
 		fmt.Fprintf(os.Stderr, "[DEBUG Execute START] Interp ID: %s, SID: %q, Turn: %d\n", i.id, sid, turn)
 	} else {
 		fmt.Fprintf(os.Stderr, "[DEBUG Execute START] Interp ID: %s, Context is NIL\n", i.id)
@@ -110,9 +111,10 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 
 	for _, step := range steps {
 		// --- NEW DEBUGGING ---
-		if i.turnCtx != nil {
-			sid, _ := i.turnCtx.Value(aeiou.SessionIDKey).(string)
-			turn, _ := i.turnCtx.Value(aeiou.TurnIndexKey).(int)
+		ctx := i.GetTurnContext()
+		if ctx != nil {
+			sid, _ := ctx.Value(aeiou.SessionIDKey).(string)
+			turn, _ := ctx.Value(aeiou.TurnIndexKey).(int)
 			fmt.Fprintf(os.Stderr, "[DEBUG recExecuteSteps LOOP] Interp ID: %s, Step: %s, SID: %q, Turn: %d\n", i.id, step.Type, sid, turn)
 		} else {
 			fmt.Fprintf(os.Stderr, "[DEBUG recExecuteSteps LOOP] Interp ID: %s, Step: %s, Context is NIL\n", i.id, step.Type)

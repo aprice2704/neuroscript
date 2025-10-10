@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 5
-// Purpose: FIX: Imports reader interfaces from pkg/interfaces to finally break the import cycle with pkg/api.
+// File version: 6
+// Purpose: FIX: Aligns the SharedCatalogs interface to return *capsule.Store instead of *capsule.Registry.
 // filename: pkg/ax/contract/contracts.go
 // nlines: 45
 // risk_rating: LOW
@@ -44,5 +44,5 @@ type SharedCatalogs interface {
 	Accounts() interfaces.AccountReader
 	AgentModels() interfaces.AgentModelReader
 	Tools() ax.Tools
-	Capsules() *capsule.Registry
+	Capsules() *capsule.Store // FIX: Return the Store for richer functionality.
 }

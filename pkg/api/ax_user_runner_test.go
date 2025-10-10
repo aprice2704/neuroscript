@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.4
-// File version: 7
-// Purpose: FIX: Rewrote IdentityAndTools test to use the factory for runner creation and correctly set the tool policy.
+// NeuroScript Version: 0.8.0
+// File version: 9
+// Purpose: FIX: Removed invalid type assertion and corrected policy modification to use the interpreter's parcel.
 // filename: pkg/api/ax_user_runner_test.go
 // nlines: 125
 // risk_rating: HIGH
@@ -13,7 +13,9 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/ax"
+	"github.com/aprice2704/neuroscript/pkg/ax/contract"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/policy"
 )
 
 func TestAX_UserRunner_FunctionInheritanceAndStateIsolation(t *testing.T) {
@@ -27,6 +29,7 @@ func TestAX_UserRunner_FunctionInheritanceAndStateIsolation(t *testing.T) {
 		endfunc
 	`
 	libTree, _ := Parse([]byte(libScript), ParseSkipComments)
+	// FIX: Remove invalid type assertion. 'fac' is already the concrete type.
 	fac.root.AppendScript(libTree)
 
 	// Run a command in a config runner to set a variable.
@@ -106,7 +109,7 @@ func TestAX_UserRunner_IdentityAndTools(t *testing.T) {
 	userID := &mockID{did: "did:test:user123"}
 	userRT := &mockRuntime{id: userID}
 
-	// FIX: Use the factory to create the runner, which is the correct pattern.
+	// Use the factory to create the runner, which is the correct pattern.
 	fac, err := NewAXFactory(ctx, ax.RunnerOpts{}, userRT, userID)
 	if err != nil {
 		t.Fatalf("NewAXFactory() failed: %v", err)
@@ -118,7 +121,11 @@ func TestAX_UserRunner_IdentityAndTools(t *testing.T) {
 
 	// User runners have a deny-by-default policy, so we must allow the tool for the test.
 	interp, _ := AXInterpreter(userRunner)
-	interp.internal.ExecPolicy.Allow = append(interp.internal.ExecPolicy.Allow, "tool.host.whoami")
+	// FIX: Access the policy via the interpreter's parcel.
+	allowPolicy := policy.NewBuilder(policy.ContextUser).Allow("tool.host.whoami").Build()
+	interp.internal.SetParcel(interp.internal.GetParcel().Fork(func(m *contract.ParcelMut) {
+		m.Policy = allowPolicy
+	}))
 
 	toolImpl := ToolImplementation{
 		Spec: ToolSpec{Name: "whoami", Group: "host"},

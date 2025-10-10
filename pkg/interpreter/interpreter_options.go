@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 9
-// Purpose: Updates options to configure the RunnerParcel.
+// File version: 11
+// Purpose: Fixes compiler errors by aligning options with the corrected SharedCatalogs interface.
 // filename: pkg/interpreter/interpreter_options.go
-// nlines: 100
+// nlines: 112
 // risk_rating: MEDIUM
 
 package interpreter
@@ -10,6 +10,7 @@ package interpreter
 import (
 	"io"
 
+	"github.com/aprice2704/neuroscript/pkg/ax"
 	"github.com/aprice2704/neuroscript/pkg/ax/contract"
 	"github.com/aprice2704/neuroscript/pkg/capsule"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
@@ -21,9 +22,10 @@ type InterpreterOption func(*Interpreter)
 
 // WithoutStandardTools is an option that prevents the automatic registration
 // of the standard tool library. This is useful for creating a lightweight or
-// highly-sandboxed interpreter, especially for testing individual tools.
+// highly-sandboxed interpreter.
 func WithoutStandardTools() InterpreterOption {
 	return func(i *Interpreter) {
+		// This flag will be inspected by newSharedCatalogs during interpreter construction.
 		i.skipStdTools = true
 	}
 }
@@ -34,6 +36,25 @@ func WithoutStandardTools() InterpreterOption {
 func WithParcel(p contract.RunnerParcel) InterpreterOption {
 	return func(i *Interpreter) {
 		i.parcel = p
+	}
+}
+
+// WithSharedCatalogs sets the entire shared catalogs for the interpreter.
+func WithSharedCatalogs(sc contract.SharedCatalogs) InterpreterOption {
+	return func(i *Interpreter) {
+		i.catalogs = sc
+	}
+}
+
+func WithIdentity(id ax.ID) InterpreterOption {
+	return func(i *Interpreter) {
+		if i.parcel == nil {
+			i.parcel = contract.NewParcel(id, nil, nil, nil)
+		} else {
+			i.parcel = i.parcel.Fork(func(m *contract.ParcelMut) {
+				m.ID = id
+			})
+		}
 	}
 }
 
@@ -82,19 +103,21 @@ func WithStderr(w io.Writer) InterpreterOption {
 // WithGlobals sets the initial global variables on the parcel.
 func WithGlobals(globals map[string]interface{}) InterpreterOption {
 	return func(i *Interpreter) {
-		// This is a bit tricky now. We need to create a new parcel with these globals.
-		// For now, let's just log an error if the parcel is already set.
 		if i.parcel != nil && len(i.parcel.Globals()) > 0 {
 			if i.parcel.Logger() != nil {
 				i.parcel.Logger().Error("WithGlobals should be used before other options that create a parcel.")
 			}
 			return
 		}
+		var id ax.ID
 		var logger interfaces.Logger
+		var policy *interfaces.ExecPolicy
 		if i.parcel != nil {
+			id = i.parcel.Identity()
 			logger = i.parcel.Logger()
+			policy = i.parcel.Policy()
 		}
-		i.parcel = contract.NewParcel(nil, nil, logger, globals)
+		i.parcel = contract.NewParcel(id, policy, logger, globals)
 	}
 }
 
@@ -111,21 +134,13 @@ func WithExecPolicy(policy *interfaces.ExecPolicy) InterpreterOption {
 	}
 }
 
-// WithCapsuleRegistry creates an interpreter option that adds a custom
-// capsule registry to the interpreter's store for read-only access.
+// WithCapsuleRegistry adds a custom capsule registry to the interpreter's store.
 func WithCapsuleRegistry(registry *capsule.Registry) InterpreterOption {
 	return func(i *Interpreter) {
-		if i.capsuleStore != nil {
-			i.capsuleStore.Add(registry)
+		// This option must be called after the catalogs have been initialized.
+		if i.catalogs != nil && i.catalogs.Capsules() != nil {
+			i.catalogs.Capsules().Add(registry)
 		}
-	}
-}
-
-// WithCapsuleAdminRegistry provides a writable capsule registry to the interpreter.
-// This is for trusted, configuration contexts where scripts need to persist new capsules.
-func WithCapsuleAdminRegistry(registry *capsule.Registry) InterpreterOption {
-	return func(i *Interpreter) {
-		i.adminCapsuleRegistry = registry
 	}
 }
 

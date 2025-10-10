@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 4
-// Purpose: FIX: Accesses the internal interpreter to get the CapsuleStore, aligning with the facade pattern.
+// File version: 8
+// Purpose: FIX: Corrected the tools adapter struct name to axToolsAdapter and initialized it with the tool registry.
 // filename: pkg/api/ax_catalogs_impl.go
 // nlines: 42
 // risk_rating: LOW
@@ -35,11 +35,12 @@ func (s *sharedCatalogs) AgentModels() interfaces.AgentModelReader {
 }
 
 func (s *sharedCatalogs) Tools() ax.Tools {
-	return &axTools{itp: s.root}
+	// FIX: Use the correct struct name 'axToolsAdapter' and initialize it
+	// with the tool registry from the interpreter.
+	return &axToolsAdapter{tr: s.root.internal.ToolRegistry()}
 }
 
-func (s *sharedCatalogs) Capsules() *capsule.Registry {
-	// The root store has multiple layers; layer 0 is the base system registry.
-	// We use the newly added Registry() method to access it.
-	return s.root.internal.CapsuleStore().Registry(0)
+func (s *sharedCatalogs) Capsules() *capsule.Store {
+	// The interface requires the Store, not the Registry.
+	return s.root.internal.CapsuleStore()
 }
