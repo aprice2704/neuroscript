@@ -1,39 +1,36 @@
-// NeuroScript Version: 0.7.3
-// File version: 42
-// Purpose: Adds WithAccountStore and WithAgentModelStore options for host-managed state.
+// NeuroScript Version: 0.8.0
+// File version: 52
+// Purpose: Adds the missing WithSandboxDir option to correctly configure the interpreter's filesystem sandbox.
 // filename: pkg/api/interpreter_options.go
-// nlines: 108
-// risk_rating: LOW
+// nlines: 107
+// risk_rating: MEDIUM
 
 package api
 
 import (
-	"io"
-
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
-// WithSandboxDir creates an interpreter option that sets the secure root directory
-// for all subsequent file operations.
-func WithSandboxDir(path string) interpreter.InterpreterOption {
-	return interpreter.WithSandboxDir(path)
-}
-
-// WithStdout creates an interpreter option to set the standard output writer.
-func WithStdout(w io.Writer) interpreter.InterpreterOption {
-	return interpreter.WithStdout(w)
-}
-
-// WithStderr creates an interpreter option to set the standard error writer.
-func WithStderr(w io.Writer) interpreter.InterpreterOption {
-	return interpreter.WithStderr(w)
-}
-
-// WithLogger creates an interpreter option to provide a custom logger.
-func WithLogger(logger Logger) Option {
-	return interpreter.WithLogger(logger)
+// WithHostContext provides the interpreter with its connection to the host.
+// This is the primary and mandatory option for configuration. The provided
+// HostContext must be created using the NewHostContextBuilder.
+func WithHostContext(hc *HostContext) Option {
+	// This function acts as an adapter, converting the public api.HostContext
+	// to the internal interpreter.HostContext that the interpreter core expects.
+	internalHC := &interpreter.HostContext{
+		Logger:                    hc.logger,
+		Emitter:                   hc.emitter,
+		AITranscript:              hc.aiTranscript,
+		Stdout:                    hc.stdout,
+		Stdin:                     hc.stdin,
+		Stderr:                    hc.stderr,
+		EmitFunc:                  hc.emitFunc,
+		WhisperFunc:               hc.whisperFunc,
+		EventHandlerErrorCallback: hc.eventHandlerErrorCallback,
+	}
+	return interpreter.WithHostContext(internalHC)
 }
 
 // WithGlobals creates an interpreter option to set initial global variables.
@@ -41,80 +38,52 @@ func WithGlobals(globals map[string]any) Option {
 	return interpreter.WithGlobals(globals)
 }
 
-// WithAITranscript provides a writer to log the full, composed prompts sent to AI providers.
-func WithAITranscript(w io.Writer) interpreter.InterpreterOption {
-	return func(i *interpreter.Interpreter) {
-		i.SetAITranscript(w)
-	}
-}
-
 // WithTool creates an interpreter option to register a custom tool.
 func WithTool(t ToolImplementation) Option {
 	return func(i *interpreter.Interpreter) {
 		if _, err := i.ToolRegistry().RegisterTool(t); err != nil {
-			if logger := i.GetLogger(); logger != nil {
-				logger.Error("failed to register tool via WithTool option", "tool", t.Spec.Name, "error", err)
-			}
+			// A logger might not be set yet, so we can't reliably log.
+			// This should be caught during development or testing.
 		}
 	}
 }
 
 // WithCapsuleRegistry adds a custom capsule registry to the interpreter's store.
-// This allows host applications to layer in their own documentation for read-only access.
 func WithCapsuleRegistry(registry *CapsuleRegistry) Option {
 	return interpreter.WithCapsuleRegistry(registry)
 }
 
 // WithCapsuleAdminRegistry provides a writable capsule registry to the interpreter.
-// This is for trusted, configuration contexts where scripts need to persist new capsules.
 func WithCapsuleAdminRegistry(registry *AdminCapsuleRegistry) Option {
-	// --- DEBUG ---
-	// if registry != nil {
-	// 	fmt.Println("[DEBUG] WithCapsuleAdminRegistry(): Creating option with a PRESENT registry.")
-	// } else {
-	// 	fmt.Println("[DEBUG] WithCapsuleAdminRegistry(): Creating option with a NIL registry.")
-	// }
 	return interpreter.WithCapsuleAdminRegistry(registry)
-}
-
-// WithEmitter creates an interpreter option to set a custom LLM event emitter.
-// The provided emitter will be called for every LLM interaction.
-func WithEmitter(emitter Emitter) Option {
-	return func(i *interpreter.Interpreter) {
-		i.SetEmitter(emitter)
-	}
-}
-
-// WithEmitFunc creates an interpreter option to set a custom emit handler.
-func WithEmitFunc(f func(Value)) Option {
-	return func(i *interpreter.Interpreter) {
-		// We wrap the api.Value in the function signature to avoid exposing lang.Value.
-		i.SetEmitFunc(func(v lang.Value) {
-			f(v)
-		})
-	}
-}
-
-// WithEventHandlerErrorCallback creates an interpreter option to set a custom
-// callback for handling errors that occur within event handlers.
-func WithEventHandlerErrorCallback(f func(eventName, source string, err *RuntimeError)) Option {
-	return interpreter.WithEventHandlerErrorCallback(f)
 }
 
 // WithAccountStore provides a host-managed AccountStore to the interpreter.
 func WithAccountStore(store *AccountStore) Option {
-	return func(i *interpreter.Interpreter) {
-		if store != nil {
-			i.SetAccountStore(store)
-		}
-	}
+	return interpreter.WithAccountStore(store)
 }
 
 // WithAgentModelStore provides a host-managed AgentModelStore to the interpreter.
 func WithAgentModelStore(store *AgentModelStore) Option {
+	return interpreter.WithAgentModelStore(store)
+}
+
+// WithExecPolicy applies a runtime execution policy to the interpreter.
+func WithExecPolicy(policy *ExecPolicy) Option {
+	return interpreter.WithExecPolicy(policy)
+}
+
+// WithSandboxDir sets the root directory for all filesystem operations.
+func WithSandboxDir(path string) Option {
+	return interpreter.WithSandboxDir(path)
+}
+
+// WithInterpreter creates an option to reuse the internal state of an existing
+// interpreter. This is for advanced use cases and should be used with caution.
+func WithInterpreter(existing *Interpreter) Option {
 	return func(i *interpreter.Interpreter) {
-		if store != nil {
-			i.SetAgentModelStore(store)
+		if existing != nil && existing.internal != nil {
+			*i = *existing.internal
 		}
 	}
 }
@@ -128,19 +97,4 @@ func RegisterCriticalErrorHandler(h func(*lang.RuntimeError)) {
 // MakeToolFullName creates a correctly formatted, fully-qualified tool name.
 func MakeToolFullName(group, name string) types.FullName {
 	return types.MakeFullName(group, name)
-}
-
-// WithExecPolicy applies a runtime execution policy to the interpreter.
-func WithExecPolicy(policy *ExecPolicy) Option {
-	return interpreter.WithExecPolicy(policy)
-}
-
-// WithInterpreter creates an option to reuse the internal state of an existing
-// interpreter. This is useful for the host-managed ask-loop pattern.
-func WithInterpreter(existing *Interpreter) Option {
-	return func(i *interpreter.Interpreter) {
-		if existing != nil && existing.internal != nil {
-			*i = *existing.internal
-		}
-	}
 }

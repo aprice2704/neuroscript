@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.2
-// File version: 1
-// Purpose: Confirms that function definitions persist across multiple AppendScript calls.
+// NeuroScript Version: 0.8.0
+// File version: 2
+// Purpose: Updates the persistence test to use the new HostContextBuilder for configuration and the correct ExecuteCommands method.
 // filename: pkg/api/interpreter_persistence_test.go
-// nlines: 65
+// nlines: 67
 // risk_rating: LOW
 
 package api_test
@@ -12,9 +12,8 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/api"
-	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/parser"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
 func TestStatePersistence_AppendScriptAndExecute(t *testing.T) {
@@ -32,47 +31,46 @@ func TestStatePersistence_AppendScriptAndExecute(t *testing.T) {
 	`
 
 	// 2. Create a single, persistent interpreter instance.
-	interp := api.New()
 	var capturedEmit string
-	interp.SetEmitFunc(func(v api.Value) {
-		val, _ := v.(lang.Value)
-		capturedEmit = val.String()
-	})
+	hc, err := api.NewHostContextBuilder().
+		WithLogger(logging.NewNoOpLogger()).
+		WithStdout(nil).
+		WithStdin(nil).
+		WithStderr(nil).
+		WithEmitFunc(func(v api.Value) {
+			val, _ := v.(lang.Value)
+			capturedEmit = val.String()
+		}).
+		Build()
 
-	parserAPI := parser.NewParserAPI(nil)
+	if err != nil {
+		t.Fatalf("Failed to build host context: %v", err)
+	}
+	interp := api.New(api.WithHostContext(hc))
 
-	// 3. Phase 1: Append all scripts to build the state.
-	defsTree, pErr1 := parserAPI.Parse(defsScript)
-	if pErr1 != nil {
-		t.Fatalf("Failed to parse defs script: %v", pErr1)
+	// 3. Phase 1: Parse and append all scripts to build the state.
+	defsTree, err := api.Parse([]byte(defsScript), api.ParseSkipComments)
+	if err != nil {
+		t.Fatalf("Failed to parse defs script: %v", err)
 	}
-	defsProgram, _, bErr1 := parser.NewASTBuilder(nil).Build(defsTree)
-	if bErr1 != nil {
-		t.Fatalf("Failed to build defs AST: %v", bErr1)
-	}
-
-	commandTree, pErr2 := parserAPI.Parse(commandScript)
-	if pErr2 != nil {
-		t.Fatalf("Failed to parse command script: %v", pErr2)
-	}
-	commandProgram, _, bErr2 := parser.NewASTBuilder(nil).Build(commandTree)
-	if bErr2 != nil {
-		t.Fatalf("Failed to build command AST: %v", bErr2)
+	commandTree, err := api.Parse([]byte(commandScript), api.ParseSkipComments)
+	if err != nil {
+		t.Fatalf("Failed to parse command script: %v", err)
 	}
 
-	if err := interp.AppendScript(&interfaces.Tree{Root: defsProgram}); err != nil {
+	if err := interp.AppendScript(defsTree); err != nil {
 		t.Fatalf("Failed to append defs script: %v", err)
 	}
-	if err := interp.AppendScript(&interfaces.Tree{Root: commandProgram}); err != nil {
+	if err := interp.AppendScript(commandTree); err != nil {
 		t.Fatalf("Failed to append command script: %v", err)
 	}
 
 	// 4. Phase 2: Execute the loaded command blocks.
-	_, err := interp.Execute()
+	_, err = interp.ExecuteCommands()
 	if err != nil {
 		// This is the critical check. If the function wasn't persisted,
 		// this will fail with a "procedure not found" error.
-		t.Fatalf("Execute failed with an unexpected error: %v", err)
+		t.Fatalf("ExecuteCommands failed with an unexpected error: %v", err)
 	}
 
 	// 5. Verify the function was called correctly.

@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.0
-// File version: 11
-// Purpose: Corrected the agent configuration to use native Go types and a valid JSON structure for the UserData prompt, aligning with V3 'ask' behavior.
+// NeuroScript Version: 0.8.0
+// File version: 12
+// Purpose: Corrects the test to provide a mandatory HostContext during interpreter creation, resolving a panic.
 // filename: pkg/api/provider_test.go
-// nlines: 86
+// nlines: 96
 // risk_rating: LOW
 
 package api_test
@@ -32,7 +32,14 @@ endfunc
 	configPolicy := &policy.ExecPolicy{
 		Context: policy.ContextConfig,
 	}
-	interp := api.New(interpreter.WithExecPolicy(configPolicy))
+
+	// FIX: A HostContext is now mandatory for creating an interpreter.
+	hc := newTestHostContext(nil)
+	interp := api.New(
+		api.WithHostContext(hc),
+		interpreter.WithExecPolicy(configPolicy),
+	)
+
 	interp.RegisterProvider(providerName, test.New())
 
 	// Register an AgentModel configured to use our test provider.

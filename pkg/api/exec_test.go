@@ -1,31 +1,43 @@
-// NeuroScript Version: 0.6.0
-// File version: 1
-// Purpose: Adds tests for nil safety and error propagation in execution entry points.
+// NeuroScript Version: 0.8.0
+// File version: 2
+// Purpose: Corrects tests to provide a mandatory HostContext during interpreter creation, resolving a panic.
 // filename: pkg/api/exec_test.go
-// nlines: 55
+// nlines: 65
 // risk_rating: MEDIUM
 
 package api_test
 
 import (
 	"context"
+	"io"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/api"
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
 // TestExecWithInterpreter_NilSafety directly tests Rule 9: Bail Out On Nil.
 // It ensures that passing a nil interpreter or a nil tree results in a
 // non-panicking, clean error.
 func TestExecWithInterpreter_NilSafety(t *testing.T) {
-	interp := api.New()
+	hc, err := api.NewHostContextBuilder().
+		WithLogger(logging.NewNoOpLogger()).
+		WithStdout(io.Discard).
+		WithStdin(os.Stdin).
+		WithStderr(io.Discard).
+		Build()
+	if err != nil {
+		t.Fatalf("Failed to build HostContext for test: %v", err)
+	}
+	interp := api.New(api.WithHostContext(hc))
 	tree := &api.Tree{Root: &ast.Program{}} // A valid, empty tree
 
 	// Test case 1: Nil interpreter
-	_, err := api.ExecWithInterpreter(context.Background(), nil, tree)
+	_, err = api.ExecWithInterpreter(context.Background(), nil, tree)
 	if err == nil {
 		t.Error("Expected an error when passing a nil interpreter, but got nil")
 	}
@@ -45,9 +57,18 @@ func TestExecWithInterpreter_InvalidRootNode(t *testing.T) {
 		interfaces.Node
 	}
 	tree := &api.Tree{Root: &NotAProgram{}}
-	interp := api.New()
+	hc, err := api.NewHostContextBuilder().
+		WithLogger(logging.NewNoOpLogger()).
+		WithStdout(io.Discard).
+		WithStdin(os.Stdin).
+		WithStderr(io.Discard).
+		Build()
+	if err != nil {
+		t.Fatalf("Failed to build HostContext for test: %v", err)
+	}
+	interp := api.New(api.WithHostContext(hc))
 
-	_, err := api.ExecWithInterpreter(context.Background(), interp, tree)
+	_, err = api.ExecWithInterpreter(context.Background(), interp, tree)
 	if err == nil {
 		t.Fatal("Expected an error for an invalid root node type, but got nil")
 	}

@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.0
-// File version: 25
-// Purpose: Corrected account registration tests to use the snake_case 'api_key' field, aligning with the new JSON standards.
+// NeuroScript Version: 0.8.0
+// File version: 28
+// Purpose: Adds the missing SetLevel method to the mockLogger to conform to the Logger interface.
 // filename: pkg/api/interpreter_test.go
-// nlines: 247
+// nlines: 237
 // risk_rating: LOW
 
 package api_test
@@ -10,6 +10,8 @@ package api_test
 import (
 	"bytes"
 	"context"
+	"io"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -17,6 +19,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/api"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
 // mockLogger is a simple thread-safe logger for testing.
@@ -30,18 +33,31 @@ func (m *mockLogger) Error(msg string, args ...any) {
 	defer m.mu.Unlock()
 	m.output.WriteString(msg)
 }
-func (m *mockLogger) Info(msg string, args ...any)  {}
-func (m *mockLogger) Debug(msg string, args ...any) {}
-func (m *mockLogger) Warn(msg string, args ...any)  {}
-func (m *mockLogger) Errorf(format string, args ...any) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.output.WriteString(format)
-}
+func (m *mockLogger) Info(msg string, args ...any)       {}
+func (m *mockLogger) Debug(msg string, args ...any)      {}
+func (m *mockLogger) Warn(msg string, args ...any)       {}
+func (m *mockLogger) Errorf(format string, args ...any)  { m.Error(format) }
 func (m *mockLogger) Debugf(format string, args ...any)  {}
 func (m *mockLogger) Infof(format string, args ...any)   {}
 func (m *mockLogger) Warnf(format string, args ...any)   {}
-func (m *mockLogger) SetLevel(level interfaces.LogLevel) {}
+func (m *mockLogger) SetLevel(level interfaces.LogLevel) {} // FIX: Added missing method.
+
+// newTestHostContext creates a minimal HostContext for testing.
+func newTestHostContext(logger api.Logger) *api.HostContext {
+	if logger == nil {
+		logger = logging.NewNoOpLogger()
+	}
+	hc, err := api.NewHostContextBuilder().
+		WithLogger(logger).
+		WithStdout(io.Discard).
+		WithStdin(os.Stdin).
+		WithStderr(io.Discard).
+		Build()
+	if err != nil {
+		panic("failed to build test host context: " + err.Error())
+	}
+	return hc
+}
 
 func TestInterpreter_RunNonExistentProcedure(t *testing.T) {
 	src := "func do_work() means\n  return\nendfunc"
@@ -50,7 +66,7 @@ func TestInterpreter_RunNonExistentProcedure(t *testing.T) {
 		t.Fatalf("Setup failed: api.Parse returned an error: %v", err)
 	}
 
-	interp := api.New()
+	interp := api.New(api.WithHostContext(newTestHostContext(nil)))
 	_, err = api.ExecWithInterpreter(context.Background(), interp, tree)
 	if err != nil {
 		t.Fatalf("Failed to load program: %v", err)
@@ -64,10 +80,20 @@ func TestInterpreter_RunNonExistentProcedure(t *testing.T) {
 
 func TestInterpreter_WithLogger(t *testing.T) {
 	logger := &mockLogger{}
+	hc, err := api.NewHostContextBuilder().
+		WithLogger(logger).
+		WithStdout(io.Discard).
+		WithStdin(os.Stdin).
+		WithStderr(io.Discard).
+		Build()
+	if err != nil {
+		t.Fatalf("Failed to build host context: %v", err)
+	}
+
 	invalidTool := api.ToolImplementation{
 		Spec: api.ToolSpec{Name: ".."},
 	}
-	_ = api.New(api.WithLogger(logger), api.WithTool(invalidTool))
+	_ = api.New(api.WithHostContext(hc), api.WithTool(invalidTool))
 
 	logger.mu.Lock()
 	defer logger.mu.Unlock()
@@ -80,15 +106,24 @@ func TestInterpreter_WithLogger(t *testing.T) {
 
 func TestInterpreter_HasEmitFunc(t *testing.T) {
 	t.Run("without emit func", func(t *testing.T) {
-		interp := api.New()
+		interp := api.New(api.WithHostContext(newTestHostContext(nil)))
 		if interp.HasEmitFunc() {
 			t.Error("Expected HasEmitFunc to be false, but it was true")
 		}
 	})
 
 	t.Run("with emit func", func(t *testing.T) {
-		interp := api.New()
-		interp.SetEmitFunc(func(v api.Value) {})
+		hc, err := api.NewHostContextBuilder().
+			WithLogger(logging.NewNoOpLogger()).
+			WithStdout(io.Discard).
+			WithStdin(os.Stdin).
+			WithStderr(io.Discard).
+			WithEmitFunc(func(v api.Value) {}).
+			Build()
+		if err != nil {
+			t.Fatalf("Failed to build host context: %v", err)
+		}
+		interp := api.New(api.WithHostContext(hc))
 		if !interp.HasEmitFunc() {
 			t.Error("Expected HasEmitFunc to be true, but it was false")
 		}
@@ -107,7 +142,10 @@ endfunc
 	}
 
 	globals := map[string]any{"agent_id": "agent-007"}
-	interp := api.New(api.WithGlobals(globals))
+	interp := api.New(
+		api.WithHostContext(newTestHostContext(nil)),
+		api.WithGlobals(globals),
+	)
 
 	if _, err := api.ExecWithInterpreter(context.Background(), interp, tree); err != nil {
 		t.Fatalf("api.ExecWithInterpreter failed: %v", err)
@@ -145,13 +183,13 @@ endfunc
 	requiredGrants := []api.Capability{
 		api.NewWithVerbs("account", []string{api.VerbAdmin, api.VerbRead}, []string{"*"}),
 	}
+	// Note: NewConfigInterpreter implicitly creates a HostContext.
 	interp := api.NewConfigInterpreter(allowedTools, requiredGrants)
 
 	if _, err := api.ExecWithInterpreter(context.Background(), interp, tree); err != nil {
 		t.Fatalf("ExecWithInterpreter failed: %v", err)
 	}
 
-	// The tool requires a valid config map, including kind, provider, and api_key.
 	accountConfig := map[string]any{
 		"kind":     "llm",
 		"provider": "test-provider",
@@ -202,7 +240,6 @@ endfunc
 		t.Fatalf("Exec on interp2 failed: %v", err)
 	}
 
-	// Provide a valid config map to the tool.
 	accountConfig := map[string]any{
 		"kind":     "llm",
 		"provider": "test-provider",

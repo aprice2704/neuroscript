@@ -1,7 +1,9 @@
-// filename: pkg/parser/ast_builder_main.go
 // NeuroScript Version: 0.6.0
-// File version: 114
-// Purpose: Implemented the user-specified simple, token-based comment association algorithm and removed the obsolete setBlankLinesOnNode function.
+// File version: 115
+// Purpose: Implemented the user-specified simple, token-based comment association algorithm and removed the obsolete setBlankLinesOnNode function. Added an event handler callback.
+// filename: pkg/parser/ast_builder_main.go
+// nlines: 95
+// risk_rating: MEDIUM
 
 package parser
 
@@ -21,6 +23,7 @@ type ASTBuilder struct {
 	logger                       interfaces.Logger
 	debugAST                     bool
 	postListenerCreationTestHook func(*neuroScriptListenerImpl)
+	eventHandlerCallback         func(decl *ast.OnEventDecl)
 }
 
 func NewASTBuilder(l interfaces.Logger) *ASTBuilder {
@@ -52,6 +55,12 @@ func (b *ASTBuilder) BuildFromParseResult(tree antlr.Tree, ts antlr.TokenStream)
 		AttachCommentsSimple(prog, ts)
 	}
 
+	if b.eventHandlerCallback != nil {
+		for _, event := range prog.Events {
+			b.eventHandlerCallback(event)
+		}
+	}
+
 	if len(l.errors) > 0 {
 		uniq := map[string]bool{}
 		var msgs []string
@@ -69,6 +78,11 @@ func (b *ASTBuilder) BuildFromParseResult(tree antlr.Tree, ts antlr.TokenStream)
 		return nil, meta, fmt.Errorf("internal AST builder error: value stack not empty")
 	}
 	return prog, meta, nil
+}
+
+// SetEventHandlerCallback sets a callback to be invoked for each event handler declaration.
+func (b *ASTBuilder) SetEventHandlerCallback(cb func(decl *ast.OnEventDecl)) {
+	b.eventHandlerCallback = cb
 }
 
 /* ───────────────────────────── helper functions ─────────────────────────── */

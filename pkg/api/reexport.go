@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.3
-// File version: 43
-// Purpose: Re-exports the concrete store types and the Account struct for host-managed state.
+// NeuroScript Version: 0.8.0
+// File version: 44
+// Purpose: Re-exports the concrete store types and the Account struct for host-managed state. Removes the conflicting HostContext re-export.
 // filename: pkg/api/reexport.go
 // nlines: 105
 // risk_rating: LOW
@@ -81,7 +81,6 @@ type (
 		Notes   string
 		Reason  string
 	}
-	HostContext     = aeiou.HostContext
 	Decision        = aeiou.Decision
 	LoopController  = aeiou.LoopController
 	ReplayCache     = aeiou.ReplayCache

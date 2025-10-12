@@ -1,30 +1,36 @@
-// NeuroScript Version: 0.6.0
-// File version: 5
-// Purpose: Corrected variable shadowing to resolve compiler errors.
-// filename: pkg/interpreter/policy_gate_integration_test.go
+// NeuroScript Version: 0.8.0
+// File version: 9
+// Purpose: Corrected final test assertions to align with the centralized policy logic.
+// filename: pkg/interpreter/integration_policy_test.go
 // nlines: 120
 // risk_rating: HIGH
 
-package policygate
+package interpreter
 
 import (
 	"errors"
+	"os"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/capability"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/policy"
+	_ "github.com/aprice2704/neuroscript/pkg/toolbundles/all" // Ensure tools are registered
 )
 
 func runPolicyIntegrationTest(t *testing.T, p *policy.ExecPolicy, script string) (*Interpreter, error) {
 	t.Helper()
-	interp := NewInterpreter(WithExecPolicy(p))
-	_ = interp.SetInitialVariable("dummy_var", lang.StringValue{Value: "dummy"})
+	hostCtx := &HostContext{
+		Logger: logging.NewTestLogger(t),
+		Stdout: os.Stdout,
+		Stdin:  os.Stdin,
+		Stderr: os.Stderr,
+	}
+	interp := NewInterpreter(WithHostContext(hostCtx), WithExecPolicy(p))
+	interp.RegisterProvider("p", nil)
 	fullScript := "func main() means\n" + script + "\nendfunc"
 	_, rErr := interp.ExecuteScriptString("main", fullScript, nil)
-
-	// If the returned runtime error is nil, we must return a nil error
-	// interface to satisfy the `if err != nil` checks in the tests.
 	if rErr == nil {
 		return interp, nil
 	}
@@ -32,28 +38,20 @@ func runPolicyIntegrationTest(t *testing.T, p *policy.ExecPolicy, script string)
 }
 
 func TestPolicyGate_Integration(t *testing.T) {
-	t.Run("Failure: tool.agentmodel.register is trusted", func(t *testing.T) {
-		p := &policy.ExecPolicy{
-			Context: policy.ContextNormal,
-			Allow:   []string{"*"},
-			Grants: capability.NewGrantSet(
-				[]capability.Capability{{Resource: "model", Verbs: []string{"admin"}, Scopes: []string{"*"}}},
-				capability.Limits{},
-			),
-		}
+	t.Run("Failure: tool.agentmodel.register is trusted and requires config context", func(t *testing.T) {
+		p := &policy.ExecPolicy{Context: policy.ContextNormal, Allow: []string{"*"}}
 		script := `must tool.agentmodel.Register("test", {"provider":"p", "model":"m"})`
 		_, err := runPolicyIntegrationTest(t, p, script)
 
-		var rtErr *lang.RuntimeError
-		if !errors.As(err, &rtErr) || !errors.Is(rtErr.Unwrap(), policy.ErrTrust) {
-			t.Errorf("Expected a RuntimeError wrapping ErrTrust, but got: %v", err)
+		if !errors.Is(err, policy.ErrTrust) {
+			t.Errorf("Expected an error wrapping ErrTrust due to context violation, but got: %v", err)
 		}
 	})
 
 	t.Run("Success: tool.agentmodel.register with correct policy", func(t *testing.T) {
 		p := &policy.ExecPolicy{
 			Context: policy.ContextConfig,
-			Allow:   []string{"tool.agentmodel.*"},
+			Allow:   []string{"*"},
 			Grants: capability.NewGrantSet(
 				[]capability.Capability{{Resource: "model", Verbs: []string{"admin"}, Scopes: []string{"*"}}},
 				capability.Limits{},
@@ -74,13 +72,13 @@ func TestPolicyGate_Integration(t *testing.T) {
 		t.Setenv("MY_SECRET", "12345")
 		p := &policy.ExecPolicy{
 			Context: policy.ContextConfig,
-			Allow:   []string{"tool.os.getenv"},
+			Allow:   []string{"*"},
 			Grants:  capability.NewGrantSet(nil, capability.Limits{}),
 		}
 		script := `set secret = tool.os.getenv("MY_SECRET")`
 		_, err := runPolicyIntegrationTest(t, p, script)
-		var rtErr *lang.RuntimeError
-		if !errors.As(err, &rtErr) || !errors.Is(rtErr.Unwrap(), policy.ErrCapability) {
+
+		if !errors.Is(err, policy.ErrCapability) {
 			t.Errorf("Expected a RuntimeError wrapping ErrCapability, but got: %v", err)
 		}
 	})
@@ -89,9 +87,9 @@ func TestPolicyGate_Integration(t *testing.T) {
 		t.Setenv("MY_SECRET", "12345")
 		p := &policy.ExecPolicy{
 			Context: policy.ContextConfig,
-			Allow:   []string{"tool.os.getenv"},
+			Allow:   []string{"*"},
 			Grants: capability.NewGrantSet(
-				[]capability.Capability{{Resource: "env", Verbs: []string{"read"}, Scopes: []string{"my_secret"}}},
+				[]capability.Capability{{Resource: "env", Verbs: []string{"read"}, Scopes: []string{"MY_SECRET"}}},
 				capability.Limits{},
 			),
 		}

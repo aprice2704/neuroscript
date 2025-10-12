@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 12
-// Purpose: Added a method to create shared tool registry views for cloned interpreters.
+// File version: 13
+// Purpose: Centralized policy enforcement by calling tool.CanCall instead of performing ad-hoc checks.
 // filename: pkg/tool/tools_registry.go
-// nlines: 168
+// nlines: 182
 // risk_rating: HIGH
 
 package tool
@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/aprice2704/neuroscript/pkg/capability"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/types"
 	"github.com/aprice2704/neuroscript/pkg/utils"
@@ -113,16 +112,10 @@ func (r *ToolRegistryImpl) CallFromInterpreter(interp Runtime, fullname types.Fu
 		return nil, lang.NewRuntimeError(lang.ErrorCodeToolNotFound, fmt.Sprintf("tool '%s' not found", canonicalName), lang.ErrToolNotFound)
 	}
 
-	// --- NEW ENFORCEMENT LOGIC ---
-	if len(impl.RequiredCaps) > 0 {
-		grantSet := interp.GetGrantSet()
-		if grantSet == nil || !capability.CapsSatisfied(impl.RequiredCaps, grantSet.Grants) {
-			return nil, lang.NewRuntimeError(lang.ErrorCodePermissionDenied,
-				fmt.Sprintf("permission denied: tool '%s' requires capabilities that are not granted", impl.FullName),
-				lang.ErrPermissionDenied)
-		}
+	// Centralized policy enforcement. This correctly checks trust, then grants.
+	if err := CanCall(interp, impl); err != nil {
+		return nil, err
 	}
-	// --- END NEW LOGIC ---
 
 	rawArgs := make([]interface{}, len(args))
 	for i, arg := range args {

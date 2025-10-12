@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.6.0
-// File version: 7
-// Purpose: Corrected the failure test to check for ErrorCodePolicy, which is the correct code for a capability-based rejection.
+// NeuroScript Version: 0.8.0
+// File version: 10
+// Purpose: Corrects calls to newTestHostContext to pass the required logger argument.
 // filename: pkg/api/capability_e2e_test.go
-// nlines: 120
+// nlines: 115
 // risk_rating: HIGH
 
 package api_test
@@ -58,9 +58,13 @@ func TestE2E_CapabilityCheck_Success(t *testing.T) {
 	}
 	allowedTools := []string{"tool.test.writeFile"}
 
+	// FIX: Pass nil for the logger argument.
+	hc := newTestHostContext(nil)
+
 	interp := api.NewConfigInterpreter(
 		allowedTools,
 		requiredGrants,
+		api.WithHostContext(hc),
 		api.WithTool(secureFileWriteTool),
 		api.WithSandboxDir(tempDir),
 	)
@@ -94,9 +98,13 @@ func TestE2E_CapabilityCheck_Failure(t *testing.T) {
 	targetFile := filepath.Join(tempDir, "output.txt")
 	allowedTools := []string{"tool.test.writeFile"}
 
+	// FIX: Pass nil for the logger argument.
+	hc := newTestHostContext(nil)
+
 	interp := api.NewConfigInterpreter(
 		allowedTools,
 		[]api.Capability{}, // Empty grant set
+		api.WithHostContext(hc),
 		api.WithTool(secureFileWriteTool),
 		api.WithSandboxDir(tempDir),
 	)
@@ -111,7 +119,6 @@ func TestE2E_CapabilityCheck_Failure(t *testing.T) {
 
 	_, err = api.RunProcedure(context.Background(), interp, "main", targetFile, "should not write")
 
-	// FIX: The capability gate now correctly returns ErrorCodePolicy.
 	if err == nil {
 		t.Fatal("api.RunProcedure() succeeded but was expected to fail with a policy error.")
 	}

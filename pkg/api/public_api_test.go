@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.1
-// File version: 2
-// Purpose: Provides a smoke test to verify the public API contract and re-exports.
+// NeuroScript Version: 0.8.0
+// File version: 3
+// Purpose: Corrects the event handler callback test to use the new HostContextBuilder pattern.
 // filename: pkg/api/public_api_test.go
-// nlines: 48
+// nlines: 50
 // risk_rating: LOW
 
 package api_test
@@ -44,8 +44,8 @@ func TestPublicAPI_ReExportedTypes(t *testing.T) {
 }
 
 // TestPublicAPI_EventHandlerCallbackIsAccessible verifies that the event handler
-// error callback option can be created.
+// error callback can be set via the HostContextBuilder.
 func TestPublicAPI_EventHandlerCallbackIsAccessible(t *testing.T) {
-	// This test just needs to compile.
-	_ = api.WithEventHandlerErrorCallback(func(eventName, source string, err *api.RuntimeError) {})
+	// This test just needs to compile. It now uses the correct builder pattern.
+	_ = api.NewHostContextBuilder().WithEventHandlerErrorCallback(func(eventName, source string, err *api.RuntimeError) {})
 }

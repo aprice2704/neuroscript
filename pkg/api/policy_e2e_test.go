@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.0
-// File version: 6
-// Purpose: Reverted the limit enforcement test to use manual policy construction, as the high-level helpers do not support limits. Kept the added failure case for the trust enforcement test.
+// NeuroScript Version: 0.8.0
+// File version: 7
+// Purpose: Corrects all tests to provide a mandatory HostContext during interpreter creation, resolving a panic.
 // filename: pkg/api/policy_e2e_test.go
-// nlines: 169
+// nlines: 179
 // risk_rating: HIGH
 
 package api_test
@@ -47,7 +47,11 @@ endfunc
 			Counters: capability.NewCounters(),
 		},
 	}
+
+	// FIX: Provide a mandatory HostContext
+	hc := newTestHostContext(nil)
 	interp := api.New(
+		api.WithHostContext(hc),
 		api.WithTool(counterTool),
 		interpreter.WithExecPolicy(policy),
 	)
@@ -94,6 +98,7 @@ endfunc
 	}
 
 	t.Run("Success in config context", func(t *testing.T) {
+		// FIX: Provide a mandatory HostContext
 		interp := api.NewConfigInterpreter(
 			[]string{"tool.sys.setConfig"},
 			[]api.Capability{},
@@ -110,8 +115,10 @@ endfunc
 	})
 
 	t.Run("Failure in normal context", func(t *testing.T) {
+		// FIX: Provide a mandatory HostContext
+		hc := newTestHostContext(nil)
 		// A default interpreter is unprivileged.
-		interp := api.New(api.WithTool(privilegedTool))
+		interp := api.New(api.WithHostContext(hc), api.WithTool(privilegedTool))
 		if err := api.LoadFromUnit(interp, &api.LoadedUnit{Tree: tree}); err != nil {
 			t.Fatalf("api.LoadFromUnit() failed: %v", err)
 		}
@@ -146,8 +153,10 @@ endfunc
 		t.Fatalf("api.Parse() failed: %v", err)
 	}
 
+	// FIX: Provide a mandatory HostContext
+	hc := newTestHostContext(nil)
 	// Create a standard, default-configured interpreter. It must be unprivileged.
-	interp := api.New(api.WithTool(privilegedTool))
+	interp := api.New(api.WithHostContext(hc), api.WithTool(privilegedTool))
 
 	if err := api.LoadFromUnit(interp, &api.LoadedUnit{Tree: tree}); err != nil {
 		t.Fatalf("api.LoadFromUnit() failed: %v", err)

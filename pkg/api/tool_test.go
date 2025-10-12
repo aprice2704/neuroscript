@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.6.0
-// File version: 7
-// Purpose: Updated tests to create interpreters with explicit policies, allowing the necessary tools to run.
+// NeuroScript Version: 0.8.0
+// File version: 11
+// Purpose: Corrects tests to use the public NewPolicyBuilder, ensuring the execution policy is correctly constructed and applied.
 // filename: pkg/api/tool_test.go
 // nlines: 105
 // risk_rating: MEDIUM
@@ -13,8 +13,6 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/api"
-	"github.com/aprice2704/neuroscript/pkg/interpreter"
-	"github.com/aprice2704/neuroscript/pkg/policy"
 )
 
 // TestAPI_BuiltinToolExecution verifies that a standard, built-in tool can be
@@ -26,12 +24,16 @@ func do_math(returns number) means
     return tool.math.Add(10, 32)
 endfunc
 `
-	// 2. Create an interpreter with a policy that explicitly allows the 'Add' tool.
-	policy := &policy.ExecPolicy{
-		Context: policy.ContextNormal,
-		Allow:   []string{"tool.math.Add"},
-	}
-	interp := api.New(interpreter.WithExecPolicy(policy))
+	// 2. Create a policy using the official builder.
+	policy := api.NewPolicyBuilder(api.ContextNormal).
+		Allow("tool.math.Add").
+		Build()
+
+	hc := newTestHostContext(nil)
+	interp := api.New(
+		api.WithHostContext(hc),
+		api.WithExecPolicy(policy),
+	)
 
 	// 3. Parse and load the script.
 	tree, err := api.Parse([]byte(scriptContent), api.ParseSkipComments)
@@ -77,11 +79,16 @@ func TestAPI_CustomToolWithDottedGroup(t *testing.T) {
 	}
 
 	// 3. Create an interpreter with the custom tool and a policy to allow it.
-	policy := &policy.ExecPolicy{
-		Context: policy.ContextNormal,
-		Allow:   []string{"tool.xx.bleat"},
-	}
-	interp := api.New(api.WithTool(echoToolImpl), interpreter.WithExecPolicy(policy))
+	policy := api.NewPolicyBuilder(api.ContextNormal).
+		Allow("tool.xx.bleat").
+		Build()
+
+	hc := newTestHostContext(nil)
+	interp := api.New(
+		api.WithHostContext(hc),
+		api.WithTool(echoToolImpl),
+		api.WithExecPolicy(policy),
+	)
 
 	// 4. The script that calls the custom tool.
 	scriptContent := `

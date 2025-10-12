@@ -1,19 +1,22 @@
-// NeuroScript Version: 0.7.0
-// File version: 13
-// Purpose: Corrected the test to align with the V3 'ask' statement, which generates a JSON object in the USERDATA section, and updated agent registration to use native Go types. Made the result check less brittle.
+// NeuroScript Version: 0.8.0
+// File version: 15
+// Purpose: Removes the duplicate newTestHostContext helper function to resolve the redeclaration compile error.
 // filename: pkg/api/autoprovider_test.go
-// nlines: 100
+// nlines: 97
 // risk_rating: LOW
 
 package api_test
 
 import (
 	"context"
+	"io"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/api"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/provider/test"
 )
@@ -34,7 +37,25 @@ endfunc
 	configPolicy := &policy.ExecPolicy{
 		Context: policy.ContextConfig,
 	}
-	interp := api.New(interpreter.WithExecPolicy(configPolicy))
+
+	// Create a helper to provide a valid HostContext for the test.
+	newTestHostContext := func() *api.HostContext {
+		hc, err := api.NewHostContextBuilder().
+			WithLogger(logging.NewNoOpLogger()).
+			WithStdout(io.Discard).
+			WithStdin(os.Stdin).
+			WithStderr(io.Discard).
+			Build()
+		if err != nil {
+			t.Fatalf("failed to build test host context: %v", err)
+		}
+		return hc
+	}
+
+	interp := api.New(
+		api.WithHostContext(newTestHostContext()),
+		interpreter.WithExecPolicy(configPolicy),
+	)
 
 	// 3. Register the mock provider.
 	interp.RegisterProvider("mock", test.New())

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 40
-// Purpose: Refactored to use the HostContext for all callbacks and I/O functions.
+// File version: 41
+// Purpose: Added an exported RegisterEventHandler method for testing purposes.
 // filename: pkg/interpreter/events.go
-// nlines: 80
+// nlines: 95
 // risk_rating: HIGH
 
 package interpreter
@@ -12,8 +12,19 @@ import (
 	"math"
 
 	"github.com/aprice2704/neuroscript/pkg/api/shape"
+	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 )
+
+// RegisterEventHandler is an exported test helper that allows an external
+// caller (like a test harness) to register an event handler declaration.
+// This is necessary to wire up the AST builder's callback during testing.
+func (i *Interpreter) RegisterEventHandler(decl *ast.OnEventDecl) {
+	if err := i.eventManager.register(decl, i); err != nil {
+		// In a test context, panicking is acceptable if setup fails.
+		panic(fmt.Sprintf("test setup failed: could not register event handler: %v", err))
+	}
+}
 
 // unwrapForShapeValidation is a private helper from the original implementation.
 func unwrapForShapeValidation(v lang.Value) interface{} {

@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.2
-// File version: 14
-// Purpose: Corrected Load calls to wrap the *ast.Program in an *interfaces.Tree, conforming to the dependency-injected API.
+// NeuroScript Version: 0.8.0
+// File version: 16
+// Purpose: Adds debug output to trace the ExecPolicy within execution entry points.
 // filename: pkg/api/exec.go
-// nlines: 98
+// nlines: 120
 // risk_rating: HIGH
 
 package api
@@ -11,11 +11,13 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
 // ExecInNewInterpreter provides a stateless, one-shot execution.
@@ -43,19 +45,25 @@ func ExecWithInterpreter(ctx context.Context, interp *Interpreter, tree *Tree) (
 		return nil, fmt.Errorf("internal error: tree root is not a runnable *ast.Program, but %T", tree.Root)
 	}
 
+	// --- DEBUG ---
+	if interp.internal.ExecPolicy != nil {
+		fmt.Fprintf(os.Stderr, "[DEBUG] ExecWithInterpreter: BEFORE Load, ExecPolicy is PRESENT. Context: %v, Allow count: %d\n", interp.internal.ExecPolicy.Context, len(interp.internal.ExecPolicy.Allow))
+	} else {
+		fmt.Fprintf(os.Stderr, "[DEBUG] ExecWithInterpreter: BEFORE Load, ExecPolicy is NIL.\n")
+	}
+	// --- END DEBUG ---
+
 	// 1. Load the program by wrapping the ast.Program in an interfaces.Tree.
 	if err := interp.Load(&interfaces.Tree{Root: program}); err != nil {
 		return nil, fmt.Errorf("failed to load program into interpreter: %w", err)
 	}
 
 	// --- DEBUG ---
-	// This is the final check. Does the *internal* interpreter have the admin
-	// registry right before we tell it to execute the command?
-	// if interp.internal.CapsuleRegistryForAdmin() != nil {
-	// 	// fmt.Println("[DEBUG] ExecWithInterpreter: Admin registry is PRESENT on internal interpreter before ExecuteCommands.")
-	// } else {
-	// 	// fmt.Println("[DEBUG] ExecWithInterpreter: Admin registry is NIL on internal interpreter before ExecuteCommands.")
-	// }
+	if interp.internal.ExecPolicy != nil {
+		fmt.Fprintf(os.Stderr, "[DEBUG] ExecWithInterpreter: AFTER Load, ExecPolicy is PRESENT. Context: %v, Allow count: %d\n", interp.internal.ExecPolicy.Context, len(interp.internal.ExecPolicy.Allow))
+	} else {
+		fmt.Fprintf(os.Stderr, "[DEBUG] ExecWithInterpreter: AFTER Load, ExecPolicy is NIL.\n")
+	}
 	// --- END DEBUG ---
 
 	// 2. Execute top-level command blocks.
@@ -68,10 +76,25 @@ func ExecWithInterpreter(ctx context.Context, interp *Interpreter, tree *Tree) (
 }
 
 // ExecScript is a convenience helper that wraps ExecInNewInterpreter.
+// It builds a minimal HostContext to fulfill the API contract.
 func ExecScript(ctx context.Context, script string, stdout io.Writer) (Value, error) {
-	opts := []interpreter.InterpreterOption{}
-	if stdout != nil {
-		opts = append(opts, interpreter.WithStdout(stdout))
+	if stdout == nil {
+		stdout = io.Discard
+	}
+
+	hc, err := NewHostContextBuilder().
+		WithLogger(logging.NewNoOpLogger()).
+		WithStdout(stdout).
+		WithStdin(os.Stdin).
+		WithStderr(io.Discard).
+		Build()
+	if err != nil {
+		// This should not happen with the provided values, but check for safety.
+		return nil, fmt.Errorf("ExecScript failed to build minimal HostContext: %w", err)
+	}
+
+	opts := []interpreter.InterpreterOption{
+		WithHostContext(hc),
 	}
 	return ExecInNewInterpreter(ctx, script, opts...)
 }
@@ -96,6 +119,13 @@ func RunProcedure(ctx context.Context, interp *Interpreter, name string, args ..
 	if interp == nil {
 		return nil, fmt.Errorf("RunProcedure requires a non-nil interpreter")
 	}
+	// --- DEBUG ---
+	if interp.internal.ExecPolicy != nil {
+		fmt.Fprintf(os.Stderr, "[DEBUG] RunProcedure: BEFORE Run, ExecPolicy is PRESENT. Context: %v, Allow count: %d\n", interp.internal.ExecPolicy.Context, len(interp.internal.ExecPolicy.Allow))
+	} else {
+		fmt.Fprintf(os.Stderr, "[DEBUG] RunProcedure: BEFORE Run, ExecPolicy is NIL.\n")
+	}
+	// --- END DEBUG ---
 	wrappedArgs := make([]lang.Value, len(args))
 	for i, arg := range args {
 		var err error

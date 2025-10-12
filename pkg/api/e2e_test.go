@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.6.0
-// File version: 14
-// Purpose: Corrects the map literal syntax in the determinism test and updates Load calls to use the new LoaderConfig.
+// NeuroScript Version: 0.8.0
+// File version: 15
+// Purpose: Updates interpreter creation to use the new HostContextBuilder, resolving a compile error.
 // filename: pkg/api/e2e_test.go
-// nlines: 120+
+// nlines: 132
 // risk_rating: HIGH
 
 package api_test
@@ -12,10 +12,13 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
+	"io"
+	"os"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/api"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
 // TestCanonicalise_Determinism is a critical test to ensure that the byte output
@@ -145,7 +148,16 @@ endfunc
 
 	// 6. Execute using the stateful model.
 	var stdout bytes.Buffer
-	interp := api.New(api.WithStdout(&stdout))
+	hc, err := api.NewHostContextBuilder().
+		WithLogger(logging.NewNoOpLogger()).
+		WithStdout(&stdout).
+		WithStdin(os.Stdin).
+		WithStderr(io.Discard).
+		Build()
+	if err != nil {
+		t.Fatalf("Failed to build host context: %v", err)
+	}
+	interp := api.New(api.WithHostContext(hc))
 
 	// 7. Load the program by executing the loaded unit.
 	_, execErr := api.ExecWithInterpreter(context.Background(), interp, loadedUnit.Tree)

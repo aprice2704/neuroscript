@@ -1,14 +1,16 @@
-// NeuroScript Version: 0.7.3
-// File version: 43
-// Purpose: Ensures host-provided stores are correctly passed to the internal interpreter.
+// NeuroScript Version: 0.8.0
+// File version: 48
+// Purpose: Adds debug output to the New() function to trace the state of the ExecPolicy during interpreter creation.
 // filename: pkg/api/interpreter.go
-// nlines: 158
+// nlines: 121
 // risk_rating: HIGH
+
 package api
 
 import (
 	"errors"
-	"io"
+	"fmt"
+	"os"
 
 	"github.com/aprice2704/neuroscript/pkg/capsule"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
@@ -27,42 +29,40 @@ type Interpreter struct {
 }
 
 // New creates a new, persistent NeuroScript interpreter instance.
+// All host dependencies (I/O, logging, etc.) must be provided via Option funcs.
 func New(opts ...Option) *Interpreter {
+	// --- DEBUG ---
+	fmt.Fprintf(os.Stderr, "[DEBUG] api.New: Called with %d options.\n", len(opts))
+	// --- END DEBUG ---
+
 	i := interpreter.NewInterpreter(opts...)
+
+	// --- DEBUG ---
+	if i.ExecPolicy != nil {
+		fmt.Fprintf(os.Stderr, "[DEBUG] api.New: After NewInterpreter(), ExecPolicy is PRESENT. Context: %v, Allow count: %d\n", i.ExecPolicy.Context, len(i.ExecPolicy.Allow))
+		if len(i.ExecPolicy.Allow) > 0 {
+			fmt.Fprintf(os.Stderr, "[DEBUG] api.New: Allowed tools include: %v\n", i.ExecPolicy.Allow[0])
+		}
+	} else {
+		fmt.Fprintf(os.Stderr, "[DEBUG] api.New: After NewInterpreter(), ExecPolicy is NIL.\n")
+	}
+	// --- END DEBUG ---
+
 	if i.ExecPolicy == nil {
+		// --- DEBUG ---
+		fmt.Fprintf(os.Stderr, "[DEBUG] api.New: ExecPolicy was nil, creating a new default policy.\n")
+		// --- END DEBUG ---
 		i.ExecPolicy = &policy.ExecPolicy{
 			Context: policy.ContextNormal,
 			Allow:   []string{},
 		}
 	}
 
+	// TODO: Provider registration should likely be an Option as well.
 	googleProvider := google.New()
 	i.RegisterProvider("google", googleProvider)
 
 	return &Interpreter{internal: i}
-}
-
-// SetSandboxDir sets the secure root directory for all subsequent file operations
-// for this interpreter instance.
-func (i *Interpreter) SetSandboxDir(path string) {
-	i.internal.SetSandboxDir(path)
-}
-
-// SetStdout sets the standard output writer for the interpreter instance.
-func (i *Interpreter) SetStdout(w io.Writer) {
-	i.internal.SetStdout(w)
-}
-
-// SetStderr sets the standard error writer for the interpreter instance.
-func (i *Interpreter) SetStderr(w io.Writer) {
-	i.internal.SetStderr(w)
-}
-
-// SetEmitFunc sets a custom handler for the 'emit' statement.
-func (i *Interpreter) SetEmitFunc(f func(Value)) {
-	i.internal.SetEmitFunc(func(v lang.Value) {
-		f(v)
-	})
 }
 
 // HasEmitFunc returns true if a custom emit handler has been set on the interpreter.
@@ -76,7 +76,7 @@ func (i *Interpreter) RegisterProvider(name string, p AIProvider) {
 }
 
 // RegisterAgentModel allows the host application to register an AgentModel configuration.
-// It now correctly accepts a map of native Go types.
+// It accepts a map of native Go types.
 func (i *Interpreter) RegisterAgentModel(name string, config map[string]any) error {
 	return i.internal.AgentModelsAdmin().Register(types.AgentModelName(name), config)
 }
@@ -99,16 +99,8 @@ func (i *Interpreter) Load(tree *interfaces.Tree) error {
 
 // AppendScript merges procedures and event handlers from a new program AST
 // into the interpreter's existing state without clearing previous definitions.
-// It returns an error if a procedure being added already exists.
 func (i *Interpreter) AppendScript(tree *interfaces.Tree) error {
 	return i.internal.AppendScript(tree)
-}
-
-// Execute runs the top-level 'command' blocks that have been loaded into the
-// interpreter's state via Load() or AppendScript(). This is the correct method
-// for executing the entry point of a multi-file program.
-func (i *Interpreter) Execute() (Value, error) {
-	return i.internal.ExecuteCommands()
 }
 
 // ExecuteCommands runs any unnamed 'command' blocks found in the loaded program.
@@ -117,7 +109,6 @@ func (i *Interpreter) ExecuteCommands() (Value, error) {
 }
 
 // Run calls a specific, named procedure from the loaded program.
-// It now executes directly on the persistent interpreter instance to maintain state.
 func (i *Interpreter) Run(procName string, args ...lang.Value) (Value, error) {
 	result, err := i.internal.Run(procName, args...)
 	return result, err

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 10
-// Purpose: Added LLM() method to satisfy the tool.Runtime interface.
+// File version: 12
+// Purpose: Patched Run method to correctly call un-exported runProcedure.
 // filename: pkg/interpreter/api.go
-// nlines: 100
+// nlines: 120
 // risk_rating: MEDIUM
 
 package interpreter
@@ -15,10 +15,27 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/provider"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
+
+// Run is the public entrypoint for executing a named procedure.
+func (i *Interpreter) Run(procName string, args ...lang.Value) (lang.Value, error) {
+	// FIX: The internal method is 'runProcedure' and 'args' must be expanded.
+	return i.runProcedure(procName, args...)
+}
+
+// ExecuteCommands is the public entrypoint for executing all top-level command blocks.
+func (i *Interpreter) ExecuteCommands() (lang.Value, error) {
+	return i.executeCommands()
+}
+
+// HasEmitFunc returns true if a custom emit handler is configured in the HostContext.
+func (i *Interpreter) HasEmitFunc() bool {
+	return i.hostContext != nil && i.hostContext.EmitFunc != nil
+}
 
 // PromptUser satisfies the tool.Runtime interface for user interaction.
 func (i *Interpreter) PromptUser(prompt string) (string, error) {

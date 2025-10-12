@@ -1,13 +1,15 @@
 // NeuroScript Version: 0.8.0
-// File version: 9
-// Purpose: Replaces individual host-related options with a single WithHostContext option.
+// File version: 10
+// Purpose: Adds WithAccountStore and WithAgentModelStore to support the public API facade.
 // filename: pkg/interpreter/options.go
-// nlines: 65
+// nlines: 80
 // risk_rating: MEDIUM
 
 package interpreter
 
 import (
+	"github.com/aprice2704/neuroscript/pkg/account"
+	"github.com/aprice2704/neuroscript/pkg/agentmodel"
 	"github.com/aprice2704/neuroscript/pkg/capsule"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 )
@@ -24,8 +26,7 @@ func WithHostContext(hc *HostContext) InterpreterOption {
 }
 
 // WithoutStandardTools is an option that prevents the automatic registration
-// of the standard tool library. This is useful for creating a lightweight or
-// highly-sandboxed interpreter, especially for testing individual tools.
+// of the standard tool library.
 func WithoutStandardTools() InterpreterOption {
 	return func(i *Interpreter) {
 		i.skipStdTools = true
@@ -43,10 +44,8 @@ func WithGlobals(globals map[string]interface{}) InterpreterOption {
 	return func(i *Interpreter) {
 		for key, val := range globals {
 			if err := i.SetInitialVariable(key, val); err != nil {
-				// At this stage, the logger might not be configured,
-				// so a panic is not unreasonable if globals are malformed.
-				// However, to be safe, we'll just ignore for now.
-				// A proper logger should be available post-refactor.
+				// At this stage, the logger might not be configured, so a panic
+				// is not unreasonable if globals are malformed.
 			}
 		}
 	}
@@ -59,8 +58,7 @@ func WithExecPolicy(policy *policy.ExecPolicy) InterpreterOption {
 	}
 }
 
-// WithCapsuleRegistry creates an interpreter option that adds a custom
-// capsule registry to the interpreter's store for read-only access.
+// WithCapsuleRegistry adds a custom capsule registry for read-only access.
 func WithCapsuleRegistry(registry *capsule.Registry) InterpreterOption {
 	return func(i *Interpreter) {
 		if i.capsuleStore != nil {
@@ -69,10 +67,23 @@ func WithCapsuleRegistry(registry *capsule.Registry) InterpreterOption {
 	}
 }
 
-// WithCapsuleAdminRegistry provides a writable capsule registry to the interpreter.
-// This is for trusted, configuration contexts where scripts need to persist new capsules.
+// WithCapsuleAdminRegistry provides a writable capsule registry.
 func WithCapsuleAdminRegistry(registry *capsule.Registry) InterpreterOption {
 	return func(i *Interpreter) {
 		i.adminCapsuleRegistry = registry
+	}
+}
+
+// WithAccountStore provides a host-managed AccountStore to the interpreter.
+func WithAccountStore(store *account.Store) InterpreterOption {
+	return func(i *Interpreter) {
+		i.SetAccountStore(store)
+	}
+}
+
+// WithAgentModelStore provides a host-managed AgentModelStore to the interpreter.
+func WithAgentModelStore(store *agentmodel.AgentModelStore) InterpreterOption {
+	return func(i *Interpreter) {
+		i.SetAgentModelStore(store)
 	}
 }

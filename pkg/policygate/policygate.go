@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 2
-// Purpose: Centralizes all execution policy and capability checks.
+// File version: 4
+// Purpose: Corrected ruleMatches to properly handle a universal "*" wildcard.
 // filename: pkg/policygate/policygate.go
-// nlines: 70
+// nlines: 75
 // risk_rating: HIGH
 
 package policygate
@@ -25,44 +25,60 @@ type Runtime interface {
 func Check(rt Runtime, cap capability.Capability) error {
 	p := rt.GetExecPolicy()
 	if p == nil {
-		// No policy means default deny.
-		return lang.NewRuntimeError(lang.ErrorCodePolicy, "action denied: no execution policy is set", policy.ErrTrust)
+		return lang.NewRuntimeError(lang.ErrorCodePolicy, "action denied: no execution policy is set", policy.ErrPolicy)
 	}
 
-	// 1. Check if the entire context is trusted. If so, allow.
-	if p.Context == policy.ContextConfig {
-		return nil // Config context allows all actions.
-	}
-
-	// 2. Check Deny list - these are explicit hard-stops.
+	// Deny list is checked first and is an absolute override.
 	for _, denied := range p.Deny {
 		if ruleMatches(denied, cap) {
-			return lang.NewRuntimeError(lang.ErrorCodePolicy, fmt.Sprintf("action denied by policy: %s %s::%s", cap.Verb, cap.Resource, cap.Scope), policy.ErrTrust)
+			return lang.NewRuntimeError(lang.ErrorCodePolicy, fmt.Sprintf("action denied by policy rule: %s", denied), policy.ErrPolicy)
 		}
 	}
 
-	// 3. Check Allow list - if anything matches here, it's an immediate pass.
+	// If context is not privileged, check for trust requirements.
+	if p.Context != policy.ContextConfig {
+		// This is a placeholder for a more robust trust check. For now, we assume
+		// the tool metadata would be passed in. This check is handled in the interpreter for now.
+	}
+
+	// Check against the allow list.
+	allowedByName := false
 	for _, allowed := range p.Allow {
 		if ruleMatches(allowed, cap) {
-			return nil
+			allowedByName = true
+			break
 		}
 	}
 
-	// 4. Check specific grants.
+	if !allowedByName {
+		return lang.NewRuntimeError(lang.ErrorCodePolicy, "action not on allow list", policy.ErrPolicy)
+	}
+
+	// Finally, check if the grants satisfy the capability.
 	if p.Grants.Check(cap) {
 		return nil
 	}
 
-	// 5. If we fall through, the default is to deny.
-	return lang.NewRuntimeError(lang.ErrorCodePolicy, fmt.Sprintf("action denied by policy: %s %s::%s", cap.Verb, cap.Resource, cap.Scope), policy.ErrTrust)
+	return lang.NewRuntimeError(lang.ErrorCodePolicy, "action denied: missing required grants", policy.ErrCapability)
 }
 
-// ruleMatches checks if a policy rule (e.g., "tool.fs.*" or "model.admin") matches a capability.
+// ruleMatches checks if a policy rule (e.g., "tool.fs.*" or "*") matches a capability.
 func ruleMatches(rule string, cap capability.Capability) bool {
-	capString := fmt.Sprintf("%s.%s", cap.Resource, cap.Verb)
-	if strings.HasSuffix(rule, ".*") {
-		prefix := strings.TrimSuffix(rule, ".*")
-		return strings.HasPrefix(capString, prefix)
+	if rule == "*" {
+		return true
 	}
-	return rule == capString
+	// A rule can match against any verb in the capability.
+	for _, verb := range cap.Verbs {
+		capString := fmt.Sprintf("%s.%s", cap.Resource, verb)
+		if strings.HasSuffix(rule, ".*") {
+			prefix := strings.TrimSuffix(rule, ".*")
+			if strings.HasPrefix(capString, prefix) {
+				return true
+			}
+		}
+		if rule == capString {
+			return true
+		}
+	}
+	return false
 }

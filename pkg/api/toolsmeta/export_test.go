@@ -1,14 +1,15 @@
-// NeuroScript Version: 0.6.0
-// File version: 5
-// Purpose: Made the tool verification more robust by using a case-insensitive comparison.
+// NeuroScript Version: 0.8.0
+// File version: 6
+// Purpose: Corrects the test to provide a mandatory HostContext during interpreter creation, resolving a panic.
 // filename: pkg/api/toolsmeta/export_test.go
-// nlines: 61
+// nlines: 71
 // risk_rating: LOW
 
 package toolsmeta_test
 
 import (
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/api"
 	"github.com/aprice2704/neuroscript/pkg/api/toolsmeta"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
@@ -24,13 +26,21 @@ func TestExportTools(t *testing.T) {
 	tempDir := t.TempDir()
 	outputFile := filepath.Join(tempDir, "test-tools.json")
 
-	// Create a full interpreter to get a populated tool registry.
-	// api.New() automatically registers all standard toolsets.
-	interp := api.New()
+	// Create a minimal HostContext, which is now mandatory.
+	hc, err := api.NewHostContextBuilder().
+		WithLogger(logging.NewNoOpLogger()).
+		WithStdout(io.Discard).
+		WithStdin(os.Stdin).
+		WithStderr(io.Discard).
+		Build()
+	if err != nil {
+		t.Fatalf("Failed to build HostContext for test: %v", err)
+	}
+	interp := api.New(api.WithHostContext(hc))
 	reg := interp.ToolRegistry()
 
 	// --- Execute ---
-	err := toolsmeta.ExportTools(reg, outputFile)
+	err = toolsmeta.ExportTools(reg, outputFile)
 	if err != nil {
 		t.Fatalf("ExportTools() returned an unexpected error: %v", err)
 	}

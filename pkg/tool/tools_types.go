@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 21
-// Purpose: Broke import cycle by removing ExecPolicy from Runtime and implementing policy.ToolSpecProvider.
+// File version: 22
+// Purpose: Added GetExecPolicy to the Runtime interface to satisfy the policygate.Runtime interface.
 // filename: pkg/tool/tool_types.go
-// nlines: 151
+// nlines: 152
 // risk_rating: HIGH
 
 package tool
@@ -11,6 +11,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/capability"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
@@ -32,6 +33,8 @@ type Runtime interface {
 	AgentModelsAdmin() interfaces.AgentModelAdmin
 	// GetGrantSet returns the currently active capability grant set for policy enforcement.
 	GetGrantSet() *capability.GrantSet
+	// GetExecPolicy returns the currently active execution policy.
+	GetExecPolicy() *policy.ExecPolicy
 }
 
 // ArgType defines the expected data type for a tool argument or return value.
