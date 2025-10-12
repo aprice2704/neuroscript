@@ -1,5 +1,5 @@
-// NeuroScript Version: 0.7.0
-// File version: 1
+// NeuroScript Version: 0.8.0
+// File version: 2
 // Purpose: Defines a general-purpose, thread-safe manager for named text buffers.
 // filename: pkg/interpreter/buffers.go
 // nlines: 60
@@ -26,7 +26,6 @@ func NewBufferManager() *BufferManager {
 }
 
 // Create registers a new buffer with the given handle.
-// It does nothing if a buffer with that handle already exists.
 func (m *BufferManager) Create(handle string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -37,7 +36,6 @@ func (m *BufferManager) Create(handle string) {
 }
 
 // Write appends data to the named buffer.
-// If the buffer does not exist, this operation is a no-op.
 func (m *BufferManager) Write(handle, data string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -48,7 +46,6 @@ func (m *BufferManager) Write(handle, data string) {
 }
 
 // GetAndClear retrieves all content from a buffer and then resets it.
-// It returns an empty string if the buffer does not exist.
 func (m *BufferManager) GetAndClear(handle string) string {
 	m.mu.Lock()
 	defer m.mu.Unlock()

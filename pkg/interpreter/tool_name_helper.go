@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.6.0
-// File version: 2.0.0
-// Purpose: Provides a centralized, exported helper function to resolve the canonical tool name for all lookups, ensuring case-insensitivity.
+// NeuroScript Version: 0.8.0
+// File version: 3.0.0
+// Purpose: Provides a centralized helper to resolve canonical tool names.
 // filename: pkg/interpreter/tool_name_helper.go
 // nlines: 35
 // risk_rating: LOW
@@ -23,22 +23,16 @@ func CanonicalToolName(name string) types.FullName {
 
 // resolveToolName constructs the canonical tool name for registry lookup
 // based on the contract with the AST builder.
+// NOTE: This is a candidate for moving to the 'eval' package.
 func resolveToolName(n *ast.CallableExprNode) (types.FullName, error) {
 	if !n.Target.IsTool {
-		// This should not be called for non-tool functions.
 		return "", fmt.Errorf("internal error: resolveToolName called on a non-tool expression")
 	}
-
-	// Per the contract, the AST provides the group-qualified name (e.g., "math.Add").
-	// The interpreter must prepend "tool." to create the canonical key used in the registry.
 	if n.Target.Name == "" {
 		return "", fmt.Errorf("internal error: tool call expression has an empty target name")
 	}
-
-	// Ensure we don't accidentally double-prefix if the parser's behavior changes.
 	if strings.HasPrefix(n.Target.Name, "tool.") {
 		return CanonicalToolName(n.Target.Name), nil
 	}
-
 	return CanonicalToolName("tool." + n.Target.Name), nil
 }

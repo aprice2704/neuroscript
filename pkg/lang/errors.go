@@ -120,8 +120,9 @@ const (
 	ErrorCodeControlFlow          ErrorCode = 39
 	ErrProviderNotFound           ErrorCode = 40
 
-	ErrorCodeInvalidValue ErrorCode = 41
-	ErrorCodeDuplicate    ErrorCode = 42
+	ErrorCodeInvalidValue   ErrorCode = 41
+	ErrorCodeDuplicate      ErrorCode = 42
+	ErrorCodeWriteViolation ErrorCode = 43 // Added for read-only global enforcement
 
 	// --- SECURITY codes (99 900-99 999).  Stable for signing / IR play-books. ----
 	SecurityBase ErrorCode = 99900
@@ -302,6 +303,7 @@ var (
 	ErrTypeAssertionFailed = errors.New("type assertion failed")
 	ErrNotImplemented      = errors.New("feature or tool not implemented")
 	ErrDuplicateKey        = errors.New("duplicate key")
+	ErrInvalidOperation    = errors.New("invalid operation")
 )
 
 // Add to the main ErrorCode const block

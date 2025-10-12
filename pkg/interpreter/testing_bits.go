@@ -1,13 +1,14 @@
-// NeuroScript Version: 0.7.1
-// File version: 8
-// Purpose: Added a type-preserving unwrap helper for shape validation in tests.
+// NeuroScript Version: 0.8.0
+// File version: 10
+// Purpose: Corrected call to the now un-exported getAllVariables method.
 // filename: pkg/interpreter/testing_bits.go
-// nlines: 120
+// nlines: 110
 // risk_rating: LOW
 package interpreter
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -19,12 +20,12 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/policy"
 )
 
-// Clone is an exported wrapper for the unexported clone method, allowing it to be called by external test packages.
+// Clone is an exported wrapper for the unexported fork method, for testing.
 func (i *Interpreter) Clone() *Interpreter {
-	return i.clone()
+	return i.fork()
 }
 
-// RunSteps is an exported wrapper for the unexported executeSteps method, allowing it to be called by external test packages.
+// RunSteps is an exported wrapper for the unexported executeSteps method, for testing.
 func (i *Interpreter) RunSteps(steps []ast.Step) (lang.Value, bool, bool, error) {
 	return i.executeSteps(steps, false, nil)
 }
@@ -34,13 +35,12 @@ func (i *Interpreter) GetLastResult() lang.Value {
 	return i.lastCallResult
 }
 
-// DebugDumpVariables is a testing helper to print the current state of variables
-// in an interpreter instance.
-func DebugDumpVariables(i *Interpreter, t *testing.T) {
+// DebugDumpVariables is a testing helper to print the current state of variables.
+func (i *Interpreter) DebugDumpVariables(t *testing.T) {
 	t.Helper()
 	var sb strings.Builder
 	sb.WriteString("\n--- Variable Dump ---\n")
-	vars, err := i.GetAllVariables()
+	vars, err := i.getAllVariables()
 	if err != nil {
 		sb.WriteString(fmt.Sprintf("Error getting variables: %v\n", err))
 		t.Log(sb.String())
@@ -58,21 +58,27 @@ func DebugDumpVariables(i *Interpreter, t *testing.T) {
 	t.Log(sb.String())
 }
 
-// NewTestInterpreter is an exported test helper for creating a pre-configured
-// interpreter instance, accessible from other packages.
+// NewTestInterpreter is an exported test helper for creating a pre-configured interpreter.
 func NewTestInterpreter(t *testing.T, initialVars map[string]lang.Value, lastResult lang.Value, privileged bool) (*Interpreter, error) {
 	t.Helper()
 	testLogger := logging.NewTestLogger(t)
 	testLogger.SetLevel(interfaces.LogLevelInfo)
 	sandboxDir := t.TempDir()
 
+	hostCtx := &HostContext{
+		Logger: testLogger,
+		Stdout: os.Stdout,
+		Stdin:  os.Stdin,
+		Stderr: os.Stderr,
+	}
+
 	opts := []InterpreterOption{
-		WithLogger(testLogger),
+		WithHostContext(hostCtx),
 		WithSandboxDir(sandboxDir),
 	}
 
 	if privileged {
-		policy := &policy.ExecPolicy{
+		execPolicy := &policy.ExecPolicy{
 			Context: policy.ContextConfig, // Allows trusted tools
 			Allow:   []string{"*"},
 			Grants: capability.NewGrantSet(
@@ -85,7 +91,7 @@ func NewTestInterpreter(t *testing.T, initialVars map[string]lang.Value, lastRes
 				capability.Limits{},
 			),
 		}
-		opts = append(opts, WithExecPolicy(policy))
+		opts = append(opts, WithExecPolicy(execPolicy))
 	}
 
 	interp := NewInterpreter(opts...)

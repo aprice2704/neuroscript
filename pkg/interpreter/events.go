@@ -1,0 +1,107 @@
+// NeuroScript Version: 0.8.0
+// File version: 40
+// Purpose: Refactored to use the HostContext for all callbacks and I/O functions.
+// filename: pkg/interpreter/events.go
+// nlines: 80
+// risk_rating: HIGH
+
+package interpreter
+
+import (
+	"fmt"
+	"math"
+
+	"github.com/aprice2704/neuroscript/pkg/api/shape"
+	"github.com/aprice2704/neuroscript/pkg/lang"
+)
+
+// unwrapForShapeValidation is a private helper from the original implementation.
+func unwrapForShapeValidation(v lang.Value) interface{} {
+	// ... (implementation remains the same)
+	if v == nil {
+		return nil
+	}
+	switch tv := v.(type) {
+	case lang.NumberValue:
+		if tv.Value == math.Trunc(tv.Value) {
+			return int64(tv.Value)
+		}
+		return tv.Value
+	case *lang.MapValue:
+		m := make(map[string]interface{}, len(tv.Value))
+		for k, val := range tv.Value {
+			m[k] = unwrapForShapeValidation(val)
+		}
+		return m
+	case lang.ListValue:
+		l := make([]interface{}, len(tv.Value))
+		for i, val := range tv.Value {
+			l[i] = unwrapForShapeValidation(val)
+		}
+		return l
+	default:
+		return lang.Unwrap(v)
+	}
+}
+
+func (i *Interpreter) EmitEvent(eventName string, source string, payload lang.Value) {
+	i.eventManager.eventHandlersMu.RLock()
+	handlers := i.eventManager.eventHandlers[eventName]
+	i.eventManager.eventHandlersMu.RUnlock()
+
+	if len(handlers) == 0 {
+		i.Logger().Warn("Event emitted but no handlers were registered for it", "event_name", eventName, "source", source)
+		return
+	}
+
+	// FAIL-FAST CONTRACT: The host MUST provide the I/O functions in the context.
+	if i.hostContext.EmitFunc == nil || i.hostContext.WhisperFunc == nil {
+		panic(fmt.Sprintf(
+			"FATAL: Interpreter (ID: %s) has event handlers for '%s' but is missing I/O functions in its HostContext. The host must configure them.",
+			i.id,
+			eventName,
+		))
+	}
+
+	eventObj, err := i.composeCanonicalEvent(eventName, source, payload)
+	if err != nil {
+		i.Logger().Error("Failed to prepare canonical event", "event", eventName, "error", err)
+		return
+	}
+
+	for _, handler := range handlers {
+		handlerInterpreter := i.fork() // Fork a clean interpreter for the handler
+
+		if handler.EventVarName != "" {
+			handlerInterpreter.SetVariable(handler.EventVarName, eventObj)
+		}
+
+		_, _, _, execErr := handlerInterpreter.executeSteps(handler.Body, true, nil)
+
+		if execErr != nil {
+			rtErr := ensureRuntimeError(execErr, handler.GetPos(), "ON_EVENT_HANDLER")
+			if i.hostContext.EventHandlerErrorCallback != nil {
+				i.hostContext.EventHandlerErrorCallback(eventName, source, rtErr)
+			}
+		}
+	}
+}
+
+// composeCanonicalEvent ensures the payload is wrapped in the standard event shape.
+func (i *Interpreter) composeCanonicalEvent(eventName, source string, payload lang.Value) (lang.Value, error) {
+	// ... (implementation remains the same)
+	unwrappedPayload := unwrapForShapeValidation(payload)
+	if payloadMap, ok := unwrappedPayload.(map[string]interface{}); ok {
+		if shape.ValidateNSEvent(payloadMap, nil) == nil {
+			return payload, nil
+		}
+	}
+
+	payloadToCompose, _ := unwrappedPayload.(map[string]interface{})
+	composed, err := shape.ComposeNSEvent(eventName, payloadToCompose, &shape.NSEventComposeOptions{AgentID: source})
+	if err != nil {
+		return nil, fmt.Errorf("failed to compose canonical event: %w", err)
+	}
+
+	return lang.Wrap(composed)
+}
