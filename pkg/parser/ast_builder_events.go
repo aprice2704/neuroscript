@@ -1,7 +1,10 @@
+// NeuroScript Version: 0.8.0
+// File version: 27
+// Purpose: Corrected a compile error by adding the required 'types.Kind' argument to the newNode call.
 // filename: pkg/parser/ast_builder_events.go
-// NeuroScript Version: 0.6.0
-// File version: 18
-// Purpose: Restored elided ExitEvent_handler function and correctly integrated metadata assignment.
+// nlines: 104
+// risk_rating: HIGH
+
 package parser
 
 import (
@@ -55,14 +58,14 @@ func (l *neuroScriptListenerImpl) ExitEvent_handler(c *gen.Event_handlerContext)
 		return
 	}
 	onEvent, ok := nodeVal.(*ast.OnEventDecl)
-	if !ok {
-		l.addError(c, "internal error in event_handler: stack node is not an *ast.OnEventDecl, but %T", nodeVal)
+	if !ok || onEvent == nil {
+		l.addError(c, "internal error in event_handler: stack node is not a valid *ast.OnEventDecl, but %T", nodeVal)
 		return
 	}
 
 	onEvent.EventNameExpr = eventName
 	onEvent.Body = body
-	SetEndPos(onEvent, c.KW_ENDON().GetSymbol())
+	SetEndPos(onEvent, c.GetStop())
 
 	if c.STRING_LIT() != nil {
 		onEvent.HandlerName, _ = unescapeString(c.STRING_LIT().GetText())
@@ -72,6 +75,11 @@ func (l *neuroScriptListenerImpl) ExitEvent_handler(c *gen.Event_handlerContext)
 	}
 
 	l.program.Events = append(l.program.Events, onEvent)
+
+	if l.eventHandlerCallback != nil {
+		l.eventHandlerCallback(onEvent)
+	}
+
 	l.currentEvent = nil
 }
 
@@ -93,12 +101,18 @@ func (l *neuroScriptListenerImpl) ExitError_handler(c *gen.Error_handlerContext)
 		return
 	}
 
-	pos := tokenToPosition(c.GetStart())
-	step := ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Type:     "on_error",
-		Body:     body,
+	// Create a Step that represents the handler block.
+	handlerStep := &ast.Step{
+		Type: "on_error_handler",
+		Body: body,
 	}
-	SetEndPos(&step, c.KW_ENDON().GetSymbol())
-	l.addStep(step)
+	newNode(handlerStep, c.GetStart(), types.KindStep)
+	SetEndPos(handlerStep, c.GetStop())
+
+	// Attach the handler to the current procedure's dedicated ErrorHandlers field.
+	if l.currentProc != nil {
+		l.currentProc.ErrorHandlers = append(l.currentProc.ErrorHandlers, handlerStep)
+	} else {
+		l.addError(c, "'on error' handler is only valid inside a func block")
+	}
 }

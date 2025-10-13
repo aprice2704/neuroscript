@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.8.0
 // File version: 1
 // Purpose: Contains helper methods for the evaluator.
-// filename: pkg/eval/helpers.go
+// filename: pkg/eval/helpers_eval.go
 // nlines: 80
 // risk_rating: HIGH
 

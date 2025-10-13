@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.6.3
-// File version: 7
-// Purpose: Implements comprehensive encoders/decoders for Step and LValue AST nodes, now with whisper support.
+// NeuroScript Version: 0.7.2
+// File version: 8
+// Purpose: Enforces that ElseBody is initialized to a non-nil empty slice during decoding for consistency.
 // filename: pkg/canon/codec_step.go
 // nlines: 200+
 // risk_rating: HIGH
@@ -181,6 +181,7 @@ func decodeStep(r *canonReader) (ast.Node, error) {
 			if err != nil {
 				return nil, err
 			}
+			// FIX: Ensure ElseBody is a non-nil, empty slice if count is zero.
 			step.ElseBody = make([]ast.Step, elseCount)
 			for i := 0; i < int(elseCount); i++ {
 				node, err := r.visitor()

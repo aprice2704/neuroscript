@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.6.3
-// File version: 6
-// Purpose: Implements a comprehensive encoder/decoder for the ProcedureDecl AST node, fixing nil default param handling.
+// NeuroScript Version: 0.7.2
+// File version: 7
+// Purpose: Enforces that all decoded slices and maps are non-nil, empty collections to ensure consistency with the AST builder.
 // filename: pkg/canon/codec_procedure.go
 // nlines: 120
 // risk_rating: HIGH
@@ -68,7 +68,13 @@ func encodeProcedure(v *canonVisitor, n ast.Node) error {
 }
 
 func decodeProcedure(r *canonReader) (ast.Node, error) {
-	proc := &ast.Procedure{BaseNode: ast.BaseNode{NodeKind: types.KindProcedureDecl}}
+	proc := &ast.Procedure{
+		BaseNode:       ast.BaseNode{NodeKind: types.KindProcedureDecl},
+		Metadata:       make(map[string]string),
+		RequiredParams: make([]string, 0),
+		OptionalParams: make([]*ast.ParamSpec, 0),
+		ErrorHandlers:  make([]*ast.Step, 0),
+	}
 	name, err := r.readString()
 	if err != nil {
 		return nil, err
@@ -100,40 +106,45 @@ func decodeProcedure(r *canonReader) (ast.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	proc.RequiredParams = make([]string, reqCount)
-	for i := 0; i < int(reqCount); i++ {
-		proc.RequiredParams[i], err = r.readString()
-		if err != nil {
-			return nil, err
+	if reqCount > 0 {
+		proc.RequiredParams = make([]string, reqCount)
+		for i := 0; i < int(reqCount); i++ {
+			proc.RequiredParams[i], err = r.readString()
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
+
 	optCount, err := r.readVarint()
 	if err != nil {
 		return nil, err
 	}
-	proc.OptionalParams = make([]*ast.ParamSpec, optCount)
-	for i := 0; i < int(optCount); i++ {
-		paramName, err := r.readString()
-		if err != nil {
-			return nil, err
-		}
-		defaultNode, err := r.visitor()
-		if err != nil {
-			return nil, err
-		}
+	if optCount > 0 {
+		proc.OptionalParams = make([]*ast.ParamSpec, optCount)
+		for i := 0; i < int(optCount); i++ {
+			paramName, err := r.readString()
+			if err != nil {
+				return nil, err
+			}
+			defaultNode, err := r.visitor()
+			if err != nil {
+				return nil, err
+			}
 
-		var defaultVal lang.Value
-		// FIX: If the decoded node is a NilLiteral, the default value should be nil.
-		if _, ok := defaultNode.(*ast.NilLiteralNode); !ok {
-			defaultVal, _ = nodeToValue(defaultNode)
-		}
+			var defaultVal lang.Value
+			if _, ok := defaultNode.(*ast.NilLiteralNode); !ok {
+				defaultVal, _ = nodeToValue(defaultNode)
+			}
 
-		proc.OptionalParams[i] = &ast.ParamSpec{
-			BaseNode: ast.BaseNode{NodeKind: types.KindVariable},
-			Name:     paramName,
-			Default:  defaultVal,
+			proc.OptionalParams[i] = &ast.ParamSpec{
+				BaseNode: ast.BaseNode{NodeKind: types.KindVariable},
+				Name:     paramName,
+				Default:  defaultVal,
+			}
 		}
 	}
+
 	retCount, err := r.readVarint()
 	if err != nil {
 		return nil, err
@@ -151,13 +162,15 @@ func decodeProcedure(r *canonReader) (ast.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	proc.ErrorHandlers = make([]*ast.Step, handlerCount)
-	for i := 0; i < int(handlerCount); i++ {
-		node, err := r.visitor()
-		if err != nil {
-			return nil, err
+	if handlerCount > 0 {
+		proc.ErrorHandlers = make([]*ast.Step, handlerCount)
+		for i := 0; i < int(handlerCount); i++ {
+			node, err := r.visitor()
+			if err != nil {
+				return nil, err
+			}
+			proc.ErrorHandlers[i] = node.(*ast.Step)
 		}
-		proc.ErrorHandlers[i] = node.(*ast.Step)
 	}
 
 	// Steps

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 26
-// Purpose: Corrected ExecPolicy assignment to align with the post-refactor API.
-// filename: pkg/interpreter/interpreter_ask_e2e_test.go
-// nlines: 284
+// File version: 27
+// Purpose: Removed the local ExecPolicy override to rely on the fully-privileged default from the TestHarness.
+// filename: pkg/interpreter/ask_e2e_test.go
+// nlines: 260
 // risk_rating: LOW
 
 package interpreter_test
@@ -14,11 +14,9 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
-	"github.com/aprice2704/neuroscript/pkg/capability"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/provider"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/tool/account"
@@ -144,21 +142,8 @@ func setupE2ETest(t *testing.T, mockAPIKey string) (*interpreter.Interpreter, *m
 	h := NewTestHarness(t)
 	interp := h.Interpreter
 
-	configPolicy := &policy.ExecPolicy{
-		Context: policy.ContextConfig,
-		Allow:   []string{"tool.agentmodel.*", "tool.account.*", "tool.os.Getenv", "tool.aeiou.*"},
-		Grants: capability.NewGrantSet(
-			[]capability.Capability{
-				{Resource: "model", Verbs: []string{"admin", "use", "read"}, Scopes: []string{"*"}},
-				{Resource: "account", Verbs: []string{"admin"}, Scopes: []string{"*"}},
-				{Resource: "env", Verbs: []string{"read"}, Scopes: []string{"*"}},
-				{Resource: "net", Verbs: []string{"read"}, Scopes: []string{"*"}},
-			},
-			capability.Limits{},
-		),
-	}
-	// This is a bit of a hack until we refactor the harness to allow policy injection
-	interp.ExecPolicy = configPolicy
+	// REMOVED: The local policy override has been removed.
+	// The test now correctly uses the fully privileged policy from the TestHarness.
 
 	mockProv := &mockE2EProvider{t: t, ExpectedAPIKey: mockAPIKey}
 

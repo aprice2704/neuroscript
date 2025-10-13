@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 5.0.0
-// Purpose: Creates a temporary HostContext to correctly capture emit/whisper outputs from an AEIOU turn.
+// File version: 6.0.0
+// Purpose: Refactored to use the interpreter's injected parser and AST builder, eliminating rogue instances.
 // filename: pkg/interpreter/steps_ask_aeiou.go
 // nlines: 60
 // risk_rating: HIGH
@@ -10,7 +10,6 @@ package interpreter
 import (
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/parser"
 )
 
 // executeAeiouTurn executes the 'ACTIONS' section of an AEIOU envelope.
@@ -40,13 +39,12 @@ func executeAeiouTurn(i *Interpreter, env *aeiou.Envelope, actionEmits *[]string
 	// Apply the temporary context to our forked interpreter.
 	execInterp.hostContext = &turnHostContext
 
-	parserAPI := parser.NewParserAPI(execInterp.Logger())
-	p, pErr := parserAPI.Parse(env.Actions)
+	p, pErr := i.parser.Parse(env.Actions)
 	if pErr != nil {
 		return lang.NewRuntimeError(lang.ErrorCodeSyntax, "failed to parse ACTIONS block from AI response", pErr)
 	}
 
-	program, _, bErr := parser.NewASTBuilder(execInterp.Logger()).Build(p)
+	program, _, bErr := i.astBuilder.Build(p)
 	if bErr != nil {
 		return lang.NewRuntimeError(lang.ErrorCodeSyntax, "failed to build AST for ACTIONS block", bErr)
 	}

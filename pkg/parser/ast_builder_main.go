@@ -1,9 +1,9 @@
-// NeuroScript Version: 0.6.0
-// File version: 115
-// Purpose: Implemented the user-specified simple, token-based comment association algorithm and removed the obsolete setBlankLinesOnNode function. Added an event handler callback.
+// NeuroScript Version: 0.8.0
+// File version: 119
+// Purpose: Removed temporary debug Fprintf statements after fixing the event handler panic.
 // filename: pkg/parser/ast_builder_main.go
 // nlines: 95
-// risk_rating: MEDIUM
+// risk_rating: LOW
 
 package parser
 
@@ -42,7 +42,7 @@ func (b *ASTBuilder) BuildFromParseResult(tree antlr.Tree, ts antlr.TokenStream)
 		return nil, nil, fmt.Errorf("cannot build AST from nil parse tree")
 	}
 
-	l := newNeuroScriptListener(b.logger, b.debugAST, ts)
+	l := newNeuroScriptListener(b.logger, b.debugAST, ts, b.eventHandlerCallback)
 	if b.postListenerCreationTestHook != nil {
 		b.postListenerCreationTestHook(l)
 	}
@@ -53,12 +53,6 @@ func (b *ASTBuilder) BuildFromParseResult(tree antlr.Tree, ts antlr.TokenStream)
 
 	if ts != nil && prog != nil {
 		AttachCommentsSimple(prog, ts)
-	}
-
-	if b.eventHandlerCallback != nil {
-		for _, event := range prog.Events {
-			b.eventHandlerCallback(event)
-		}
 	}
 
 	if len(l.errors) > 0 {

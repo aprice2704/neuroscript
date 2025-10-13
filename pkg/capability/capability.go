@@ -1,13 +1,15 @@
 // NeuroScript Version: 0.3.0
-// File version: 2
-// Purpose: Core capability, limits, counters, and grant set types used by the policy gate. Added TimeMaxSleepSeconds.
-// filename: pkg/policy/capability/capability.go
-// nlines: 68
-// risk_rating: MEDIUM
+// File version: 3
+// Purpose: Added a String() method to the Capability struct for human-readable output.
+// filename: pkg/capability/capability.go
+// nlines: 85
+// risk_rating: LOW
 
 // Package capability defines the minimal data structures for expressing
 // capabilities, limits and run-time counters, along with a GrantSet container.
 package capability
+
+import "strings"
 
 // Capability expresses a unit of authority.
 // Resource examples: "env","secrets","net","fs","model","sandbox","proc","clock","rand","budget".
@@ -17,6 +19,25 @@ type Capability struct {
 	Resource string
 	Verbs    []string
 	Scopes   []string
+}
+
+// String returns a human-readable representation of the capability,
+// following the 'resource:verb,verb:scope,scope' format.
+func (c Capability) String() string {
+	var sb strings.Builder
+	sb.WriteString(c.Resource)
+
+	if len(c.Verbs) > 0 {
+		sb.WriteString(":")
+		sb.WriteString(strings.Join(c.Verbs, ","))
+	}
+
+	if len(c.Scopes) > 0 {
+		sb.WriteString(":")
+		sb.WriteString(strings.Join(c.Scopes, ","))
+	}
+
+	return sb.String()
 }
 
 // Limits encode quantitative guardrails that apply over a run.

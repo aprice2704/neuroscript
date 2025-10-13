@@ -1,6 +1,7 @@
+// NeuroScript Version: 0.7.2
+// File version: 23.0.0
+// Purpose: Sets the end position on the LValueNode to ensure all nodes have valid positions.
 // filename: pkg/parser/ast_builder_main_exitlvalue.go
-// NeuroScript Version: 0.5.2
-// File version: 22.0.0
 //
 // Builds an *ast.LValueNode* when the parser exits an lvalue rule.
 // This version has all unrelated debug prints removed.
@@ -133,6 +134,8 @@ func (l *neuroScriptListenerImpl) ExitLvalue(ctx *gen.LvalueContext) {
 		}
 	}
 
+	// FIX: Set the StopPos for the entire LValue node.
+	SetEndPos(lValueNode, ctx.GetStop())
 	l.push(lValueNode)
 }
 

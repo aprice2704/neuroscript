@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.0
-// File version: 10
-// Purpose: Refactored to use the centralized TestHarness, ensuring proper initialization and alignment with the modern API.
-// filename: pkg/interpreter/interpreter_ask_permission_test.go
-// nlines: 125
+// NeuroScript Version: 0.8.0
+// File version: 11
+// Purpose: Rewrote test to correctly validate 'ask' result by checking emitted output instead of a leaked variable.
+// filename: pkg/interpreter/ask_permission_test.go
+// nlines: 129
 // risk_rating: LOW
 
 package interpreter_test
@@ -64,7 +64,16 @@ func TestAskLoopPermission(t *testing.T) {
 		h.Interpreter.RegisterProvider("mock_permission_provider", &mockPermissionProvider{shouldContinue: false, t: t})
 		_ = h.Interpreter.RegisterAgentModel("restricted_agent", restrictedAgentConfig)
 
-		script := `command ask "restricted_agent", "go" into result endcommand`
+		script := `command
+			ask "restricted_agent", "go" into result
+			emit result
+		endcommand`
+
+		var capturedEmits []string
+		h.HostContext.EmitFunc = func(v lang.Value) {
+			capturedEmits = append(capturedEmits, v.String())
+		}
+
 		tree, _ := h.Parser.Parse(script)
 		program, _, _ := h.ASTBuilder.Build(tree)
 		if err := h.Interpreter.Load(&interfaces.Tree{Root: program}); err != nil {
@@ -76,8 +85,10 @@ func TestAskLoopPermission(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Expected one-shot ask to succeed for restricted agent, but got error: %v", err)
 		}
-		result, _ := h.Interpreter.GetVariable("result")
-		if s, _ := lang.ToString(result); s != "one-shot success" {
+		if len(capturedEmits) != 1 {
+			t.Fatalf("Expected 1 emit, but got %d", len(capturedEmits))
+		}
+		if s := capturedEmits[0]; s != "one-shot success" {
 			t.Errorf("Expected result 'one-shot success', got '%s'", s)
 		}
 		t.Logf("[DEBUG] Turn 3: Test completed successfully.")

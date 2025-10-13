@@ -1,8 +1,7 @@
+// NeuroScript Version: 0.7.2
+// File version: 6
+// Purpose: Corrected constructor call for newNeuroScriptListener to include the new nil callback argument, fixing a compiler error.
 // filename: pkg/parser/ast_builder_lvalue_test.go
-// NeuroScript Version: 0.5.2
-// File version: 5
-// Purpose: Corrected constructor call for newNeuroScriptListener.
-
 package parser
 
 import (
@@ -218,7 +217,7 @@ func TestLValueParsing_Errors(t *testing.T) {
 
 func TestExitLvalue_ErrorScenarios(t *testing.T) {
 	t.Run("malformed lvalue with no identifier", func(t *testing.T) {
-		listener := newNeuroScriptListener(logging.NewNoOpLogger(), false, nil)
+		listener := newNeuroScriptListener(logging.NewNoOpLogger(), false, nil, nil)
 		ctx := &gen.LvalueContext{
 			BaseParserRuleContext: *antlr.NewBaseParserRuleContext(nil, -1),
 		}

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 4
-// Purpose: Refactored test to instantiate a new interpreter with the required options (ExecPolicy, CapsuleAdminRegistry) instead of using removed setter methods.
+// File version: 5
+// Purpose: Correctly constructs a privileged ExecPolicy using the builder to fix 'missing required grants' error.
 // filename: pkg/interpreter/clone_repro_internal_test.go
-// nlines: 100
+// nlines: 104
 // risk_rating: HIGH
 
 package interpreter_test
@@ -48,11 +48,19 @@ endfunc
 	liveAdminRegistry := capsule.NewRegistry()
 
 	h := NewTestHarness(t)
+
+	// For this specific test, we need a custom interpreter with a specific
+	// policy and registry. We use the builder to ensure the policy is valid.
+	privilegedPolicy := policy.NewBuilder(policy.ContextConfig).
+		Allow("*").
+		Grant("tool:exec:*"). // Grant permission to execute the probe tool.
+		Build()
+
 	// Create a new interpreter with the specific configuration needed for this test,
 	// reusing the HostContext from the harness.
 	interp := interpreter.NewInterpreter(
 		interpreter.WithHostContext(h.HostContext),
-		interpreter.WithExecPolicy(&policy.ExecPolicy{Context: policy.ContextConfig, Allow: []string{"*"}}),
+		interpreter.WithExecPolicy(privilegedPolicy),
 		interpreter.WithCapsuleAdminRegistry(liveAdminRegistry),
 	)
 

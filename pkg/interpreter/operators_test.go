@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 2.0.0
-// Purpose: Refactored to test operators via script execution, aligning with the post-refactor evaluation architecture.
-// filename: pkg/interpreter/interpreter_operators_test.go
-// nlines: 155
+// File version: 8.0.0
+// Purpose: Added test cases for the new string repetition (string * int) feature.
+// filename: pkg/interpreter/operators_test.go
+// nlines: 191
 // risk_rating: LOW
 
 package interpreter_test
@@ -10,6 +10,7 @@ package interpreter_test
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
@@ -20,11 +21,15 @@ import (
 func runOperatorTest(t *testing.T, scriptExpression string) (lang.Value, error) {
 	t.Helper()
 	h := NewTestHarness(t)
-	script := fmt.Sprintf(`func main() returns result means return %s endfunc`, scriptExpression)
+	script := fmt.Sprintf("func main(returns result) means\n\treturn %s\nendfunc", scriptExpression)
 	h.T.Logf("[DEBUG] Turn 1: Harness created for script: %s", script)
-	// Using ExecuteScriptString as it's a convenient wrapper for this kind of test.
 	result, runErr := h.Interpreter.ExecuteScriptString("main", script, nil)
 	h.T.Logf("[DEBUG] Turn 2: Run('main') completed. Result: %#v, Error: %v", result, runErr)
+
+	// FIX: Explicitly check for a nil concrete error and return a true nil interface.
+	if runErr == nil {
+		return result, nil
+	}
 	return result, runErr
 }
 
@@ -35,33 +40,45 @@ func TestPerformArithmetic(t *testing.T) {
 		want     lang.Value
 		wantErr  error
 	}{
+		// Standard Arithmetic
 		{"Subtract", "10 - 4", lang.NumberValue{Value: 6}, nil},
 		{"Multiply", "5 * 3", lang.NumberValue{Value: 15}, nil},
 		{"Divide", "20 / 4", lang.NumberValue{Value: 5}, nil},
 		{"Power", "2 ** 3", lang.NumberValue{Value: 8}, nil},
 		{"Modulo", "10 % 3", lang.NumberValue{Value: 1}, nil},
+
+		// String Repetition
+		{"String repetition", `"go" * 3`, lang.StringValue{Value: "gogogo"}, nil},
+		{"String repetition by one", `"a" * 1`, lang.StringValue{Value: "a"}, nil},
+		{"String repetition by zero", `"test" * 0`, lang.StringValue{Value: ""}, nil},
+
+		// Error Cases
 		{"Division by zero", "10 / 0", nil, lang.ErrDivisionByZero},
-		{"Invalid type", `"a" * 1`, nil, lang.ErrInvalidOperandType},
+		{"Invalid type", `"a" - 1`, nil, lang.ErrInvalidOperandType}, // Changed from '*' to '-' to keep test valid
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			got, err := runOperatorTest(t, tc.scriptOp)
-			if tc.wantErr != nil {
-				var rtErr *lang.RuntimeError
-				if errors.As(err, &rtErr) {
-					if !errors.Is(rtErr.Unwrap(), tc.wantErr) {
-						t.Fatalf("Expected error: %v, got: %v", tc.wantErr, rtErr.Unwrap())
-					}
-				} else {
-					t.Fatalf("Expected a runtime error, but got %T: %v", err, err)
-				}
-			} else if err != nil {
-				t.Fatalf("Unexpected error: %v", err)
-			}
 
-			if tc.wantErr == nil && got != tc.want {
-				t.Errorf("Expected result: %v, got: %v", tc.want, got)
+			if tc.wantErr != nil { // We expect an error.
+				if err == nil {
+					t.Fatalf("Expected an error of type %v, but got none.", tc.wantErr)
+				}
+				var rtErr *lang.RuntimeError
+				if !errors.As(err, &rtErr) {
+					t.Fatalf("Expected a RuntimeError, but got %T: %v", err, err)
+				}
+				if !errors.Is(rtErr.Unwrap(), tc.wantErr) {
+					t.Fatalf("Expected error type %v, but got %v", tc.wantErr, rtErr.Unwrap())
+				}
+			} else { // We expect success.
+				if err != nil {
+					t.Fatalf("Test expected success, but got an unexpected error: %v", err)
+				}
+				if !reflect.DeepEqual(got, tc.want) {
+					t.Errorf("Expected result: %#v, got: %#v", tc.want, got)
+				}
 			}
 		})
 	}
@@ -86,7 +103,7 @@ func TestPerformStringConcatOrNumericAdd(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}
-			if got.String() != tc.want.String() { // Use string comparison for simplicity with nil
+			if !reflect.DeepEqual(got, tc.want) {
 				t.Errorf("Expected result: %#v, got: %#v", tc.want, got)
 			}
 		})
@@ -94,14 +111,13 @@ func TestPerformStringConcatOrNumericAdd(t *testing.T) {
 }
 
 func TestPerformComparison(t *testing.T) {
-	// Timedate comparisons require setting variables, so we use a different test structure.
 	t.Run("Time comparison", func(t *testing.T) {
 		h := NewTestHarness(t)
 		t1 := time.Now()
 		t2 := t1.Add(time.Second)
 		h.Interpreter.SetVariable("t1", lang.TimedateValue{Value: t1})
 		h.Interpreter.SetVariable("t2", lang.TimedateValue{Value: t2})
-		script := `func main() means return t1 < t2, t2 > t1 endfunc`
+		script := "func main() means\n\treturn t1 < t2, t2 > t1\nendfunc"
 		result, err := h.Interpreter.ExecuteScriptString("main", script, nil)
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
@@ -137,8 +153,8 @@ func TestPerformComparison(t *testing.T) {
 			if (err != nil) != tc.wantErr {
 				t.Fatalf("Unexpected error state. Got err: %v, wantErr: %t", err, tc.wantErr)
 			}
-			if !tc.wantErr && got != tc.want {
-				t.Errorf("Expected result: %v, got: %v", tc.want, got)
+			if !tc.wantErr && !reflect.DeepEqual(got, tc.want) {
+				t.Errorf("Expected result: %#v, got: %#v", tc.want, got)
 			}
 		})
 	}
@@ -161,20 +177,25 @@ func TestPerformBitwise(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			got, err := runOperatorTest(t, tc.scriptOp)
-			if tc.wantErr != nil {
-				var rtErr *lang.RuntimeError
-				if errors.As(err, &rtErr) {
-					if !errors.Is(rtErr.Unwrap(), tc.wantErr) {
-						t.Fatalf("Expected error: %v, got: %v", tc.wantErr, rtErr.Unwrap())
-					}
-				} else {
-					t.Fatalf("Expected a runtime error, but got %T: %v", err, err)
+
+			if tc.wantErr != nil { // We expect an error.
+				if err == nil {
+					t.Fatalf("Expected an error of type %v, but got none.", tc.wantErr)
 				}
-			} else if err != nil {
-				t.Fatalf("Unexpected error: %v", err)
-			}
-			if tc.wantErr == nil && got != tc.want {
-				t.Errorf("Expected result: %v, got: %v", tc.want, got)
+				var rtErr *lang.RuntimeError
+				if !errors.As(err, &rtErr) {
+					t.Fatalf("Expected a RuntimeError, but got %T: %v", err, err)
+				}
+				if !errors.Is(rtErr.Unwrap(), tc.wantErr) {
+					t.Fatalf("Expected error type %v, but got %v", tc.wantErr, rtErr.Unwrap())
+				}
+			} else { // We expect success.
+				if err != nil {
+					t.Fatalf("Test expected success, but got an unexpected error: %v", err)
+				}
+				if !reflect.DeepEqual(got, tc.want) {
+					t.Errorf("Expected result: %#v, got: %#v", tc.want, got)
+				}
 			}
 		})
 	}

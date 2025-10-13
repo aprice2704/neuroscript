@@ -1,7 +1,7 @@
+// NeuroScript Version: 0.7.2
+// File version: 6
+// Purpose: Ensures ElseBody is initialized to a non-nil empty slice for consistency, preventing diffs in canonicalization.
 // filename: pkg/parser/ast_builder_if_else.go
-// NeuroScript Version: 0.6.0
-// File version: 5
-// Purpose: Removed obsolete blank line counting logic. Association is now handled by the LineInfo algorithm.
 
 package parser
 
@@ -24,6 +24,9 @@ func (l *neuroScriptListenerImpl) ExitIf_statement(c *gen.If_statementContext) {
 			l.addError(c, "internal error in if_statement: else body is not a []ast.Step, but %T", val)
 			return
 		}
+	} else {
+		// FIX: Explicitly create an empty slice for if-statements without an else block.
+		elseBody = make([]ast.Step, 0)
 	}
 
 	val, ok := l.pop()
@@ -55,7 +58,6 @@ func (l *neuroScriptListenerImpl) ExitIf_statement(c *gen.If_statementContext) {
 		Cond:     cond,
 		Body:     ifBody,
 		ElseBody: elseBody,
-		// BlankLinesBefore is now set by the LineInfo algorithm in the builder.
 	}
 	step.Comments = l.associateCommentsToNode(&step)
 	SetEndPos(&step, c.KW_ENDIF().GetSymbol())

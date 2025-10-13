@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 10
-// Purpose: Corrected the test to call the exported Clone() method instead of the un-exported clone().
+// File version: 11
+// Purpose: Corrected the test logic by moving the 'root' field from 'isolated' to 'shared', as it must be a shared reference.
 // filename: pkg/interpreter/interpreter_clone_internal_test.go
 
 package interpreter
@@ -79,7 +79,6 @@ func TestInterpreter_Clone_Integrity(t *testing.T) {
 		"state":           true,
 		"tools":           true,
 		"evaluate":        true,
-		"root":            true,
 		"cloneRegistry":   true,
 		"cloneRegistryMu": true,
 	}

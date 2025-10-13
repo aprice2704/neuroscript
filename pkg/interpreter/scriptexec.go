@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 3.0.0
-// Purpose: Aligns ExecuteScriptString with the HostContext model for dependency access.
+// File version: 4.0.0
+// Purpose: Refactored to use the interpreter's injected parser and AST builder instead of creating local instances.
 // filename: pkg/interpreter/scriptexec.go
 // nlines: 75
 // risk_rating: MEDIUM
@@ -11,7 +11,6 @@ import (
 	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/parser"
 )
 
 // ExecuteScriptString parses and executes a given string of NeuroScript code.
@@ -36,9 +35,7 @@ func (i *Interpreter) ExecuteScriptString(scriptName, scriptContent string, args
 		}
 	}()
 
-	parserAPI := parser.NewParserAPI(logger)
-
-	antlrTree, antlrParseErr := parserAPI.Parse(scriptContent)
+	antlrTree, antlrParseErr := i.parser.Parse(scriptContent)
 	if antlrParseErr != nil {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeSyntax, fmt.Sprintf("parsing script '%s' failed: %s", scriptName, antlrParseErr.Error()), antlrParseErr)
 	}
@@ -46,8 +43,7 @@ func (i *Interpreter) ExecuteScriptString(scriptName, scriptContent string, args
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("internal error: parser returned nil ANTLR tree for script '%s'", scriptName), nil)
 	}
 
-	astBuilder := parser.NewASTBuilder(logger)
-	programAST, _, buildErr := astBuilder.Build(antlrTree)
+	programAST, _, buildErr := i.astBuilder.Build(antlrTree)
 	if buildErr != nil {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeSyntax, fmt.Sprintf("building AST for script '%s' failed: %s", scriptName, buildErr.Error()), buildErr)
 	}

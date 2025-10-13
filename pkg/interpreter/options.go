@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 10
-// Purpose: Adds WithAccountStore and WithAgentModelStore to support the public API facade.
+// File version: 11
+// Purpose: Adds WithParser and WithASTBuilder to support dependency injection of the parsing components.
 // filename: pkg/interpreter/options.go
 // nlines: 80
 // risk_rating: MEDIUM
@@ -11,6 +11,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/account"
 	"github.com/aprice2704/neuroscript/pkg/agentmodel"
 	"github.com/aprice2704/neuroscript/pkg/capsule"
+	"github.com/aprice2704/neuroscript/pkg/parser"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 )
 
@@ -22,6 +23,20 @@ type InterpreterOption func(*Interpreter)
 func WithHostContext(hc *HostContext) InterpreterOption {
 	return func(i *Interpreter) {
 		i.hostContext = hc
+	}
+}
+
+// WithParser injects a pre-configured ParserAPI instance into the interpreter.
+func WithParser(p *parser.ParserAPI) InterpreterOption {
+	return func(i *Interpreter) {
+		i.parser = p
+	}
+}
+
+// WithASTBuilder injects a pre-configured ASTBuilder instance into the interpreter.
+func WithASTBuilder(b *parser.ASTBuilder) InterpreterOption {
+	return func(i *Interpreter) {
+		i.astBuilder = b
 	}
 }
 

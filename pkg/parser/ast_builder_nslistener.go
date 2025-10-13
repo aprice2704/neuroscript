@@ -1,9 +1,9 @@
+// NeuroScript Version: 0.8.0
+// File version: 25
+// Purpose: Removed temporary debug Fprintf statements after fixing the event handler panic.
 // filename: pkg/parser/ast_builder_nslistener.go
-// NeuroScript Version: 0.6.0
-// File version: 22
-// Purpose: Updated listener to track pending metadata token for precise, centralized blank-line association logic.
-// nlines: 160
-// risk_rating: MEDIUM
+// nlines: 165
+// risk_rating: LOW
 
 package parser
 
@@ -39,6 +39,7 @@ type neuroScriptListenerImpl struct {
 	allComments               []*ast.Comment
 	lastProcessedCommentIndex int
 	tokenStream               antlr.TokenStream
+	eventHandlerCallback      func(decl *ast.OnEventDecl)
 }
 
 // --- Standard Listener Implementation ---
@@ -50,7 +51,7 @@ func (l *neuroScriptListenerImpl) VisitTerminal(node antlr.TerminalNode)      {}
 
 var _ gen.NeuroScriptListener = (*neuroScriptListenerImpl)(nil)
 
-func newNeuroScriptListener(logger interfaces.Logger, debugAST bool, tokenStream antlr.TokenStream) *neuroScriptListenerImpl {
+func newNeuroScriptListener(logger interfaces.Logger, debugAST bool, tokenStream antlr.TokenStream, cb func(decl *ast.OnEventDecl)) *neuroScriptListenerImpl {
 	listener := &neuroScriptListenerImpl{
 		BaseNeuroScriptListener: &gen.BaseNeuroScriptListener{},
 		program:                 ast.NewProgram(),
@@ -63,6 +64,7 @@ func newNeuroScriptListener(logger interfaces.Logger, debugAST bool, tokenStream
 		logger:                  logger,
 		debugAST:                debugAST,
 		tokenStream:             tokenStream,
+		eventHandlerCallback:    cb,
 	}
 
 	listener.program.BaseNode.StartPos = &types.Position{Line: 1, Column: 1, File: "<source>"}
@@ -138,6 +140,8 @@ func (l *neuroScriptListenerImpl) ExitProgram(c *gen.ProgramContext) {
 	if len(l.pendingMetadata) > 0 {
 		l.assignPendingMetadata(nil, nil) // Pass nil to force assignment to file.
 	}
+
+	SetEndPos(l.program, c.GetStop())
 
 	if len(l.ValueStack) > 0 {
 		l.addErrorf(c.GetStart(), "internal AST builder error: value stack size is %d at end of program", len(l.ValueStack))

@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.1
-// File version: 4
-// Purpose: Added a Stdout writer to the HostContext to prevent panic during 'emit'.
+// NeuroScript Version: 0.8.0
+// File version: 5
+// Purpose: Refactored to use the parser and AST builder from the centralized TestHarness, eliminating rogue instances.
 // filename: pkg/interpreter/e2e_whisper_from_file_test.go
 // nlines: 90
 // risk_rating: LOW
@@ -18,7 +18,6 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
-	"github.com/aprice2704/neuroscript/pkg/parser"
 )
 
 func TestE2E_WhisperCommandFromFile(t *testing.T) {
@@ -30,14 +29,14 @@ func TestE2E_WhisperCommandFromFile(t *testing.T) {
 	}
 	script := string(scriptBytes)
 
-	parserAPI := parser.NewParserAPI(nil)
-	tree, err := parserAPI.Parse(script)
+	h := NewTestHarness(t) // Harness provides configured parser/builder
+
+	tree, err := h.Parser.Parse(script)
 	if err != nil {
-		t.Fatalf("ParserAPI.Parse() failed: %v", err)
+		t.Fatalf("Parser.Parse() failed: %v", err)
 	}
 
-	builder := parser.NewASTBuilder(nil)
-	program, _, err := builder.Build(tree)
+	program, _, err := h.ASTBuilder.Build(tree)
 	if err != nil {
 		t.Fatalf("ASTBuilder.Build() failed: %v", err)
 	}
@@ -70,6 +69,8 @@ func TestE2E_WhisperCommandFromFile(t *testing.T) {
 	i := interpreter.NewInterpreter(
 		interpreter.WithHostContext(hostCtx),
 		interpreter.WithGlobals(globals),
+		interpreter.WithParser(h.Parser),
+		interpreter.WithASTBuilder(h.ASTBuilder),
 	)
 
 	// 4. Load and execute the program using the post-refactor API.

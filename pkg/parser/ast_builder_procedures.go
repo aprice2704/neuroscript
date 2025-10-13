@@ -1,7 +1,7 @@
+// NeuroScript Version: 0.7.2
+// File version: 22
+// Purpose: Enforces that all slice/map fields on a Procedure are initialized to non-nil, empty collections for canonical consistency.
 // filename: pkg/parser/ast_builder_procedures.go
-// NeuroScript Version: 0.6.0
-// File version: 19
-// Purpose: Simplified to call the new centralized assignPendingMetadata helper.
 package parser
 
 import (
@@ -16,9 +16,13 @@ func (l *neuroScriptListenerImpl) EnterProcedure_definition(ctx *gen.Procedure_d
 	l.logDebugAST(">>> Enter Procedure_definition for %s", procName)
 
 	token := ctx.KW_FUNC().GetSymbol()
+	// FIX: Initialize all slice/map fields to be non-nil and empty.
 	proc := &ast.Procedure{
-		Metadata: make(map[string]string),
-		Comments: make([]*ast.Comment, 0),
+		Metadata:       make(map[string]string),
+		Comments:       make([]*ast.Comment, 0),
+		RequiredParams: make([]string, 0),
+		OptionalParams: make([]*ast.ParamSpec, 0),
+		ErrorHandlers:  make([]*ast.Step, 0),
 	}
 	l.assignPendingMetadata(token, proc.Metadata)
 

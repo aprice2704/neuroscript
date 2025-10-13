@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 1
-// Purpose: Centralizes logic for performing binary and unary operations on lang.Value types.
-// filename: pkg/lang/operators.go
-// nlines: 200
-// risk_rating: HIGH
+// File version: 3
+// Purpose: Corrected typeErrorForOp to wrap the correct sentinel error (ErrInvalidOperandType), fixing the final operator test failure.
+// filename: pkg/lang/operators_lang.go
+// nlines: 221
+// risk_rating: LOW
 
 package lang
 
@@ -16,7 +16,8 @@ import (
 
 // typeErrorForOp creates a standardized error for invalid operations.
 func typeErrorForOp(op string, left, right Value) error {
-	return fmt.Errorf("operator '%s' cannot be applied to types %s and %s: %w", op, TypeOf(left), TypeOf(right), ErrInvalidOperation)
+	// FIX: Wrap the more specific ErrInvalidOperandType sentinel error.
+	return fmt.Errorf("operator '%s' cannot be applied to types %s and %s: %w", op, TypeOf(left), TypeOf(right), ErrInvalidOperandType)
 }
 
 // PerformBinaryOperation performs infix binary operations.
@@ -101,6 +102,26 @@ func PerformUnaryOperation(op string, operand Value) (Value, error) {
 // --- Private Helpers ---
 
 func performArithmetic(left, right Value, op string) (Value, error) {
+	// GATE: First, check for special non-numeric cases like string repetition.
+	if op == "*" {
+		// Case 1: string * int
+		if s, ok := left.(StringValue); ok {
+			if n, ok := right.(NumberValue); ok {
+				if n.Value == math.Trunc(n.Value) && n.Value >= 0 {
+					return StringValue{Value: strings.Repeat(s.Value, int(n.Value))}, nil
+				}
+			}
+		}
+		// Case 2: int * string
+		if s, ok := right.(StringValue); ok {
+			if n, ok := left.(NumberValue); ok {
+				if n.Value == math.Trunc(n.Value) && n.Value >= 0 {
+					return StringValue{Value: strings.Repeat(s.Value, int(n.Value))}, nil
+				}
+			}
+		}
+	}
+
 	leftNum, leftOk := ToNumeric(left)
 	rightNum, rightOk := ToNumeric(right)
 
@@ -140,17 +161,20 @@ func performStringConcatOrNumericAdd(left, right Value) (Value, error) {
 	if isLeftNum && isRightNum {
 		return NumberValue{Value: leftNum.Value + rightNum.Value}, nil
 	}
-	var leftStr, rightStr string
-	if _, isNil := left.(*NilValue); isNil {
-		leftStr = ""
-	} else {
-		leftStr, _ = ToString(left)
+
+	stringify := func(v Value) string {
+		if v == nil {
+			return "nil"
+		}
+		if _, ok := v.(*NilValue); ok {
+			return "nil"
+		}
+		s, _ := ToString(v)
+		return s
 	}
-	if _, isNil := right.(*NilValue); isNil {
-		rightStr = ""
-	} else {
-		rightStr, _ = ToString(right)
-	}
+
+	leftStr := stringify(left)
+	rightStr := stringify(right)
 	return StringValue{Value: leftStr + rightStr}, nil
 }
 

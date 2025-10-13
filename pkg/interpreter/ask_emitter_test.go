@@ -1,7 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 10
-// Purpose: Corrected a syntax error in a defer statement and updated ExecPolicy assignment.
+// File version: 11
+// Purpose: Removed local ExecPolicy override to rely on the fully-privileged default from the TestHarness.
 // filename: pkg/interpreter/ask_emitter_test.go
+// nlines: 95
+// risk_rating: LOW
 
 package interpreter_test
 
@@ -9,10 +11,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/capability"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/provider/test"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
@@ -63,18 +63,10 @@ func TestInterpreter_Ask_EmitterIntegration(t *testing.T) {
 	provider := test.New()
 	providerName := "test-provider"
 
-	configPolicy := &policy.ExecPolicy{
-		Context: policy.ContextConfig,
-		Grants: capability.NewGrantSet(
-			[]capability.Capability{
-				{Resource: "model", Verbs: []string{"admin"}, Scopes: []string{"*"}},
-			},
-			capability.Limits{},
-		),
-	}
-	interp.ExecPolicy = configPolicy
+	// REMOVED: The local policy override has been removed.
+	// The test now correctly uses the fully privileged policy from the TestHarness.
 	interp.RegisterProvider(providerName, provider)
-	t.Logf("[DEBUG] Turn 2: Harness configured with emitter, policy, and provider.")
+	t.Logf("[DEBUG] Turn 2: Harness configured with emitter and provider.")
 
 	agentModelName := types.AgentModelName("test-agent")
 	modelConfig := map[string]lang.Value{
@@ -87,7 +79,9 @@ func TestInterpreter_Ask_EmitterIntegration(t *testing.T) {
 	}
 	t.Logf("[DEBUG] Turn 3: Agent model registered.")
 
-	script := `command ask "test-agent", "ping" endcommand`
+	script := `command
+	ask "test-agent", "ping" into reply
+	endcommand`
 	tree, pErr := h.Parser.Parse(script)
 	if pErr != nil {
 		t.Fatalf("Failed to parse test script: %v", pErr)

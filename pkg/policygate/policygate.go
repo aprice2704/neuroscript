@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 4
-// Purpose: Corrected ruleMatches to properly handle a universal "*" wildcard.
+// File version: 6
+// Purpose: Expanded the grant check error message to show both required and possessed capabilities for easier debugging.
 // filename: pkg/policygate/policygate.go
-// nlines: 75
+// nlines: 91
 // risk_rating: HIGH
 
 package policygate
@@ -59,7 +59,18 @@ func Check(rt Runtime, cap capability.Capability) error {
 		return nil
 	}
 
-	return lang.NewRuntimeError(lang.ErrorCodePolicy, "action denied: missing required grants", policy.ErrCapability)
+	// Create a detailed error message showing what was required vs. what was possessed.
+	var hadGrants []string
+	for _, grant := range p.Grants.Grants {
+		hadGrants = append(hadGrants, grant.String())
+	}
+	hadStr := strings.Join(hadGrants, ", ")
+	if hadStr == "" {
+		hadStr = "none"
+	}
+
+	errMsg := fmt.Sprintf("action denied: missing required grants. Required: [%s], Had: [%s]", cap.String(), hadStr)
+	return lang.NewRuntimeError(lang.ErrorCodePolicy, errMsg, policy.ErrCapability)
 }
 
 // ruleMatches checks if a policy rule (e.g., "tool.fs.*" or "*") matches a capability.

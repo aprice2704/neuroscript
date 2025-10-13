@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 85
-// Purpose: Corrected call to the now un-exported executeCommands method.
+// File version: 90
+// Purpose: Updated Execute to be fully sandboxed and return a numeric status code (0 for success) as per new design rules.
 // filename: pkg/interpreter/exec.go
-// nlines: 250
+// nlines: 268
 // risk_rating: HIGH
 
 package interpreter
@@ -17,13 +17,28 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
-// Execute runs the command blocks from a given AST program.
+// Execute runs the command blocks from a given AST program in a sandboxed environment.
+// It returns a NumberValue of 0 on success, or the error code on failure.
 func (i *Interpreter) Execute(program *ast.Program) (lang.Value, error) {
 	if program == nil {
-		return &lang.NilValue{}, nil
+		return lang.NumberValue{Value: 0}, nil
 	}
-	i.state.commands = program.Commands
-	return i.executeCommands()
+	// Fork the interpreter to create a sandboxed environment for command execution.
+	cmdInterpreter := i.fork()
+	cmdInterpreter.state.commands = program.Commands
+	_, err := cmdInterpreter.executeCommands()
+
+	if err != nil {
+		var rtErr *lang.RuntimeError
+		if errors.As(err, &rtErr) {
+			// Return the error code as the value, plus the error itself.
+			return lang.NumberValue{Value: float64(rtErr.Code)}, err
+		}
+		// Return a generic error code for non-runtime errors.
+		return lang.NumberValue{Value: 1}, err
+	}
+	// Per language design, success is signaled with a 0 return.
+	return lang.NumberValue{Value: 0}, nil
 }
 
 func (i *Interpreter) executeSteps(steps []ast.Step, isInHandler bool, activeError *lang.RuntimeError) (lang.Value, bool, bool, error) {

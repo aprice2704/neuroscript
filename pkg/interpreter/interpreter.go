@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 76
-// Purpose: Reinstated the aiWorker field to the struct to hold the root LLM client.
+// File version: 80
+// Purpose: Added debug logging to confirm the event handler callback is wired up during initialization.
 // filename: pkg/interpreter/interpreter.go
-// nlines: 200
-// risk_rating: HIGH
+// nlines: 216
+// risk_rating: LOW
 
 package interpreter
 
@@ -21,6 +21,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/capsule"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/parser"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/google/uuid"
@@ -54,9 +55,21 @@ type Interpreter struct {
 	accountStore         *account.Store
 	capsuleStore         *capsule.Store
 	adminCapsuleRegistry *capsule.Registry
+	parser               *parser.ParserAPI
+	astBuilder           *parser.ASTBuilder
 
 	cloneRegistry   []*Interpreter
 	cloneRegistryMu sync.Mutex
+}
+
+// Parser returns the interpreter's configured parser instance.
+func (i *Interpreter) Parser() *parser.ParserAPI {
+	return i.parser
+}
+
+// ASTBuilder returns the interpreter's configured AST builder instance.
+func (i *Interpreter) ASTBuilder() *parser.ASTBuilder {
+	return i.astBuilder
 }
 
 // SetAccountStore replaces the interpreter's default account store with a host-provided one.
@@ -96,6 +109,18 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	if i.hostContext.Logger == nil {
 		panic("FATAL: HostContext.Logger cannot be nil.")
 	}
+	if i.parser == nil {
+		i.parser = parser.NewParserAPI(i.hostContext.Logger)
+	}
+	if i.astBuilder == nil {
+		i.astBuilder = parser.NewASTBuilder(i.hostContext.Logger)
+	}
+
+	// The interpreter is responsible for wiring its AST builder to its event
+	// registration method. This direct call is checked at compile time.
+	i.astBuilder.SetEventHandlerCallback(i.RegisterEventHandler)
+	i.hostContext.Logger.Debug("[DEBUG] NewInterpreter: Event handler callback has been wired to ASTBuilder", "interpreter_id", i.id, "ast_builder_addr", fmt.Sprintf("%p", i.astBuilder))
+
 	if i.hostContext.WhisperFunc == nil {
 		i.hostContext.WhisperFunc = i.defaultWhisperFunc
 	}

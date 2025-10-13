@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 4
-// Purpose: Corrected ExecPolicy assignment to align with the post-refactor API.
-// filename: pkg/interpreter/interpreter_test_helpers.go
-// nlines: 40
+// File version: 5
+// Purpose: Removed the local ExecPolicy override to rely on the fully-privileged default from the TestHarness.
+// filename: pkg/interpreter/helpers_test.go
+// nlines: 32
 // risk_rating: LOW
 
 package interpreter_test
@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
-	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/provider"
 )
 
@@ -41,17 +40,14 @@ func (m *mockAskProviderV3) Chat(ctx context.Context, req provider.AIRequest) (*
 	return &provider.AIResponse{TextContent: respText}, nil
 }
 
-// setupAskTest configures a TestHarness with a permissive policy and a registered
-// mock provider and agent for use in 'ask' statement tests.
+// setupAskTest configures a TestHarness with a registered mock provider and
+// agent for use in 'ask' statement tests. It relies on the default privileged
+// policy from NewTestHarness.
 func setupAskTest(t *testing.T) (*TestHarness, *mockAskProviderV3) {
 	t.Helper()
 	h := NewTestHarness(t)
 
-	permissivePolicy := &policy.ExecPolicy{
-		Context: policy.ContextConfig,
-		Allow:   []string{"*"},
-	}
-	h.Interpreter.ExecPolicy = permissivePolicy
+	// The local policy override has been removed.
 
 	mockProv := &mockAskProviderV3{}
 	h.Interpreter.RegisterProvider("mock_ask_provider", mockProv)

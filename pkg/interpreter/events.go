@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 41
-// Purpose: Added an exported RegisterEventHandler method for testing purposes.
+// File version: 43
+// Purpose: Corrected the field name in the debug log from EventName to EventNameExpr.
 // filename: pkg/interpreter/events.go
-// nlines: 95
-// risk_rating: HIGH
+// nlines: 100
+// risk_rating: LOW
 
 package interpreter
 
@@ -20,6 +20,9 @@ import (
 // caller (like a test harness) to register an event handler declaration.
 // This is necessary to wire up the AST builder's callback during testing.
 func (i *Interpreter) RegisterEventHandler(decl *ast.OnEventDecl) {
+	// DEBUG: Confirm that this callback is being invoked by the parser/AST builder.
+	i.Logger().Debug("[DEBUG] RegisterEventHandler: Callback invoked by ASTBuilder", "event_name", decl.EventNameExpr.String())
+
 	if err := i.eventManager.register(decl, i); err != nil {
 		// In a test context, panicking is acceptable if setup fails.
 		panic(fmt.Sprintf("test setup failed: could not register event handler: %v", err))

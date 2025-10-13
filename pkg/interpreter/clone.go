@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 25
-// Purpose: Simplifies the clone method by removing the erroneous aiWorker assignment.
+// File version: 26
+// Purpose: Corrected the fork method to properly share all root-level resources by reference, fixing numerous test failures related to policy, state, and parser configuration.
 // filename: pkg/interpreter/clone.go
-// nlines: 50
+// nlines: 55
 // risk_rating: HIGH
 
 package interpreter
@@ -17,18 +17,28 @@ import (
 // It shares the immutable HostContext and a reference to the root interpreter.
 // It creates an isolated variable scope and a context-aware tool registry view.
 func (i *Interpreter) fork() *Interpreter {
+	root := i.rootInterpreter()
 	clone := &Interpreter{
 		// Assign a new unique ID to the clone
 		id: fmt.Sprintf("interp-%s", uuid.NewString()[:8]),
 
 		// Share immutable or root-managed state by reference
-		hostContext:         i.hostContext,
-		root:                i.rootInterpreter(),
-		eventManager:        i.eventManager,
-		bufferManager:       i.bufferManager,
-		objectCache:         i.objectCache,
-		transientPrivateKey: i.transientPrivateKey,
-		turnCtx:             i.turnCtx,
+		hostContext:          i.hostContext,
+		root:                 root,
+		eventManager:         i.eventManager,
+		bufferManager:        i.bufferManager,
+		objectCache:          i.objectCache,
+		transientPrivateKey:  i.transientPrivateKey,
+		turnCtx:              i.turnCtx,
+		maxLoopIterations:    i.maxLoopIterations,
+		modelStore:           i.modelStore,
+		ExecPolicy:           i.ExecPolicy,
+		accountStore:         i.accountStore,
+		capsuleStore:         i.capsuleStore,
+		adminCapsuleRegistry: i.adminCapsuleRegistry,
+		parser:               i.parser,
+		astBuilder:           i.astBuilder,
+		aiWorker:             i.aiWorker,
 	}
 
 	if i.tools != nil {
@@ -41,7 +51,6 @@ func (i *Interpreter) fork() *Interpreter {
 	clone.state.knownProcedures = i.state.knownProcedures
 
 	// Copy global variables from the root into the new clone's scope
-	root := clone.rootInterpreter()
 	root.state.variablesMu.RLock()
 	for name, value := range root.state.variables {
 		if _, isGlobal := root.state.globalVarNames[name]; isGlobal {

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 2
-// Purpose: Corrected MustParse helper to return the correct ast.Program type.
+// File version: 4
+// Purpose: Refactored MustParse helper to accept a TestHarness, ensuring it uses the harness's correctly configured ASTBuilder and eliminating a rogue builder instance.
 // filename: pkg/interpreter/core_test.go
-// nlines: 65
+// nlines: 70
 // risk_rating: LOW
 
 package interpreter_test
@@ -13,10 +13,9 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/logging"
-	"github.com/aprice2704/neuroscript/pkg/parser"
 )
 
 const testScript = `
@@ -35,14 +34,14 @@ endfunc
 `
 
 // MustParse is a test helper that panics if parsing fails.
-func MustParse(t *testing.T, script string) *ast.Program {
+// It now accepts the harness to ensure it uses a correctly configured builder.
+func MustParse(t *testing.T, h *TestHarness, script string) *ast.Program {
 	t.Helper()
-	pAPI := parser.NewParserAPI(logging.NewTestLogger(t))
-	tree, err := pAPI.Parse(script)
+	tree, err := h.Parser.Parse(script)
 	if err != nil {
 		t.Fatalf("Failed to parse script: %v", err)
 	}
-	prog, _, err := parser.NewASTBuilder(logging.NewTestLogger(t)).Build(tree)
+	prog, _, err := h.ASTBuilder.Build(tree)
 	if err != nil {
 		t.Fatalf("Failed to build AST: %v", err)
 	}
@@ -51,28 +50,27 @@ func MustParse(t *testing.T, script string) *ast.Program {
 
 func TestForkingAndContext(t *testing.T) {
 	var output strings.Builder
+	h := NewTestHarness(t) // Create harness once.
 
-	// 1. Setup HostContext
-	hostCtx := &interpreter.HostContext{
-		Logger: logging.NewTestLogger(t),
-		Stdout: &output,
-		EmitFunc: func(v lang.Value) {
-			fmt.Fprintln(&output, "EMIT:", v.String())
-		},
+	// 1. Setup HostContext's EmitFunc on the existing harness
+	h.HostContext.EmitFunc = func(v lang.Value) {
+		fmt.Fprintln(&output, "EMIT:", v.String())
 	}
 
-	// 2. Create Root Interpreter with a global
+	// 2. Create a new Interpreter instance using the harness's configured components
 	interp := interpreter.NewInterpreter(
-		interpreter.WithHostContext(hostCtx),
+		interpreter.WithHostContext(h.HostContext),
+		interpreter.WithParser(h.Parser),
+		interpreter.WithASTBuilder(h.ASTBuilder),
 		interpreter.WithGlobals(map[string]any{"global_var": "I am global"}),
 	)
 
 	// 3. Load and Run
-	program := MustParse(t, testScript)
-	if err := interp.Load(&ast.Tree{Root: program}); err != nil {
+	program := MustParse(t, h, testScript)
+	if err := interp.Load(&interfaces.Tree{Root: program}); err != nil {
 		t.Fatalf("Load() failed: %v", err)
 	}
-	if _, err := interp.RunProcedure("main"); err != nil {
+	if _, err := interp.Run("main"); err != nil {
 		t.Fatalf("RunProcedure() failed: %v", err)
 	}
 

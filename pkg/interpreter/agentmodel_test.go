@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 14.0.0
-// Purpose: Refactored to use the centralized TestHarness for robust and consistent interpreter initialization.
-// filename: pkg/interpreter/interpreter_agentmodel_test.go
-// nlines: 120
+// File version: 17.0.0
+// Purpose: Removed all local ExecPolicy overrides to rely on the new, fully-privileged default TestHarness.
+// filename: pkg/interpreter/agentmodel_test.go
+// nlines: 115
 // risk_rating: LOW
 
 package interpreter_test
@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
@@ -21,7 +20,6 @@ func TestInterpreterAgentModelManagement(t *testing.T) {
 	t.Run("RegisterAgentModel success", func(t *testing.T) {
 		t.Logf("[DEBUG] Turn 1: Starting 'RegisterAgentModel success' test.")
 		h := NewTestHarness(t)
-		h.Interpreter.ExecPolicy = &policy.ExecPolicy{Context: policy.ContextConfig, Allow: []string{"*"}}
 		interp := h.Interpreter
 
 		config := map[string]lang.Value{
@@ -30,6 +28,9 @@ func TestInterpreterAgentModelManagement(t *testing.T) {
 		}
 		agentName := types.AgentModelName("test_agent")
 		t.Logf("[DEBUG] Turn 2: Registering agent model.")
+
+		t.Logf("[DEBUG] PRE-CALL CHECK: Interpreter ExecPolicy is: %+v", interp.ExecPolicy)
+
 		err := interp.RegisterAgentModel(agentName, config)
 		if err != nil {
 			t.Fatalf("RegisterAgentModel() returned an unexpected error: %v", err)
@@ -52,7 +53,6 @@ func TestInterpreterAgentModelManagement(t *testing.T) {
 	t.Run("RegisterAgentModel missing required fields", func(t *testing.T) {
 		t.Logf("[DEBUG] Turn 1: Starting 'RegisterAgentModel missing required fields' test.")
 		h := NewTestHarness(t)
-		h.Interpreter.ExecPolicy = &policy.ExecPolicy{Context: policy.ContextConfig, Allow: []string{"*"}}
 		interp := h.Interpreter
 
 		config := map[string]lang.Value{
@@ -70,7 +70,6 @@ func TestInterpreterAgentModelManagement(t *testing.T) {
 	t.Run("List and Delete AgentModels", func(t *testing.T) {
 		t.Logf("[DEBUG] Turn 1: Starting 'List and Delete AgentModels' test.")
 		h := NewTestHarness(t)
-		h.Interpreter.ExecPolicy = &policy.ExecPolicy{Context: policy.ContextConfig, Allow: []string{"*"}}
 		interp := h.Interpreter
 
 		config1 := map[string]lang.Value{"provider": lang.StringValue{Value: "p"}, "model": lang.StringValue{Value: "m1"}}
@@ -110,7 +109,6 @@ func TestInterpreterAgentModelManagement(t *testing.T) {
 	t.Run("UpdateAgentModel success", func(t *testing.T) {
 		t.Logf("[DEBUG] Turn 1: Starting 'UpdateAgentModel success' test.")
 		h := NewTestHarness(t)
-		h.Interpreter.ExecPolicy = &policy.ExecPolicy{Context: policy.ContextConfig, Allow: []string{"*"}}
 		interp := h.Interpreter
 
 		initialConfig := map[string]lang.Value{

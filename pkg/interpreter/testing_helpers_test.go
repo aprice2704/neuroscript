@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 4
-// Purpose: Corrects the TestHarness to properly initialize the ASTBuilder with the interpreter's event handler registration callback, fixing the long-standing parser panic.
+// File version: 22
+// Purpose: Added the 'model:read:*' grant to the default policy to allow tools like 'tool.agentmodel.Get'.
 // filename: pkg/interpreter/testing_helpers_test.go
-// nlines: 55
+// nlines: 75
 // risk_rating: LOW
 
 package interpreter_test
@@ -11,11 +11,12 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/parser"
+	"github.com/aprice2704/neuroscript/pkg/policy"
 )
 
 // TestHarness provides a consistent, fully-initialized set of components for interpreter testing.
@@ -29,38 +30,52 @@ type TestHarness struct {
 }
 
 // NewTestHarness creates a new, fully configured test harness.
-// It initializes an interpreter with a default HostContext (including logger and I/O),
-// a parser, and an AST builder. CRUCIALLY, it now wires the interpreter's
-// event registration method to the ASTBuilder's callback to prevent panics.
 func NewTestHarness(t *testing.T) *TestHarness {
 	t.Helper()
 
 	logger := logging.NewTestLogger(t)
 
+	// Create a HostContext with safe, non-nil defaults for I/O functions.
 	hostCtx := &interpreter.HostContext{
-		Logger: logger,
-		Stdout: &bytes.Buffer{},
-		Stdin:  &bytes.Buffer{},
-		Stderr: &bytes.Buffer{},
+		Logger:      logger,
+		Stdout:      &bytes.Buffer{},
+		Stdin:       &bytes.Buffer{},
+		Stderr:      &bytes.Buffer{},
+		EmitFunc:    func(v lang.Value) {},    // Default no-op
+		WhisperFunc: func(h, d lang.Value) {}, // Default no-op
 	}
 
-	interp := interpreter.NewInterpreter(interpreter.WithHostContext(hostCtx))
-	p := parser.NewParserAPI(logger)
-	b := parser.NewASTBuilder(logger)
+	// Create a maximally permissive policy for testing. This runs in a trusted
+	// context and grants all administrative capabilities to prevent permission
+	// errors in interpreter logic tests.
+	privilegedPolicy := policy.NewBuilder(policy.ContextConfig).
+		Allow("*").
+		Grant("model:admin:*").
+		Grant("model:read:*"). // Grant permission to read models.
+		Grant("account:admin:*").
+		Grant("env:read:*").
+		Grant("bus:write:*").
+		Grant("net:read:*").
+		Grant("net:write:*").
+		Grant("tool:exec:*").
+		Build()
 
-	// THIS IS THE CRITICAL FIX: Wire the interpreter's event handler
-	// registration function to the AST builder's callback.
-	// This requires both methods to be exported.
-	b.SetEventHandlerCallback(func(decl *ast.OnEventDecl) {
-		interp.RegisterEventHandler(decl)
-	})
+	// The interpreter creates its own parser and builder internally,
+	// so we create it directly and then get its components.
+	interp := interpreter.NewInterpreter(
+		interpreter.WithHostContext(hostCtx),
+		interpreter.WithExecPolicy(privilegedPolicy),
+	)
 
-	return &TestHarness{
+	h := &TestHarness{
 		T:           t,
 		Interpreter: interp,
-		Parser:      p,
-		ASTBuilder:  b,
+		Parser:      interp.Parser(),     // Get the parser FROM the interpreter.
+		ASTBuilder:  interp.ASTBuilder(), // Get the builder FROM the interpreter.
 		HostContext: hostCtx,
 		Logger:      logger,
 	}
+
+	t.Logf("[DEBUG] NewTestHarness: RETURNING harness with a fully privileged interpreter.")
+	return h
 }

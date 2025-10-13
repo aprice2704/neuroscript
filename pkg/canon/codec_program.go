@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.6.3
-// File version: 2
-// Purpose: Implements the encoder/decoder for the Program AST node, now with Metadata support.
+// NeuroScript Version: 0.7.2
+// File version: 3
+// Purpose: Ensures Metadata is initialized to a non-nil, empty map during decoding.
 // filename: pkg/canon/codec_program.go
 // nlines: 80
 // risk_rating: LOW
@@ -61,6 +61,8 @@ func encodeProgram(v *canonVisitor, n ast.Node) error {
 
 func decodeProgram(r *canonReader) (ast.Node, error) {
 	prog := ast.NewProgram()
+	// FIX: Unconditionally initialize Metadata to guarantee it's not nil.
+	prog.Metadata = make(map[string]string)
 
 	// Decode Metadata
 	metaCount, err := r.readVarint()
@@ -68,7 +70,6 @@ func decodeProgram(r *canonReader) (ast.Node, error) {
 		return nil, err
 	}
 	if metaCount > 0 {
-		prog.Metadata = make(map[string]string, metaCount)
 		for i := 0; i < int(metaCount); i++ {
 			key, err := r.readString()
 			if err != nil {

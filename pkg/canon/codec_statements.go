@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.6.3
-// File version: 4
-// Purpose: Implements encoders/decoders for various statement and miscellaneous AST nodes, now including WhisperStmt.
+// NeuroScript Version: 0.7.2
+// File version: 5
+// Purpose: Adds full Metadata and Comment support to OnEventDecl codec and ensures non-nil collections on all decoded nodes.
 // filename: pkg/canon/codec_statements.go
 // nlines: 200+
 // risk_rating: MEDIUM
@@ -197,14 +197,16 @@ func encodeCommandBlock(v *canonVisitor, n ast.Node) error {
 }
 
 func decodeCommandBlock(r *canonReader) (ast.Node, error) {
-	node := &ast.CommandNode{BaseNode: ast.BaseNode{NodeKind: types.KindCommandBlock}}
+	node := &ast.CommandNode{
+		BaseNode: ast.BaseNode{NodeKind: types.KindCommandBlock},
+		Metadata: make(map[string]string),
+	}
 	// Decode Metadata
 	metaCount, err := r.readVarint()
 	if err != nil {
 		return nil, err
 	}
 	if metaCount > 0 {
-		node.Metadata = make(map[string]string, metaCount)
 		for i := 0; i < int(metaCount); i++ {
 			key, err := r.readString()
 			if err != nil {
@@ -235,6 +237,19 @@ func decodeCommandBlock(r *canonReader) (ast.Node, error) {
 
 func encodeOnEventDecl(v *canonVisitor, n ast.Node) error {
 	node := n.(*ast.OnEventDecl)
+
+	// FIX: Add Metadata encoding.
+	v.writeVarint(int64(len(node.Metadata)))
+	keys := make([]string, 0, len(node.Metadata))
+	for k := range node.Metadata {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		v.writeString(k)
+		v.writeString(node.Metadata[k])
+	}
+
 	if err := v.visitor(node.EventNameExpr); err != nil {
 		return err
 	}
@@ -250,7 +265,31 @@ func encodeOnEventDecl(v *canonVisitor, n ast.Node) error {
 }
 
 func decodeOnEventDecl(r *canonReader) (ast.Node, error) {
-	node := &ast.OnEventDecl{BaseNode: ast.BaseNode{NodeKind: types.KindOnEventDecl}}
+	node := &ast.OnEventDecl{
+		BaseNode: ast.BaseNode{NodeKind: types.KindOnEventDecl},
+		Metadata: make(map[string]string),
+		Comments: make([]*ast.Comment, 0), // Comments are not yet serialized, but init for consistency.
+	}
+
+	// FIX: Add Metadata decoding.
+	metaCount, err := r.readVarint()
+	if err != nil {
+		return nil, err
+	}
+	if metaCount > 0 {
+		for i := 0; i < int(metaCount); i++ {
+			key, err := r.readString()
+			if err != nil {
+				return nil, err
+			}
+			val, err := r.readString()
+			if err != nil {
+				return nil, err
+			}
+			node.Metadata[key] = val
+		}
+	}
+
 	eventName, err := r.visitor()
 	if err != nil {
 		return nil, err

@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.2
-// File version: 5
-// Purpose: Refactored to use the centralized NewTestHarness, which correctly initializes all components and prevents parser panics.
+// NeuroScript Version: 0.8.0
+// File version: 16
+// Purpose: Corrected invalid 'endfunc' to 'endon' in test script and removed debug logging.
 // filename: pkg/interpreter/append_test.go
-// nlines: 95
+// nlines: 106
 // risk_rating: LOW
 
 package interpreter_test
@@ -24,7 +24,7 @@ func TestInterpreter_AppendScript(t *testing.T) {
 
 		on event "event_one" do
 			emit "one"
-		endfunc
+		endon
 	`
 	script2 := `
 		func proc_two() means
@@ -33,7 +33,7 @@ func TestInterpreter_AppendScript(t *testing.T) {
 
 		on event "event_two" do
 			emit "two"
-		endfunc
+		endon
 	`
 	// This script has a conflicting procedure name.
 	script3_conflict := `
@@ -46,40 +46,45 @@ func TestInterpreter_AppendScript(t *testing.T) {
 		h := NewTestHarness(t)
 		var capturedEmits []string
 
-		// The harness's HostContext is already configured, so we just add our EmitFunc.
 		h.HostContext.EmitFunc = func(v lang.Value) {
-			h.T.Logf("[DEBUG] EmitFunc captured: %s", v.String())
 			capturedEmits = append(capturedEmits, v.String())
 		}
-		h.T.Logf("[DEBUG] Test harness created and EmitFunc configured.")
 
 		// Load the first script
-		tree1, _ := h.Parser.Parse(script1)
-		program1, _, _ := h.ASTBuilder.Build(tree1)
+		tree1, err := h.Parser.Parse(script1)
+		if err != nil {
+			t.Fatalf("Parser.Parse() for script1 failed: %v", err)
+		}
+		program1, _, err := h.ASTBuilder.Build(tree1)
+		if err != nil {
+			t.Fatalf("ASTBuilder.Build() for script1 failed: %v", err)
+		}
 		if err := h.Interpreter.Load(&interfaces.Tree{Root: program1}); err != nil {
 			t.Fatalf("Initial load failed: %v", err)
 		}
-		h.T.Logf("[DEBUG] Loaded script 1.")
 
 		// Append the second script
-		tree2, _ := h.Parser.Parse(script2)
-		program2, _, _ := h.ASTBuilder.Build(tree2)
+		tree2, err := h.Parser.Parse(script2)
+		if err != nil {
+			t.Fatalf("Parser.Parse() for script2 failed: %v", err)
+		}
+		program2, _, err := h.ASTBuilder.Build(tree2)
+		if err != nil {
+			t.Fatalf("ASTBuilder.Build() for script2 failed: %v", err)
+		}
 		if err := h.Interpreter.AppendScript(&interfaces.Tree{Root: program2}); err != nil {
 			t.Fatalf("AppendScript failed unexpectedly: %v", err)
 		}
-		h.T.Logf("[DEBUG] Appended script 2.")
 
 		// Verify that all definitions are present
 		if len(h.Interpreter.KnownProcedures()) != 2 {
 			t.Errorf("Expected 2 procedures, got %d", len(h.Interpreter.KnownProcedures()))
 		}
 
-		h.T.Logf("[DEBUG] Emitting events to test handlers.")
 		h.Interpreter.EmitEvent("event_one", "test", nil)
 		h.Interpreter.EmitEvent("event_two", "test", nil)
 
 		output := strings.Join(capturedEmits, "|")
-		h.T.Logf("[DEBUG] Final captured output: %s", output)
 
 		if !strings.Contains(output, "one") {
 			t.Error("Event handler for 'event_one' did not fire.")
@@ -91,7 +96,6 @@ func TestInterpreter_AppendScript(t *testing.T) {
 
 	t.Run("Fails on duplicate procedure definition", func(t *testing.T) {
 		h := NewTestHarness(t)
-		h.T.Logf("[DEBUG] Test harness created for duplicate definition test.")
 
 		// Load the first script
 		tree1, _ := h.Parser.Parse(script1)
@@ -104,7 +108,6 @@ func TestInterpreter_AppendScript(t *testing.T) {
 		tree3, _ := h.Parser.Parse(script3_conflict)
 		program3, _, _ := h.ASTBuilder.Build(tree3)
 		err := h.Interpreter.AppendScript(&interfaces.Tree{Root: program3})
-		h.T.Logf("[DEBUG] Appended conflicting script; expecting error.")
 
 		if err == nil {
 			t.Fatal("AppendScript should have failed due to duplicate procedure, but it succeeded.")
@@ -113,6 +116,5 @@ func TestInterpreter_AppendScript(t *testing.T) {
 		if !errors.As(err, &rtErr) || rtErr.Code != lang.ErrorCodeDuplicate {
 			t.Errorf("Expected a Duplicate error, but got: %v", err)
 		}
-		h.T.Logf("[DEBUG] Correctly received expected error: %v", err)
 	})
 }

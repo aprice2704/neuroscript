@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 42
-// Purpose: Corrected variable assignments from setupAskTest helper to handle both of its return values.
-// filename: pkg/interpreter/interpreter_steps_ask_test.go
-// nlines: 65
-// risk_rating: MEDIUM
+// File version: 43
+// Purpose: Rewrote test to correctly validate 'ask...into' logic within a sandbox by checking emitted output.
+// filename: pkg/interpreter/steps_ask_test.go
+// nlines: 70
+// risk_rating: LOW
 
 package interpreter_test
 
@@ -35,7 +35,19 @@ func TestAskStatementExecutionV3(t *testing.T) {
 		mockProv.ResponseToReturn = &provider.AIResponse{TextContent: respText}
 		t.Logf("[DEBUG] Turn 2: Mock provider configured.")
 
-		script := `command ask "test_agent", "What is the capital of Canada?" into result endcommand`
+		// The script now emits the result so we can check it from outside the sandbox.
+		script := `command
+			ask "test_agent", "What is the capital of Canada?" into result
+			emit result
+		endcommand`
+
+		// Capture the emitted output.
+		var capturedEmits []string
+		h.HostContext.EmitFunc = func(v lang.Value) {
+			s, _ := lang.ToString(v)
+			capturedEmits = append(capturedEmits, s)
+		}
+
 		tree, _ := h.Parser.Parse(script)
 		program, _, _ := h.ASTBuilder.Build(tree)
 		interp.Load(&interfaces.Tree{Root: program})
@@ -47,11 +59,10 @@ func TestAskStatementExecutionV3(t *testing.T) {
 		}
 		t.Logf("[DEBUG] Turn 4: Script executed.")
 
-		resultVar, found := interp.GetVariable("result")
-		if !found {
-			t.Fatal("result variable not found")
+		if len(capturedEmits) != 1 {
+			t.Fatalf("Expected script to emit 1 value, but it emitted %d", len(capturedEmits))
 		}
-		resultStr, _ := lang.ToString(resultVar)
+		resultStr := capturedEmits[0]
 		expected := "The capital of Canada is Ottawa."
 		if resultStr != expected {
 			t.Errorf("Expected result variable to be '%s', got '%s'", expected, resultStr)

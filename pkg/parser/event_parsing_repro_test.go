@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.2
-// File version: 2
-// Purpose: Corrected test to be a positive validation that the ASTBuilder, when properly configured with an event handler callback, no longer panics.
+// File version: 5
+// Purpose: Corrected the test script to be syntactically valid by adding required newlines, resolving the parser error.
 // filename: pkg/parser/event_parsing_repro_test.go
-// nlines: 40
+// nlines: 44
 // risk_rating: LOW
 
 package parser_test
@@ -12,6 +12,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/parser"
 )
 
 // TestEventHandlerParsing_Success validates that a properly configured
@@ -19,11 +20,16 @@ import (
 // without panicking.
 func TestEventHandlerParsing_Success(t *testing.T) {
 	t.Logf("[DEBUG] Turn 1: Starting test to validate correct event handler parsing.")
-	script := `on event "test.event" do emit "hello" endon`
+	// FIX: Added newlines to the script to make it syntactically valid.
+	script := `
+on event "test.event" do
+	emit "hello"
+endon
+`
 
 	logger := logging.NewTestLogger(t)
-	parserAPI := NewParserAPI(logger)
-	astBuilder := NewASTBuilder(logger)
+	parserAPI := parser.NewParserAPI(logger)
+	astBuilder := parser.NewASTBuilder(logger)
 	t.Logf("[DEBUG] Turn 2: Parser and Builder initialized.")
 
 	var eventHandlerWasRegistered bool
@@ -33,7 +39,7 @@ func TestEventHandlerParsing_Success(t *testing.T) {
 	})
 	t.Logf("[DEBUG] Turn 3: ASTBuilder configured with event handler callback.")
 
-	tree, pErr := parserAPI.Parse(script)
+	tree, _, pErr := parserAPI.ParseAndGetStream("test.ns", script)
 	if pErr != nil {
 		t.Fatalf("ParserAPI.Parse() failed unexpectedly: %v", pErr)
 	}

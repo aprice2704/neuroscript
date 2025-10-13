@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 8
-// Purpose: Corrected ExecPolicy assignment to align with the post-refactor API.
-// filename: pkg/interpreter/interpreter_state_persistence_test.go
-// nlines: 125
+// File version: 10
+// Purpose: Replaced call to unimplemented 'is_error' function with 'is_map' to correctly test tool success.
+// filename: pkg/interpreter/state_persistence_test.go
+// nlines: 122
 // risk_rating: LOW
 
 package interpreter_test
@@ -11,13 +11,13 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
-	"github.com/aprice2704/neuroscript/pkg/policy"
 )
 
 const statePersistenceAndSandboxingTestScript = `
 # This script is for testing state persistence and variable sandboxing.
 
 func _SetupState() means
+    # This must call a tool that requires an admin grant to test policy persistence.
     must tool.account.Register("test_account", {\
         "kind": "test",\
         "provider": "test_provider",\
@@ -33,7 +33,8 @@ endfunc
 
 func _CheckState() means
     set model = tool.agentmodel.Get("test_agent_for_persistence")
-    must not is_error(model)
+    # Check that the Get call succeeded by confirming the result is a map.
+    must is_map(model)
     return "check_ok"
 endfunc
 
@@ -46,8 +47,6 @@ endfunc
 func TestStatePersistence_StoresPersistAcrossRuns(t *testing.T) {
 	t.Logf("[DEBUG] Turn 1: Starting TestStatePersistence_StoresPersistAcrossRuns.")
 	h := NewTestHarness(t)
-	// Provide permissive policy to allow admin tools to run
-	h.Interpreter.ExecPolicy = &policy.ExecPolicy{Context: policy.ContextConfig, Allow: []string{"*"}}
 	interp := h.Interpreter
 
 	tree, pErr := h.Parser.Parse(statePersistenceAndSandboxingTestScript)

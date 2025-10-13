@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.6.0
-// File version: 27
-// Purpose: Adds ExitWhisper_stmt to build the AST for the 'whisper' command.
+// NeuroScript Version: 0.8.0
+// File version: 28
+// Purpose: Corrected ExitPromptuser_stmt to build and attach a proper ast.PromptUserStmt node, fixing the execution error.
 // filename: pkg/parser/ast_builder_statements.go
 // nlines: 250+
 // risk_rating: HIGH
@@ -220,7 +220,7 @@ func (l *neuroScriptListenerImpl) ExitAsk_stmt(c *gen.Ask_stmtContext) {
 			l.addError(c, "internal error in ask_statement: 'into' clause value is not an *ast.LValueNode, but %T", val)
 			return
 		}
-		askStmt.IntoTarget = lval // FIX: Use IntoTarget field
+		askStmt.IntoTarget = lval
 	}
 
 	if c.KW_WITH() != nil {
@@ -234,7 +234,7 @@ func (l *neuroScriptListenerImpl) ExitAsk_stmt(c *gen.Ask_stmtContext) {
 			l.addError(c, "internal error in ask_statement: 'with' expression is not an ast.Expression, but %T", val)
 			return
 		}
-		askStmt.WithOptions = expr // FIX: Use WithOptions field
+		askStmt.WithOptions = expr
 	}
 
 	// Pop the two mandatory expressions (agent model and prompt).
@@ -262,7 +262,7 @@ func (l *neuroScriptListenerImpl) ExitAsk_stmt(c *gen.Ask_stmtContext) {
 	step := ast.Step{
 		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
 		Type:     "ask",
-		AskStmt:  askStmt, // FIX: Use AskStmt field
+		AskStmt:  askStmt,
 	}
 
 	step.Comments = l.associateCommentsToNode(&step)
@@ -270,8 +270,9 @@ func (l *neuroScriptListenerImpl) ExitAsk_stmt(c *gen.Ask_stmtContext) {
 	l.addStep(step)
 }
 
-// ExitPromptuser_stmt handles the deprecated keyboard input statement, now named 'promptuser'.
+// ExitPromptuser_stmt handles the 'promptuser' statement.
 func (l *neuroScriptListenerImpl) ExitPromptuser_stmt(c *gen.Promptuser_stmtContext) {
+	l.logDebugAST("ExitPromptuser_stmt: Building promptuser step.")
 	// Pop the target variable (LValue)
 	intoVal, ok := l.pop()
 	if !ok {
@@ -296,12 +297,16 @@ func (l *neuroScriptListenerImpl) ExitPromptuser_stmt(c *gen.Promptuser_stmtCont
 		return
 	}
 
+	promptStmt := &ast.PromptUserStmt{}
+	newNode(promptStmt, c.GetStart(), types.KindPromptUserStmt)
+	promptStmt.PromptExpr = promptExpr
+	promptStmt.IntoTarget = intoLVal
+
 	pos := tokenToPosition(c.GetStart())
 	step := ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Type:     "promptuser",
-		Values:   []ast.Expression{promptExpr},
-		LValues:  []*ast.LValueNode{intoLVal},
+		BaseNode:       ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:           "promptuser",
+		PromptUserStmt: promptStmt,
 	}
 	step.Comments = l.associateCommentsToNode(&step)
 	SetEndPos(&step, c.GetStop())
