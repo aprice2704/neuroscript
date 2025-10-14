@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 3
-// Purpose: Corrected typeErrorForOp to wrap the correct sentinel error (ErrInvalidOperandType), fixing the final operator test failure.
+// File version: 5
+// Purpose: Corrected the fuzzy logic precedence for AND/OR operators to ensure boolean operations return booleans.
 // filename: pkg/lang/operators_lang.go
-// nlines: 221
-// risk_rating: LOW
+// nlines: 240
+// risk_rating: MEDIUM
 
 package lang
 
@@ -24,16 +24,17 @@ func typeErrorForOp(op string, left, right Value) error {
 func PerformBinaryOperation(op string, left, right Value) (Value, error) {
 	opLower := strings.ToLower(op)
 
-	// Fuzzy logic for AND/OR
-	if opLower == "and" || opLower == "or" {
-		leftF, leftIsFuzzy := toFuzzy(left)
-		rightF, rightIsFuzzy := toFuzzy(right)
-		if leftIsFuzzy && rightIsFuzzy {
-			if opLower == "and" {
-				return NewFuzzyValue(math.Min(leftF.GetValue(), rightF.GetValue())), nil
-			}
-			return NewFuzzyValue(math.Max(leftF.GetValue(), rightF.GetValue())), nil
+	// Fuzzy logic for AND/OR should only apply if one operand is actually fuzzy.
+	_, leftIsFuzzy := left.(FuzzyValue)
+	_, rightIsFuzzy := right.(FuzzyValue)
+
+	if (opLower == "and" || opLower == "or") && (leftIsFuzzy || rightIsFuzzy) {
+		leftF, _ := toFuzzy(left)
+		rightF, _ := toFuzzy(right)
+		if opLower == "and" {
+			return NewFuzzyValue(math.Min(leftF.GetValue(), rightF.GetValue())), nil
 		}
+		return NewFuzzyValue(math.Max(leftF.GetValue(), rightF.GetValue())), nil
 	}
 
 	// Standard boolean logic
@@ -164,10 +165,10 @@ func performStringConcatOrNumericAdd(left, right Value) (Value, error) {
 
 	stringify := func(v Value) string {
 		if v == nil {
-			return "nil"
+			return ""
 		}
 		if _, ok := v.(*NilValue); ok {
-			return "nil"
+			return ""
 		}
 		s, _ := ToString(v)
 		return s
@@ -178,17 +179,47 @@ func performStringConcatOrNumericAdd(left, right Value) (Value, error) {
 	return StringValue{Value: leftStr + rightStr}, nil
 }
 
+// areValuesEqual provides a more robust, type-aware equality check.
 func areValuesEqual(left, right Value) bool {
-	leftNative, rightNative := Unwrap(left), Unwrap(right)
-	if leftNative == nil || rightNative == nil {
-		return leftNative == rightNative
+	// Nil is only equal to nil.
+	_, leftIsNil := left.(NilValue)
+	_, leftIsNilPtr := left.(*NilValue)
+	_, rightIsNil := right.(NilValue)
+	_, rightIsNilPtr := right.(*NilValue)
+	if (leftIsNil || leftIsNilPtr) || (rightIsNil || rightIsNilPtr) {
+		return (leftIsNil || leftIsNilPtr) && (rightIsNil || rightIsNilPtr)
 	}
-	leftF, lOk := ToFloat64(leftNative)
-	rightF, rOk := ToFloat64(rightNative)
-	if lOk && rOk {
-		return leftF == rightF
+
+	// Handle core types directly for clarity and correctness.
+	switch lVal := left.(type) {
+	case StringValue:
+		if rVal, ok := right.(StringValue); ok {
+			return lVal.Value == rVal.Value
+		}
+		// Try numeric conversion for cross-type comparison, e.g., "5" == 5
+		if _, ok := right.(NumberValue); ok {
+			lNum, lOk := ToFloat64(lVal)
+			rNum, rOk := ToFloat64(right)
+			return lOk && rOk && lNum == rNum
+		}
+		return false
+
+	case NumberValue:
+		// Allow comparison with strings that can be numbers
+		lNum, lOk := ToFloat64(lVal)
+		rNum, rOk := ToFloat64(right)
+		return lOk && rOk && lNum == rNum
+
+	case BoolValue:
+		if rVal, ok := right.(BoolValue); ok {
+			return lVal.Value == rVal.Value
+		}
+		return false
+
+	default:
+		// Fallback for complex types like List, Map, Timedate, etc.
+		return reflect.DeepEqual(Unwrap(left), Unwrap(right))
 	}
-	return reflect.DeepEqual(leftNative, rightNative)
 }
 
 func performComparison(left, right Value, op string) (Value, error) {

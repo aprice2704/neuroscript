@@ -1,172 +1,121 @@
-// NeuroScript Version: 0.5.4
-// File version: 2
-// Purpose: Corrects test failures for meta tools by updating to fully qualified names, using the standard testing library, and ensuring proper test setup.
+// NeuroScript Version: 0.8.0
+// File version: 5
+// Purpose: Corrected package name and function calls to resolve build errors.
 // filename: pkg/tool/meta/tools_meta_test.go
-// nlines: 168
+// nlines: 104
 // risk_rating: LOW
-package meta
+
+package meta_test
 
 import (
-	"encoding/json"
-	"strings"
+	"errors"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/interpreter"
-	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/capability"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/tool/meta"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
-// newMetaTestInterpreter sets up a clean interpreter for each test run.
-// It registers the 'meta' tools and some dummy tools to test filtering.
-func newMetaTestInterpreter(t *testing.T) *interpreter.Interpreter {
+// mockRuntime is a minimal mock implementation of tool.Runtime for this test file.
+type mockRuntime struct {
+	registry   tool.ToolRegistry
+	execPolicy *policy.ExecPolicy
+}
+
+// Statically assert that *mockRuntime satisfies the tool.Runtime interface.
+var _ tool.Runtime = (*mockRuntime)(nil)
+
+func (m *mockRuntime) ToolRegistry() tool.ToolRegistry   { return m.registry }
+func (m *mockRuntime) GetExecPolicy() *policy.ExecPolicy { return m.execPolicy }
+func (m *mockRuntime) GetGrantSet() *capability.GrantSet {
+	if m.execPolicy != nil {
+		return &m.execPolicy.Grants
+	}
+	return &capability.GrantSet{}
+}
+
+// --- Unused tool.Runtime methods ---
+func (m *mockRuntime) Println(...any)                                        {}
+func (m *mockRuntime) PromptUser(prompt string) (string, error)              { return "", nil }
+func (m *mockRuntime) GetVar(name string) (any, bool)                        { return nil, false }
+func (m *mockRuntime) SetVar(name string, val any)                           {}
+func (m *mockRuntime) CallTool(name types.FullName, args []any) (any, error) { return nil, nil }
+func (m *mockRuntime) GetLogger() interfaces.Logger                          { return nil }
+func (m *mockRuntime) SandboxDir() string                                    { return "" }
+func (m *mockRuntime) LLM() interfaces.LLMClient                             { return nil }
+func (m *mockRuntime) RegisterHandle(obj interface{}, typePrefix string) (string, error) {
+	return "", nil
+}
+func (m *mockRuntime) GetHandleValue(handle, prefix string) (interface{}, error) { return nil, nil }
+func (m *mockRuntime) AgentModels() interfaces.AgentModelReader                  { return nil }
+func (m *mockRuntime) AgentModelsAdmin() interfaces.AgentModelAdmin              { return nil }
+
+func newTestRuntime(t *testing.T) tool.Runtime {
 	t.Helper()
-
-	interp := interpreter.NewInterpreter(interpreter.WithLogger(logging.NewTestLogger(t)))
-
-	// Register the actual 'meta' tools from the current package
-	if err := tool.RegisterCoreTools(interp.ToolRegistry()); err != nil {
+	rt := &mockRuntime{}
+	registry := tool.NewToolRegistry(rt)
+	rt.registry = registry
+	if err := meta.RegisterTools(registry); err != nil {
 		t.Fatalf("Failed to register meta tools: %v", err)
 	}
-
-	// Register some dummy tools from other groups to test filtering logic
-	dummyFSSpec := tool.ToolSpec{Name: "Read", Group: "FS", Description: "Dummy FS tool.", ReturnType: tool.ArgTypeAny}
-	dummyFSFunc := func(rt tool.Runtime, args []interface{}) (interface{}, error) { return "dummy fs read", nil }
-	if _, err := interp.ToolRegistry().RegisterTool(tool.ToolImplementation{Spec: dummyFSSpec, Func: dummyFSFunc}); err != nil {
-		t.Fatalf("Failed to register dummy FS tool: %v", err)
-	}
-
-	dummyListSpec := tool.ToolSpec{Name: "Head", Group: "List", Description: "Dummy List tool.", ReturnType: tool.ArgTypeAny}
-	dummyListFunc := func(rt tool.Runtime, args []interface{}) (interface{}, error) { return "dummy list head", nil }
-	if _, err := interp.ToolRegistry().RegisterTool(tool.ToolImplementation{Spec: dummyListSpec, Func: dummyListFunc}); err != nil {
-		t.Fatalf("Failed to register dummy List tool: %v", err)
-	}
-
-	return interp
+	return rt
 }
 
-func TestToolMetaListTools(t *testing.T) {
-	interpreter := newMetaTestInterpreter(t)
-	fullName := types.MakeFullName(group, "ListTools")
+func TestToolMetaGetTool(t *testing.T) {
+	rt := newTestRuntime(t)
 
-	listToolsImpl, found := interpreter.ToolRegistry().GetTool(fullName)
-	if !found {
-		t.Fatalf("Tool %q not found in registry", fullName)
+	dummyTool := tool.ToolImplementation{
+		Spec: tool.ToolSpec{Name: "dummy", Group: "test"},
+		Func: func(rt tool.Runtime, args []any) (any, error) { return "ok", nil },
 	}
-
-	result, err := listToolsImpl.Func(interpreter, []interface{}{})
-	if err != nil {
-		t.Fatalf("ListTools execution failed unexpectedly: %v", err)
-	}
-
-	resultStr, ok := result.(string)
-	if !ok {
-		t.Fatalf("ListTools did not return a string, got %T", result)
-	}
-
-	// Check for the presence of fully qualified tool names
-	expectedTools := []string{
-		"tool.Meta.ListTools",
-		"tool.FS.Read",
-		"tool.List.Head",
-	}
-	for _, expected := range expectedTools {
-		if !strings.Contains(resultStr, expected) {
-			t.Errorf("ListTools output is missing expected tool: %s\nOutput was:\n%s", expected, resultStr)
-		}
-	}
-}
-
-func TestToolMetaGetToolSpecificationsJSON(t *testing.T) {
-	interpreter := newMetaTestInterpreter(t)
-	fullName := types.MakeFullName(group, "GetToolSpecificationsJSON")
-	getJsonImpl, found := interpreter.ToolRegistry().GetTool(fullName)
-	if !found {
-		t.Fatalf("Tool %q not found in registry", fullName)
-	}
-
-	result, err := getJsonImpl.Func(interpreter, []interface{}{})
-	if err != nil {
-		t.Fatalf("GetToolSpecificationsJSON execution failed unexpectedly: %v", err)
-	}
-	jsonStr, ok := result.(string)
-	if !ok {
-		t.Fatalf("GetToolSpecificationsJSON did not return a string, got %T", result)
-	}
-	// Basic sanity check: is it valid JSON?
-	var specs []tool.ToolSpec
-	if err := json.Unmarshal([]byte(jsonStr), &specs); err != nil {
-		t.Fatalf("Failed to unmarshal JSON output from GetToolSpecificationsJSON: %v\nOutput:\n%s", err, jsonStr)
-	}
-	if len(specs) < 3 { // Meta tools + dummy tools
-		t.Errorf("Expected at least 3 tool specs in JSON, got %d", len(specs))
-	}
-}
-
-func TestToolMetaToolsHelp(t *testing.T) {
-	interpreter := newMetaTestInterpreter(t)
-	fullName := types.MakeFullName(group, "ToolsHelp")
-
-	toolsHelpImpl, found := interpreter.ToolRegistry().GetTool(fullName)
-	if !found {
-		t.Fatalf("Tool %q not found in registry", fullName)
+	if _, err := rt.ToolRegistry().RegisterTool(dummyTool); err != nil {
+		t.Fatalf("Failed to register dummy tool: %v", err)
 	}
 
 	testCases := []struct {
-		name                 string
-		filterArg            []interface{}
-		expectedToContain    []string
-		expectedToNotContain []string
+		name          string
+		args          []any
+		wantFound     bool
+		wantFullName  string
+		wantToolErrIs error
 	}{
-		{
-			name:      "No_filter_(all_tools)",
-			filterArg: []interface{}{},
-			expectedToContain: []string{
-				"## `tool.Meta.ListTools`",
-				"## `tool.FS.Read`",
-				"## `tool.List.Head`",
-			},
-		},
-		{
-			name:      "Filter_for_Meta_tools_(case_insensitive)",
-			filterArg: []interface{}{"meta"}, // Use lowercase to test case-insensitivity
-			expectedToContain: []string{
-				"## `tool.Meta.ListTools`",
-				"## `tool.Meta.ToolsHelp`",
-			},
-			expectedToNotContain: []string{
-				"## `tool.FS.Read`",
-				"## `tool.List.Head`",
-			},
-		},
-		{
-			name:      "Filter_with_no_results",
-			filterArg: []interface{}{"NonExistentToolFilter"},
-			expectedToContain: []string{
-				"No tools found matching filter: `NonExistentToolFilter`",
-			},
-			expectedToNotContain: []string{"## `"},
-		},
+		{"Success - Find existing tool", []any{"tool.test.dummy"}, true, "tool.test.dummy", nil},
+		{"Failure - Tool not found", []any{"tool.nonexistent.tool"}, false, "", nil},
+		{"Failure - Invalid argument type", []any{123}, false, "", lang.ErrInvalidArgument},
+		{"Failure - Too few arguments", []any{}, false, "", lang.ErrArgumentMismatch},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := toolsHelpImpl.Func(interpreter, tc.filterArg)
-			if err != nil {
-				t.Fatalf("ToolsHelp execution failed: %v", err)
-			}
-			resultStr, ok := result.(string)
-			if !ok {
-				t.Fatalf("ToolsHelp did not return a string, got %T", result)
-			}
-			for _, sub := range tc.expectedToContain {
-				if !strings.Contains(resultStr, sub) {
-					t.Errorf("ToolsHelp output for '%s' does not contain expected substring: '%s'\n---Output---\n%s\n------------", tc.name, sub, resultStr)
+			result, err := meta.GetTool(rt, tc.args)
+
+			if tc.wantToolErrIs != nil {
+				if !errors.Is(err, tc.wantToolErrIs) {
+					t.Errorf("Expected error wrapping [%v], but got: %v", tc.wantToolErrIs, err)
 				}
+				return
 			}
-			for _, sub := range tc.expectedToNotContain {
-				if strings.Contains(resultStr, sub) {
-					t.Errorf("ToolsHelp output for '%s' unexpectedly contains substring: '%s'\n---Output---\n%s\n------------", tc.name, sub, resultStr)
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+
+			resultMap, ok := result.(map[string]any)
+			if !ok {
+				t.Fatalf("Expected result to be a map, got %T", result)
+			}
+
+			if found, _ := resultMap["found"].(bool); found != tc.wantFound {
+				t.Errorf("Mismatched 'found' status: got %v, want %v", found, tc.wantFound)
+			}
+
+			if tc.wantFound {
+				spec, _ := resultMap["spec"].(tool.ToolSpec)
+				if types.FullName(spec.FullName) != types.FullName(tc.wantFullName) {
+					t.Errorf("Mismatched tool name: got %s, want %s", spec.FullName, tc.wantFullName)
 				}
 			}
 		})

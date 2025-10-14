@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 5
-// Purpose: Manages object handles within the interpreter's shared object cache.
+// File version: 8
+// Purpose: Corrected logic in GetHandleValue to validate format before checking existence, then checking type.
 // filename: pkg/interpreter/handles.go
 // nlines: 60
 // risk_rating: LOW
@@ -40,16 +40,15 @@ func (i *Interpreter) GetHandleValue(handle string, expectedTypePrefix string) (
 	if handle == "" {
 		return nil, fmt.Errorf("%w: handle cannot be empty", lang.ErrInvalidArgument)
 	}
+
+	// 1. Validate the handle's format first.
 	parts := strings.SplitN(handle, handleSeparator, 2)
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
-		return nil, fmt.Errorf("%w: invalid handle format", lang.ErrInvalidArgument)
+		return nil, fmt.Errorf("%w: invalid handle format for '%s'", lang.ErrInvalidArgument, handle)
 	}
 	actualPrefix := parts[0]
 
-	if actualPrefix != expectedTypePrefix {
-		return nil, fmt.Errorf("%w: expected prefix '%s', got '%s'", lang.ErrHandleWrongType, expectedTypePrefix, actualPrefix)
-	}
-
+	// 2. Now, check if the handle exists in the cache.
 	if i.objectCache == nil {
 		return nil, fmt.Errorf("%w: internal error: object cache is not initialized", lang.ErrInternal)
 	}
@@ -57,6 +56,12 @@ func (i *Interpreter) GetHandleValue(handle string, expectedTypePrefix string) (
 	if !found {
 		return nil, fmt.Errorf("%w: handle '%s'", lang.ErrHandleNotFound, handle)
 	}
+
+	// 3. Finally, verify the type prefix matches.
+	if actualPrefix != expectedTypePrefix {
+		return nil, fmt.Errorf("%w: expected prefix '%s', got '%s'", lang.ErrHandleWrongType, expectedTypePrefix, actualPrefix)
+	}
+
 	return obj, nil
 }
 

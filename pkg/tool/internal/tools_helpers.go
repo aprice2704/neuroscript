@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 6.0.2
+// File version: 6.0.3
 // Purpose: Fixed a test-only import cycle issue by changing Mockpolicy.Registry to type any and using a type assertion.
 // filename: pkg/tool/internal/tools_helpers.go
-// nlines: 247
+// nlines: 255
 // risk_rating: MEDIUM
 
 package internal
@@ -18,6 +18,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/capability"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
@@ -125,7 +126,11 @@ type MockRuntime struct {
 	LlmClient      interfaces.LLMClient
 	Registry       any // Changed to `any` to break import cycle in tests.
 	GrantSet       *capability.GrantSet
+	ExecPolicy     *policy.ExecPolicy
 }
+
+// Statically assert that *MockRuntime satisfies the tool.Runtime interface.
+var _ tool.Runtime = (*MockRuntime)(nil)
 
 func NewMockRuntime() *MockRuntime {
 	return &MockRuntime{
@@ -220,6 +225,11 @@ func (m *MockRuntime) GetGrantSet() *capability.GrantSet {
 	}
 	// Return a default GrantSet that allows tools without specific requirements to run.
 	return &capability.GrantSet{}
+}
+
+// GetExecPolicy returns the currently active execution policy.
+func (m *MockRuntime) GetExecPolicy() *policy.ExecPolicy {
+	return m.ExecPolicy
 }
 
 // --- AgentModel Management ---

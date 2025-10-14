@@ -1,22 +1,19 @@
 // NeuroScript Version: 0.8.0
-// File version: 48
-// Purpose: Adds debug output to the New() function to trace the state of the ExecPolicy during interpreter creation.
+// File version: 52
+// Purpose: Corrected to use public accessors for internal components and added missing import.
 // filename: pkg/api/interpreter.go
-// nlines: 121
+// nlines: 130
 // risk_rating: HIGH
 
 package api
 
 import (
 	"errors"
-	"fmt"
-	"os"
 
 	"github.com/aprice2704/neuroscript/pkg/capsule"
-	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/interfaces" // <-- Added missing import
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/provider/google"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/types"
@@ -31,34 +28,8 @@ type Interpreter struct {
 // New creates a new, persistent NeuroScript interpreter instance.
 // All host dependencies (I/O, logging, etc.) must be provided via Option funcs.
 func New(opts ...Option) *Interpreter {
-	// --- DEBUG ---
-	fmt.Fprintf(os.Stderr, "[DEBUG] api.New: Called with %d options.\n", len(opts))
-	// --- END DEBUG ---
-
 	i := interpreter.NewInterpreter(opts...)
 
-	// --- DEBUG ---
-	if i.ExecPolicy != nil {
-		fmt.Fprintf(os.Stderr, "[DEBUG] api.New: After NewInterpreter(), ExecPolicy is PRESENT. Context: %v, Allow count: %d\n", i.ExecPolicy.Context, len(i.ExecPolicy.Allow))
-		if len(i.ExecPolicy.Allow) > 0 {
-			fmt.Fprintf(os.Stderr, "[DEBUG] api.New: Allowed tools include: %v\n", i.ExecPolicy.Allow[0])
-		}
-	} else {
-		fmt.Fprintf(os.Stderr, "[DEBUG] api.New: After NewInterpreter(), ExecPolicy is NIL.\n")
-	}
-	// --- END DEBUG ---
-
-	if i.ExecPolicy == nil {
-		// --- DEBUG ---
-		fmt.Fprintf(os.Stderr, "[DEBUG] api.New: ExecPolicy was nil, creating a new default policy.\n")
-		// --- END DEBUG ---
-		i.ExecPolicy = &policy.ExecPolicy{
-			Context: policy.ContextNormal,
-			Allow:   []string{},
-		}
-	}
-
-	// TODO: Provider registration should likely be an Option as well.
 	googleProvider := google.New()
 	i.RegisterProvider("google", googleProvider)
 
@@ -86,8 +57,7 @@ func (i *Interpreter) CapsuleStore() *capsule.Store {
 	return i.internal.CapsuleStore()
 }
 
-// CapsuleRegistryForAdmin returns the interpreter's administrative capsule registry,
-// which is required for privileged tools that add or modify capsules.
+// CapsuleRegistryForAdmin returns the interpreter's administrative capsule registry.
 func (i *Interpreter) CapsuleRegistryForAdmin() *AdminCapsuleRegistry {
 	return i.internal.CapsuleRegistryForAdmin()
 }
@@ -103,9 +73,9 @@ func (i *Interpreter) AppendScript(tree *interfaces.Tree) error {
 	return i.internal.AppendScript(tree)
 }
 
-// ExecuteCommands runs any unnamed 'command' blocks found in the loaded program.
-func (i *Interpreter) ExecuteCommands() (Value, error) {
-	return i.internal.ExecuteCommands()
+// Execute runs any unnamed 'command' blocks found in the loaded program.
+func (i *Interpreter) Execute(program *interfaces.Tree) (Value, error) {
+	return i.internal.Execute(program.Root.(*Program))
 }
 
 // Run calls a specific, named procedure from the loaded program.
@@ -124,6 +94,18 @@ func (i *Interpreter) ToolRegistry() tool.ToolRegistry {
 	return i.internal.ToolRegistry()
 }
 
+// HostContext returns the interpreter's host context.
+// FIX: Correctly calls the public HostContext() method on the internal instance.
+func (i *Interpreter) HostContext() *HostContext {
+	return i.internal.HostContext()
+}
+
+// Handles returns the interpreter's handle manager.
+// FIX: Correctly calls the public Handles() method on the internal instance.
+func (i *Interpreter) Handles() interfaces.HandleManager {
+	return i.internal.Handles()
+}
+
 // Unwrap converts a NeuroScript api.Value back into a standard Go `any` type.
 func Unwrap(v Value) (any, error) {
 	if val, ok := v.(lang.Value); ok {
@@ -132,14 +114,12 @@ func Unwrap(v Value) (any, error) {
 	return v, nil
 }
 
-// ParseLoopControl is deprecated and will be removed. Use the re-exported
-// aeiou.LoopController for V3-compliant loop management.
-func ParseLoopControl(output string) (*LoopControl, error) {
+// ParseLoopControl is deprecated and will be removed.
+func ParseLoopControl(output string) (*LoopController, error) {
 	return nil, errors.New("ParseLoopControl is deprecated; use the AEIOU v3 LoopController")
 }
 
 // GetVariable retrieves a variable from the interpreter's current state.
-// It returns the value and a boolean indicating if the variable was found.
 func (i *Interpreter) GetVariable(name string) (Value, bool) {
 	val, exists := i.internal.GetVariable(name)
 	return val, exists

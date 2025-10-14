@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.8.0
-// File version: 16
+// File version: 17
 // Purpose: Adds debug output to trace the ExecPolicy within execution entry points.
 // filename: pkg/api/exec.go
 // nlines: 120
@@ -67,7 +67,7 @@ func ExecWithInterpreter(ctx context.Context, interp *Interpreter, tree *Tree) (
 	// --- END DEBUG ---
 
 	// 2. Execute top-level command blocks.
-	finalValue, err := interp.ExecuteCommands()
+	finalValue, err := interp.Execute(tree)
 	if err != nil {
 		return nil, err
 	}

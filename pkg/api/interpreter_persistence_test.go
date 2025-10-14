@@ -1,13 +1,15 @@
 // NeuroScript Version: 0.8.0
-// File version: 2
-// Purpose: Updates the persistence test to use the new HostContextBuilder for configuration and the correct ExecuteCommands method.
+// File version: 6
+// Purpose: Updates the persistence test to use the new HostContextBuilder with mandatory I/O streams to fix the build.
 // filename: pkg/api/interpreter_persistence_test.go
-// nlines: 67
+// nlines: 73
 // risk_rating: LOW
 
 package api_test
 
 import (
+	"io"
+	"os"
 	"strings"
 	"testing"
 
@@ -34,9 +36,9 @@ func TestStatePersistence_AppendScriptAndExecute(t *testing.T) {
 	var capturedEmit string
 	hc, err := api.NewHostContextBuilder().
 		WithLogger(logging.NewNoOpLogger()).
-		WithStdout(nil).
-		WithStdin(nil).
-		WithStderr(nil).
+		WithStdout(io.Discard).
+		WithStdin(os.Stdin).
+		WithStderr(io.Discard).
 		WithEmitFunc(func(v api.Value) {
 			val, _ := v.(lang.Value)
 			capturedEmit = val.String()
@@ -66,11 +68,11 @@ func TestStatePersistence_AppendScriptAndExecute(t *testing.T) {
 	}
 
 	// 4. Phase 2: Execute the loaded command blocks.
-	_, err = interp.ExecuteCommands()
+	_, err = interp.Execute(commandTree)
 	if err != nil {
 		// This is the critical check. If the function wasn't persisted,
 		// this will fail with a "procedure not found" error.
-		t.Fatalf("ExecuteCommands failed with an unexpected error: %v", err)
+		t.Fatalf("Execute failed with an unexpected error: %v", err)
 	}
 
 	// 5. Verify the function was called correctly.

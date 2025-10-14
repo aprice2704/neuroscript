@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.4
-// File version: 10
-// Purpose: Updated to use the centralized testutil.NewTestSandbox helper.
+// File version: 11
+// Purpose: Updated to use the centralized testutil.NewTestSandbox and testharness.NewTestHostContext helpers.
 // filename: pkg/tool/git/tools_git_test.go
 // nlines: 250
 // risk_rating: HIGH
@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/api/testharness"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
@@ -36,7 +37,9 @@ type gitTestCase struct {
 func newGitTestInterpreter(t *testing.T) *interpreter.Interpreter {
 	t.Helper()
 	sandboxOpt := testutil.NewTestSandbox(t)
-	interp := interpreter.NewInterpreter(interpreter.WithLogger(logging.NewTestLogger(t)), sandboxOpt)
+	// FIX: Use the new testharness helper to create a valid HostContext.
+	hc := testharness.NewTestHostContext(logging.NewTestLogger(t))
+	interp := interpreter.NewInterpreter(interpreter.WithHostContext(hc), sandboxOpt)
 
 	// Register the git tools for this test suite
 	for _, toolImpl := range gitToolsToRegister {

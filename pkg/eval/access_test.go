@@ -1,14 +1,15 @@
 // NeuroScript Version: 0.8.0
-// File version: 17
-// Purpose: Refactored to use a local mock runtime, removing the circular dependency on the interpreter package.
+// File version: 18
+// Purpose: Added debug output to the test runner to trace expression evaluation.
 // filename: pkg/eval/access_test.go
-// nlines: 95
+// nlines: 105
 // risk_rating: HIGH
 
 package eval
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -51,7 +52,15 @@ func runLocalExpressionTest(t *testing.T, tc localEvalTestCase) {
 	t.Helper()
 	t.Run(tc.Name, func(t *testing.T) {
 		mock := &mockRuntime{vars: tc.InitialVars}
+		fmt.Printf("--- RUNNING TEST: %s ---\n", tc.Name)
+		fmt.Printf("INPUT NODE: %#v\n", tc.InputNode)
+
 		result, err := Expression(mock, tc.InputNode)
+
+		fmt.Printf("RESULT: %#v (%T)\n", result, result)
+		fmt.Printf("ERROR: %v\n", err)
+		fmt.Printf("EXPECTED: %#v (%T)\n", tc.Expected, tc.Expected)
+		fmt.Printf("--- END TEST: %s ---\n\n", tc.Name)
 
 		if (err != nil) != tc.WantErr {
 			t.Fatalf("Expression() error = %v, wantErr %v", err, tc.WantErr)

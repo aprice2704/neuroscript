@@ -68,7 +68,7 @@ func testGoFormatToolHelper(t *testing.T, interp tool.Runtime, tc struct {
 }
 
 func TestToolGoFmt(t *testing.T) {
-	interp, err := testutil.NewTestInterpreter(t, nil, nil)
+	interp, err := testutil.NewTestInterpreter(t, nil)
 	if err != nil {
 		t.Fatalf("NewTestInterpreter failed: %v", err)
 	}
@@ -95,7 +95,7 @@ func TestToolGoFmt(t *testing.T) {
 }
 
 func TestToolGoImports(t *testing.T) {
-	interp, err := testutil.NewTestInterpreter(t, nil, nil)
+	interp, err := testutil.NewTestInterpreter(t, nil)
 	if err != nil {
 		t.Fatalf("NewTestInterpreter failed: %v", err)
 	}

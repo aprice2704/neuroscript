@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.2
-// File version: 6
-// Purpose: Corrected the config script to use a NeuroScript raw string literal within a Go raw string literal, fixing the parsing and argument-passing error for the tool call.
+// NeuroScript Version: 0.8.0
+// File version: 8
+// Purpose: Corrects a panic by providing a mandatory HostContext when creating the runtime interpreter.
 // filename: pkg/api/capsule_admin_test.go
-// nlines: 90
+// nlines: 91
 // risk_rating: MEDIUM
 
 package api_test
@@ -27,8 +27,6 @@ func TestAdminCapsuleRegistry_PersistencePattern(t *testing.T) {
 	}
 
 	// 2. Define the trusted script that will add a new capsule.
-	// This uses a Go raw string to define the script, which in turn
-	// uses a NeuroScript raw string for the tool argument.
 	configScript := `
 command
     set s = "::id: capsule/host-persisted-prompt\n"
@@ -36,12 +34,12 @@ command
     set s = s + "::serialization: ns\n"
     set s = s + "::description: A test capsule.\n"
     set s = s + "This prompt was added via an admin registry.\n"
-    must tool.capsule.Add(s)
+    must tool.capsule.add(s)
 endcommand
 `
 
 	// 3. Create a privileged policy for the config interpreter.
-	allowedTools := []string{"tool.capsule.Add"}
+	allowedTools := []string{"tool.capsule.add"}
 	requiredGrants := []api.Capability{
 		api.NewCapability(api.ResCapsule, api.VerbWrite, "*"),
 	}
@@ -74,10 +72,11 @@ endfunc
 `
 	// 2. Create a standard, unprivileged interpreter.
 	runtimePolicy := api.NewPolicyBuilder(api.ContextNormal).
-		Allow("tool.capsule.GetLatest").
+		Allow("tool.capsule.getlatest").
 		Build()
 
 	runtimeInterp := api.New(
+		api.WithHostContext(newTestHostContext(nil)), // <-- FIX: Add mandatory HostContext.
 		// 3. Add the populated registry as a new, read-only layer.
 		api.WithCapsuleRegistry(liveAdminRegistry),
 		api.WithExecPolicy(runtimePolicy),

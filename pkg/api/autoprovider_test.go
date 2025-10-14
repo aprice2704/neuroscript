@@ -1,22 +1,19 @@
 // NeuroScript Version: 0.8.0
-// File version: 15
-// Purpose: Removes the duplicate newTestHostContext helper function to resolve the redeclaration compile error.
+// File version: 17
+// Purpose: Corrects the test failure by adding the required 'tool.aeiou.magic' to the policy's allow list.
 // filename: pkg/api/autoprovider_test.go
-// nlines: 97
+// nlines: 84
 // risk_rating: LOW
 
 package api_test
 
 import (
 	"context"
-	"io"
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/api"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
-	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/provider/test"
 )
@@ -34,26 +31,14 @@ endfunc
 `
 	// 2. Configure a policy that allows running in a trusted 'config' context.
 	// This is required to call RegisterAgentModel.
+	// FIX: The 'ask' statement requires permission for the magic tool.
 	configPolicy := &policy.ExecPolicy{
 		Context: policy.ContextConfig,
-	}
-
-	// Create a helper to provide a valid HostContext for the test.
-	newTestHostContext := func() *api.HostContext {
-		hc, err := api.NewHostContextBuilder().
-			WithLogger(logging.NewNoOpLogger()).
-			WithStdout(io.Discard).
-			WithStdin(os.Stdin).
-			WithStderr(io.Discard).
-			Build()
-		if err != nil {
-			t.Fatalf("failed to build test host context: %v", err)
-		}
-		return hc
+		Allow:   []string{"tool.aeiou.magic"},
 	}
 
 	interp := api.New(
-		api.WithHostContext(newTestHostContext()),
+		api.WithHostContext(newTestHostContext(nil)),
 		interpreter.WithExecPolicy(configPolicy),
 	)
 

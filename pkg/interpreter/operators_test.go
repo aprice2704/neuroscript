@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 8.0.0
-// Purpose: Added test cases for the new string repetition (string * int) feature.
+// File version: 9.0.0
+// Purpose: Corrected the 'Concat with nil' test case to expect an empty string, aligning with the user's preference.
 // filename: pkg/interpreter/operators_test.go
 // nlines: 191
 // risk_rating: LOW
@@ -94,7 +94,7 @@ func TestPerformStringConcatOrNumericAdd(t *testing.T) {
 		{"Concat strings", `"hello " + "world"`, lang.StringValue{Value: "hello world"}},
 		{"Concat string and number", `"age: " + 30`, lang.StringValue{Value: "age: 30"}},
 		{"Concat number and string", `30 + " years"`, lang.StringValue{Value: "30 years"}},
-		{"Concat with nil", `"value: " + nil`, lang.StringValue{Value: "value: nil"}},
+		{"Concat with nil", `"value: " + nil`, lang.StringValue{Value: "value: "}},
 	}
 
 	for _, tc := range testCases {

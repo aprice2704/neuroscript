@@ -80,7 +80,7 @@ func testMathToolHelper(t *testing.T, interp tool.Runtime, tc struct {
 }
 
 func TestToolAdd(t *testing.T) {
-	interp, err := testutil.NewTestInterpreter(t, nil, nil)
+	interp, err := testutil.NewTestInterpreter(t, nil)
 	if err != nil {
 		t.Fatalf("NewTestInterpreter failed: %v", err)
 	}
@@ -101,7 +101,7 @@ func TestToolAdd(t *testing.T) {
 }
 
 func TestToolSubtract(t *testing.T) {
-	interp, err := testutil.NewTestInterpreter(t, nil, nil)
+	interp, err := testutil.NewTestInterpreter(t, nil)
 	if err != nil {
 		t.Fatalf("NewTestInterpreter failed: %v", err)
 	}
@@ -122,7 +122,7 @@ func TestToolSubtract(t *testing.T) {
 }
 
 func TestToolDivide(t *testing.T) {
-	interp, err := testutil.NewTestInterpreter(t, nil, nil)
+	interp, err := testutil.NewTestInterpreter(t, nil)
 	if err != nil {
 		t.Fatalf("NewTestInterpreter failed: %v", err)
 	}
@@ -143,7 +143,7 @@ func TestToolDivide(t *testing.T) {
 }
 
 func TestToolModulo(t *testing.T) {
-	interp, err := testutil.NewTestInterpreter(t, nil, nil)
+	interp, err := testutil.NewTestInterpreter(t, nil)
 	if err != nil {
 		t.Fatalf("NewTestInterpreter failed: %v", err)
 	}

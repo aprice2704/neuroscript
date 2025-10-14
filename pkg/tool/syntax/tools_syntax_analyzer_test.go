@@ -21,7 +21,7 @@ import (
 )
 
 func TestAnalyzeNSSyntaxInternal(t *testing.T) {
-	testInterp, err := testutil.NewTestInterpreter(t, nil, nil)
+	testInterp, err := testutil.NewTestInterpreter(t, nil)
 	if err != nil {
 		t.Fatalf("NewTestInterpreter failed: %v", err)
 	}

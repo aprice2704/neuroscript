@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.7.0
-// File version: 4
-// Purpose: Corrected mock fetcher to return the policy.ToolSpecProvider interface.
+// File version: 5
+// Purpose: Breaks the import cycle with pkg/tool by creating a local mock that satisfies the ToolSpecProvider interface, resolving a test setup failure.
 // filename: pkg/policy/policy_test.go
 // nlines: 369
-// risk_rating: MEDIUM
+// risk_rating: HIGH
 
 package policy
 
@@ -15,16 +15,32 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/capability"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
+
+// mockToolSpec is a local implementation of the ToolSpecProvider interface for testing purposes.
+type mockToolSpec struct {
+	FullName   string
+	ReturnType string
+	ArgCount   int
+}
+
+// FullNameForChecksum satisfies the ToolSpecProvider interface.
+func (m mockToolSpec) FullNameForChecksum() types.FullName { return types.FullName(m.FullName) }
+
+// ReturnTypeForChecksum satisfies the ToolSpecProvider interface.
+func (m mockToolSpec) ReturnTypeForChecksum() string { return m.ReturnType }
+
+// ArgCountForChecksum satisfies the ToolSpecProvider interface.
+func (m mockToolSpec) ArgCountForChecksum() int { return m.ArgCount }
 
 // newMockFetcher creates a mock fetcher for integrity checks that returns the correct interface.
 func newMockFetcher() func(name string) (ToolSpecProvider, bool) {
-	specs := map[string]tool.ToolSpec{
+	specs := map[string]mockToolSpec{
 		"valid.tool": {
 			FullName:   "valid.tool",
 			ReturnType: "string",
-			Args:       []tool.ArgSpec{},
+			ArgCount:   0,
 		},
 	}
 	return func(name string) (ToolSpecProvider, bool) {
@@ -32,7 +48,7 @@ func newMockFetcher() func(name string) (ToolSpecProvider, bool) {
 		if !ok {
 			return nil, false
 		}
-		// Return the concrete type, which satisfies the interface.
+		// Return the concrete mock type, which satisfies the interface.
 		return s, true
 	}
 }

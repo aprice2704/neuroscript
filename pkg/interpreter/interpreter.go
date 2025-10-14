@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 80
-// Purpose: Added debug logging to confirm the event handler callback is wired up during initialization.
+// File version: 82
+// Purpose: Added an exported ID() method to allow safe access to the interpreter's unique ID.
 // filename: pkg/interpreter/interpreter.go
-// nlines: 216
+// nlines: 226
 // risk_rating: LOW
 
 package interpreter
@@ -62,6 +62,11 @@ type Interpreter struct {
 	cloneRegistryMu sync.Mutex
 }
 
+// ID returns the unique identifier for this interpreter instance.
+func (i *Interpreter) ID() string {
+	return i.id
+}
+
 // Parser returns the interpreter's configured parser instance.
 func (i *Interpreter) Parser() *parser.ParserAPI {
 	return i.parser
@@ -114,6 +119,10 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	}
 	if i.astBuilder == nil {
 		i.astBuilder = parser.NewASTBuilder(i.hostContext.Logger)
+	}
+	// If no execution policy is provided, default to the most restrictive one.
+	if i.ExecPolicy == nil {
+		i.ExecPolicy = policy.NewBuilder(policy.ContextNormal).Build()
 	}
 
 	// The interpreter is responsible for wiring its AST builder to its event

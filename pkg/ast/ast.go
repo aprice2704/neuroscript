@@ -1,7 +1,7 @@
+// NeuroScript Version: 0.8.0
+// File version: 10
+// Purpose: Added a TestString() method to the Expression interface for unambiguous AST structure validation in tests.
 // filename: pkg/ast/ast.go
-// NeuroScript Version: 0.5.2
-// File version: 9
-// Purpose: Removed redundant Pos fields from Program, SecretRef, and ErrorNode to unify position handling via BaseNode.
 // nlines: 75+
 // risk_rating: MEDIUM
 
@@ -25,6 +25,7 @@ type Expression interface {
 	Node
 	expressionNode() // Marker method
 	String() string
+	TestString() string // For unambiguous test output
 }
 
 // BaseNode provides the common fields for all AST nodes, fulfilling the Node interface.
@@ -85,6 +86,7 @@ func (n *SecretRef) expressionNode() {}
 func (n *SecretRef) String() string {
 	return fmt.Sprintf("secret %q", n.Path)
 }
+func (n *SecretRef) TestString() string { return n.String() }
 
 // ErrorNode captures a parsing or semantic error encountered during AST construction.
 type ErrorNode struct {
@@ -99,6 +101,7 @@ func (n *ErrorNode) String() string {
 	}
 	return fmt.Sprintf("Error at %s: %s", n.GetPos(), n.Message)
 }
+func (n *ErrorNode) TestString() string { return n.String() }
 
 // --- Helper for getting types.Position from nodes that implement Expression or Step ---
 func getExpressionPosition(val interface{}) *types.Position {

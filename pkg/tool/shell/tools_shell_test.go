@@ -87,7 +87,7 @@ func TestToolExecuteCommand(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Skipping shell command tests on Windows")
 	}
-	interp, err := testutil.NewTestInterpreter(t, nil, nil)
+	interp, err := testutil.NewTestInterpreter(t, nil)
 	if err != nil {
 		t.Fatalf("NewTestInterpreter failed: %v", err)
 	}

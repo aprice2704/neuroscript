@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.4.0
-// File version: 4
-// Purpose: Resolved import cycle by defining a local test mock for the tool.Runtime interface.
+// File version: 6
+// Purpose: Corrected test failures by properly setting grants within the mock execution policy.
 // filename: pkg/tool/tools_registry_capability_test.go
-// nlines: 151
+// nlines: 162
 // risk_rating: MEDIUM
 
 package tool_test
@@ -14,19 +14,28 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/capability"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // testRuntime is a minimal mock implementation of tool.Runtime for this test file.
-// Defining it locally avoids the circular dependency with the pkg/tool/internal package.
 type testRuntime struct {
-	registry tool.ToolRegistry
-	grantSet *capability.GrantSet
+	registry   tool.ToolRegistry
+	execPolicy *policy.ExecPolicy
 }
 
-func (t *testRuntime) GetGrantSet() *capability.GrantSet { return t.grantSet }
+// Statically assert that *testRuntime satisfies the tool.Runtime interface.
+var _ tool.Runtime = (*testRuntime)(nil)
+
 func (t *testRuntime) ToolRegistry() tool.ToolRegistry   { return t.registry }
+func (t *testRuntime) GetExecPolicy() *policy.ExecPolicy { return t.execPolicy }
+func (t *testRuntime) GetGrantSet() *capability.GrantSet {
+	if t.execPolicy != nil {
+		return &t.execPolicy.Grants
+	}
+	return &capability.GrantSet{}
+}
 
 // --- Unused tool.Runtime methods, stubbed out to satisfy the interface ---
 func (t *testRuntime) Println(...any)                                        {}
@@ -63,7 +72,6 @@ var secureTool = tool.ToolImplementation{
 // TestCallFromInterpreter_CapabilityCheck_Success verifies that a tool call is
 // allowed when the interpreter's policy grants the required capabilities.
 func TestCallFromInterpreter_CapabilityCheck_Success(t *testing.T) {
-	// 1. Setup
 	mockRuntime := &testRuntime{}
 	registry := tool.NewToolRegistry(mockRuntime)
 	_, err := registry.RegisterTool(secureTool)
@@ -72,27 +80,25 @@ func TestCallFromInterpreter_CapabilityCheck_Success(t *testing.T) {
 	}
 	mockRuntime.registry = registry
 
-	// 2. Configure the mock runtime with a policy that GRANTS the required capability.
 	grantedCaps := []capability.Capability{
-		{Resource: "fs", Verbs: []string{"write"}, Scopes: []string{"/data/*"}}, // Grant with wildcard
+		{Resource: "fs", Verbs: []string{"write"}, Scopes: []string{"/data/*"}},
 	}
-	mockRuntime.grantSet = &capability.GrantSet{
-		Grants: grantedCaps,
+	mockRuntime.execPolicy = &policy.ExecPolicy{
+		Context: policy.ContextNormal,
+		Allow:   []string{"tool.fs.writefile"},
+		Grants:  capability.GrantSet{Grants: grantedCaps},
 	}
 
-	// 3. Execute
 	_, execErr := registry.ExecuteTool("tool.fs.writeFile", map[string]lang.Value{})
 
-	// 4. Assert
 	if execErr != nil {
 		t.Errorf("Expected tool call to succeed, but it failed with error: %v", execErr)
 	}
 }
 
 // TestCallFromInterpreter_CapabilityCheck_Failure verifies that a tool call is
-// blocked with a PermissionDenied error when the required capabilities are not granted.
+// blocked when the required capabilities are not granted.
 func TestCallFromInterpreter_CapabilityCheck_Failure(t *testing.T) {
-	// 1. Setup
 	mockRuntime := &testRuntime{}
 	registry := tool.NewToolRegistry(mockRuntime)
 	_, err := registry.RegisterTool(secureTool)
@@ -101,31 +107,29 @@ func TestCallFromInterpreter_CapabilityCheck_Failure(t *testing.T) {
 	}
 	mockRuntime.registry = registry
 
-	// 2. Configure a policy that DOES NOT grant the required capability.
 	grantedCaps := []capability.Capability{
 		{Resource: "fs", Verbs: []string{"read"}, Scopes: []string{"*"}},
 	}
-	mockRuntime.grantSet = &capability.GrantSet{
-		Grants: grantedCaps,
+	mockRuntime.execPolicy = &policy.ExecPolicy{
+		Context: policy.ContextNormal,
+		Allow:   []string{"tool.fs.writefile"},
+		Grants:  capability.GrantSet{Grants: grantedCaps},
 	}
 
-	// 3. Execute
 	_, execErr := registry.ExecuteTool("tool.fs.writeFile", map[string]lang.Value{})
 
-	// 4. Assert
 	if execErr == nil {
 		t.Fatal("Expected tool call to fail due to insufficient capabilities, but it succeeded.")
 	}
 	var rtErr *lang.RuntimeError
-	if !errors.As(execErr, &rtErr) || rtErr.Code != lang.ErrorCodePermissionDenied {
-		t.Errorf("Expected a permission denied error, but got: %v", execErr)
+	if !errors.As(execErr, &rtErr) || rtErr.Code != lang.ErrorCodePolicy {
+		t.Errorf("Expected a policy error, but got: %v", execErr)
 	}
 }
 
 // TestCallFromInterpreter_CapabilityCheck_NoRequirements confirms that a tool
-// with no capability requirements can be called successfully, even with an empty policy.
+// with no capability requirements can be called successfully.
 func TestCallFromInterpreter_CapabilityCheck_NoRequirements(t *testing.T) {
-	// 1. Setup
 	insecureTool := tool.ToolImplementation{
 		Spec: tool.ToolSpec{Name: "add", Group: "math"},
 		Func: func(rt tool.Runtime, args []interface{}) (interface{}, error) { return 42.0, nil },
@@ -137,14 +141,10 @@ func TestCallFromInterpreter_CapabilityCheck_NoRequirements(t *testing.T) {
 		t.Fatalf("Failed to register tool: %v", err)
 	}
 	mockRuntime.registry = registry
+	mockRuntime.execPolicy = &policy.ExecPolicy{Context: policy.ContextNormal, Allow: []string{"tool.math.add"}}
 
-	// 2. Policy is empty (default).
-	mockRuntime.grantSet = &capability.GrantSet{}
-
-	// 3. Execute
 	result, execErr := registry.ExecuteTool("tool.math.add", map[string]lang.Value{})
 
-	// 4. Assert
 	if execErr != nil {
 		t.Errorf("Expected tool call to succeed, but it failed: %v", execErr)
 	}
@@ -170,26 +170,9 @@ func TestCallFromInterpreter_CapabilityCheck_MultipleRequirements(t *testing.T) 
 		grantedCaps []capability.Capability
 		shouldFail  bool
 	}{
-		{
-			name: "Success - All capabilities granted",
-			grantedCaps: []capability.Capability{
-				{Resource: "net", Verbs: []string{"write"}, Scopes: []string{"*"}},
-				{Resource: "fs", Verbs: []string{"read"}, Scopes: []string{"/src/app/**"}},
-			},
-			shouldFail: false,
-		},
-		{
-			name: "Failure - Missing one capability",
-			grantedCaps: []capability.Capability{
-				{Resource: "net", Verbs: []string{"write"}, Scopes: []string{"*"}},
-			},
-			shouldFail: true,
-		},
-		{
-			name:        "Failure - No capabilities granted",
-			grantedCaps: []capability.Capability{},
-			shouldFail:  true,
-		},
+		{"Success - All capabilities granted", []capability.Capability{{Resource: "net", Verbs: []string{"write"}, Scopes: []string{"*"}}, {Resource: "fs", Verbs: []string{"read"}, Scopes: []string{"/src/app/**"}}}, false},
+		{"Failure - Missing one capability", []capability.Capability{{Resource: "net", Verbs: []string{"write"}, Scopes: []string{"*"}}}, true},
+		{"Failure - No capabilities granted", []capability.Capability{}, true},
 	}
 
 	for _, tc := range testCases {
@@ -201,7 +184,11 @@ func TestCallFromInterpreter_CapabilityCheck_MultipleRequirements(t *testing.T) 
 				t.Fatalf("Failed to register tool: %v", err)
 			}
 			mockRuntime.registry = registry
-			mockRuntime.grantSet = &capability.GrantSet{Grants: tc.grantedCaps}
+			mockRuntime.execPolicy = &policy.ExecPolicy{
+				Context: policy.ContextNormal,
+				Allow:   []string{"tool.cloud.deployapp"},
+				Grants:  capability.GrantSet{Grants: tc.grantedCaps},
+			}
 
 			_, execErr := registry.ExecuteTool("tool.cloud.deployApp", map[string]lang.Value{})
 
@@ -215,59 +202,53 @@ func TestCallFromInterpreter_CapabilityCheck_MultipleRequirements(t *testing.T) 
 	}
 }
 
-// TestCallFromInterpreter_CapabilityCheck_VerbAndScopeMismatch verifies that a
-// grant with the correct resource but wrong verb or scope is rejected.
+// TestCallFromInterpreter_CapabilityCheck_VerbAndScopeMismatch verifies grant rejection.
 func TestCallFromInterpreter_CapabilityCheck_VerbAndScopeMismatch(t *testing.T) {
-	// 1. Setup
 	mockRuntime := &testRuntime{}
 	registry := tool.NewToolRegistry(mockRuntime)
-	_, err := registry.RegisterTool(secureTool) // Needs fs:write:/data/user.txt
+	_, err := registry.RegisterTool(secureTool)
 	if err != nil {
 		t.Fatalf("Failed to register tool: %v", err)
 	}
 	mockRuntime.registry = registry
+	mockRuntime.execPolicy = &policy.ExecPolicy{Context: policy.ContextNormal, Allow: []string{"tool.fs.writefile"}}
 
-	// 2. Configure a policy that grants READ access, not WRITE.
-	mockRuntime.grantSet = &capability.GrantSet{
+	mockRuntime.execPolicy.Grants = capability.GrantSet{
 		Grants: []capability.Capability{{Resource: "fs", Verbs: []string{"read"}, Scopes: []string{"/data/*"}}},
 	}
 
-	// 3. Execute and assert failure for wrong verb.
 	_, execErr := registry.ExecuteTool("tool.fs.writeFile", map[string]lang.Value{})
 	if execErr == nil {
 		t.Fatal("Expected failure for wrong verb, but call succeeded.")
 	}
 
-	// 4. Configure a policy that grants access to a different directory.
-	mockRuntime.grantSet = &capability.GrantSet{
+	mockRuntime.execPolicy.Grants = capability.GrantSet{
 		Grants: []capability.Capability{{Resource: "fs", Verbs: []string{"write"}, Scopes: []string{"/tmp/*"}}},
 	}
 
-	// 5. Execute and assert failure for wrong scope.
 	_, execErr = registry.ExecuteTool("tool.fs.writeFile", map[string]lang.Value{})
 	if execErr == nil {
 		t.Fatal("Expected failure for wrong scope, but call succeeded.")
 	}
 }
 
-// TestCallFromInterpreter_CapabilityCheck_CaseInsensitive verifies that resource
-// and verb matching is case-insensitive.
+// TestCallFromInterpreter_CapabilityCheck_CaseInsensitive verifies case-insensitivity.
 func TestCallFromInterpreter_CapabilityCheck_CaseInsensitive(t *testing.T) {
-	// 1. Setup
 	mockRuntime := &testRuntime{}
 	registry := tool.NewToolRegistry(mockRuntime)
-	_, err := registry.RegisterTool(secureTool) // Needs fs:write
+	_, err := registry.RegisterTool(secureTool)
 	if err != nil {
 		t.Fatalf("Failed to register tool: %v", err)
 	}
 	mockRuntime.registry = registry
-
-	// 2. Grant the capability using different casing.
-	mockRuntime.grantSet = &capability.GrantSet{
-		Grants: []capability.Capability{{Resource: "FS", Verbs: []string{"WRITE"}, Scopes: []string{"/data/*"}}},
+	mockRuntime.execPolicy = &policy.ExecPolicy{
+		Context: policy.ContextNormal,
+		Allow:   []string{"tool.fs.writefile"},
+		Grants: capability.GrantSet{
+			Grants: []capability.Capability{{Resource: "FS", Verbs: []string{"WRITE"}, Scopes: []string{"/data/*"}}},
+		},
 	}
 
-	// 3. Execute and assert success.
 	_, execErr := registry.ExecuteTool("tool.fs.writeFile", map[string]lang.Value{})
 	if execErr != nil {
 		t.Errorf("Expected call to succeed with case-insensitive grant, but it failed: %v", execErr)

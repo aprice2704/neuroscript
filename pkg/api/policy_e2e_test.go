@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 7
+// File version: 9
 // Purpose: Corrects all tests to provide a mandatory HostContext during interpreter creation, resolving a panic.
 // filename: pkg/api/policy_e2e_test.go
-// nlines: 179
+// nlines: 135
 // risk_rating: HIGH
 
 package api_test
@@ -52,9 +52,11 @@ endfunc
 	hc := newTestHostContext(nil)
 	interp := api.New(
 		api.WithHostContext(hc),
-		api.WithTool(counterTool),
 		interpreter.WithExecPolicy(policy),
 	)
+	if _, err := interp.ToolRegistry().RegisterTool(counterTool); err != nil {
+		t.Fatalf("Failed to register tool: %v", err)
+	}
 
 	tree, err := api.Parse([]byte(limitScript), api.ParseSkipComments)
 	if err != nil {
@@ -98,12 +100,14 @@ endfunc
 	}
 
 	t.Run("Success in config context", func(t *testing.T) {
-		// FIX: Provide a mandatory HostContext
+		// FIX: Tool names in policies must be lowercase.
 		interp := api.NewConfigInterpreter(
-			[]string{"tool.sys.setConfig"},
+			[]string{"tool.sys.setconfig"},
 			[]api.Capability{},
-			api.WithTool(privilegedTool),
 		)
+		if _, err := interp.ToolRegistry().RegisterTool(privilegedTool); err != nil {
+			t.Fatalf("Failed to register tool: %v", err)
+		}
 		if err := api.LoadFromUnit(interp, &api.LoadedUnit{Tree: tree}); err != nil {
 			t.Fatalf("api.LoadFromUnit() failed: %v", err)
 		}
@@ -118,7 +122,10 @@ endfunc
 		// FIX: Provide a mandatory HostContext
 		hc := newTestHostContext(nil)
 		// A default interpreter is unprivileged.
-		interp := api.New(api.WithHostContext(hc), api.WithTool(privilegedTool))
+		interp := api.New(api.WithHostContext(hc))
+		if _, err := interp.ToolRegistry().RegisterTool(privilegedTool); err != nil {
+			t.Fatalf("Failed to register tool: %v", err)
+		}
 		if err := api.LoadFromUnit(interp, &api.LoadedUnit{Tree: tree}); err != nil {
 			t.Fatalf("api.LoadFromUnit() failed: %v", err)
 		}
@@ -156,7 +163,10 @@ endfunc
 	// FIX: Provide a mandatory HostContext
 	hc := newTestHostContext(nil)
 	// Create a standard, default-configured interpreter. It must be unprivileged.
-	interp := api.New(api.WithHostContext(hc), api.WithTool(privilegedTool))
+	interp := api.New(api.WithHostContext(hc))
+	if _, err := interp.ToolRegistry().RegisterTool(privilegedTool); err != nil {
+		t.Fatalf("Failed to register tool: %v", err)
+	}
 
 	if err := api.LoadFromUnit(interp, &api.LoadedUnit{Tree: tree}); err != nil {
 		t.Fatalf("api.LoadFromUnit() failed: %v", err)

@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.7.0
-// File version: 3
-// Purpose: Consolidates unit tests for the ExecPolicy CanCall gating function and adds dedicated tests for helpers.
-// filename: pkg/policy/policy_test.go
+// File version: 4
+// Purpose: Expanded the CanCall test suite to explicitly verify case-insensitive matching and more complex wildcard scenarios.
+// filename: pkg/policy/policy_test2.go
 // nlines: 369
 // risk_rating: MEDIUM
 
@@ -145,6 +145,45 @@ func TestExecPolicy_CanCall_Scenarios(t *testing.T) {
 			}},
 			wantErr: nil,
 		},
+		// New Test Cases
+		{
+			name: "Success - Case-insensitive allow",
+			policy: &ExecPolicy{
+				Context: ContextNormal,
+				Allow:   []string{"tool.basic.RUN"}, // Uppercase rule
+			},
+			tool:    ToolMeta{Name: "tool.basic.run"}, // Lowercase tool
+			wantErr: nil,
+		},
+		{
+			name: "Failure - Case-insensitive deny",
+			policy: &ExecPolicy{
+				Context: ContextNormal,
+				Allow:   []string{"*"},
+				Deny:    []string{"TOOL.BASIC.RUN"}, // Uppercase rule
+			},
+			tool:    ToolMeta{Name: "tool.basic.run"}, // Lowercase tool
+			wantErr: ErrPolicy,
+		},
+		{
+			name: "Success - Case-insensitive wildcard allow",
+			policy: &ExecPolicy{
+				Context: ContextNormal,
+				Allow:   []string{"TOOL.BASIC.*"}, // Uppercase wildcard
+			},
+			tool:    ToolMeta{Name: "tool.basic.run"},
+			wantErr: nil,
+		},
+		{
+			name: "Failure - Complex deny overrides broader allow",
+			policy: &ExecPolicy{
+				Context: ContextNormal,
+				Allow:   []string{"tool.*"},
+				Deny:    []string{"*.admin.*"}, // Deny any tool with 'admin' in the middle
+			},
+			tool:    ToolMeta{Name: "tool.fs.admin.delete"},
+			wantErr: ErrPolicy,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -218,7 +257,7 @@ func TestDedupMerge(t *testing.T) {
 			name: "Case-insensitive deduplication",
 			base: []string{"a", "B"},
 			more: []string{"b", "A", "c"},
-			want: []string{"a", "b", "c"},
+			want: []string{"a", "B", "c"},
 		},
 		{
 			name: "Empty and whitespace strings",

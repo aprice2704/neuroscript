@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 12
+// File version: 13
 // Purpose: Corrects the test to provide a mandatory HostContext during interpreter creation, resolving a panic.
 // filename: pkg/api/provider_test.go
-// nlines: 96
+// nlines: 97
 // risk_rating: LOW
 
 package api_test
@@ -29,8 +29,10 @@ func main(returns string) means
 endfunc
 `
 	// Create an interpreter with a trusted 'config' context to allow registration.
+	// FIX: The mock provider needs permission to call the magic tool.
 	configPolicy := &policy.ExecPolicy{
 		Context: policy.ContextConfig,
+		Allow:   []string{"tool.aeiou.magic"},
 	}
 
 	// FIX: A HostContext is now mandatory for creating an interpreter.

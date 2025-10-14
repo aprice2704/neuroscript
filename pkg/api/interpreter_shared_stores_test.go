@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.3
-// File version: 2
-// Purpose: Corrects the test script to use lowercase tool names and proper line continuations.
+// File version: 4
+// Purpose: Corrects the test script to use ExecWithInterpreter for loading definitions, ensuring consistent state initialization.
 // filename: pkg/api/interpreter_shared_stores_test.go
 // nlines: 127
 // risk_rating: HIGH
@@ -93,14 +93,15 @@ endfunc
 	// A standard api.New() with a manually built policy would also work.
 	readerInterp := api.NewConfigInterpreter(readerAllowedTools, readerGrants, readerOpts...)
 
-	// Load the reader script's definitions.
+	// Load the reader script's definitions using the standard ExecWithInterpreter pattern.
 	tree, err = api.Parse([]byte(readerScript), api.ParseSkipComments)
 	if err != nil {
 		t.Fatalf("Reader: api.Parse() failed: %v", err)
 	}
-	// We need to load the function definition.
-	if err := api.LoadFromUnit(readerInterp, &api.LoadedUnit{Tree: tree}); err != nil {
-		t.Fatalf("Reader: LoadFromUnit() failed: %v", err)
+	// This call will load the function definition without executing anything,
+	// as there are no top-level command blocks in the readerScript.
+	if _, err := api.ExecWithInterpreter(context.Background(), readerInterp, tree); err != nil {
+		t.Fatalf("Reader: ExecWithInterpreter() for loading failed: %v", err)
 	}
 
 	// Run the reader's main procedure.

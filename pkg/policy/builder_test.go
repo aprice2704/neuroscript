@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 4
-// Purpose: Provides unit tests for the fluent policy builder, updated for deny-by-default.
+// File version: 5
+// Purpose: Expanded test suite to verify the merging logic of the fluent policy builder.
 // filename: pkg/policy/builder_test.go
-// nlines: 94
+// nlines: 140
 // risk_rating: LOW
 
 package policy
@@ -99,4 +99,30 @@ func TestPolicyBuilder_DefaultIsDeny(t *testing.T) {
 	if err := p.CanCall(tool); err != ErrPolicy {
 		t.Errorf("expected ErrPolicy for default policy, got %v", err)
 	}
+}
+
+func TestPolicyBuilder_Merging(t *testing.T) {
+	t.Run("multiple allow calls are merged case-insensitively", func(t *testing.T) {
+		p := NewBuilder(ContextNormal).
+			Allow("a", "b").
+			Allow("B", "c"). // "B" should be ignored as a duplicate of "b"
+			Build()
+
+		expected := []string{"a", "b", "c"}
+		if !reflect.DeepEqual(p.Allow, expected) {
+			t.Errorf("Allow list mismatch:\n got: %v\nwant: %v", p.Allow, expected)
+		}
+	})
+
+	t.Run("multiple deny calls are merged case-insensitively", func(t *testing.T) {
+		p := NewBuilder(ContextNormal).
+			Deny("x").
+			Deny("y", "X"). // "X" should be ignored as a duplicate of "x"
+			Build()
+
+		expected := []string{"x", "y"}
+		if !reflect.DeepEqual(p.Deny, expected) {
+			t.Errorf("Deny list mismatch:\n got: %v\nwant: %v", p.Deny, expected)
+		}
+	})
 }

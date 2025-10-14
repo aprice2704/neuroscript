@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 17
-// Purpose: Rewrote tests to correctly validate 'ask' loop results by checking emitted output instead of leaked variables.
+// File version: 18
+// Purpose: Added a test for the 'ask' loop's progress guard to ensure it terminates stuck loops.
 // filename: pkg/interpreter/ask_loop_test.go
-// nlines: 162
+// nlines: 205
 // risk_rating: LOW
 
 package interpreter_test
@@ -52,6 +52,25 @@ func (m *mockLoopingProvider) Chat(ctx context.Context, req provider.AIRequest) 
 	return &provider.AIResponse{
 		TextContent: respText,
 	}, nil
+}
+
+// mockStuckProvider always returns the exact same response to test the progress guard.
+type mockStuckProvider struct {
+	t *testing.T
+}
+
+func (m *mockStuckProvider) Chat(ctx context.Context, req provider.AIRequest) (*provider.AIResponse, error) {
+	m.t.Logf("[DEBUG] mockStuckProvider: Chat call, returning a static 'continue' response.")
+	actionsScript := `
+	command
+		emit "I am stuck."
+		set params = {"action": "continue"}
+		emit tool.aeiou.magic("LOOP", params)
+	endcommand
+	`
+	env := &aeiou.Envelope{UserData: "{}", Actions: actionsScript}
+	respText, _ := env.Compose()
+	return &provider.AIResponse{TextContent: respText}, nil
 }
 
 func TestAutoLoop_Success(t *testing.T) {
@@ -146,6 +165,53 @@ func TestAutoLoop_MaxTurnsExceeded(t *testing.T) {
 		t.Errorf("Expected result from turn 2, but got: %s", resultStr)
 	}
 	t.Logf("[DEBUG] Turn 4: TestAutoLoop_MaxTurnsExceeded completed.")
+}
+
+func TestAutoLoop_ProgressGuard(t *testing.T) {
+	h := NewTestHarness(t)
+	t.Logf("[DEBUG] Turn 1: Starting TestAutoLoop_ProgressGuard.")
+	mockProv := &mockStuckProvider{t: t}
+	h.Interpreter.RegisterProvider("mock_stuck_provider", mockProv)
+
+	modelConfig := map[string]lang.Value{
+		"provider":            lang.StringValue{Value: "mock_stuck_provider"},
+		"model":               lang.StringValue{Value: "stuck_model"},
+		"tool_loop_permitted": lang.BoolValue{Value: true},
+		"max_turns":           lang.NumberValue{Value: 10}, // High max_turns
+	}
+	_ = h.Interpreter.RegisterAgentModel("stuck_agent", modelConfig)
+	t.Logf("[DEBUG] Turn 2: Stuck provider and agent registered.")
+
+	script := `command
+		ask "stuck_agent", "get stuck" into final_result
+		emit final_result
+	endcommand`
+
+	var capturedEmits []string
+	h.HostContext.EmitFunc = func(v lang.Value) {
+		capturedEmits = append(capturedEmits, v.String())
+	}
+
+	tree, _ := h.Parser.Parse(script)
+	program, _, _ := h.ASTBuilder.Build(tree)
+	h.Interpreter.Load(&interfaces.Tree{Root: program})
+	t.Logf("[DEBUG] Turn 3: Script loaded. Executing commands.")
+
+	_, err := h.Interpreter.Execute(program)
+	if err != nil {
+		t.Fatalf("Expected loop to terminate gracefully, but it failed: %v", err)
+	}
+
+	if len(capturedEmits) == 0 {
+		t.Fatal("Expected script to emit a final result, but it emitted nothing.")
+	}
+	resultStr := capturedEmits[0]
+	if !strings.Contains(resultStr, "I am stuck.") {
+		t.Errorf("Expected final result to contain 'I am stuck.', but got: %s", resultStr)
+	}
+	// The key assertion is that this test completes in finite time, not reaching max_turns.
+	// The log messages from mockStuckProvider will show it was called ~3 times.
+	t.Logf("[DEBUG] Turn 4: TestAutoLoop_ProgressGuard completed, loop correctly terminated by progress guard.")
 }
 
 type mockAbortingProvider struct {

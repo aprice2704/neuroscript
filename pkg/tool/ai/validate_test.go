@@ -16,7 +16,7 @@ import (
 )
 
 func TestValidate(t *testing.T) {
-	interp, err := testutil.NewTestInterpreter(t, nil, nil)
+	interp, err := testutil.NewTestInterpreter(t, nil)
 	if err != nil {
 		t.Fatalf("NewTestInterpreter failed: %v", err)
 	}

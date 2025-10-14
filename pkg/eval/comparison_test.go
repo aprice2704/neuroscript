@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 3.0.0
-// Purpose: Refactored to use the local mock runtime for isolated testing of comparison expressions.
+// File version: 3.0.2
+// Purpose: Added test cases for string equality using variables to ensure the evaluator handles them correctly.
 // filename: pkg/eval/comparison_test.go
-// nlines: 45
+// nlines: 83
 // risk_rating: LOW
 
 package eval
@@ -15,6 +15,12 @@ import (
 )
 
 func TestEvaluateComparison(t *testing.T) {
+	vars := map[string]lang.Value{
+		"s1": lang.StringValue{Value: "hello"},
+		"s2": lang.StringValue{Value: "hello"},
+		"s3": lang.StringValue{Value: "world"},
+	}
+
 	testCases := []localEvalTestCase{
 		{
 			Name: "Equal Numbers",
@@ -24,6 +30,35 @@ func TestEvaluateComparison(t *testing.T) {
 				Right:    &ast.NumberLiteralNode{Value: 5.0},
 			},
 			Expected: lang.BoolValue{Value: true},
+		},
+		{
+			Name: "Equal Strings Literals",
+			InputNode: &ast.BinaryOpNode{
+				Left:     &ast.StringLiteralNode{Value: "hello"},
+				Operator: "==",
+				Right:    &ast.StringLiteralNode{Value: "hello"},
+			},
+			Expected: lang.BoolValue{Value: true},
+		},
+		{
+			Name: "Equal Strings Variables",
+			InputNode: &ast.BinaryOpNode{
+				Left:     &ast.VariableNode{Name: "s1"},
+				Operator: "==",
+				Right:    &ast.VariableNode{Name: "s2"},
+			},
+			InitialVars: vars,
+			Expected:    lang.BoolValue{Value: true},
+		},
+		{
+			Name: "Unequal Strings Variables",
+			InputNode: &ast.BinaryOpNode{
+				Left:     &ast.VariableNode{Name: "s1"},
+				Operator: "!=",
+				Right:    &ast.VariableNode{Name: "s3"},
+			},
+			InitialVars: vars,
+			Expected:    lang.BoolValue{Value: true},
 		},
 		{
 			Name: "Unequal Strings",

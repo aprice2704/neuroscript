@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 11
+// File version: 13
 // Purpose: Corrects tests to use the public NewPolicyBuilder, ensuring the execution policy is correctly constructed and applied.
 // filename: pkg/api/tool_test.go
-// nlines: 105
+// nlines: 108
 // risk_rating: MEDIUM
 
 package api_test
@@ -21,12 +21,13 @@ func TestAPI_BuiltinToolExecution(t *testing.T) {
 	// 1. The NeuroScript code to be executed.
 	scriptContent := `
 func do_math(returns number) means
-    return tool.math.Add(10, 32)
+    return tool.math.add(10, 32)
 endfunc
 `
 	// 2. Create a policy using the official builder.
+	// FIX: Tool names in policies must be lowercase.
 	policy := api.NewPolicyBuilder(api.ContextNormal).
-		Allow("tool.math.Add").
+		Allow("tool.math.add").
 		Build()
 
 	hc := newTestHostContext(nil)
@@ -86,9 +87,11 @@ func TestAPI_CustomToolWithDottedGroup(t *testing.T) {
 	hc := newTestHostContext(nil)
 	interp := api.New(
 		api.WithHostContext(hc),
-		api.WithTool(echoToolImpl),
 		api.WithExecPolicy(policy),
 	)
+	if _, err := interp.ToolRegistry().RegisterTool(echoToolImpl); err != nil {
+		t.Fatalf("Failed to register custom tool: %v", err)
+	}
 
 	// 4. The script that calls the custom tool.
 	scriptContent := `

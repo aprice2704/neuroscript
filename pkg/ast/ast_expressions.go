@@ -1,8 +1,8 @@
+// NeuroScript Version: 0.8.0
+// File version: 5
+// Purpose: Added TestString() methods to all expression nodes to provide unambiguous, fully-parenthesized output for precedence testing.
 // filename: pkg/ast/ast_expressions.go
-// NeuroScript Version: 0.5.2
-// File version: 3
-// Purpose: Removed redundant Pos fields and GetPos methods from all expression nodes to unify position handling via BaseNode.
-// nlines: 150+
+// nlines: 200+
 // risk_rating: MEDIUM
 
 package ast
@@ -46,6 +46,7 @@ func (n *CallableExprNode) String() string {
 	}
 	return fmt.Sprintf("%s(%s)", n.Target.String(), strings.Join(args, ", "))
 }
+func (n *CallableExprNode) TestString() string { return n.String() }
 
 // VariableNode represents a variable reference.
 type VariableNode struct {
@@ -53,8 +54,9 @@ type VariableNode struct {
 	Name string
 }
 
-func (n *VariableNode) expressionNode() {}
-func (n *VariableNode) String() string  { return n.Name }
+func (n *VariableNode) expressionNode()    {}
+func (n *VariableNode) String() string     { return n.Name }
+func (n *VariableNode) TestString() string { return n.String() }
 
 // PlaceholderNode represents a placeholder like {{variable}} or {{LAST}}.
 type PlaceholderNode struct {
@@ -62,16 +64,18 @@ type PlaceholderNode struct {
 	Name string // "LAST" or variable name
 }
 
-func (n *PlaceholderNode) expressionNode() {}
-func (n *PlaceholderNode) String() string  { return fmt.Sprintf("{{%s}}", n.Name) }
+func (n *PlaceholderNode) expressionNode()    {}
+func (n *PlaceholderNode) String() string     { return fmt.Sprintf("{{%s}}", n.Name) }
+func (n *PlaceholderNode) TestString() string { return n.String() }
 
 // LastNode represents the 'last' keyword.
 type LastNode struct {
 	BaseNode
 }
 
-func (n *LastNode) expressionNode() {}
-func (n *LastNode) String() string  { return "last" }
+func (n *LastNode) expressionNode()    {}
+func (n *LastNode) String() string     { return "last" }
+func (n *LastNode) TestString() string { return "last" }
 
 // EvalNode represents an eval(expression) call.
 type EvalNode struct {
@@ -79,8 +83,9 @@ type EvalNode struct {
 	Argument Expression
 }
 
-func (n *EvalNode) expressionNode() {}
-func (n *EvalNode) String() string  { return fmt.Sprintf("eval(%s)", n.Argument.String()) }
+func (n *EvalNode) expressionNode()    {}
+func (n *EvalNode) String() string     { return fmt.Sprintf("eval(%s)", n.Argument.String()) }
+func (n *EvalNode) TestString() string { return n.String() }
 
 // StringLiteralNode represents a string literal.
 type StringLiteralNode struct {
@@ -96,6 +101,7 @@ func (n *StringLiteralNode) String() string {
 	}
 	return strconv.Quote(n.Value)
 }
+func (n *StringLiteralNode) TestString() string { return strconv.Quote(n.Value) } // Never show raw in test output
 
 // NumberLiteralNode represents a number literal (integer or float).
 type NumberLiteralNode struct {
@@ -103,8 +109,9 @@ type NumberLiteralNode struct {
 	Value interface{} // Stores int64 or float64
 }
 
-func (n *NumberLiteralNode) expressionNode() {}
-func (n *NumberLiteralNode) String() string  { return fmt.Sprintf("%v", n.Value) }
+func (n *NumberLiteralNode) expressionNode()    {}
+func (n *NumberLiteralNode) String() string     { return fmt.Sprintf("%v", n.Value) }
+func (n *NumberLiteralNode) TestString() string { return n.String() }
 
 // BooleanLiteralNode represents a boolean literal (true or false).
 type BooleanLiteralNode struct {
@@ -112,8 +119,9 @@ type BooleanLiteralNode struct {
 	Value bool
 }
 
-func (n *BooleanLiteralNode) expressionNode() {}
-func (n *BooleanLiteralNode) String() string  { return strconv.FormatBool(n.Value) }
+func (n *BooleanLiteralNode) expressionNode()    {}
+func (n *BooleanLiteralNode) String() string     { return strconv.FormatBool(n.Value) }
+func (n *BooleanLiteralNode) TestString() string { return n.String() }
 
 // ListLiteralNode represents a list literal (e.g., [1, "two", true]).
 type ListLiteralNode struct {
@@ -127,6 +135,17 @@ func (n *ListLiteralNode) String() string {
 	for i, el := range n.Elements {
 		if el != nil {
 			elems[i] = el.String()
+		} else {
+			elems[i] = "<nil_expr>"
+		}
+	}
+	return "[" + strings.Join(elems, ", ") + "]"
+}
+func (n *ListLiteralNode) TestString() string {
+	elems := make([]string, len(n.Elements))
+	for i, el := range n.Elements {
+		if el != nil {
+			elems[i] = el.TestString()
 		} else {
 			elems[i] = "<nil_expr>"
 		}
@@ -166,6 +185,17 @@ func (n *MapLiteralNode) String() string {
 	}
 	return "{" + strings.Join(entries, ", ") + "}"
 }
+func (n *MapLiteralNode) TestString() string {
+	entries := make([]string, len(n.Entries))
+	for i, entry := range n.Entries {
+		if entry != nil {
+			entries[i] = fmt.Sprintf("%s: %s", entry.Key.TestString(), entry.Value.TestString())
+		} else {
+			entries[i] = "<nil_entry>"
+		}
+	}
+	return "{" + strings.Join(entries, ", ") + "}"
+}
 
 // ElementAccessNode represents accessing an element of a list or map (e.g., myList[0], myMap["key"]).
 type ElementAccessNode struct {
@@ -178,6 +208,9 @@ func (n *ElementAccessNode) expressionNode() {}
 func (n *ElementAccessNode) String() string {
 	return fmt.Sprintf("%s[%s]", n.Collection.String(), n.Accessor.String())
 }
+func (n *ElementAccessNode) TestString() string {
+	return fmt.Sprintf("%s[%s]", n.Collection.TestString(), n.Accessor.TestString())
+}
 
 // UnaryOpNode represents a unary operation (e.g., -value, not flag).
 type UnaryOpNode struct {
@@ -189,6 +222,9 @@ type UnaryOpNode struct {
 func (n *UnaryOpNode) expressionNode() {}
 func (n *UnaryOpNode) String() string {
 	return fmt.Sprintf("%s%s", n.Operator, n.Operand.String())
+}
+func (n *UnaryOpNode) TestString() string {
+	return fmt.Sprintf("(%s %s)", n.Operator, n.Operand.TestString())
 }
 
 // BinaryOpNode represents a binary operation (e.g., left + right).
@@ -203,6 +239,9 @@ func (n *BinaryOpNode) expressionNode() {}
 func (n *BinaryOpNode) String() string {
 	return fmt.Sprintf("(%s %s %s)", n.Left.String(), n.Operator, n.Right.String())
 }
+func (n *BinaryOpNode) TestString() string {
+	return fmt.Sprintf("(%s %s %s)", n.Left.TestString(), n.Operator, n.Right.TestString())
+}
 
 // TypeOfNode represents a typeof(expression) call.
 type TypeOfNode struct {
@@ -212,11 +251,15 @@ type TypeOfNode struct {
 
 func (n *TypeOfNode) expressionNode() {}
 func (n *TypeOfNode) String() string  { return fmt.Sprintf("typeof(%s)", n.Argument.String()) }
+func (n *TypeOfNode) TestString() string {
+	return fmt.Sprintf("(typeof %s)", n.Argument.TestString())
+}
 
 // NilLiteralNode represents the 'nil' literal.
 type NilLiteralNode struct {
 	BaseNode
 }
 
-func (n *NilLiteralNode) expressionNode() {}
-func (n *NilLiteralNode) String() string  { return "nil" }
+func (n *NilLiteralNode) expressionNode()    {}
+func (n *NilLiteralNode) String() string     { return "nil" }
+func (n *NilLiteralNode) TestString() string { return "nil" }

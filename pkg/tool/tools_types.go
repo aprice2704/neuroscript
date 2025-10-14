@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 22
+// File version: 23
 // Purpose: Added GetExecPolicy to the Runtime interface to satisfy the policygate.Runtime interface.
 // filename: pkg/tool/tool_types.go
-// nlines: 152
+// nlines: 156
 // risk_rating: HIGH
 
 package tool
@@ -122,6 +122,7 @@ type ToolRegistry interface {
 	ListTools() []ToolImplementation
 	NTools() int
 	ExecuteTool(toolName types.FullName, args map[string]lang.Value) (lang.Value, error)
+	CallFromInterpreter(interp Runtime, fullname types.FullName, args []lang.Value) (lang.Value, error)
 	// NewViewForInterpreter creates a new registry that shares the tool definitions
 	// of the parent but is bound to a different interpreter runtime.
 	NewViewForInterpreter(interpreter Runtime) ToolRegistry

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 27
-// Purpose: Corrected a compile error by adding the required 'types.Kind' argument to the newNode call.
+// File version: 28
+// Purpose: Allows 'on error' handlers within command blocks and corrects the generated step type to 'on_error'.
 // filename: pkg/parser/ast_builder_events.go
 // nlines: 104
 // risk_rating: HIGH
@@ -103,16 +103,19 @@ func (l *neuroScriptListenerImpl) ExitError_handler(c *gen.Error_handlerContext)
 
 	// Create a Step that represents the handler block.
 	handlerStep := &ast.Step{
-		Type: "on_error_handler",
+		// FIX: Correct the type to 'on_error' to match test expectations.
+		Type: "on_error",
 		Body: body,
 	}
 	newNode(handlerStep, c.GetStart(), types.KindStep)
 	SetEndPos(handlerStep, c.GetStop())
 
-	// Attach the handler to the current procedure's dedicated ErrorHandlers field.
+	// FIX: Allow 'on error' handlers inside both procedures and command blocks.
 	if l.currentProc != nil {
 		l.currentProc.ErrorHandlers = append(l.currentProc.ErrorHandlers, handlerStep)
+	} else if l.currentCommand != nil {
+		l.currentCommand.ErrorHandlers = append(l.currentCommand.ErrorHandlers, handlerStep)
 	} else {
-		l.addError(c, "'on error' handler is only valid inside a func block")
+		l.addError(c, "'on error' handler is only valid inside a func or command block")
 	}
 }

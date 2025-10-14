@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.8.0
-// File version: 26
+// File version: 27
 // Purpose: Corrected the fork method to properly share all root-level resources by reference, fixing numerous test failures related to policy, state, and parser configuration.
 // filename: pkg/interpreter/clone.go
 // nlines: 55
@@ -48,6 +48,7 @@ func (i *Interpreter) fork() *Interpreter {
 	// Create a new, isolated state for variables
 	clone.state = newInterpreterState()
 	clone.state.sandboxDir = i.state.sandboxDir
+	// FIX: Procedures from the parent/root must be available to the fork.
 	clone.state.knownProcedures = i.state.knownProcedures
 
 	// Copy global variables from the root into the new clone's scope

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 10
-// Purpose: Corrects calls to newTestHostContext to pass the required logger argument.
+// File version: 13
+// Purpose: Corrects the test failure by using the required lowercase tool name in the policy's allow list.
 // filename: pkg/api/capability_e2e_test.go
-// nlines: 115
+// nlines: 118
 // risk_rating: HIGH
 
 package api_test
@@ -42,7 +42,7 @@ var secureFileWriteTool = api.ToolImplementation{
 
 const secureWriteScript = `
 func main(needs path, content) means
-    call tool.test.writeFile(path, content)
+    call tool.test.writefile(path, content)
 endfunc
 `
 
@@ -56,7 +56,8 @@ func TestE2E_CapabilityCheck_Success(t *testing.T) {
 	requiredGrants := []api.Capability{
 		{Resource: "fs", Verbs: []string{"write"}, Scopes: []string{"*"}},
 	}
-	allowedTools := []string{"tool.test.writeFile"}
+	// FIX: Tool names in policies must be lowercase.
+	allowedTools := []string{"tool.test.writefile"}
 
 	// FIX: Pass nil for the logger argument.
 	hc := newTestHostContext(nil)
@@ -65,9 +66,11 @@ func TestE2E_CapabilityCheck_Success(t *testing.T) {
 		allowedTools,
 		requiredGrants,
 		api.WithHostContext(hc),
-		api.WithTool(secureFileWriteTool),
 		api.WithSandboxDir(tempDir),
 	)
+	if _, err := interp.ToolRegistry().RegisterTool(secureFileWriteTool); err != nil {
+		t.Fatalf("Failed to register tool: %v", err)
+	}
 
 	tree, err := api.Parse([]byte(secureWriteScript), api.ParseSkipComments)
 	if err != nil {
@@ -96,7 +99,7 @@ func TestE2E_CapabilityCheck_Success(t *testing.T) {
 func TestE2E_CapabilityCheck_Failure(t *testing.T) {
 	tempDir := t.TempDir()
 	targetFile := filepath.Join(tempDir, "output.txt")
-	allowedTools := []string{"tool.test.writeFile"}
+	allowedTools := []string{"tool.test.writefile"}
 
 	// FIX: Pass nil for the logger argument.
 	hc := newTestHostContext(nil)
@@ -105,9 +108,11 @@ func TestE2E_CapabilityCheck_Failure(t *testing.T) {
 		allowedTools,
 		[]api.Capability{}, // Empty grant set
 		api.WithHostContext(hc),
-		api.WithTool(secureFileWriteTool),
 		api.WithSandboxDir(tempDir),
 	)
+	if _, err := interp.ToolRegistry().RegisterTool(secureFileWriteTool); err != nil {
+		t.Fatalf("Failed to register tool: %v", err)
+	}
 
 	tree, err := api.Parse([]byte(secureWriteScript), api.ParseSkipComments)
 	if err != nil {

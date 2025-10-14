@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 7
-// Purpose: Ensures a default HostContext is always created, allowing user-provided contexts to override it. This fixes all panics and compile errors.
+// File version: 11
+// Purpose: Updated to use the re-exported HostContextBuilder and options for a clean, canonical implementation.
 // filename: pkg/api/config.go
-// nlines: 36
+// nlines: 42
 // risk_rating: MEDIUM
 
 package api
@@ -16,24 +16,24 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/logging"
 )
 
+// Option is an alias for the internal interpreter's option type.
+type Option = interpreter.InterpreterOption
+
 // WithTrustedPolicy creates an interpreter option that applies a pre-configured
 // execution policy suitable for running trusted configuration scripts.
-func WithTrustedPolicy(allowedTools []string, grants ...capability.Capability) interpreter.InterpreterOption {
+func WithTrustedPolicy(allowedTools []string, grants ...capability.Capability) Option {
 	builder := NewPolicyBuilder(ContextConfig).Allow(allowedTools...)
 	for _, g := range grants {
 		builder.GrantCap(g)
 	}
 	policy := builder.Build()
-
-	return func(i *interpreter.Interpreter) {
-		i.ExecPolicy = policy
-	}
+	return WithExecPolicy(policy)
 }
 
 // NewConfigInterpreter is a convenience function that creates a new interpreter
-// pre-configured with a trusted policy. It now ensures a HostContext is always present.
+// pre-configured with a trusted policy. It ensures a minimal HostContext is always present.
 func NewConfigInterpreter(allowedTools []string, grants []capability.Capability, otherOpts ...Option) *Interpreter {
-	// Start with a default, minimal HostContext.
+	// Start with a default, minimal HostContext using the canonical builder.
 	defaultHC, err := NewHostContextBuilder().
 		WithLogger(logging.NewNoOpLogger()).
 		WithStdout(io.Discard).

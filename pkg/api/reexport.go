@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 44
-// Purpose: Re-exports the concrete store types and the Account struct for host-managed state. Removes the conflicting HostContext re-export.
+// File version: 52
+// Purpose: Centralizes all public API re-exports, exposing the canonical interpreter types and builders.
 // filename: pkg/api/reexport.go
-// nlines: 105
+// nlines: 131
 // risk_rating: LOW
 package api
 
@@ -11,7 +11,6 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/agentmodel"
 	"github.com/aprice2704/neuroscript/pkg/ast"
-	"github.com/aprice2704/neuroscript/pkg/canon"
 	"github.com/aprice2704/neuroscript/pkg/capability"
 	"github.com/aprice2704/neuroscript/pkg/capsule"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
@@ -23,8 +22,14 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
-// Re-exported types for the public API, as per the v0.7 contract.
+// Re-exported types for the public API
 type (
+	// Core Interpreter Configuration
+	HostContext        = interpreter.HostContext
+	HostContextBuilder = interpreter.HostContextBuilder
+
+	// Core Types
+	Value        = lang.Value
 	Kind         = types.Kind
 	Position     = types.Position
 	Node         = interfaces.Node
@@ -37,117 +42,94 @@ type (
 		Sum  [32]byte
 		Sig  []byte
 	}
-	Option               = interpreter.InterpreterOption
-	ExecPolicy           = policy.ExecPolicy
-	ExecContext          = policy.ExecContext // Re-export the type
-	Capability           = capability.Capability
+
+	// Policy & Capability Types
+	ExecPolicy  = policy.ExecPolicy
+	ExecContext = policy.ExecContext
+	Capability  = capability.Capability
+	GrantSet    = capability.GrantSet
+
+	// AI & State Store Types
 	AIProvider           = provider.AIProvider
-	ToolImplementation   = tool.ToolImplementation
-	ToolRegistry         = tool.ToolRegistry
-	ArgSpec              = tool.ArgSpec
-	Runtime              = tool.Runtime
-	ToolFunc             = tool.ToolFunc
-	ToolSpec             = tool.ToolSpec
-	FullName             = types.FullName
-	ToolName             = types.ToolName
-	ToolGroup            = types.ToolGroup
-	ArgType              = tool.ArgType
 	CapsuleRegistry      = capsule.Registry
-	AdminCapsuleRegistry = CapsuleRegistry
-	Capsule              = capsule.Capsule // So hosts can construct capsules
+	AdminCapsuleRegistry = capsule.Registry
+	Capsule              = capsule.Capsule
 	AgentModel           = types.AgentModel
-	Account              = account.Account // FIX: Export the Account struct type
+	Account              = account.Account
 	AgentModelReader     = interfaces.AgentModelReader
 	AgentModelAdmin      = interfaces.AgentModelAdmin
 	AccountReader        = interfaces.AccountReader
 	AccountAdmin         = interfaces.AccountAdmin
-	LLMClient            = interfaces.LLMClient
-	GrantSet             = capability.GrantSet
-	RootNode             = ast.Node
-	Program              = ast.Program
-	// FIX: Export the concrete internal store types for host lifecycle management.
-	AccountStore    = account.Store
-	AgentModelStore = agentmodel.AgentModelStore
+	AccountStore         = account.Store
+	AgentModelStore      = agentmodel.AgentModelStore
 
-	// --- LLM Telemetry Emitter ---
+	// Tooling Types
+	ToolImplementation = tool.ToolImplementation
+	ToolRegistry       = tool.ToolRegistry
+	ArgSpec            = tool.ArgSpec
+	Runtime            = tool.Runtime
+	ToolFunc           = tool.ToolFunc
+	ToolSpec           = tool.ToolSpec
+	FullName           = types.FullName
+	ToolName           = types.ToolName
+	ToolGroup          = types.ToolGroup
+	ArgType            = tool.ArgType
+
+	// AST Types (for advanced use)
+	RootNode = ast.Node
+	Program  = ast.Program
+
+	// Telemetry & AEIOU
 	Emitter            = interfaces.Emitter
 	LLMCallStartInfo   = interfaces.LLMCallStartInfo
 	LLMCallSuccessInfo = interfaces.LLMCallSuccessInfo
 	LLMCallFailureInfo = interfaces.LLMCallFailureInfo
-
-	// --- AEIOU v3 Host Components ---
-	LoopControl struct {
-		Control string
-		Notes   string
-		Reason  string
-	}
-	Decision        = aeiou.Decision
-	LoopController  = aeiou.LoopController
-	ReplayCache     = aeiou.ReplayCache
-	ProgressTracker = aeiou.ProgressTracker
-	KeyProvider     = aeiou.KeyProvider
-	MagicVerifier   = aeiou.MagicVerifier
+	Decision           = aeiou.Decision
+	LoopController     = aeiou.LoopController
 )
 
-const (
-	ResFS      = capability.ResFS
-	ResNet     = capability.ResNet
-	ResEnv     = capability.ResEnv
-	ResModel   = capability.ResModel
-	ResTool    = capability.ResTool
-	ResSecret  = capability.ResSecret
-	ResBudget  = capability.ResBudget
-	ResBus     = capability.ResBus
-	ResCapsule = capability.ResCapsule
-	ResAccount = capability.ResAccount
-	ResIPC     = capability.ResIPC
-
-	VerbRead  = capability.VerbRead
-	VerbWrite = capability.VerbWrite
-	VerbAdmin = capability.VerbAdmin
-	VerbUse   = capability.VerbUse
-	VerbExec  = capability.VerbExec
-)
-
-// Re-exported constants for policy contexts
+// Re-exported constants
 const (
 	ContextConfig ExecContext = policy.ContextConfig
 	ContextNormal ExecContext = policy.ContextNormal
 	ContextTest   ExecContext = policy.ContextTest
+
+	// Capability Resources
+	ResFS      = capability.ResFS
+	ResNet     = capability.ResNet
+	ResAccount = capability.ResAccount
+	ResModel   = capability.ResModel
+	ResCapsule = capability.ResCapsule
+
+	// Capability Verbs
+	VerbRead  = capability.VerbRead
+	VerbWrite = capability.VerbWrite
+	VerbAdmin = capability.VerbAdmin
 )
 
-const (
-	ArgTypeAny         = tool.ArgTypeAny
-	ArgTypeString      = tool.ArgTypeString
-	ArgTypeInt         = tool.ArgTypeInt
-	ArgTypeFloat       = tool.ArgTypeFloat
-	ArgTypeBool        = tool.ArgTypeBool
-	ArgTypeMap         = tool.ArgTypeMap
-	ArgTypeSlice       = tool.ArgTypeSlice
-	ArgTypeSliceString = tool.ArgTypeSliceString
-	ArgTypeSliceInt    = tool.ArgTypeSliceInt
-	ArgTypeSliceFloat  = tool.ArgTypeSliceFloat
-	ArgTypeSliceBool   = tool.ArgTypeSliceBool
-	ArgTypeSliceMap    = tool.ArgTypeSliceMap
-	ArgTypeSliceAny    = tool.ArgTypeSliceAny
-	ArgTypeNil         = tool.ArgTypeNil
-)
-
+// Re-exported functions and constructors
 var (
-	NewCapability           = capability.New
-	ParseCapability         = capability.Parse
-	MustParse               = capability.MustParse
-	NewWithVerbs            = capability.NewWithVerbs
-	NewLoopController       = aeiou.NewLoopController
-	NewReplayCache          = aeiou.NewReplayCache
-	NewProgressTracker      = aeiou.NewProgressTracker
-	NewMagicVerifier        = aeiou.NewMagicVerifier
-	ComputeHostDigest       = aeiou.ComputeHostDigest
-	NewRotatingKeyProvider  = aeiou.NewRotatingKeyProvider
-	NewCapsuleRegistry      = capsule.NewRegistry
-	NewAdminCapsuleRegistry = capsule.NewRegistry
+	// Configuration
+	NewHostContextBuilder    = interpreter.NewHostContextBuilder
+	WithGlobals              = interpreter.WithGlobals
+	WithExecPolicy           = interpreter.WithExecPolicy
+	WithSandboxDir           = interpreter.WithSandboxDir
+	WithoutStandardTools     = interpreter.WithoutStandardTools
+	WithAccountStore         = interpreter.WithAccountStore
+	WithAgentModelStore      = interpreter.WithAgentModelStore
+	WithCapsuleRegistry      = interpreter.WithCapsuleRegistry
+	WithCapsuleAdminRegistry = interpreter.WithCapsuleAdminRegistry
+
+	// Capability Constructors
+	NewCapability   = capability.New
+	ParseCapability = capability.Parse
+	MustParse       = capability.MustParse
+	NewWithVerbs    = capability.NewWithVerbs
+
+	// Other Constructors
 	NewPolicyBuilder        = policy.NewBuilder
-	DecodeWithRegistry      = canon.DecodeWithRegistry
 	NewAccountStore         = account.NewStore
 	NewAgentModelStore      = agentmodel.NewAgentModelStore
+	NewAdminCapsuleRegistry = capsule.NewRegistry // Used for admin purposes
+	MakeToolFullName        = types.MakeFullName
 )

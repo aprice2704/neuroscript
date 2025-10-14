@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.6.0
-// File version: 28
-// Purpose: Adds WhisperStmt for the new 'whisper' command.
+// NeuroScript Version: 0.8.0
+// File version: 29
+// Purpose: Adds the TestString() method to LValueNode to satisfy the Expression interface.
 // filename: pkg/ast/ast_statements.go
 // nlines: 135+
 // risk_rating: LOW
@@ -9,6 +9,7 @@ package ast
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -39,7 +40,31 @@ type LValueNode struct {
 
 func (n *LValueNode) String() string {
 	// A full string representation would require traversing accessors.
-	return n.Identifier
+	var sb strings.Builder
+	sb.WriteString(n.Identifier)
+	for _, acc := range n.Accessors {
+		switch acc.Type {
+		case DotAccess:
+			sb.WriteString(".")
+			// Assuming key is a string literal for dot access
+			if key, ok := acc.Key.(*StringLiteralNode); ok {
+				sb.WriteString(key.Value)
+			} else {
+				sb.WriteString("<invalid_dot_key>")
+			}
+		case BracketAccess:
+			sb.WriteString("[")
+			if acc.Key != nil {
+				sb.WriteString(acc.Key.String())
+			}
+			sb.WriteString("]")
+		}
+	}
+	return sb.String()
+}
+func (n *LValueNode) TestString() string {
+	// For testing, the simple string representation is sufficient and unambiguous.
+	return n.String()
 }
 func (n *LValueNode) expressionNode() {}
 
@@ -108,7 +133,8 @@ func (s *Step) String() string {
 	return fmt.Sprintf("Step(%s)", s.Type)
 }
 
-func (s *Step) expressionNode() {}
+func (s *Step) expressionNode()    {}
+func (s *Step) TestString() string { return s.String() }
 
 // AskStmt represents the structured components of an 'ask' statement.
 type AskStmt struct {

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 28
-// Purpose: Corrected ExitPromptuser_stmt to build and attach a proper ast.PromptUserStmt node, fixing the execution error.
+// File version: 29
+// Purpose: Corrected ExitPromptuser_stmt to populate the Step's LValues and Values fields directly, fixing a test failure and panic.
 // filename: pkg/parser/ast_builder_statements.go
 // nlines: 250+
 // risk_rating: HIGH
@@ -297,16 +297,13 @@ func (l *neuroScriptListenerImpl) ExitPromptuser_stmt(c *gen.Promptuser_stmtCont
 		return
 	}
 
-	promptStmt := &ast.PromptUserStmt{}
-	newNode(promptStmt, c.GetStart(), types.KindPromptUserStmt)
-	promptStmt.PromptExpr = promptExpr
-	promptStmt.IntoTarget = intoLVal
-
+	// FIX: Populate LValues and Values directly on the step, not via PromptUserStmt.
 	pos := tokenToPosition(c.GetStart())
 	step := ast.Step{
-		BaseNode:       ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Type:           "promptuser",
-		PromptUserStmt: promptStmt,
+		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:     "promptuser",
+		LValues:  []*ast.LValueNode{intoLVal},
+		Values:   []ast.Expression{promptExpr},
 	}
 	step.Comments = l.associateCommentsToNode(&step)
 	SetEndPos(&step, c.GetStop())
