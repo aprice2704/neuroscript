@@ -101,11 +101,18 @@ const (
 	ResModel   = capability.ResModel
 	ResCapsule = capability.ResCapsule
 	ResEnv     = capability.ResEnv
+	ResTool    = capability.ResTool
+	ResSecret  = capability.ResSecret
+	ResBudget  = capability.ResBudget
+	ResBus     = capability.ResBus
 
 	// Capability Verbs
 	VerbRead  = capability.VerbRead
 	VerbWrite = capability.VerbWrite
 	VerbAdmin = capability.VerbAdmin
+	VerbUse   = capability.VerbUse
+	VerbExec  = capability.VerbExec
+	VerbSign  = capability.VerbSign
 )
 
 // Re-exported functions and constructors
