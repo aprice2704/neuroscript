@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 8
-// Purpose: Added the 'system_prompt_capsule' to the agent registration to ensure the AI formats its responses correctly.
+// File version: 9
+// Purpose: Updated the model name to the fully-qualified 'models/gemini-2.5-flash' to resolve the 404 API error.
 // filename: livetest/test_scripts/oneshot.txt
 // nlines: 52
 // risk_rating: LOW
@@ -23,7 +23,7 @@ func setup() means
     # Register the agent model that uses the account.
     must tool.agentmodel.Register("live_agent", {\
         "provider": "google",\
-        "model": "gemini-1.5-flash-latest",\
+        "model": "models/gemini-2.5-flash",\
         "account_name": "live_test_acct",\
         "tool_loop_permitted": false,\
         "temperature": 0.1,\
@@ -35,7 +35,8 @@ endfunc
 # Verifies that the agent is registered.
 func verify(returns bool) means
     emit "--- PROCEEDING TO ASK ---"
-    # The 'Exists' tool was removed. We now verify existence by calling 'Get'.
+    # The 'Exists' tool was removed.
+    # We now verify existence by calling 'Get'.
     # If the model doesn't exist, this tool call will fail, halting the script
     # and correctly failing the test.
     set model_info = tool.agentmodel.Get("live_agent")

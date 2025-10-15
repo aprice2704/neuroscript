@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 30
-// Purpose: Drastically simplified both tests to remove all complex tool calls, focusing only on the core protocol. Fixed the sandbox error by passing the path at interpreter creation.
+// File version: 37
+// Purpose: Updated the model name to the fully-qualified 'models/gemini-2.5-flash' and reverted the unnecessary lowercase tool name changes now that the provider and policygate are fixed.
 // filename: pkg/livetest/askloop_test.go
 // nlines: 241
 // risk_rating: HIGH
@@ -50,7 +50,7 @@ func setupLiveTest(t *testing.T, sandboxDir string) *api.Interpreter {
 		})
 		must tool.agentmodel.Register("live_agent", {\
 			"provider": "google",\
-			"model": "gemini-1.5-flash",\
+			"model": "models/gemini-2.5-flash",\
 			"account_name": "google-ci",\
 			"tool_loop_permitted": true,\
 			"max_turns": 5,\
@@ -74,9 +74,8 @@ func setupLiveTest(t *testing.T, sandboxDir string) *api.Interpreter {
 	}
 
 	transcriptWriter := &aiTranscriptLogger{t: t}
-	// FIX: Pass the sandbox directory as a creation-time option.
 	extraOpts := []api.Option{
-		api.WithAITranscript(transcriptWriter),
+		api.WithAITranscriptWriter(transcriptWriter),
 		api.WithSandboxDir(sandboxDir),
 	}
 
@@ -98,7 +97,6 @@ func TestLive_SingleToolCall(t *testing.T) {
 	tempDir := t.TempDir()
 	interp := setupLiveTest(t, tempDir)
 
-	// FIX: Simplify the test to its absolute minimum.
 	instructions := `This is a test. Your only task is to write this exact line of code in the ACTIONS block: emit "hello"`
 	subject := "simple-emit-test"
 	expectedResult := "hello"
@@ -134,7 +132,6 @@ func TestLive_ComplexToolComposition(t *testing.T) {
 	tempDir := t.TempDir()
 	interp := setupLiveTest(t, tempDir)
 
-	// FIX: Simplify the test to its absolute minimum.
 	instructions := `This is a test. Your only task is to write these two exact lines of code in the ACTIONS block:
 set a = "hello"
 emit a + " world"

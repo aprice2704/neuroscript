@@ -1,13 +1,14 @@
 // NeuroScript Version: 0.7.3
-// File version: 12
-// Purpose: Adds a new test case for the 'Exists' tool.
+// File version: 13
+// Purpose: Corrected test setup to initialize the interpreter with a valid HostContext, fixing a panic.
 // filename: pkg/tool/agentmodel/tools_agentmodel_test.go
-// nlines: 284
+// nlines: 295
 // risk_rating: MEDIUM
 
 package agentmodel_test
 
 import (
+	"bytes"
 	"errors"
 	"reflect"
 	"testing"
@@ -16,6 +17,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/tool/agentmodel"
@@ -37,6 +39,13 @@ type agentModelTestCase struct {
 func newAgentModelTestInterpreter(t *testing.T) *interpreter.Interpreter {
 	t.Helper()
 
+	hostCtx := &interpreter.HostContext{
+		Logger: logging.NewTestLogger(t),
+		Stdout: &bytes.Buffer{},
+		Stdin:  &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+	}
+
 	testPolicy := &policy.ExecPolicy{
 		Context: policy.ContextConfig,
 		Allow:   []string{"tool.agentmodel.*"},
@@ -48,7 +57,10 @@ func newAgentModelTestInterpreter(t *testing.T) *interpreter.Interpreter {
 		),
 	}
 
-	interp := interpreter.NewInterpreter(interpreter.WithExecPolicy(testPolicy))
+	interp := interpreter.NewInterpreter(
+		interpreter.WithHostContext(hostCtx),
+		interpreter.WithExecPolicy(testPolicy),
+	)
 
 	for _, toolImpl := range agentmodel.AgentModelToolsToRegister {
 		if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {

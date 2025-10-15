@@ -33,6 +33,7 @@ Options are functions that modify the interpreter's configuration during creatio
 - **`WithExecPolicy(policy *policy.ExecPolicy) Option`**: Applies a security policy that governs what the script is allowed to do (e.g., which tools it can call, what capabilities it has). If not provided, it defaults to a restrictive policy.
 - **`WithSandboxDir(path string) Option`**: Sets the root directory for all file-based operations, preventing the script from accessing the broader filesystem.
 - **`WithGlobals(globals map[string]interface{}) Option`**: Injects a map of Go values as initial global variables into the interpreter's state.
+- **`WithAITranscriptWriter(w io.Writer) Option`**: Provides a writer to which the full transcript of conversations with AI providers will be written, for logging or debugging.
 - **`WithoutStandardTools() Option`**: Prevents the automatic registration of the standard tool library, useful for creating highly restricted or specialized runtimes.
 - **`WithCapsuleRegistry(...)` / `WithCapsuleAdminRegistry(...)`**: Configures registries for managing packaged scripts ("capsules").
 
@@ -50,6 +51,9 @@ type HostContext struct {
    Stdout                    io.Writer
    Stdin                     io.Reader
    Stderr                    io.Writer
+
+   // Optional writer for AI conversation logs.
+   AITranscript              io.Writer
 
    // Callback for the 'emit' statement.
    EmitFunc                  func(api.Value)
@@ -78,6 +82,8 @@ import (
 func main() {
 	// 1. Create a HostContext with mandatory I/O and a logger.
 	var output bytes.Buffer
+	var aiTranscript bytes.Buffer
+
 	hostCtx, err := api.NewHostContextBuilder().
 		WithLogger(logging.NewSimpleLogger(os.Stderr)).
 		WithStdout(&output).
@@ -88,9 +94,10 @@ func main() {
 		panic(err)
 	}
 
-	// 2. Instantiate the interpreter with the context and initial globals.
+	// 2. Instantiate the interpreter with the context and other options.
 	interp := api.New(
 		api.WithHostContext(hostCtx),
+		api.WithAITranscriptWriter(&aiTranscript),
 		api.WithGlobals(map[string]interface{}{
 			"host_version": "1.0.0",
 		}),

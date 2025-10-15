@@ -1,12 +1,17 @@
+// NeuroScript Version: 0.4.0
+// File version: 4
+// Purpose: Corrected test setup to initialize the interpreter with a valid HostContext, fixing a panic.
 package list
 
 import (
+	"bytes"
 	"errors"
 	"reflect"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
@@ -23,8 +28,14 @@ type testCase struct {
 func testListTool(t *testing.T, toolName types.ToolName, cases []testCase) {
 	t.Helper()
 
+	hostCtx := &interpreter.HostContext{
+		Logger: logging.NewTestLogger(t),
+		Stdout: &bytes.Buffer{},
+		Stdin:  &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+	}
 	// Create a new interpreter with the list tools loaded
-	interp := interpreter.NewInterpreter()
+	interp := interpreter.NewInterpreter(interpreter.WithHostContext(hostCtx))
 	// This assumes that the list tools are registered via an init() function
 	// in the list package, which is a common pattern. If not, they would
 	// need to be registered here manually.

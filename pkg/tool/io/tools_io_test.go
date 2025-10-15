@@ -1,18 +1,20 @@
 // NeuroScript Version: 0.4.0
-// File version: 2
-// Purpose: Corrected tool lookup to use the fully qualified name, fixing the nil pointer panic.
+// File version: 3
+// Purpose: Corrected test setup to initialize the interpreter with a valid HostContext, fixing a panic.
 // filename: pkg/tool/io/tools_io_test.go
-// nlines: 48
+// nlines: 59
 // risk_rating: LOW
 
 package io
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
@@ -25,7 +27,13 @@ func MakeArgs(vals ...interface{}) []interface{} {
 }
 
 func TestToolIOInputValidation(t *testing.T) {
-	interp := interpreter.NewInterpreter()
+	hostCtx := &interpreter.HostContext{
+		Logger: logging.NewTestLogger(t),
+		Stdout: &bytes.Buffer{},
+		Stdin:  &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+	}
+	interp := interpreter.NewInterpreter(interpreter.WithHostContext(hostCtx))
 	for _, toolImpl := range ioToolsToRegister {
 		if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
 			t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)

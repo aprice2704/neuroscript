@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.6.0
-// File version: 3
-// Purpose: Refactored to use the centralized TestHarness for robust and consistent interpreter initialization.
+// NeuroScript Version: 0.8.0
+// File version: 7
+// Purpose: Corrected test to check the procedure's return value instead of a variable in a discarded scope.
 // filename: pkg/interpreter/interpreter_steps_promptuser_test.go
-// nlines: 65
+// nlines: 63
 // risk_rating: LOW
 
 package interpreter_test
@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
@@ -29,31 +29,35 @@ func TestPromptUserStatement(t *testing.T) {
 		h.HostContext.Stdout = &stdout
 		t.Logf("[DEBUG] Turn 2: Test harness I/O configured.")
 
-		step := ast.Step{
-			Type: "promptuser",
-			PromptUserStmt: &ast.PromptUserStmt{
-				PromptExpr: &ast.StringLiteralNode{Value: "Is this a test?"},
-				IntoTarget: &ast.LValueNode{Identifier: "user_response"},
-			},
-		}
-
-		if step.PromptUserStmt == nil {
-			t.Skip("Skipping test: ast.Step does not yet have PromptUserStmt field.")
-		}
-
-		// This test calls an unexported method, so we need to use a build tag to make it accessible
-		// or refactor the test to call a public method. For now, we will assume it is accessible.
-		// _, err := interp.executePromptUser(step)
-		// For now, we will simulate the execution via a script
+		// The test script now returns the variable. This allows us to test the result
+		// without making assumptions about variable scope after the procedure has finished.
 		script := `
 			func main() means
 				promptuser "Is this a test?" into user_response
+				return user_response
 			endfunc
 		`
-		_, err := interp.ExecuteScriptString("main", script, nil)
+		// 1. Parse the script string into a parse tree.
+		parseTree, parseErr := h.Parser.Parse(script)
+		if parseErr != nil {
+			t.Fatalf("Failed to parse script: %v", parseErr)
+		}
 
+		// 2. Build the parse tree into an Abstract Syntax Tree (AST).
+		programAST, _, buildErr := h.ASTBuilder.Build(parseTree)
+		if buildErr != nil {
+			t.Fatalf("Failed to build AST from parse tree: %v", buildErr)
+		}
+
+		// 3. Load the AST into the interpreter.
+		if err := interp.Load(&interfaces.Tree{Root: programAST}); err != nil {
+			t.Fatalf("Failed to load AST into interpreter: %v", err)
+		}
+
+		// 4. Run the 'main' procedure and capture its return value.
+		resultVal, err := interp.Run("main")
 		if err != nil {
-			t.Fatalf("executePromptUser failed: %v", err)
+			t.Fatalf("interp.Run(\"main\") failed: %v", err)
 		}
 		t.Logf("[DEBUG] Turn 3: Script executed.")
 
@@ -62,11 +66,11 @@ func TestPromptUserStatement(t *testing.T) {
 			t.Errorf("Expected prompt '%s', got '%s'", expectedPrompt, stdout.String())
 		}
 
-		resultVar, exists := interp.GetVariable("user_response")
-		if !exists {
-			t.Fatal("Variable 'user_response' was not set by the promptuser statement")
+		// 5. Assert against the returned value.
+		if resultVal == nil {
+			t.Fatal("Expected a return value from the script, but got nil")
 		}
-		resultStr, _ := lang.ToString(resultVar)
+		resultStr, _ := lang.ToString(resultVal)
 		if resultStr != strings.TrimSpace(userInput) {
 			t.Errorf("Expected result variable to be '%s', got '%s'", strings.TrimSpace(userInput), resultStr)
 		}

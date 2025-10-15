@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 5
-// Purpose: Corrected the parsing logic to find the last envelope in the prompt, allowing it to ignore any prepended bootstrap text from the connection manager.
+// File version: 10
+// Purpose: Fixed a URL construction bug by removing the extra slash before the model name, which was causing a 404 error due to a duplicated 'models/' path segment.
 // filename: pkg/provider/google/google.go
-// nlines: 128
+// nlines: 174
 // risk_rating: MEDIUM
 
 package google
@@ -20,7 +20,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/provider"
 )
 
-const apiBaseURL = "https://generativelanguage.googleapis.com/v1beta/models/"
+const apiBaseURL = "https://generativelanguage.googleapis.com/v1/"
 
 // Provider implements the provider.AIProvider interface for Google's AI services.
 type Provider struct{}
@@ -58,6 +58,47 @@ type geminiError struct {
 	Message string `json:"message"`
 }
 
+type geminiListModelsResponse struct {
+	Models []struct {
+		Name string `json:"name"`
+	} `json:"models"`
+}
+
+// ListModels fetches a list of available model names from the Google AI API.
+func (p *Provider) ListModels(apiKey string) ([]string, error) {
+	if apiKey == "" {
+		return nil, fmt.Errorf("Google provider requires an API key to list models")
+	}
+
+	url := fmt.Sprintf("%smodels?key=%s", apiBaseURL, apiKey)
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make GET request to list models: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("google api returned non-ok status for list models: %s", resp.Status)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read list models response body: %w", err)
+	}
+
+	var listResp geminiListModelsResponse
+	if err := json.Unmarshal(body, &listResp); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal list models response: %w", err)
+	}
+
+	var modelNames []string
+	for _, model := range listResp.Models {
+		modelNames = append(modelNames, model.Name)
+	}
+
+	return modelNames, nil
+}
+
 // Chat sends a request to a Google AI model. It requires the prompt to be
 // a valid AEIOU envelope and will fail if it cannot be parsed.
 func (p *Provider) Chat(ctx context.Context, req provider.AIRequest) (*provider.AIResponse, error) {
@@ -65,9 +106,6 @@ func (p *Provider) Chat(ctx context.Context, req provider.AIRequest) (*provider.
 		return nil, fmt.Errorf("Google provider requires an API key")
 	}
 
-	// The provider contract requires a valid AEIOU envelope. Parse it first.
-	// FIX: The prompt may contain bootstrap text. Find the last occurrence of the
-	// start marker to parse the real envelope, ignoring any preceding content.
 	promptToParse := req.Prompt
 	if markerPos := strings.LastIndex(req.Prompt, aeiou.Wrap(aeiou.SectionStart)); markerPos != -1 {
 		promptToParse = req.Prompt[markerPos:]
@@ -78,10 +116,10 @@ func (p *Provider) Chat(ctx context.Context, req provider.AIRequest) (*provider.
 		return nil, fmt.Errorf("google provider requires a valid AEIOU envelope prompt, but parsing failed: %w", err)
 	}
 
-	// 1. Construct the API endpoint URL.
+	// FIX: The model name from the API already includes "models/".
+	// The base URL should not also include it.
 	url := fmt.Sprintf("%s%s:generateContent?key=%s", apiBaseURL, req.ModelName, req.APIKey)
 
-	// 2. Create the request body.
 	requestPayload := geminiRequest{
 		Contents: []geminiContent{
 			{Parts: []geminiPart{{Text: req.Prompt}}},
@@ -92,7 +130,6 @@ func (p *Provider) Chat(ctx context.Context, req provider.AIRequest) (*provider.
 		return nil, fmt.Errorf("failed to marshal request body: %w", err)
 	}
 
-	// 3. Create and send the HTTP request.
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(bodyBytes))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create http request: %w", err)
@@ -105,26 +142,24 @@ func (p *Provider) Chat(ctx context.Context, req provider.AIRequest) (*provider.
 	}
 	defer resp.Body.Close()
 
-	// 4. Read and parse the response body.
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	var geminiResp geminiResponse
-	if err := json.Unmarshal(respBody, &geminiResp); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response body: %w", err)
-	}
-
-	// 5. Check for API errors.
 	if resp.StatusCode != http.StatusOK {
-		if geminiResp.Error != nil {
+		var geminiResp geminiResponse
+		if json.Unmarshal(respBody, &geminiResp) == nil && geminiResp.Error != nil {
 			return nil, fmt.Errorf("google api error: %s (status %d)", geminiResp.Error.Message, resp.StatusCode)
 		}
-		return nil, fmt.Errorf("google api returned non-ok status: %s", resp.Status)
+		return nil, fmt.Errorf("google api returned non-ok status '%s' with body: %s", resp.Status, string(respBody))
 	}
 
-	// 6. Extract the content and construct the final response.
+	var geminiResp geminiResponse
+	if err := json.Unmarshal(respBody, &geminiResp); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal successful response body: %w", err)
+	}
+
 	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
 		return nil, fmt.Errorf("no content found in google api response")
 	}

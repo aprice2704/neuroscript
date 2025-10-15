@@ -1,10 +1,8 @@
-// NeuroScript Version: 0.5.4
-// File version: 1
-// Purpose: Test harness for the script-loading and introspection tools.
+// NeuroScript Version: 0.8.0
+// File version: 9
+// Purpose: Corrects the test to use the internal interpreter and its RunProcedure method directly, ensuring the ScriptHost interface is satisfied.
 // filename: pkg/tool/script/tools_script_test.go
-// nlines: 140
-// risk_rating: LOW
-package script
+package script_test
 
 import (
 	"encoding/json"
@@ -15,18 +13,17 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/api"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/parser"
+	"github.com/aprice2704/neuroscript/pkg/policy"
+	"github.com/aprice2704/neuroscript/pkg/tool/script"
 	"github.com/google/go-cmp/cmp"
 )
 
 // TestScriptTools uses the file-based fixture runner to test the script-loading
 // and introspection tools (`LoadScript`, `Script.ListFunctions`).
 func TestScriptTools(t *testing.T) {
-	// The testdata directory must be relative to the test file.
-	// It should contain the .ns.txt scripts and their corresponding
-	// .golden.json or .expect_err files.
 	root := filepath.Join("testdata")
 
 	entries, err := os.ReadDir(root)
@@ -51,7 +48,6 @@ func TestScriptTools(t *testing.T) {
 		testName := strings.TrimSuffix(fileName, ".ns.txt")
 
 		t.Run(testName, func(t *testing.T) {
-			// Setup paths for the script and its expected output/error
 			scriptPath := filepath.Join(root, fileName)
 			errPath := filepath.Join(root, testName+".expect_err")
 			goldenPath := filepath.Join(root, testName+".golden.json")
@@ -60,38 +56,39 @@ func TestScriptTools(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to read script file %s: %v", scriptPath, err)
 			}
-			scriptContent := string(scriptBytes)
 
-			// --- Test Setup ---
-			// Create a real interpreter instance. This interpreter must be correctly
-			// implementing the `scriptHost` interface for the type assertion in
-			// the tool functions to succeed.
-			interp := interpreter.NewInterpreter()
+			hostCtx, err := api.NewHostContextBuilder().
+				WithStdin(os.Stdin).
+				WithStdout(os.Stdout).
+				WithStderr(os.Stderr).
+				Build()
+			if err != nil {
+				t.Fatalf("failed to build host context: %v", err)
+			}
+			execPolicy := &policy.ExecPolicy{
+				Allow: []string{"tool.script.*"},
+			}
+			interp := interpreter.NewInterpreter(
+				interpreter.WithHostContext(hostCtx),
+				interpreter.WithExecPolicy(execPolicy),
+			)
 
-			// Manually register the script tools with the interpreter's registry.
-			for _, toolImpl := range scriptToolsToRegister {
+			for _, toolImpl := range script.ToolsToRegister {
 				if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
 					t.Fatalf("failed to register tool '%s': %v", toolImpl.Spec.Name, err)
 				}
 			}
 
-			// Parse the test script itself into an AST
-			p := parser.NewParserAPI(interp.GetLogger())
-			program, pErr := p.Parse(scriptContent)
-			if pErr != nil {
-				t.Fatalf("failed to parse test driver script '%s': %v", fileName, pErr)
+			tree, err := api.Parse(scriptBytes, api.ParseSkipComments)
+			if err != nil {
+				t.Fatalf("failed to parse test driver script '%s': %v", fileName, err)
+			}
+			if err := interp.Load(tree); err != nil {
+				t.Fatalf("failed to load ast for test driver script '%s': %v", fileName, err)
 			}
 
-			astBuilder := parser.NewASTBuilder(interp.GetLogger())
-			programAST, _, bErr := astBuilder.Build(program)
-			if bErr != nil {
-				t.Fatalf("failed to build ast for test driver script '%s': %v", fileName, bErr)
-			}
+			finalValue, execErr := interp.RunProcedure("main")
 
-			// --- Execute Test and Check Results ---
-			finalValue, execErr := interp.LoadAndRun(programAST, "main")
-
-			// This branch is for tests that are expected to fail.
 			if _, statErr := os.Stat(errPath); statErr == nil {
 				if execErr == nil {
 					t.Fatalf("expected an error, but got nil")
@@ -116,10 +113,9 @@ func TestScriptTools(t *testing.T) {
 				} else {
 					t.Fatalf("expected a RuntimeError but got a different error type: %T, %v", execErr, execErr)
 				}
-				return // End error test case
+				return
 			}
 
-			// This branch is for tests that are expected to succeed.
 			if execErr != nil {
 				t.Fatalf("unexpected RUNTIME error during test execution: %v", execErr)
 			}
@@ -133,10 +129,8 @@ func TestScriptTools(t *testing.T) {
 				t.Fatalf("failed to unmarshal golden file %s into map[string]any: %v", goldenPath, err)
 			}
 
-			// The result of the NeuroScript execution is a lang.Value, which needs to be unwrapped.
 			nativeGotVal := lang.Unwrap(finalValue)
 
-			// The golden files are structured with a "return" key holding the value.
 			gotMap := map[string]any{"return": nativeGotVal}
 
 			if diff := cmp.Diff(wantMap, gotMap); diff != "" {

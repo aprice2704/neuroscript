@@ -1,31 +1,43 @@
 // NeuroScript Version: 0.5.2
-// File version: 1
+// File version: 2
 // Purpose: Contains tests for the regular expression string tools.
 // filename: pkg/tool/strtools/tools_string_regex_test.go
-// nlines: 65
+// nlines: 74
 // risk_rating: MEDIUM
 
 package strtools
 
 import (
 	"errors"
+	"os"
 	"reflect"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 func TestToolStringRegex(t *testing.T) {
+	t.Logf("DEBUG: Creating new test interpreter for regex tests with a valid HostContext.")
+	hostCtx := &interpreter.HostContext{
+		Logger: logging.NewTestLogger(t),
+		Stdout: os.Stdout,
+		Stdin:  os.Stdin,
+		Stderr: os.Stderr,
+	}
 	// Setup: Create a policy that grants regex capability.
 	testPolicy := policy.NewBuilder(policy.ContextConfig).
 		Allow("tool.str.*").
 		Grant("str:use:regex").
 		Build()
 
-	interp := interpreter.NewInterpreter(interpreter.WithExecPolicy(testPolicy))
+	interp := interpreter.NewInterpreter(
+		interpreter.WithHostContext(hostCtx),
+		interpreter.WithExecPolicy(testPolicy),
+	)
 	// Manually register the regex tools for the test.
 	for _, impl := range stringRegexToolsToRegister {
 		if _, err := interp.ToolRegistry().RegisterTool(impl); err != nil {

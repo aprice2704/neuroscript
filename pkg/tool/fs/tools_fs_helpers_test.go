@@ -2,6 +2,7 @@
 package fs_test
 
 import (
+	"bytes"
 	"errors"
 	"os"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/testutil"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/tool/fs"
@@ -30,9 +32,16 @@ type fsTestCase struct {
 // newFsTestInterpreter creates a self-contained interpreter with a sandbox for fs tool testing.
 func newFsTestInterpreter(t *testing.T) *interpreter.Interpreter {
 	t.Helper()
+
+	hostCtx := &interpreter.HostContext{
+		Logger: logging.NewTestLogger(t),
+		Stdout: &bytes.Buffer{},
+		Stdin:  &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+	}
 	// Use the centralized helper to get the sandbox option.
 	sandboxOpt := testutil.NewTestSandbox(t)
-	interp := interpreter.NewInterpreter(sandboxOpt)
+	interp := interpreter.NewInterpreter(interpreter.WithHostContext(hostCtx), sandboxOpt)
 
 	for _, toolImpl := range fs.FsToolsToRegister {
 		if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {

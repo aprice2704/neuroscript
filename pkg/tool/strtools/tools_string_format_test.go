@@ -1,23 +1,36 @@
 // NeuroScript Version: 0.5.2
-// File version: 5
+// File version: 6
 // Purpose: Contains tests for the 'Inspect' string formatting tool.
 // filename: pkg/tool/strtools/tools_string_format_test.go
-// nlines: 90
+// nlines: 99
 // risk_rating: LOW
 
 package strtools
 
 import (
 	"errors"
+	"os"
 	"reflect"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 func TestToolInspect(t *testing.T) {
-	interp := interpreter.NewInterpreter()
+	t.Logf("DEBUG: Creating new test interpreter for format tests with a valid HostContext.")
+	hostCtx := &interpreter.HostContext{
+		Logger: logging.NewTestLogger(t),
+		Stdout: os.Stdout,
+		Stdin:  os.Stdin,
+		Stderr: os.Stderr,
+	}
+	interp := interpreter.NewInterpreter(
+		interpreter.WithHostContext(hostCtx),
+		interpreter.WithExecPolicy(policy.AllowAll()),
+	)
 
 	for _, impl := range stringFormatToolsToRegister {
 		if _, err := interp.ToolRegistry().RegisterTool(impl); err != nil {

@@ -1,12 +1,13 @@
 // NeuroScript Version: 0.7.0
-// File version: 4
-// Purpose: Corrected tests to use the snake_case 'api_key' to align with the new standard.
+// File version: 5
+// Purpose: Corrected test setup to initialize the interpreter with a valid HostContext, fixing a panic.
 // filename: pkg/tool/account/tools_account_test.go
-// nlines: 128
+// nlines: 139
 // risk_rating: MEDIUM
 package account_test
 
 import (
+	"bytes"
 	"errors"
 	"reflect"
 	"testing"
@@ -15,6 +16,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/capability"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	toolaccount "github.com/aprice2704/neuroscript/pkg/tool/account"
@@ -34,6 +36,13 @@ type accountTestCase struct {
 func newAccountTestInterpreter(t *testing.T) *interpreter.Interpreter {
 	t.Helper()
 
+	hostCtx := &interpreter.HostContext{
+		Logger: logging.NewTestLogger(t),
+		Stdout: &bytes.Buffer{},
+		Stdin:  &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+	}
+
 	testPolicy := policy.AllowAll()
 	testPolicy.Context = policy.ContextConfig
 	testPolicy.Grants = capability.NewGrantSet(
@@ -43,7 +52,10 @@ func newAccountTestInterpreter(t *testing.T) *interpreter.Interpreter {
 		capability.Limits{},
 	)
 
-	interp := interpreter.NewInterpreter(interpreter.WithExecPolicy(testPolicy))
+	interp := interpreter.NewInterpreter(
+		interpreter.WithHostContext(hostCtx),
+		interpreter.WithExecPolicy(testPolicy),
+	)
 
 	for _, toolImpl := range toolaccount.AccountToolsToRegister {
 		if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {

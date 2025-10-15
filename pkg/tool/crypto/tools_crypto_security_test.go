@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 1
-// Purpose: Provides security-focused tests for JWT tools, covering claim validation and malformed inputs.
+// File version: 2
+// Purpose: Corrected test setup to initialize the interpreter with a valid HostContext, fixing a panic.
 // filename: pkg/tool/crypto/tools_crypto_security_test.go
 // nlines: 101
 // risk_rating: HIGH
@@ -8,12 +8,14 @@
 package crypto
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/types"
 	"github.com/golang-jwt/jwt/v5"
@@ -22,7 +24,16 @@ import (
 func TestToolJWTSecurity(t *testing.T) {
 	// Setup: A permissive policy for testing tool logic directly.
 	testPolicy := policy.NewBuilder(policy.ContextConfig).Allow("tool.crypto.*").Grant("crypto:sign:jwt").Build()
-	interp := interpreter.NewInterpreter(interpreter.WithExecPolicy(testPolicy))
+	hostCtx := &interpreter.HostContext{
+		Logger: logging.NewTestLogger(t),
+		Stdout: &bytes.Buffer{},
+		Stdin:  &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+	}
+	interp := interpreter.NewInterpreter(
+		interpreter.WithExecPolicy(testPolicy),
+		interpreter.WithHostContext(hostCtx),
+	)
 	for _, impl := range cryptoToolsToRegister {
 		if _, err := interp.ToolRegistry().RegisterTool(impl); err != nil {
 			t.Fatalf("Failed to register tool %q: %v", impl.Spec.Name, err)

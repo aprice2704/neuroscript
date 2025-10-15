@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.4.0
-// File version: 2
+// File version: 3
 // Purpose: Corrected toolName to "LineCount" to match registry and updated result types to float64.
 // filename: pkg/tool/strtools/tools_string_utils_test.go
-// nlines: 60
+// nlines: 62
 // risk_rating: LOW
 
 package strtools
@@ -12,7 +12,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/types"
@@ -59,7 +58,7 @@ func testStringUtilToolHelper(t *testing.T, interp tool.Runtime, tc struct {
 }
 
 func TestToolLineCountString(t *testing.T) {
-	interp := interpreter.NewInterpreter()
+	interp := newStringTestInterpreter(t)
 	tests := []struct {
 		name       string
 		toolName   string

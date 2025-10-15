@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 5
-// Purpose: Corrected package name and function calls to resolve build errors.
+// File version: 8
+// Purpose: Fixes test failures by adding a dummy function to the test tool and correcting assertions for unwrapped structs.
 // filename: pkg/tool/meta/tools_meta_test.go
-// nlines: 104
-// risk_rating: LOW
+// nlines: 130
+// risk_rating: MEDIUM
 
 package meta_test
 
@@ -54,11 +54,14 @@ func (m *mockRuntime) GetHandleValue(handle, prefix string) (interface{}, error)
 func (m *mockRuntime) AgentModels() interfaces.AgentModelReader                  { return nil }
 func (m *mockRuntime) AgentModelsAdmin() interfaces.AgentModelAdmin              { return nil }
 
-func newTestRuntime(t *testing.T) tool.Runtime {
+func newTestRuntime(t *testing.T) *mockRuntime {
 	t.Helper()
 	rt := &mockRuntime{}
 	registry := tool.NewToolRegistry(rt)
 	rt.registry = registry
+	rt.execPolicy = &policy.ExecPolicy{
+		Allow: []string{"tool.meta.*"}, // Allow all meta tools for testing
+	}
 	if err := meta.RegisterTools(registry); err != nil {
 		t.Fatalf("Failed to register meta tools: %v", err)
 	}
@@ -78,20 +81,20 @@ func TestToolMetaGetTool(t *testing.T) {
 
 	testCases := []struct {
 		name          string
-		args          []any
+		args          map[string]lang.Value
 		wantFound     bool
 		wantFullName  string
 		wantToolErrIs error
 	}{
-		{"Success - Find existing tool", []any{"tool.test.dummy"}, true, "tool.test.dummy", nil},
-		{"Failure - Tool not found", []any{"tool.nonexistent.tool"}, false, "", nil},
-		{"Failure - Invalid argument type", []any{123}, false, "", lang.ErrInvalidArgument},
-		{"Failure - Too few arguments", []any{}, false, "", lang.ErrArgumentMismatch},
+		{"Success - Find existing tool", map[string]lang.Value{"fullName": lang.StringValue{Value: "tool.test.dummy"}}, true, "tool.test.dummy", nil},
+		{"Failure - Tool not found", map[string]lang.Value{"fullName": lang.StringValue{Value: "tool.nonexistent.tool"}}, false, "", nil},
+		{"Failure - Invalid argument type", map[string]lang.Value{"fullName": lang.NumberValue{Value: 123}}, false, "", lang.ErrArgumentMismatch},
+		{"Failure - Missing required argument", map[string]lang.Value{}, false, "", lang.ErrArgumentMismatch},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := meta.GetTool(rt, tc.args)
+			result, err := rt.ToolRegistry().ExecuteTool("tool.meta.getTool", tc.args)
 
 			if tc.wantToolErrIs != nil {
 				if !errors.Is(err, tc.wantToolErrIs) {
@@ -103,7 +106,8 @@ func TestToolMetaGetTool(t *testing.T) {
 				t.Fatalf("Unexpected error: %v", err)
 			}
 
-			resultMap, ok := result.(map[string]any)
+			unwrapped := lang.Unwrap(result)
+			resultMap, ok := unwrapped.(map[string]any)
 			if !ok {
 				t.Fatalf("Expected result to be a map, got %T", result)
 			}
@@ -113,11 +117,39 @@ func TestToolMetaGetTool(t *testing.T) {
 			}
 
 			if tc.wantFound {
-				spec, _ := resultMap["spec"].(tool.ToolSpec)
-				if types.FullName(spec.FullName) != types.FullName(tc.wantFullName) {
-					t.Errorf("Mismatched tool name: got %s, want %s", spec.FullName, tc.wantFullName)
+				specMap, _ := resultMap["spec"].(map[string]any)
+				fullName, _ := specMap["fullname"].(string)
+				if types.FullName(fullName) != types.FullName(tc.wantFullName) {
+					t.Errorf("Mismatched tool name: got %s, want %s", fullName, tc.wantFullName)
 				}
 			}
 		})
+	}
+}
+
+func TestToolMetaListTools(t *testing.T) {
+	rt := newTestRuntime(t)
+	dummyTool := tool.ToolImplementation{
+		Spec: tool.ToolSpec{Name: "dummy", Group: "test"},
+		Func: func(rt tool.Runtime, args []any) (any, error) { return "ok", nil },
+	}
+	if _, err := rt.ToolRegistry().RegisterTool(dummyTool); err != nil {
+		t.Fatalf("Failed to register dummy tool: %v", err)
+	}
+
+	result, err := rt.ToolRegistry().ExecuteTool("tool.meta.listTools", map[string]lang.Value{})
+	if err != nil {
+		t.Fatalf("ExecuteTool failed unexpectedly: %v", err)
+	}
+
+	unwrapped := lang.Unwrap(result)
+	specs, ok := unwrapped.([]interface{})
+	if !ok {
+		t.Fatalf("Expected result to be a slice of specs, but got %T", unwrapped)
+	}
+
+	// Should find the 3 meta tools + the 1 dummy tool
+	if len(specs) != 4 {
+		t.Errorf("Expected to find 4 tools, but got %d", len(specs))
 	}
 }

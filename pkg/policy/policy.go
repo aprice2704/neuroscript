@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 5
-// Purpose: Exported CalculateChecksum for use in external tests.
+// File version: 6
+// Purpose: Exported the PatMatch function so it can be used by the policygate package, ensuring consistent, case-insensitive tool name matching across the system.
 // filename: pkg/policy/policy.go
 // nlines: 187
 // risk_rating: HIGH
@@ -136,14 +136,15 @@ func disallowed(name string, allow, deny []string) bool {
 
 func matchAny(s string, pats []string) bool {
 	for _, p := range pats {
-		if patMatch(s, p) {
+		if PatMatch(s, p) {
 			return true
 		}
 	}
 	return false
 }
 
-func patMatch(s, p string) bool {
+// PatMatch performs a case-insensitive wildcard match of a string against a pattern.
+func PatMatch(s, p string) bool {
 	ls := strings.ToLower(s)
 	lp := strings.ToLower(p)
 	if lp == "*" || ls == lp {

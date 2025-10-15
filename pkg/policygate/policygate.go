@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 9
-// Purpose: Expanded the grant check error message to show both required and possessed capabilities for easier debugging.
+// File version: 11
+// Purpose: Restored the exported `RuleMatches` function as a passthrough to `policy.PatMatch` to fix a build error in an external package. Centralized matching logic within it.
 // filename: pkg/policygate/policygate.go
-// nlines: 104
+// nlines: 97
 // risk_rating: HIGH
 
 package policygate
@@ -51,7 +51,6 @@ func Check(rt Runtime, cap capability.Capability) error {
 	}
 
 	if !allowedByName {
-		// FIX: Create a detailed error message explaining the allow list failure.
 		errMsg := fmt.Sprintf("action requiring capability [%s] was not found in the policy's allow list. Allow list contains: [%s]", cap.String(), strings.Join(p.Allow, ", "))
 		return lang.NewRuntimeError(lang.ErrorCodePolicy, errMsg, policy.ErrPolicy)
 	}
@@ -75,28 +74,15 @@ func Check(rt Runtime, cap capability.Capability) error {
 	return lang.NewRuntimeError(lang.ErrorCodePolicy, errMsg, policy.ErrCapability)
 }
 
-// RuleMatches checks if a policy rule (e.g., "tool.fs.*" or "*") matches a capability.
+// RuleMatches checks if a policy rule (e.g., "tool.fs.*") matches any scope
+// within a capability, using the case-insensitive logic from the policy package.
+// This function is preserved for external callers but delegates its logic.
 func RuleMatches(rule string, cap capability.Capability) bool {
-	if rule == "*" {
-		return true
-	}
-
-	// This is the primary match for tools, e.g. rule "tool.account.register"
-	// matching a capability with a scope of "tool.account.register"
+	// A capability can have multiple scopes (e.g., tool name and effects).
+	// If the rule matches any of them, the capability is considered matched.
 	for _, scope := range cap.Scopes {
-		if rule == scope {
+		if policy.PatMatch(scope, rule) {
 			return true
-		}
-	}
-
-	// This handles wildcard matching, e.g., a rule of "tool.account.*"
-	// matching a capability with a scope of "tool.account.register"
-	if strings.HasSuffix(rule, ".*") {
-		prefix := strings.TrimSuffix(rule, ".*")
-		for _, scope := range cap.Scopes {
-			if strings.HasPrefix(scope, prefix) {
-				return true
-			}
 		}
 	}
 	return false

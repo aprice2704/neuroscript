@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.4.0
-// File version: 1
+// File version: 2
 // Purpose: Refactored to a single, table-driven test using the new primitive-aware helper.
 // filename: pkg/tool/strtools/tools_string_predicates_test.go
-// nlines: 66
+// nlines: 68
 // risk_rating: LOW
 
 package strtools
@@ -12,7 +12,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/types"
@@ -59,7 +58,7 @@ func testStringPredicateToolHelper(t *testing.T, interp tool.Runtime, tc struct 
 }
 
 func TestToolContainsPrefixSuffix(t *testing.T) {
-	interp := interpreter.NewInterpreter()
+	interp := newStringTestInterpreter(t)
 	tests := []struct {
 		name       string
 		toolName   string

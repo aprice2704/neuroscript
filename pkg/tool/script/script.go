@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.5.4
-// File version: 10
-// Purpose: Returns error on empty script and fixes astBuilder call signature.
+// NeuroScript Version: 0.8.0
+// File version: 12
+// Purpose: Adds a static type assertion to ensure the interpreter implements the ScriptHost interface.
 // filename: pkg/tool/script/script.go
-// nlines: 147
+// nlines: 154
 // risk_rating: MEDIUM
 package script
 
@@ -11,16 +11,17 @@ import (
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/parser"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
-// scriptHost defines the methods the script tools need from the policy.
+// ScriptHost defines the methods the script tools need from the interpreter.
 // This is necessary because the standard tool.Runtime is too restrictive
 // for tools that need to inspect or modify the program's structure.
-// The underlying interpreter must implement these methods.
-type scriptHost interface {
+type ScriptHost interface {
+	tool.Runtime
 	// AddProcedure adds a single procedure to the interpreter's registry.
 	AddProcedure(proc ast.Procedure) error
 	// RegisterEvent registers a single event handler.
@@ -29,13 +30,13 @@ type scriptHost interface {
 	KnownProcedures() map[string]*ast.Procedure
 }
 
+// Statically assert that the concrete Interpreter type satisfies the ScriptHost interface.
+var _ ScriptHost = (*interpreter.Interpreter)(nil)
+
 // toolLoadScript is the implementation for the `LoadScript` tool. It takes a
 // script as a string, parses it, builds an AST, and merges it into the
 // interpreter's currently loaded program.
 func toolLoadScript(rt tool.Runtime, args []any) (any, error) {
-	if err := lang.Check(nil); err != nil {
-		return nil, err
-	}
 	if len(args) != 1 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "LoadScript requires exactly one argument", nil)
 	}
@@ -47,10 +48,10 @@ func toolLoadScript(rt tool.Runtime, args []any) (any, error) {
 
 	// Return an error if the script content is empty or only whitespace.
 	if strings.TrimSpace(scriptContent) == "" {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeSyntax, "cannot load an empty script", nil)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeToolExecutionFailed, "cannot load an empty script", lang.ErrSyntax)
 	}
 
-	host, ok := rt.(scriptHost)
+	host, ok := rt.(ScriptHost)
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "runtime does not support required script-loading interface", nil)
 	}
@@ -67,13 +68,12 @@ func toolLoadScript(rt tool.Runtime, args []any) (any, error) {
 	}
 
 	astBuilder := parser.NewASTBuilder(logger)
-	// Capture all three return values from the builder to fix the compiler error.
 	programAST, metadata, buildErr := astBuilder.Build(parseTree)
 	if buildErr != nil {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("failed to build script AST: %v", buildErr), buildErr)
 	}
 
-	// Manually merge the new program AST into the interpreter via the scriptHost interface.
+	// Manually merge the new program AST into the interpreter via the ScriptHost interface.
 	for _, proc := range programAST.Procedures {
 		if err := host.AddProcedure(*proc); err != nil {
 			return nil, lang.NewRuntimeError(lang.ErrorCodeExecutionFailed, fmt.Sprintf("failed to load function '%s': %v", proc.Name(), err), err)
@@ -89,7 +89,7 @@ func toolLoadScript(rt tool.Runtime, args []any) (any, error) {
 	result := map[string]interface{}{
 		"functions_loaded":      len(programAST.Procedures),
 		"event_handlers_loaded": len(programAST.Events),
-		"metadata":              convertMap(metadata), // Use the metadata returned from the builder
+		"metadata":              convertMap(metadata),
 	}
 	return result, nil
 }
@@ -98,14 +98,11 @@ func toolLoadScript(rt tool.Runtime, args []any) (any, error) {
 // inspects the interpreter's loaded program and returns a map of all
 // available function signatures.
 func toolScriptListFunctions(rt tool.Runtime, args []any) (any, error) {
-	if err := lang.Check(nil); err != nil {
-		return nil, err
-	}
 	if len(args) != 0 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "Script.ListFunctions requires no arguments", nil)
 	}
 
-	host, ok := rt.(scriptHost)
+	host, ok := rt.(ScriptHost)
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "runtime does not support required script-listing interface", nil)
 	}

@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.4.2
-// File version: 1.3.0
-// Purpose: Updated LoadScript tool definition to include file metadata in its return value.
+// NeuroScript Version: 0.8.0
+// File version: 2
+// Purpose: Exports the tool list for use in external test packages.
 // filename: pkg/tool/script/tooldefs_script.go
 package script
 
@@ -10,7 +10,9 @@ import (
 
 const group = "script"
 
-var scriptToolsToRegister = []tool.ToolImplementation{
+// ToolsToRegister holds the definitions for the script-related tools.
+// It is exported to allow external test packages to register these tools.
+var ToolsToRegister = []tool.ToolImplementation{
 	{
 		Spec: tool.ToolSpec{
 			Name:        "LoadScript",

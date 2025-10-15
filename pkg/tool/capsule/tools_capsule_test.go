@@ -1,18 +1,20 @@
 // NeuroScript Version: 0.7.2
-// File version: 13
-// Purpose: Contains shared unit test helpers for the capsule toolset.
+// File version: 14
+// Purpose: Corrected test setup to initialize the interpreter with a valid HostContext, fixing a panic.
 // filename: pkg/tool/capsule/tools_test.go
-// nlines: 100
+// nlines: 111
 // risk_rating: MEDIUM
 package capsule_test
 
 import (
+	"bytes"
 	"errors"
 	"reflect"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/capsule"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	toolcapsule "github.com/aprice2704/neuroscript/pkg/tool/capsule"
@@ -33,6 +35,13 @@ type capsuleTestCase struct {
 func newCapsuleTestInterpreter(t *testing.T, isPrivileged bool) *interpreter.Interpreter {
 	t.Helper()
 
+	hostCtx := &interpreter.HostContext{
+		Logger: logging.NewTestLogger(t),
+		Stdout: &bytes.Buffer{},
+		Stdin:  &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+	}
+
 	var testPolicy *policy.ExecPolicy
 	var opts []interpreter.InterpreterOption
 
@@ -52,6 +61,7 @@ func newCapsuleTestInterpreter(t *testing.T, isPrivileged bool) *interpreter.Int
 			).Build()
 	}
 	opts = append(opts, interpreter.WithExecPolicy(testPolicy))
+	opts = append(opts, interpreter.WithHostContext(hostCtx))
 
 	interp := interpreter.NewInterpreter(opts...)
 

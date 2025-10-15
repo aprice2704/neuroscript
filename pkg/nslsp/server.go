@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 29
-// Purpose: Integrates the SymbolManager to enable workspace-wide symbol scanning on initialization. FIX: Added logging for the interpreter's build info on startup.
+// File version: 30
+// Purpose: Integrates the SymbolManager to enable workspace-wide symbol scanning on initialization. FIX: Corrected interpreter instantiation to use the HostContext builder pattern.
 // filename: pkg/nslsp/server.go
-// nlines: 115
+// nlines: 125
 // risk_rating: HIGH
 
 package nslsp
@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/aprice2704/neuroscript/pkg/api"
 	"github.com/aprice2704/neuroscript/pkg/parser"
@@ -38,7 +39,18 @@ type Server struct {
 func NewServer(logger *log.Logger) *Server {
 	adapterLogger := NewServerLogger(logger)
 
-	interp := api.New(api.WithLogger(adapterLogger))
+	// THE FIX IS HERE: Create a HostContext and pass it to the interpreter.
+	hostCtx, err := api.NewHostContextBuilder().
+		WithLogger(adapterLogger).
+		WithStdout(os.Stdout).
+		WithStderr(os.Stderr).
+		WithStdin(os.Stdin).
+		Build()
+	if err != nil {
+		logger.Fatalf("CRITICAL: Failed to create interpreter HostContext: %v", err)
+	}
+
+	interp := api.New(api.WithHostContext(hostCtx))
 	if interp == nil {
 		logger.Fatal("CRITICAL: Failed to initialize NeuroScript interpreter via api.New()")
 	}

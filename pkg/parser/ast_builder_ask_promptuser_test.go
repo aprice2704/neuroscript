@@ -1,8 +1,8 @@
 // filename: pkg/parser/ast_builder_ask_promptuser_test.go
 // NeuroScript Version: 0.6.0
-// File version: 3
+// File version: 4
 // Purpose: Corrected all test assertions to use the canonical ast.Step.AskStmt field and its sub-fields, resolving compiler errors and panics.
-// nlines: 100
+// nlines: 132
 // risk_rating: MEDIUM
 
 package parser
@@ -118,17 +118,23 @@ func TestPromptUserStatementParsing(t *testing.T) {
 			t.Fatalf("Expected 1 step, got %d", len(proc.Steps))
 		}
 		step := proc.Steps[0]
+
+		// FIX: Correct the test to check the modern, structured ast.PromptUserStmt
+		// instead of the deprecated generic `Values` and `LValues` fields.
 		if step.Type != "promptuser" {
 			t.Errorf("Expected step type 'promptuser', got '%s'", step.Type)
 		}
-		if len(step.Values) != 1 {
-			t.Errorf("Expected 1 value (prompt), got %d", len(step.Values))
+		if step.PromptUserStmt == nil {
+			t.Fatal("Expected step.PromptUserStmt to be a non-nil PromptUserStmt")
 		}
-		if len(step.LValues) != 1 {
-			t.Errorf("Expected 1 LValue, got %d", len(step.LValues))
+		if step.PromptUserStmt.PromptExpr == nil {
+			t.Error("Expected PromptExpr to be non-nil")
 		}
-		if step.LValues[0].Identifier != "user_name" {
-			t.Errorf("Expected LValue identifier 'user_name', got '%s'", step.LValues[0].Identifier)
+		if step.PromptUserStmt.IntoTarget == nil {
+			t.Fatal("Expected IntoTarget to be non-nil")
+		}
+		if step.PromptUserStmt.IntoTarget.Identifier != "user_name" {
+			t.Errorf("Expected LValue identifier 'user_name', got '%s'", step.PromptUserStmt.IntoTarget.Identifier)
 		}
 	})
 }

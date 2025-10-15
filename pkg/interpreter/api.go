@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 12
-// Purpose: Patched Run method to correctly call un-exported runProcedure.
+// File version: 13
+// Purpose: Patched GetToolSpec to act as an adapter between tool.ToolSpec and eval.ToolSpec.
 // filename: pkg/interpreter/api.go
-// nlines: 120
+// nlines: 129
 // risk_rating: MEDIUM
 
 package interpreter
@@ -14,10 +14,10 @@ import (
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/eval"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/provider"
-	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
@@ -81,11 +81,6 @@ func (i *Interpreter) KnownProcedures() map[string]*ast.Procedure {
 	return i.state.knownProcedures
 }
 
-// ToolRegistry returns the interpreter's tool registry.
-func (i *Interpreter) ToolRegistry() tool.ToolRegistry {
-	return i.tools
-}
-
 // Logger returns the interpreter's configured logger from the HostContext.
 func (i *Interpreter) Logger() interfaces.Logger {
 	if i.hostContext == nil || i.hostContext.Logger == nil {
@@ -123,11 +118,22 @@ func (i *Interpreter) setTurnContext(ctx context.Context) {
 	i.turnCtx = ctx
 }
 
-// GetToolSpec satisfies the eval.Runtime interface.
-func (i *Interpreter) GetToolSpec(toolName types.FullName) (tool.ToolSpec, bool) {
+// GetToolSpec satisfies the eval.Runtime interface by fetching the full tool
+// spec and converting it to the minimal eval.ToolSpec.
+func (i *Interpreter) GetToolSpec(toolName types.FullName) (eval.ToolSpec, bool) {
 	t, ok := i.tools.GetTool(toolName)
 	if !ok {
-		return tool.ToolSpec{}, false
+		return eval.ToolSpec{}, false
 	}
-	return t.Spec, true
+
+	// Adapt the tool.ToolSpec to the eval.ToolSpec
+	evalArgs := make([]eval.ArgSpec, len(t.Spec.Args))
+	for i, arg := range t.Spec.Args {
+		evalArgs[i] = eval.ArgSpec{Name: arg.Name, Type: string(arg.Type)}
+	}
+
+	return eval.ToolSpec{
+		FullName: t.Spec.FullName,
+		Args:     evalArgs,
+	}, true
 }

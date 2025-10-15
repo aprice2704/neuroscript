@@ -1,12 +1,13 @@
-// NeuroScript Version: 0.6.5
-// File version: 10
-// Purpose: Implemented a missing callGetValue helper and corrected other helpers to align with available tools.
+// NeuroScript Version: 0.8.0
+// File version: 11
+// Purpose: Corrected interpreter instantiation to use the HostContext builder, fixing a compiler error.
 // filename: pkg/tool/tree/tools_tree_helpers_test.go
-// nlines: 150
+// nlines: 160
 // risk_rating: LOW
 package tree_test
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"testing"
@@ -33,7 +34,16 @@ type treeTestCase struct {
 
 func testTreeToolHelper(t *testing.T, testName string, testFunc func(t *testing.T, interp tool.Runtime)) {
 	t.Run(testName, func(t *testing.T) {
-		interp := interpreter.NewInterpreter(interpreter.WithLogger(logging.NewTestLogger(t)))
+		hostCtx, err := interpreter.NewHostContextBuilder().
+			WithLogger(logging.NewTestLogger(t)).
+			WithStdout(&bytes.Buffer{}).
+			WithStdin(&bytes.Buffer{}).
+			WithStderr(&bytes.Buffer{}).
+			Build()
+		if err != nil {
+			t.Fatalf("Failed to create host context: %v", err)
+		}
+		interp := interpreter.NewInterpreter(interpreter.WithHostContext(hostCtx))
 		if err := tool.RegisterGlobalToolsets(interp.ToolRegistry()); err != nil {
 			t.Fatalf("Failed to register extended tools: %v", err)
 		}

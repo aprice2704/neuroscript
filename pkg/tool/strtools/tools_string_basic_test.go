@@ -1,19 +1,22 @@
 // NeuroScript Version: 0.4.0
-// File version: 1
+// File version: 2
 // Purpose: Refactored to test primitive-based tool implementations directly.
 // filename: pkg/tool/strtools/tools_string_basic_test.go
-// nlines: 161
+// nlines: 178
 // risk_rating: LOW
 
 package strtools
 
 import (
 	"errors"
+	"os"
 	"reflect"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
@@ -24,6 +27,31 @@ func MakeArgs(vals ...interface{}) []interface{} {
 		return []interface{}{}
 	}
 	return vals
+}
+
+// newStringTestInterpreter creates a self-contained interpreter for string tool testing.
+func newStringTestInterpreter(t *testing.T) *interpreter.Interpreter {
+	t.Helper()
+	t.Logf("DEBUG: Creating new test interpreter for strtools with a valid HostContext.")
+	hostCtx := &interpreter.HostContext{
+		Logger: logging.NewTestLogger(t),
+		Stdout: os.Stdout,
+		Stdin:  os.Stdin,
+		Stderr: os.Stderr,
+	}
+
+	// String tools don't require special policies, so AllowAll is fine.
+	interp := interpreter.NewInterpreter(
+		interpreter.WithHostContext(hostCtx),
+		interpreter.WithExecPolicy(policy.AllowAll()),
+	)
+	// Register the string tools
+	for _, toolImpl := range stringToolsToRegister {
+		if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
+			t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
+		}
+	}
+	return interp
 }
 
 // testStringToolHelper tests a tool implementation directly with primitives.
@@ -68,7 +96,7 @@ func testStringToolHelper(t *testing.T, interp tool.Runtime, tc struct {
 }
 
 func TestToolStringLength(t *testing.T) {
-	interp := interpreter.NewInterpreter()
+	interp := newStringTestInterpreter(t)
 	tests := []struct {
 		name       string
 		toolName   string
@@ -87,7 +115,7 @@ func TestToolStringLength(t *testing.T) {
 }
 
 func TestToolSubstring(t *testing.T) {
-	interp := interpreter.NewInterpreter()
+	interp := newStringTestInterpreter(t)
 	tests := []struct {
 		name       string
 		toolName   string
@@ -109,7 +137,7 @@ func TestToolSubstring(t *testing.T) {
 }
 
 func TestToolToUpperLower(t *testing.T) {
-	interp := interpreter.NewInterpreter()
+	interp := newStringTestInterpreter(t)
 	tests := []struct {
 		name       string
 		toolName   string
@@ -129,7 +157,7 @@ func TestToolToUpperLower(t *testing.T) {
 }
 
 func TestToolTrimSpace(t *testing.T) {
-	interp := interpreter.NewInterpreter()
+	interp := newStringTestInterpreter(t)
 	tests := []struct {
 		name       string
 		toolName   string
@@ -147,7 +175,7 @@ func TestToolTrimSpace(t *testing.T) {
 }
 
 func TestToolReplaceAll(t *testing.T) {
-	interp := interpreter.NewInterpreter()
+	interp := newStringTestInterpreter(t)
 	tests := []struct {
 		name       string
 		toolName   string

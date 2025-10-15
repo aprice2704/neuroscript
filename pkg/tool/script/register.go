@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.5.2
-// File version: 1
-// Purpose: Implements self-registration for the script toolset.
+// NeuroScript Version: 0.8.0
+// File version: 2
+// Purpose: Updates self-registration to use the exported tool list.
 // filename: pkg/tool/script/register.go
 package script
 
@@ -11,6 +11,6 @@ import "github.com/aprice2704/neuroscript/pkg/tool"
 func init() {
 	tool.AddToolsetRegistration(
 		"script",
-		tool.CreateRegistrationFunc("script", scriptToolsToRegister),
+		tool.CreateRegistrationFunc("script", ToolsToRegister),
 	)
 }

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 82
-// Purpose: Added an exported ID() method to allow safe access to the interpreter's unique ID.
+// File version: 83
+// Purpose: Adds a static assertion to ensure Interpreter satisfies the tool.Runtime interface.
 // filename: pkg/interpreter/interpreter.go
-// nlines: 226
+// nlines: 230
 // risk_rating: LOW
 
 package interpreter
@@ -26,6 +26,9 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/google/uuid"
 )
+
+// Statically assert that the concrete Interpreter type satisfies the tool.Runtime interface.
+var _ tool.Runtime = (*Interpreter)(nil)
 
 // DefaultSelfHandle is the internal handle for the default whisper buffer.
 const DefaultSelfHandle = "default_self_buffer"

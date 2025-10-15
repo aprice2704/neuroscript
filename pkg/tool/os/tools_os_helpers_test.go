@@ -1,21 +1,23 @@
 // NeuroScript Version: 0.6.0
-// File version: 4
+// File version: 5
 // Purpose: Provides test helpers for the 'os' tool package. Updated to use exported tool list.
 // filename: pkg/tool/os/tools_os_helpers_test.go
-// nlines: 80
+// nlines: 91
 // risk_rating: LOW
 
 package os_test
 
 import (
 	"errors"
+	"os"
 	"reflect"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/tool"
-	"github.com/aprice2704/neuroscript/pkg/tool/os"
+	ostool "github.com/aprice2704/neuroscript/pkg/tool/os"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
@@ -34,6 +36,16 @@ type osTestCase struct {
 func newOsTestInterpreter(t *testing.T) *interpreter.Interpreter {
 	t.Helper()
 
+	// DEBUG: Per AGENTS.md rule 1b, adding debug output until tests pass.
+	t.Logf("DEBUG: Creating new test interpreter for os tools with a valid HostContext.")
+
+	hostCtx := &interpreter.HostContext{
+		Logger: logging.NewTestLogger(t),
+		Stdout: os.Stdout,
+		Stdin:  os.Stdin,
+		Stderr: os.Stderr,
+	}
+
 	// Define a policy that allows the os tools to run.
 	testPolicy := policy.NewBuilder(policy.ContextConfig).
 		Allow("tool.os.*").
@@ -45,10 +57,13 @@ func newOsTestInterpreter(t *testing.T) *interpreter.Interpreter {
 	// Manually set the sleep limit for tests.
 	testPolicy.Grants.Limits.TimeMaxSleepSeconds = 5
 
-	interp := interpreter.NewInterpreter(interpreter.WithExecPolicy(testPolicy))
+	interp := interpreter.NewInterpreter(
+		interpreter.WithHostContext(hostCtx),
+		interpreter.WithExecPolicy(testPolicy),
+	)
 
 	// Manually register all os tools for the test interpreter
-	allOsTools := append(os.OsToolsToRegister, os.OsProcToolsToRegister...)
+	allOsTools := append(ostool.OsToolsToRegister, ostool.OsProcToolsToRegister...)
 	for _, toolImpl := range allOsTools {
 		if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
 			t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
@@ -69,7 +84,7 @@ func testOsToolHelper(t *testing.T, tc osTestCase) {
 
 	interp := newOsTestInterpreter(t)
 
-	fullname := types.MakeFullName(os.Group, string(tc.toolName))
+	fullname := types.MakeFullName(ostool.Group, string(tc.toolName))
 	toolImpl, found := interp.ToolRegistry().GetTool(fullname)
 	if !found {
 		t.Fatalf("Tool %q not found in registry", tc.toolName)

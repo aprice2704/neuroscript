@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 18
-// Purpose: Added debug output to the test runner to trace expression evaluation.
+// File version: 19
+// Purpose: Updated mockRuntime to correctly implement the eval.Runtime interface using eval.ToolSpec.
 // filename: pkg/eval/access_test.go
-// nlines: 105
+// nlines: 104
 // risk_rating: HIGH
 
 package eval
@@ -15,7 +15,6 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
@@ -35,8 +34,8 @@ func (m *mockRuntime) ExecuteTool(toolName types.FullName, args map[string]lang.
 func (m *mockRuntime) RunProcedure(procName string, args ...lang.Value) (lang.Value, error) {
 	return nil, errors.New("RunProcedure not implemented in mock")
 }
-func (m *mockRuntime) GetToolSpec(toolName types.FullName) (tool.ToolSpec, bool) {
-	return tool.ToolSpec{}, false
+func (m *mockRuntime) GetToolSpec(toolName types.FullName) (ToolSpec, bool) {
+	return ToolSpec{}, false
 }
 
 type localEvalTestCase struct {

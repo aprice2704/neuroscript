@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 1
-// Purpose: Contains helper methods for the evaluator.
+// File version: 2
+// Purpose: This file now compiles as the 'Required' field has been added to eval.ArgSpec.
 // filename: pkg/eval/helpers_eval.go
 // nlines: 80
 // risk_rating: HIGH

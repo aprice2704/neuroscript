@@ -1,20 +1,21 @@
 // NeuroScript Version: 0.5.2
-// File version: 1
+// File version: 2
 // Purpose: Provides a failing test case to demonstrate that string tools requiring integer arguments do not correctly coerce floating-point inputs.
 // filename: pkg/tool/strtools/tools_string_coercion_test.go
-// nlines: 60
+// nlines: 62
 // risk_rating: LOW
 
 package strtools
 
 import (
 	"testing"
-
-	"github.com/aprice2704/neuroscript/pkg/interpreter"
 )
 
 func TestToolStringArgumentCoercion(t *testing.T) {
-	interp := interpreter.NewInterpreter()
+	// DEBUG: Per AGENTS.md rule 1b, adding debug output until tests pass.
+	// This fixes the panic by using the helper function that provides a HostContext.
+	t.Logf("DEBUG: Creating new test interpreter for coercion tests.")
+	interp := newStringTestInterpreter(t)
 	tests := []struct {
 		name       string
 		toolName   string

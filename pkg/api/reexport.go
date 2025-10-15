@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 52
+// File version: 55
 // Purpose: Centralizes all public API re-exports, exposing the canonical interpreter types and builders.
 // filename: pkg/api/reexport.go
-// nlines: 131
+// nlines: 136
 // risk_rating: LOW
 package api
 
@@ -100,6 +100,7 @@ const (
 	ResAccount = capability.ResAccount
 	ResModel   = capability.ResModel
 	ResCapsule = capability.ResCapsule
+	ResEnv     = capability.ResEnv
 
 	// Capability Verbs
 	VerbRead  = capability.VerbRead
@@ -119,6 +120,7 @@ var (
 	WithAgentModelStore      = interpreter.WithAgentModelStore
 	WithCapsuleRegistry      = interpreter.WithCapsuleRegistry
 	WithCapsuleAdminRegistry = interpreter.WithCapsuleAdminRegistry
+	WithAITranscriptWriter   = interpreter.WithAITranscriptWriter
 
 	// Capability Constructors
 	NewCapability   = capability.New

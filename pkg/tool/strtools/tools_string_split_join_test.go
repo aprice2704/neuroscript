@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.4.0
-// File version: 1
+// File version: 2
 // Purpose: Refactored to test primitive-based tool implementations directly.
 // filename: pkg/tool/strtools/tools_string_split_join_test.go
-// nlines: 107
+// nlines: 109
 // risk_rating: MEDIUM
 
 package strtools
@@ -12,7 +12,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/types"
@@ -59,7 +58,7 @@ func testStringSplitJoinToolHelper(t *testing.T, interp tool.Runtime, tc struct 
 }
 
 func TestToolSplitString(t *testing.T) {
-	interp := interpreter.NewInterpreter()
+	interp := newStringTestInterpreter(t)
 	tests := []struct {
 		name       string
 		toolName   string
@@ -78,7 +77,7 @@ func TestToolSplitString(t *testing.T) {
 }
 
 func TestToolSplitWords(t *testing.T) {
-	interp := interpreter.NewInterpreter()
+	interp := newStringTestInterpreter(t)
 	tests := []struct {
 		name       string
 		toolName   string
@@ -97,7 +96,7 @@ func TestToolSplitWords(t *testing.T) {
 }
 
 func TestToolJoinStrings(t *testing.T) {
-	interp := interpreter.NewInterpreter()
+	interp := newStringTestInterpreter(t)
 	tests := []struct {
 		name       string
 		toolName   string

@@ -1,13 +1,14 @@
-// NeuroScript Version: 0.7.0
-// File version: 1
-// Purpose: Provides common test helper functions for the shape toolset tests.
+// NeuroScript Version: 0.8.0
+// File version: 2
+// Purpose: Corrected interpreter instantiation to use the HostContext builder, fixing a compiler error.
 // filename: pkg/tool/shape/tools_shape_helpers_test.go
-// nlines: 55
+// nlines: 65
 // risk_rating: LOW
 
 package shape_test
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
@@ -21,7 +22,17 @@ import (
 // testShapeToolHelper sets up a fresh interpreter with the shape tools registered.
 func testShapeToolHelper(t *testing.T, testName string, testFunc func(t *testing.T, interp tool.Runtime)) {
 	t.Run(testName, func(t *testing.T) {
-		interp := interpreter.NewInterpreter(interpreter.WithLogger(logging.NewTestLogger(t)))
+		hostCtx, err := interpreter.NewHostContextBuilder().
+			WithLogger(logging.NewTestLogger(t)).
+			WithStdout(&bytes.Buffer{}).
+			WithStdin(&bytes.Buffer{}).
+			WithStderr(&bytes.Buffer{}).
+			Build()
+		if err != nil {
+			t.Fatalf("Failed to create host context: %v", err)
+		}
+
+		interp := interpreter.NewInterpreter(interpreter.WithHostContext(hostCtx))
 		if err := tool.RegisterGlobalToolsets(interp.ToolRegistry()); err != nil {
 			t.Fatalf("Failed to register extended tools: %v", err)
 		}

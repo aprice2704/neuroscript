@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.4.0
-// File version: 1
+// File version: 2
 // Purpose: Provides additional, focused edge-case tests for the Substring tool.
 // filename: pkg/tool/strtools/tools_string_substring_test.go
-// nlines: 55
+// nlines: 57
 // risk_rating: LOW
 
 package strtools
@@ -10,12 +10,11 @@ package strtools
 import (
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 func TestToolSubstringEdgeCases(t *testing.T) {
-	interp := interpreter.NewInterpreter()
+	interp := newStringTestInterpreter(t)
 	tests := []struct {
 		name       string
 		toolName   string

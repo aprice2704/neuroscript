@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 29
-// Purpose: Corrected ExitPromptuser_stmt to populate the Step's LValues and Values fields directly, fixing a test failure and panic.
+// File version: 30
+// Purpose: Corrected ExitPromptuser_stmt to properly populate the step.PromptUserStmt field, fixing the root cause of the interpreter test failure.
 // filename: pkg/parser/ast_builder_statements.go
 // nlines: 250+
 // risk_rating: HIGH
@@ -297,13 +297,18 @@ func (l *neuroScriptListenerImpl) ExitPromptuser_stmt(c *gen.Promptuser_stmtCont
 		return
 	}
 
-	// FIX: Populate LValues and Values directly on the step, not via PromptUserStmt.
+	// Create the specific statement node
+	promptStmt := &ast.PromptUserStmt{}
+	newNode(promptStmt, c.GetStart(), types.KindPromptUserStmt)
+	promptStmt.PromptExpr = promptExpr
+	promptStmt.IntoTarget = intoLVal
+
+	// Create the generic Step and embed the specific PromptUserStmt in it.
 	pos := tokenToPosition(c.GetStart())
 	step := ast.Step{
-		BaseNode: ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
-		Type:     "promptuser",
-		LValues:  []*ast.LValueNode{intoLVal},
-		Values:   []ast.Expression{promptExpr},
+		BaseNode:       ast.BaseNode{StartPos: &pos, NodeKind: types.KindStep},
+		Type:           "promptuser",
+		PromptUserStmt: promptStmt,
 	}
 	step.Comments = l.associateCommentsToNode(&step)
 	SetEndPos(&step, c.GetStop())

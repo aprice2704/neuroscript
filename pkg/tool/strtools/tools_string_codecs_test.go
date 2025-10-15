@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.5.2
-// File version: 3
+// File version: 4
 // Purpose: Corrected the invalid base64 padding test case.
 // filename: pkg/tool/strtools/tools_string_codecs_test.go
-// nlines: 95
+// nlines: 97
 // risk_rating: LOW
 
 package strtools
@@ -10,12 +10,11 @@ package strtools
 import (
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
 func TestToolStringCodecs(t *testing.T) {
-	interp := interpreter.NewInterpreter()
+	interp := newStringTestInterpreter(t)
 	tests := []struct {
 		name       string
 		toolName   string
@@ -47,7 +46,7 @@ func TestToolStringCodecs(t *testing.T) {
 }
 
 func TestToolStringCompression(t *testing.T) {
-	interp := interpreter.NewInterpreter()
+	interp := newStringTestInterpreter(t)
 
 	// The exact compressed output can vary, so we compress and then decompress to test for integrity.
 	originalText := "this is some text that will be compressed and then decompressed. it has repetition. it has repetition."

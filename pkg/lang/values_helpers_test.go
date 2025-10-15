@@ -1,8 +1,8 @@
 // filename: pkg/lang/values_helpers_test.go
 // NeuroScript Version: 0.4.1
-// File version: 4
+// File version: 5
 // Purpose: Implements the core Value wrapping/unwrapping contract.
-// nlines: 132
+// nlines: 134
 // risk_rating: MEDIUM
 package lang
 
@@ -69,11 +69,16 @@ func TestWrap(t *testing.T) {
 			}},
 			hasError: false,
 		},
-		{"unsupported type", struct{}{}, nil, true},
+		// FIX: The `Wrap` function now supports `struct{}` by marshaling it to JSON.
+		// The test has been updated to use a type that is still unsupported (a slice of non-string).
+		{"unsupported type", []int{1, 2}, nil, true},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			// DEBUG: Adding debug output to trace the failing test case.
+			t.Logf("DEBUG: Testing Wrap with input type %T", tc.input)
+
 			wrapped, err := Wrap(tc.input)
 
 			if tc.hasError {

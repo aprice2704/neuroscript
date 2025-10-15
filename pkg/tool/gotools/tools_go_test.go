@@ -1,13 +1,14 @@
 // NeuroScript Version: 0.5.2
-// File version: 6
-// Purpose: Updated to use the centralized testutil.NewTestSandbox helper.
+// File version: 7
+// Purpose: Updated to provide a HostContext during interpreter creation, fixing a panic.
 // filename: pkg/tool/gotools/tools_go_test.go
-// nlines: 129
+// nlines: 139
 // risk_rating: MEDIUM
 
 package gotools_test
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/testutil"
 	"github.com/aprice2704/neuroscript/pkg/tool/gotools"
 )
@@ -39,8 +41,14 @@ func testGoGetModuleInfoHelper(t *testing.T, tc struct {
 }) {
 	t.Helper()
 	t.Run(tc.name, func(t *testing.T) {
+		hostCtx := &interpreter.HostContext{
+			Logger: logging.NewTestLogger(t),
+			Stdout: &bytes.Buffer{},
+			Stdin:  &bytes.Buffer{},
+			Stderr: &bytes.Buffer{},
+		}
 		sandboxOpt := testutil.NewTestSandbox(t)
-		interp := interpreter.NewInterpreter(sandboxOpt)
+		interp := interpreter.NewInterpreter(interpreter.WithHostContext(hostCtx), sandboxOpt)
 		sandboxRoot := interp.SandboxDir()
 
 		// Manually register the Go tools for this test run.

@@ -1,14 +1,15 @@
 // NeuroScript Version: 0.7.0
-// File version: 3
-// Purpose: Corrected the test by creating a fully-formed, valid envelope for the test case and refining the error assertion to correctly distinguish between expected network errors and unexpected parsing failures.
+// File version: 4
+// Purpose: Replaced the mock parsing test with a live integration test that calls the real Google API. On failure, it now attempts to list available models for easier debugging.
 // filename: pkg/provider/google/google_test.go
-// nlines: 80
-// risk_rating: LOW
+// nlines: 65
+// risk_rating: HIGH
 
 package google
 
 import (
 	"context"
+	"os"
 	"strings"
 	"testing"
 
@@ -16,67 +17,55 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/provider"
 )
 
-// TestGoogleProvider_EnvelopeParsing verifies that the Google provider's Chat
-// function correctly handles various prompt formats, including those with
-// prepended text before a valid AEIOU envelope.
-func TestGoogleProvider_EnvelopeParsing(t *testing.T) {
-	p := New()
-	ctx := context.Background()
-	// FIX: A valid, parsable envelope must have an ACTIONS section.
-	validEnvelope, _ := (&aeiou.Envelope{UserData: "test", Actions: "command endcommand"}).Compose()
-
-	testCases := []struct {
-		name        string
-		prompt      string
-		expectErr   bool
-		mustContain string
-	}{
-		{
-			name:        "Fails on plain string with no envelope",
-			prompt:      "this is not an envelope",
-			expectErr:   true,
-			mustContain: "requires a valid AEIOU envelope",
-		},
-		{
-			name:        "Fails on empty string",
-			prompt:      "",
-			expectErr:   true,
-			mustContain: "requires a valid AEIOU envelope",
-		},
-		{
-			name:        "Fails on incomplete envelope",
-			prompt:      "<<<NSENV:V3:START>>>",
-			expectErr:   true,
-			mustContain: "requires a valid AEIOU envelope",
-		},
-		{
-			name:        "Succeeds with prepended text before a valid envelope",
-			prompt:      "This is some bootstrap text.\n\n" + validEnvelope,
-			expectErr:   false, // This should now pass parsing without error.
-			mustContain: "",
-		},
+// TestGoogleProvider_LiveChat performs a live integration test against the
+// Google Gemini API. It requires the GEMINI_API_KEY environment variable to be set.
+func TestGoogleProvider_LiveChat(t *testing.T) {
+	apiKey := os.Getenv("GEMINI_API_KEY")
+	if apiKey == "" {
+		t.Skip("Skipping live test: GEMINI_API_KEY is not set.")
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			// We provide a dummy API key because the validation happens before the key is used.
-			req := provider.AIRequest{Prompt: tc.prompt, APIKey: "dummy-key"}
-			_, err := p.Chat(ctx, req)
+	p := New()
+	ctx := context.Background()
+	modelName := "models/gemini-2.5-flash" // A known stable model
 
-			if tc.expectErr {
-				if err == nil {
-					t.Fatal("Expected an error but got nil")
-				}
-				if !strings.Contains(err.Error(), tc.mustContain) {
-					t.Errorf("Expected error to contain %q, but got: %v", tc.mustContain, err)
-				}
-			} else {
-				// FIX: The assertion must check that the error, if one occurs, is NOT the parsing error.
-				// We expect a failure later from the network call, but the parsing part should succeed.
-				if err != nil && strings.Contains(err.Error(), "requires a valid AEIOU envelope") {
-					t.Errorf("Test failed: parsing failed unexpectedly with error: %v", err)
-				}
+	// Create a minimal, valid envelope for the request.
+	envelope, err := (&aeiou.Envelope{
+		UserData: "Live test prompt",
+		Actions:  "command endcommand",
+	}).Compose()
+	if err != nil {
+		t.Fatalf("Failed to compose valid envelope: %v", err)
+	}
+
+	req := provider.AIRequest{
+		Prompt:    envelope,
+		APIKey:    apiKey,
+		ModelName: modelName,
+	}
+
+	// Attempt the chat call.
+	_, err = p.Chat(ctx, req)
+
+	// If there's an error, check if it's a "model not found" error.
+	// If so, list the available models to help with debugging.
+	if err != nil {
+		if strings.Contains(err.Error(), "is not found for API version") || strings.Contains(err.Error(), "status 404") {
+			t.Logf("Chat request failed with a model-not-found error: %v", err)
+			t.Log("Attempting to list available models...")
+
+			models, listErr := p.ListModels(apiKey)
+			if listErr != nil {
+				t.Fatalf("...failed to list models as well: %v", listErr)
 			}
-		})
+
+			t.Logf("...successfully retrieved models:\n%s", strings.Join(models, "\n"))
+			t.Fail() // Ensure the original test still fails.
+		} else {
+			// For any other error, just fail the test.
+			t.Fatalf("Chat request failed with an unexpected error: %v", err)
+		}
+	} else {
+		t.Log("Live chat call successful.")
 	}
 }

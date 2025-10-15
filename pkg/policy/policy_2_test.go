@@ -226,7 +226,7 @@ func TestPatMatch(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := patMatch(tc.s, tc.p); got != tc.want {
+			if got := PatMatch(tc.s, tc.p); got != tc.want {
 				t.Errorf("patMatch(%q, %q) = %v, want %v", tc.s, tc.p, got, tc.want)
 			}
 		})

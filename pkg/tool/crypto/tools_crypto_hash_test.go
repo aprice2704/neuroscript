@@ -1,19 +1,21 @@
 // NeuroScript Version: 0.5.2
-// File version: 3
-// Purpose: Corrected the expected HMAC result in the test case.
+// File version: 4
+// Purpose: Corrected test setup to initialize the interpreter with a valid HostContext, fixing a panic.
 // filename: pkg/tool/crypto/tools_crypto_hash_test.go
-// nlines: 84
+// nlines: 95
 // risk_rating: LOW
 
 package crypto
 
 import (
+	"bytes"
 	"errors"
 	"regexp"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
@@ -25,7 +27,17 @@ func TestToolCryptoHash(t *testing.T) {
 		Grant("crypto:use:hash").
 		Build()
 
-	interp := interpreter.NewInterpreter(interpreter.WithExecPolicy(testPolicy))
+	hostCtx := &interpreter.HostContext{
+		Logger: logging.NewTestLogger(t),
+		Stdout: &bytes.Buffer{},
+		Stdin:  &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+	}
+
+	interp := interpreter.NewInterpreter(
+		interpreter.WithExecPolicy(testPolicy),
+		interpreter.WithHostContext(hostCtx),
+	)
 	// Manually register the hash tools for the test.
 	for _, impl := range cryptoHashToolsToRegister {
 		if _, err := interp.ToolRegistry().RegisterTool(impl); err != nil {
@@ -76,7 +88,13 @@ func TestToolCryptoHash(t *testing.T) {
 }
 
 func TestToolCryptoUUID(t *testing.T) {
-	interp := interpreter.NewInterpreter()
+	hostCtx := &interpreter.HostContext{
+		Logger: logging.NewTestLogger(t),
+		Stdout: &bytes.Buffer{},
+		Stdin:  &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+	}
+	interp := interpreter.NewInterpreter(interpreter.WithHostContext(hostCtx))
 	for _, impl := range cryptoHashToolsToRegister {
 		if impl.Spec.Name == "UUID" {
 			if _, err := interp.ToolRegistry().RegisterTool(impl); err != nil {

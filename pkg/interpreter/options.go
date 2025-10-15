@@ -1,13 +1,15 @@
 // NeuroScript Version: 0.8.0
-// File version: 12
-// Purpose: Adds WithParser and WithASTBuilder to support dependency injection of the parsing components.
+// File version: 13
+// Purpose: Adds WithAITranscriptWriter to allow configuring the AI conversation transcript destination.
 // filename: pkg/interpreter/options.go
-// nlines: 80
+// nlines: 98
 // risk_rating: MEDIUM
 
 package interpreter
 
 import (
+	"io"
+
 	"github.com/aprice2704/neuroscript/pkg/account"
 	"github.com/aprice2704/neuroscript/pkg/agentmodel"
 	"github.com/aprice2704/neuroscript/pkg/capsule"
@@ -37,6 +39,17 @@ func WithParser(p *parser.ParserAPI) InterpreterOption {
 func WithASTBuilder(b *parser.ASTBuilder) InterpreterOption {
 	return func(i *Interpreter) {
 		i.astBuilder = b
+	}
+}
+
+// WithAITranscriptWriter sets the writer for the AI conversation transcript.
+// This is a convenience option that modifies the HostContext. It should be used
+// after WithHostContext.
+func WithAITranscriptWriter(w io.Writer) InterpreterOption {
+	return func(i *Interpreter) {
+		if i.hostContext != nil {
+			i.hostContext.AITranscript = w
+		}
 	}
 }
 

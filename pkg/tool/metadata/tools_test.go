@@ -1,16 +1,18 @@
 // NeuroScript Version: 0.7.2
-// File version: 1
-// Purpose: Contains unit tests for the 'metadata' toolset.
+// File version: 2
+// Purpose: Corrected test setup to initialize the interpreter with a valid HostContext, fixing a panic.
 // filename: pkg/tool/metadata/tools_test.go
-// nlines: 85
+// nlines: 94
 // risk_rating: LOW
 package metadata_test
 
 import (
+	"bytes"
 	"reflect"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	toolmeta "github.com/aprice2704/neuroscript/pkg/tool/metadata"
 	"github.com/aprice2704/neuroscript/pkg/types"
@@ -18,8 +20,20 @@ import (
 
 func newMetadataTestInterpreter(t *testing.T) *interpreter.Interpreter {
 	t.Helper()
+
+	hostCtx := &interpreter.HostContext{
+		Logger: logging.NewTestLogger(t),
+		Stdout: &bytes.Buffer{},
+		Stdin:  &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+	}
+
 	testPolicy := policy.NewBuilder(policy.ContextNormal).Allow("tool.metadata.*").Build()
-	interp := interpreter.NewInterpreter(interpreter.WithExecPolicy(testPolicy))
+	interp := interpreter.NewInterpreter(
+		interpreter.WithHostContext(hostCtx),
+		interpreter.WithExecPolicy(testPolicy),
+	)
+
 	for _, toolImpl := range toolmeta.MetadataToolsToRegister {
 		if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
 			t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)

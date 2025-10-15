@@ -1,18 +1,20 @@
 // NeuroScript Version: 0.7.0
-// File version: 7
+// File version: 8
 // Purpose: A comprehensive test suite for the ns_event toolset, including validation, edge cases, and round-trip tests.
 // filename: pkg/tool/ns_event/tools_event_test.go
-// nlines: 325
+// nlines: 339
 // risk_rating: LOW
 package ns_event_test
 
 import (
 	"errors"
+	"os"
 	"reflect"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	toolnsevent "github.com/aprice2704/neuroscript/pkg/tool/ns_event"
 	"github.com/aprice2704/neuroscript/pkg/types"
@@ -29,7 +31,23 @@ type eventTestCase struct {
 
 func newEventTestInterpreter(t *testing.T) *interpreter.Interpreter {
 	t.Helper()
-	interp := interpreter.NewInterpreter(interpreter.WithExecPolicy(policy.AllowAll()))
+
+	// DEBUG: Per AGENTS.md rule 1b, adding debug output until tests pass.
+	// This fixes the panic by providing the mandatory HostContext.
+	t.Logf("DEBUG: Creating new test interpreter for ns_event with a valid HostContext.")
+
+	hostCtx := &interpreter.HostContext{
+		Logger: logging.NewTestLogger(t),
+		Stdout: os.Stdout,
+		Stdin:  os.Stdin,
+		Stderr: os.Stderr,
+	}
+
+	interp := interpreter.NewInterpreter(
+		interpreter.WithHostContext(hostCtx),
+		interpreter.WithExecPolicy(policy.AllowAll()),
+	)
+
 	for _, toolImpl := range toolnsevent.EventToolsToRegister {
 		if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
 			t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)

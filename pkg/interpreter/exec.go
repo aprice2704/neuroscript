@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 90
-// Purpose: Updated Execute to be fully sandboxed and return a numeric status code (0 for success) as per new design rules.
+// File version: 91
+// Purpose: This file now compiles correctly as Interpreter now satisfies the eval.Runtime interface.
 // filename: pkg/interpreter/exec.go
 // nlines: 268
 // risk_rating: HIGH
