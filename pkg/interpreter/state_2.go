@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 8.0.0
+// File version: 8.0.1
 // Purpose: Re-plumbed event name evaluation to use the external 'eval' package.
 // filename: pkg/interpreter/state_2.go
-// nlines: 60
+// nlines: 75
 // risk_rating: MEDIUM
 
 package interpreter
@@ -58,6 +58,20 @@ func (s *interpreterState) setVariable(name string, value lang.Value) {
 		s.variables = make(map[string]lang.Value)
 	}
 	s.variables[name] = value
+}
+
+// setGlobalVariable sets a variable and marks it as global in a thread-safe manner.
+func (s *interpreterState) setGlobalVariable(name string, value lang.Value) {
+	s.variablesMu.Lock()
+	defer s.variablesMu.Unlock()
+	if s.variables == nil {
+		s.variables = make(map[string]lang.Value)
+	}
+	if s.globalVarNames == nil {
+		s.globalVarNames = make(map[string]bool)
+	}
+	s.variables[name] = value
+	s.globalVarNames[name] = true
 }
 
 func newEventManager() *EventManager {

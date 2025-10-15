@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 83
-// Purpose: Adds a static assertion to ensure Interpreter satisfies the tool.Runtime interface.
+// File version: 84
+// Purpose: Corrected a race condition by using the thread-safe setGlobalVariable method for concurrent initializations.
 // filename: pkg/interpreter/interpreter.go
 // nlines: 230
-// risk_rating: LOW
+// risk_rating: HIGH
 
 package interpreter
 
@@ -182,8 +182,8 @@ func (i *Interpreter) SetInitialVariable(name string, value any) error {
 	if err != nil {
 		return fmt.Errorf("failed to wrap initial variable '%s': %w", name, err)
 	}
-	i.state.setVariable(name, wrappedValue)
-	i.state.globalVarNames[name] = true
+	// This now correctly uses the thread-safe method to update both maps.
+	i.state.setGlobalVariable(name, wrappedValue)
 	return nil
 }
 
