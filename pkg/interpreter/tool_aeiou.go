@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 7
-// Purpose: Corrected to use the exported context keys (e.g., AeiouSessionIDKey) to fix build failure.
+// File version: 10
+// Purpose: Adds extensive DEBUG output to trace context propagation.
 // filename: pkg/interpreter/tool_aeiou.go
-// nlines: 115
+// nlines: 132
 // risk_rating: HIGH
 
 package interpreter
@@ -10,6 +10,8 @@ package interpreter
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"os"
 
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -29,7 +31,8 @@ func registerAeiouTools(r tool.ToolRegistry, magicTool *aeiou.MagicTool) error {
 			ReturnType: tool.ArgTypeString,
 			ReturnHelp: "The signed control token string.",
 		},
-		Func: makeMagicToolFunc(magicTool),
+		Func:       makeMagicToolFunc(magicTool),
+		IsInternal: true,
 	}
 	_, err := r.RegisterTool(impl)
 	return err
@@ -37,6 +40,8 @@ func registerAeiouTools(r tool.ToolRegistry, magicTool *aeiou.MagicTool) error {
 
 func makeMagicToolFunc(magicTool *aeiou.MagicTool) tool.ToolFunc {
 	return func(rt tool.Runtime, args []interface{}) (interface{}, error) {
+		fmt.Fprintf(os.Stderr, "[DEBUG] makeMagicToolFunc: Entered. Runtime type is %T\n", rt) // DEBUG
+
 		if len(args) < 2 {
 			return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "expected 2 arguments: kind and params", nil)
 		}
@@ -56,14 +61,30 @@ func makeMagicToolFunc(magicTool *aeiou.MagicTool) tool.ToolFunc {
 			return nil, err
 		}
 
-		interp, ok := rt.(*Interpreter)
+		// --- THIS IS THE FIX ---
+		// Internal tools must get the context via the TurnContextProvider interface,
+		// which is implemented by both the internal interpreter and the public wrapper.
+		ctxProvider, ok := rt.(TurnContextProvider)
 		if !ok {
-			return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "runtime is not an interpreter", nil)
+			fmt.Fprintf(os.Stderr, "[DEBUG] makeMagicToolFunc: FATAL! Runtime %T does not implement TurnContextProvider.\n", rt) // DEBUG
+			return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "runtime does not implement TurnContextProvider", nil)
 		}
-		hostCtx, err := getHostContext(interp.turnCtx)
+		fmt.Fprintf(os.Stderr, "[DEBUG] makeMagicToolFunc: Runtime implements TurnContextProvider.\n") // DEBUG
+		turnCtx := ctxProvider.GetTurnContext()
+		if turnCtx == nil {
+			fmt.Fprintf(os.Stderr, "[DEBUG] makeMagicToolFunc: FATAL! GetTurnContext() returned nil.\n") // DEBUG
+			return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "turn context was nil", nil)
+		}
+		fmt.Fprintf(os.Stderr, "[DEBUG] makeMagicToolFunc: Received context %p\n", turnCtx) // DEBUG
+
+		hostCtx, err := getHostContext(turnCtx)
+		// --- END FIX ---
+
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "[DEBUG] makeMagicToolFunc: getHostContext failed: %v\n", err) // DEBUG
 			return nil, err
 		}
+		fmt.Fprintf(os.Stderr, "[DEBUG] makeMagicToolFunc: getHostContext succeeded. SID: %s, Turn: %d\n", hostCtx.SessionID, hostCtx.TurnIndex) // DEBUG
 		hostCtx.KeyID = "transient-key-01"
 		hostCtx.TTL = 120 // 2 minute default TTL
 
@@ -104,18 +125,25 @@ func mapToControlPayload(params map[string]interface{}) (*aeiou.ControlPayload, 
 }
 
 func getHostContext(ctx context.Context) (*aeiou.HostContext, error) {
+	fmt.Fprintf(os.Stderr, "[DEBUG] getHostContext: Checking context %p for SID\n", ctx) // DEBUG
 	sid, ok := ctx.Value(AeiouSessionIDKey).(string)
 	if !ok {
+		fmt.Fprintln(os.Stderr, "[DEBUG] getHostContext: AEIOU session ID not found.") // DEBUG
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "AEIOU session ID not found in turn context", nil)
 	}
+	fmt.Fprintf(os.Stderr, "[DEBUG] getHostContext: Found SID %s. Checking for TurnIndex\n", sid) // DEBUG
 	turn, ok := ctx.Value(AeiouTurnIndexKey).(int)
 	if !ok {
+		fmt.Fprintln(os.Stderr, "[DEBUG] getHostContext: AEIOU turn index not found.") // DEBUG
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "AEIOU turn index not found in turn context", nil)
 	}
+	fmt.Fprintf(os.Stderr, "[DEBUG] getHostContext: Found TurnIndex %d. Checking for Nonce\n", turn) // DEBUG
 	nonce, ok := ctx.Value(AeiouTurnNonceKey).(string)
 	if !ok {
+		fmt.Fprintln(os.Stderr, "[DEBUG] getHostContext: AEIOU turn nonce not found.") // DEBUG
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "AEIOU turn nonce not found in turn context", nil)
 	}
+	fmt.Fprintf(os.Stderr, "[DEBUG] getHostContext: Found Nonce. Success.\n") // DEBUG
 
 	return &aeiou.HostContext{
 		SessionID: sid,

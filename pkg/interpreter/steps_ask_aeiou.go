@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 11
-// Purpose: Use lang.ErrToolDenied to break circular dependency with api package.
+// File version: 14
+// Purpose: Fixes a compiler error in the debug logging.
 // filename: pkg/interpreter/steps_ask_aeiou.go
-// nlines: 62
+// nlines: 77
 // risk_rating: HIGH
 
 package interpreter
@@ -10,6 +10,7 @@ package interpreter
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -21,6 +22,21 @@ import (
 func executeAeiouTurn(i *Interpreter, env *aeiou.Envelope, actionEmits *[]string, actionWhispers *map[string]lang.Value) error {
 	if env.Actions == "" {
 		return nil // Nothing to execute
+	}
+
+	// DEBUG: Log the context on the interpreter *before* execution.
+	fmt.Fprintf(os.Stderr, "[DEBUG] executeAeiouTurn: Entered with interpreter %s\n", i.id)
+	// --- FIX: 'i' is a concrete type, not an interface. Call method directly. ---
+	ctx := i.GetTurnContext()
+	if ctx != nil {
+		fmt.Fprintf(os.Stderr, "[DEBUG] executeAeiouTurn: Context on entry is %p\n", ctx)
+		if sid, ok := ctx.Value(AeiouSessionIDKey).(string); ok {
+			fmt.Fprintf(os.Stderr, "[DEBUG] executeAeiouTurn: Found SID '%s' on entry.\n", sid)
+		} else {
+			fmt.Fprintf(os.Stderr, "[DEBUG] executeAeiouTurn: WARNING! SID not found on entry.\n")
+		}
+	} else {
+		fmt.Fprintf(os.Stderr, "[DEBUG] executeAeiouTurn: WARNING! GetTurnContext() returned nil.\n")
 	}
 
 	// This function operates directly on 'i', which is an ephemeral sandbox interpreter.
@@ -53,8 +69,10 @@ func executeAeiouTurn(i *Interpreter, env *aeiou.Envelope, actionEmits *[]string
 
 	// Execute the parsed command(s). The custom emit and whisper functions
 	// in turnHostContext will capture all relevant output.
+	fmt.Fprintf(os.Stderr, "[DEBUG] executeAeiouTurn: Calling i.Execute() on interpreter %s\n", i.id) // DEBUG
 	_, err := i.Execute(program)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "[DEBUG] executeAeiouTurn: i.Execute() FAILED: %v\n", err) // DEBUG
 		// Check for an internal policy error and wrap it in the public API's sentinel error.
 		var rtErr *lang.RuntimeError
 		if errors.As(err, &rtErr) && rtErr.Code == lang.ErrorCodePolicy {
@@ -63,6 +81,7 @@ func executeAeiouTurn(i *Interpreter, env *aeiou.Envelope, actionEmits *[]string
 		}
 		return err // Propagate other runtime errors as they are
 	}
+	fmt.Fprintf(os.Stderr, "[DEBUG] executeAeiouTurn: i.Execute() succeeded.\n") // DEBUG
 
 	return nil
 }

@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.6.0
-// File version: 18
-// Purpose: Corrected CallFromInterpreter to use the passed-in interpreter runtime for tool execution, fixing a critical context bug.
+// NeuroScript Version: 0.8.0
+// File version: 22
+// Purpose: Fixes compiler errors in ExecuteTool and simplifies its logic.
 // filename: pkg/tool/tools_registry.go
-// nlines: 187
+// nlines: 201
 // risk_rating: HIGH
 
 package tool
@@ -21,7 +21,7 @@ import (
 // ToolRegistryImpl manages the available tools for an Interpreter instance.
 type ToolRegistryImpl struct {
 	tools       map[types.FullName]ToolImplementation
-	interpreter Runtime
+	interpreter Runtime // This should be the public *api.Interpreter
 	mu          *sync.RWMutex
 }
 
@@ -119,6 +119,7 @@ func (r *ToolRegistryImpl) CallFromInterpreter(interp Runtime, fullname types.Fu
 	}
 
 	// Centralized policy enforcement. This correctly checks trust, then grants.
+	// Policy checks MUST always run against the live, public-facing runtime (`interp`).
 	if err := CanCall(interp, impl); err != nil {
 		fmt.Fprintf(os.Stderr, "  - DEBUG: CanCall failed: %v\n", err)
 		return nil, err
@@ -146,10 +147,27 @@ func (r *ToolRegistryImpl) CallFromInterpreter(interp Runtime, fullname types.Fu
 		coercedArgs = append(coercedArgs, rawArgs[len(impl.Spec.Args):]...)
 	}
 
-	fmt.Fprintf(os.Stderr, "  - DEBUG: Calling tool Func with the LIVE interpreter from arguments.\n")
-	// THE FIX: Use the passed-in 'interp' for the tool execution, not the stale 'r.interpreter'.
-	out, err := impl.Func(interp, coercedArgs)
+	// --- START FIX ---
+	// By default, pass the live, public-facing interpreter (`interp`).
+	runtimeForTool := interp
+
+	// If the tool is marked as internal, unwrap the runtime to pass the
+	// internal interpreter, which the tool expects.
+	if impl.IsInternal {
+		if wrapper, ok := interp.(Wrapper); ok {
+			runtimeForTool = wrapper.Unwrap()
+			fmt.Fprintf(os.Stderr, "  - DEBUG: Unwrapped runtime for internal tool. Type is now: %T\n", runtimeForTool)
+		} else {
+			// This should not happen if the architecture is correct.
+			fmt.Fprintf(os.Stderr, "  - DEBUG: WARNING: Internal tool '%s' running with wrapped runtime %T (does not implement tool.Wrapper).\n", fullname, interp)
+		}
+	}
+	// --- END FIX ---
+
+	fmt.Fprintf(os.Stderr, "  - DEBUG: Calling tool Func with runtime type: %T\n", runtimeForTool)
+	out, err := impl.Func(runtimeForTool, coercedArgs)
 	if err != nil {
+		// Pass the error through. Do not wrap it again here.
 		return nil, err
 	}
 
@@ -174,6 +192,8 @@ func (r *ToolRegistryImpl) ExecuteTool(fullname types.FullName, args map[string]
 		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "ToolRegistry not configured with a runtime context", lang.ErrConfiguration)
 	}
 
+	// This function is for external calls, so it should use the public-facing
+	// runtime stored in r.interpreter.
 	orderedLangArgs := make([]lang.Value, len(impl.Spec.Args))
 	for i, spec := range impl.Spec.Args {
 		val, ok := args[spec.Name]
@@ -187,6 +207,9 @@ func (r *ToolRegistryImpl) ExecuteTool(fullname types.FullName, args map[string]
 		}
 	}
 
+	// We call CallFromInterpreter, passing the registry's root *public*
+	// interpreter as the runtime. CallFromInterpreter will then correctly
+	// unwrap it if needed.
 	return r.CallFromInterpreter(r.interpreter, fullname, orderedLangArgs)
 }
 

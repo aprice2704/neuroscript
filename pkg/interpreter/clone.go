@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 36
-// Purpose: Corrected a typo in a Printf format string that was causing a build failure.
+// File version: 38
+// Purpose: Adds debug output to print the memory address of the created clone.
 // filename: pkg/interpreter/clone.go
-// nlines: 70
-// risk_rating: LOW
+// nlines: 74
+// risk_rating: HIGH
 
 package interpreter
 
@@ -18,7 +18,6 @@ import (
 // It creates an isolated variable scope and a new tool registry view bound to itself.
 func (i *Interpreter) fork() *Interpreter {
 	root := i.rootInterpreter()
-	// THE FIX: Corrected the argument order for the format string.
 	fmt.Printf("[DEBUG] fork: Creating fork from interpreter %s (root: %s). Parent turnCtx is %p.\n", i.id, root.id, i.GetTurnContext())
 
 	clone := &Interpreter{
@@ -39,13 +38,22 @@ func (i *Interpreter) fork() *Interpreter {
 		parser:               i.parser,
 		astBuilder:           i.astBuilder,
 		aiWorker:             i.aiWorker,
+		// THE FIX: STEP 3a - Ensure the clone inherits the back-reference.
+		PublicAPI: i.PublicAPI,
 	}
+	// DEBUG: Print the memory address of the newly created clone.
+	fmt.Printf("[DEBUG] fork: New clone %s created at pointer %p\n", clone.id, clone)
 
-	// Create a new tool registry VIEW bound to the CLONE.
-	// Do not share the parent's registry object directly, as its internal
-	// 'interpreter' reference would be stale.
-	clone.tools = i.tools.NewViewForInterpreter(clone)
-	fmt.Printf("[DEBUG] fork: Created new tool registry view for clone %s.\n", clone.id)
+	// THE FIX: STEP 3b - Create a tool registry VIEW bound to the PUBLIC API WRAPPER, not the internal clone.
+	// This guarantees that tools called from a sandbox still receive the identity-aware runtime.
+	if clone.PublicAPI != nil {
+		clone.tools = i.tools.NewViewForInterpreter(clone.PublicAPI)
+		fmt.Printf("[DEBUG] fork: Created new tool registry view for clone %s, bound to PublicAPI wrapper.\n", clone.id)
+	} else {
+		// Fallback for safety, though this path should not be taken in normal operation.
+		clone.tools = i.tools.NewViewForInterpreter(clone)
+		fmt.Printf("[DEBUG] fork: (Fallback) Created new tool registry view for clone %s, bound to internal clone.\n", clone.id)
+	}
 
 	// Create a new, isolated state, but inherit key properties.
 	clone.state = newInterpreterState()

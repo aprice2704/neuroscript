@@ -63,6 +63,8 @@ type Interpreter struct {
 
 	cloneRegistry   []*Interpreter
 	cloneRegistryMu sync.Mutex
+
+	PublicAPI tool.Runtime
 }
 
 // ID returns the unique identifier for this interpreter instance.

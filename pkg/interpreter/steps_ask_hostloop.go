@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 18
-// Purpose: Reverted to the correct behavior where the final result is a string concatenation of clean emits. This aligns with the language spec.
+// File version: 19
+// Purpose: Explicitly sets the turn context on the 'execInterp' to ensure propagation.
 // filename: pkg/interpreter/steps_ask_hostloop.go
-// nlines: 243
+// nlines: 245
 // risk_rating: HIGH
 
 package interpreter
@@ -102,6 +102,11 @@ func (i *Interpreter) runAskHostLoop(pos *types.Position, agentModel *types.Agen
 		}
 
 		execInterp := i.fork()
+		// *** THE FIX: Explicitly set the turn context on the new fork ***
+		// This ensures that when execInterp.Execute() runs (which creates
+		// its *own* internal fork), the context is definitely present.
+		execInterp.SetTurnContext(turnCtxForInterpreter)
+
 		var actionEmits []string // Reverted to string slice
 		var actionWhispers = make(map[string]lang.Value)
 

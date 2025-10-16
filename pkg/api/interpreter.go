@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 58
-// Purpose: Adds a public SetTurnContext method to the wrapper, allowing hosts to set ephemeral context for an execution.
+// File version: 62
+// Purpose: Creates the ToolRegistry with the public wrapper, not the internal interpreter.
 // filename: pkg/api/interpreter.go
-// nlines: 132
+// nlines: 139
 // risk_rating: HIGH
 
 package api
@@ -30,6 +30,7 @@ type Interpreter struct {
 // Statically assert that *Interpreter satisfies the tool.Runtime and ActorProvider interfaces.
 var _ tool.Runtime = (*Interpreter)(nil)
 var _ interfaces.ActorProvider = (*Interpreter)(nil)
+var _ tool.Wrapper = (*Interpreter)(nil) // Statically assert wrapper interface
 
 // New creates a new, persistent NeuroScript interpreter instance.
 func New(opts ...Option) *Interpreter {
@@ -43,7 +44,12 @@ func New(opts ...Option) *Interpreter {
 	publicInterp := &Interpreter{Interpreter: internalInterp}
 	fmt.Printf("[DEBUG] api.New: Public API wrapper created for internal interpreter %s.\n", internalInterp.ID())
 
+	// THE FIX: STEP 2 - Set the back-reference from the internal interpreter to the public wrapper.
+	internalInterp.PublicAPI = publicInterp
+
 	// 3. Create the tool registry, passing the PUBLIC wrapper as the runtime.
+	// The registry will now pass this public wrapper to tools, which is
+	// correct for external tools and can be unwrapped for internal tools.
 	registry := tool.NewToolRegistry(publicInterp)
 	fmt.Println("[DEBUG] api.New: Tool registry created with public interpreter as context.")
 
@@ -102,6 +108,12 @@ func (i *Interpreter) Run(procName string, args ...lang.Value) (Value, error) {
 // This overrides the embedded Execute to provide the public API's signature.
 func (i *Interpreter) Execute(program *interfaces.Tree) (Value, error) {
 	return i.Interpreter.Execute(program.Root.(*Program))
+}
+
+// Unwrap implements the tool.Wrapper interface. It returns the embedded
+// internal interpreter, allowing internal tools to access it directly.
+func (i *Interpreter) Unwrap() tool.Runtime {
+	return i.Interpreter
 }
 
 // Unwrap converts a NeuroScript api.Value back into a standard Go `any` type.

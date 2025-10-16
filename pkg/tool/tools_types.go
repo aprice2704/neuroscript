@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.6.0
-// File version: 23
-// Purpose: Added GetExecPolicy to the Runtime interface to satisfy the policygate.Runtime interface.
+// NeuroScript Version: 0.8.0
+// File version: 24
+// Purpose: Adds IsInternal flag to ToolImplementation and a local Wrapper interface.
 // filename: pkg/tool/tool_types.go
-// nlines: 156
+// nlines: 164
 // risk_rating: HIGH
 
 package tool
@@ -35,6 +35,12 @@ type Runtime interface {
 	GetGrantSet() *capability.GrantSet
 	// GetExecPolicy returns the currently active execution policy.
 	GetExecPolicy() *policy.ExecPolicy
+}
+
+// Wrapper is an interface for runtimes that wrap another runtime.
+// This is used by the tool registry to unwrap internal tools.
+type Wrapper interface {
+	Unwrap() Runtime
 }
 
 // ArgType defines the expected data type for a tool argument or return value.
@@ -96,6 +102,7 @@ type ToolImplementation struct {
 	Spec              ToolSpec                `json:"spec"`
 	Func              ToolFunc                `json:"-"`
 	RequiresTrust     bool                    `json:"requiresTrust"`
+	IsInternal        bool                    `json:"isInternal"` // <-- NEW
 	RequiredCaps      []capability.Capability `json:"requiredCaps,omitempty"`
 	Effects           []string                `json:"effects,omitempty"`
 	SignatureChecksum string                  `json:"signatureChecksum"`
