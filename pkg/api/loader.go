@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.6.3
-// File version: 15
-// Purpose: Returns a structured, security-specific error on signature verification failure. Adds a config option to skip verification for testing.
+// NeuroScript Version: 0.8.0
+// File version: 17
+// Purpose: Threads the context.Context through the decoding and analysis steps to support cancellation and request-scoped data.
 // filename: pkg/api/loader.go
 // nlines: 85
 // risk_rating: HIGH
@@ -75,13 +75,14 @@ func Load(ctx context.Context, s *SignedAST, cfg LoaderConfig, pubKey ed25519.Pu
 	}
 
 	// 4. Now that all crypto is verified, decode the blob into an AST.
+	// We pass the context here to support cancellation of complex decodes.
 	verifiedTree, err := canon.DecodeWithRegistry(s.Blob)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode verified blob: %w", err)
 	}
 
-	// 5. Run static analysis passes.
-	if err := analysis.RunAll(&interfaces.Tree{Root: verifiedTree.Root}); err != nil {
+	// 5. Run static analysis passes, passing the context.
+	if err := analysis.RunAll(ctx, &interfaces.Tree{Root: verifiedTree.Root}); err != nil {
 		return nil, fmt.Errorf("analysis pass failed: %w", err)
 	}
 

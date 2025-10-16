@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 13
-// Purpose: Patched GetToolSpec to act as an adapter between tool.ToolSpec and eval.ToolSpec.
+// File version: 14
+// Purpose: Adds the exported TurnContextProvider interface to allow tools to access turn-specific context.
 // filename: pkg/interpreter/api.go
-// nlines: 129
+// nlines: 136
 // risk_rating: MEDIUM
 
 package interpreter
@@ -20,6 +20,12 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/provider"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
+
+// TurnContextProvider is an interface for components that can provide the
+// context.Context for the current AEIOU turn.
+type TurnContextProvider interface {
+	GetTurnContext() context.Context
+}
 
 // Run is the public entrypoint for executing a named procedure.
 func (i *Interpreter) Run(procName string, args ...lang.Value) (lang.Value, error) {
@@ -114,7 +120,7 @@ func (i *Interpreter) GetTurnContext() context.Context {
 }
 
 // setTurnContext sets the context for the current turn.
-func (i *Interpreter) setTurnContext(ctx context.Context) {
+func (i *Interpreter) SetTurnContext(ctx context.Context) {
 	i.turnCtx = ctx
 }
 

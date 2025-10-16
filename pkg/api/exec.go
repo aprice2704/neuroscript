@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 17
-// Purpose: Adds debug output to trace the ExecPolicy within execution entry points.
+// File version: 26
+// Purpose: Corrects all execution functions to accept a context.Context and apply it to the interpreter before running, enabling ephemeral context propagation from the host.
 // filename: pkg/api/exec.go
-// nlines: 120
+// nlines: 111
 // risk_rating: HIGH
 
 package api
@@ -28,12 +28,19 @@ func ExecInNewInterpreter(ctx context.Context, src string, opts ...interpreter.I
 	}
 
 	interp := New(opts...)
+	// It's crucial to set the context on the newly created interpreter.
+	interp.SetTurnContext(ctx)
 	return ExecWithInterpreter(ctx, interp, tree)
 }
 
 // ExecWithInterpreter executes top-level 'command' blocks using a persistent interpreter.
-func ExecWithInterpreter(ctx context.Context, interp *Interpreter, tree *Tree) (Value, error) {
-	if interp == nil || interp.internal == nil {
+func ExecWithInterpreter(ctx context.Context, interp Runtime, tree *Tree) (Value, error) {
+	concreteInterp, ok := interp.(*Interpreter)
+	if !ok {
+		return nil, fmt.Errorf("ExecWithInterpreter requires an *api.Interpreter, but got %T", interp)
+	}
+
+	if concreteInterp == nil {
 		return nil, fmt.Errorf("ExecWithInterpreter requires a non-nil interpreter")
 	}
 	if tree == nil || tree.Root == nil {
@@ -45,29 +52,14 @@ func ExecWithInterpreter(ctx context.Context, interp *Interpreter, tree *Tree) (
 		return nil, fmt.Errorf("internal error: tree root is not a runnable *ast.Program, but %T", tree.Root)
 	}
 
-	// --- DEBUG ---
-	if interp.internal.ExecPolicy != nil {
-		fmt.Fprintf(os.Stderr, "[DEBUG] ExecWithInterpreter: BEFORE Load, ExecPolicy is PRESENT. Context: %v, Allow count: %d\n", interp.internal.ExecPolicy.Context, len(interp.internal.ExecPolicy.Allow))
-	} else {
-		fmt.Fprintf(os.Stderr, "[DEBUG] ExecWithInterpreter: BEFORE Load, ExecPolicy is NIL.\n")
-	}
-	// --- END DEBUG ---
+	// THE FIX: Set the ephemeral context before execution.
+	concreteInterp.SetTurnContext(ctx)
 
-	// 1. Load the program by wrapping the ast.Program in an interfaces.Tree.
-	if err := interp.Load(&interfaces.Tree{Root: program}); err != nil {
+	if err := concreteInterp.Load(&interfaces.Tree{Root: program}); err != nil {
 		return nil, fmt.Errorf("failed to load program into interpreter: %w", err)
 	}
 
-	// --- DEBUG ---
-	if interp.internal.ExecPolicy != nil {
-		fmt.Fprintf(os.Stderr, "[DEBUG] ExecWithInterpreter: AFTER Load, ExecPolicy is PRESENT. Context: %v, Allow count: %d\n", interp.internal.ExecPolicy.Context, len(interp.internal.ExecPolicy.Allow))
-	} else {
-		fmt.Fprintf(os.Stderr, "[DEBUG] ExecWithInterpreter: AFTER Load, ExecPolicy is NIL.\n")
-	}
-	// --- END DEBUG ---
-
-	// 2. Execute top-level command blocks.
-	finalValue, err := interp.Execute(tree)
+	finalValue, err := concreteInterp.Execute(tree)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +68,6 @@ func ExecWithInterpreter(ctx context.Context, interp *Interpreter, tree *Tree) (
 }
 
 // ExecScript is a convenience helper that wraps ExecInNewInterpreter.
-// It builds a minimal HostContext to fulfill the API contract.
 func ExecScript(ctx context.Context, script string, stdout io.Writer) (Value, error) {
 	if stdout == nil {
 		stdout = io.Discard
@@ -89,7 +80,6 @@ func ExecScript(ctx context.Context, script string, stdout io.Writer) (Value, er
 		WithStderr(io.Discard).
 		Build()
 	if err != nil {
-		// This should not happen with the provided values, but check for safety.
 		return nil, fmt.Errorf("ExecScript failed to build minimal HostContext: %w", err)
 	}
 
@@ -101,7 +91,7 @@ func ExecScript(ctx context.Context, script string, stdout io.Writer) (Value, er
 
 // LoadFromUnit loads definitions from a verified LoadedUnit.
 func LoadFromUnit(interp *Interpreter, unit *LoadedUnit) error {
-	if interp == nil || interp.internal == nil {
+	if interp == nil {
 		return fmt.Errorf("LoadFromUnit requires a non-nil interpreter")
 	}
 	if unit == nil || unit.Tree == nil || unit.Tree.Root == nil {
@@ -119,13 +109,10 @@ func RunProcedure(ctx context.Context, interp *Interpreter, name string, args ..
 	if interp == nil {
 		return nil, fmt.Errorf("RunProcedure requires a non-nil interpreter")
 	}
-	// --- DEBUG ---
-	if interp.internal.ExecPolicy != nil {
-		fmt.Fprintf(os.Stderr, "[DEBUG] RunProcedure: BEFORE Run, ExecPolicy is PRESENT. Context: %v, Allow count: %d\n", interp.internal.ExecPolicy.Context, len(interp.internal.ExecPolicy.Allow))
-	} else {
-		fmt.Fprintf(os.Stderr, "[DEBUG] RunProcedure: BEFORE Run, ExecPolicy is NIL.\n")
-	}
-	// --- END DEBUG ---
+
+	// THE FIX: Set the ephemeral context before execution.
+	interp.SetTurnContext(ctx)
+
 	wrappedArgs := make([]lang.Value, len(args))
 	for i, arg := range args {
 		var err error

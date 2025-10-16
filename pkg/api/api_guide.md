@@ -210,3 +210,174 @@ endcommand
 ### Variable Management
 
 - **`WithGlobals(globals map[string]interface{})`**: Sets a map of variables in the interpreter's **global scope** at creation time. This is the primary way to inject data into a script from the host.
+
+# NeuroScript Host Guide: Managing Context & Identity
+
+**Revision:** 2025-Oct-15
+
+**Audience:** Developers integrating the NeuroScript interpreter into host applications.
+
+---
+
+## 1. Guiding Principle: The Host is the Source of Truth
+
+The NeuroScript interpreter is designed as a guest within a host application. The host application is therefore the definitive source for all contextual information. The API provides two distinct channels for the host to provide this context:
+
+1.  **The `HostContext`:** For **stable, long-lived** identity and resources that persist for the entire session.
+
+2.  **The `context.Context`:** For **ephemeral, request-scoped** data that applies only to a single operation.
+
+Properly managing these two channels is essential for security, logging, and enabling advanced tool behavior.
+
+---
+
+## 2. The `HostContext`: Session-Wide Identity & Resources
+
+The `HostContext` is the "umbilical cord" connecting the interpreter to its environment. It is configured **once** during the interpreter's instantiation and is considered immutable thereafter.
+
+* **Purpose:** To provide foundational I/O, services, and the primary identity of the user or system running the script.
+
+* **Configuration:** You must create it using the `api.NewHostContextBuilder()` and pass it to the interpreter via the `api.WithHostContext()` option.
+
+* **Key Fields:**
+
+    * `Logger`, `Stdout`, `Stdin`, `Stderr`: Mandatory I/O and logging channels.
+
+    * `Actor`: An object representing the **long-term identity** (e.g., a user's DID) that is available to all scripts and tools throughout the session.
+
+This context should be used for information that does not change from one command to the next.
+
+#### Example: Instantiation
+
+```go
+
+// In your host application's setup
+
+// 1. Define the long-term identity.
+
+myActor := &MyUser{DID: "did:example:user-1234"}
+
+// 2. Build the HostContext.
+
+hostCtx, _ := api.NewHostContextBuilder().
+
+    WithLogger(myLogger).
+
+    WithStdout(os.Stdout).
+
+    // ... other I/O ...
+
+    WithActor(myActor). // Set the session-wide identity
+
+    Build()
+
+// 3. Create the interpreter, injecting the context.
+
+interp := api.New(api.WithHostContext(hostCtx))
+
+```
+
+---
+
+## 3. The `context.Context`: Per-Operation Data
+
+For information that changes with each execution, such as a transaction ID or the specific agent invoking a tool, the standard Go `context.Context` is used. This context is passed as the first argument to every execution function (`RunProcedure`, `ExecWithInterpreter`, etc.).
+
+* **Purpose:** To provide ephemeral, request-scoped data that is only relevant for the duration of a single, specific script execution.
+
+* **Configuration:** The host application creates and populates this context immediately before calling an interpreter execution method.
+
+* **Best Practice:** The host should define its own custom context key types to avoid collisions.
+
+The interpreter ensures this context is propagated through all internal forks and made available to tools.
+
+---
+
+## 4. Complete Example: Tying It All Together
+
+This example demonstrates how a host provides both types of context and how a tool accesses them.
+
+#### Host Application Code
+
+```go
+
+package main
+
+import (
+
+    "context"
+
+    "[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
+
+    // ... other imports
+
+)
+
+// 1. Define a custom key for your request-scoped data.
+
+type contextKey string
+
+const transactionIDKey = contextKey("transactionID")
+
+func main() {
+
+    // 2. Set up the long-lived HostContext (as before).
+
+    interp := setupInterpreter() // Assumes a function that returns a configured interpreter
+
+    // 3. For a specific operation, create and populate a context.Context.
+
+    transactionID := "txn-abc-987"
+
+    ctx := context.WithValue(context.Background(), transactionIDKey, transactionID)
+
+    // 4. Pass the context into the execution call.
+
+    // The interpreter will now have access to both the HostContext's Actor
+
+    // and this new context.Context with the transaction ID.
+
+    api.RunProcedure(ctx, interp, "processTransaction")
+
+}
+
+```
+
+#### NeuroScript Tool Code
+
+A tool running inside the `processTransaction` procedure can then access both contexts via the `Runtime` interface it receives.
+
+```go
+
+// A tool's Go implementation
+
+var MyTool = api.ToolImplementation{
+
+    Spec: api.ToolSpec{ Name: "log_context", Group: "host" },
+
+    Func: func(rt api.Runtime, args []any) (any, error) {
+
+        // Access the long-lived Actor from the HostContext
+
+        actorProvider, _ := rt.(interfaces.ActorProvider)
+
+        actor, _ := actorProvider.Actor()
+
+        rt.GetLogger().Info("Executing on behalf of Actor", "did", actor.DID())
+
+        // Access the ephemeral data from the context.Context
+
+        ctxProvider, _ := rt.(api.TurnContextProvider)
+
+        turnCtx := ctxProvider.GetTurnContext()
+
+        txID, _ := turnCtx.Value(transactionIDKey).(string)
+
+        rt.GetLogger().Info("Processing transaction", "id", txID)
+
+        return nil, nil
+
+    },
+
+}
+

@@ -1,13 +1,15 @@
-// NeuroScript Version: 0.5.2
-// File version: 4
-// Purpose: Updated to use the centralized types.Diag struct and corrected formatting.
+// NeuroScript Version: 0.8.0
+// File version: 5
+// Purpose: Updated analysis interfaces to be context-aware, allowing for cancellation.
 // filename: pkg/api/analysis/pass.go
-// nlines: 75
+// nlines: 76
 // risk_rating: HIGH
 
 package analysis
 
 import (
+	"context"
+
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/types"
@@ -16,7 +18,7 @@ import (
 // Pass is the interface that all static analysis passes must implement.
 type Pass interface {
 	Name() string
-	Analyse(tree *interfaces.Tree) []types.Diag
+	Analyse(ctx context.Context, tree *interfaces.Tree) []types.Diag
 }
 
 var registeredPasses []Pass
@@ -27,11 +29,22 @@ func RegisterPass(p Pass) {
 }
 
 // Vet runs all registered analysis passes on the given AST.
-func Vet(tree *interfaces.Tree) []types.Diag {
+func Vet(ctx context.Context, tree *interfaces.Tree) []types.Diag {
 	var allDiags []types.Diag
 	for _, pass := range registeredPasses {
-		diags := pass.Analyse(tree)
-		allDiags = append(allDiags, diags...)
+		// Check for cancellation before running the next pass.
+		select {
+		case <-ctx.Done():
+			allDiags = append(allDiags, types.Diag{
+				Severity: types.SeverityError,
+				Source:   "vet",
+				Message:  "analysis cancelled",
+			})
+			return allDiags
+		default:
+			diags := pass.Analyse(ctx, tree)
+			allDiags = append(allDiags, diags...)
+		}
 	}
 	return allDiags
 }
@@ -43,11 +56,11 @@ type ShapeValidatorPass struct{}
 
 func (p *ShapeValidatorPass) Name() string { return "shape-validator" }
 
-func (p *ShapeValidatorPass) Analyse(tree *interfaces.Tree) []types.Diag {
+func (p *ShapeValidatorPass) Analyse(ctx context.Context, tree *interfaces.Tree) []types.Diag {
 	if tree == nil || tree.Root == nil {
 		return nil
 	}
-	visitor := &shapeVisitor{diags: []types.Diag{}}
+	visitor := &shapeVisitor{diags: []types.Diag{}, ctx: ctx}
 	visitor.visit(tree.Root, false)
 	return visitor.diags
 }
@@ -55,6 +68,7 @@ func (p *ShapeValidatorPass) Analyse(tree *interfaces.Tree) []types.Diag {
 // shapeVisitor recursively walks the AST.
 type shapeVisitor struct {
 	diags []types.Diag
+	ctx   context.Context
 }
 
 func (v *shapeVisitor) visit(node interfaces.Node, inCommand bool) {

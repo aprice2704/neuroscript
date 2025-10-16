@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
 // File version: 1
 // Purpose: Provides a centralized test harness for API tests to reduce boilerplate.
-// filename: pkg/api/test_harness_test.go
-// nlines: 25
+// filename: pkg/api/harness_test.go
+// nlines: 26
 // risk_rating: LOW
 
 package api_test

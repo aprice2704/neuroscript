@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.8.0
-// File version: 12
-// Purpose: Corrected the test logic by removing 'root' from the isolatedFields map; it is a shared field.
-// filename: pkg/interpreter/interpreter_clone_internal_test.go
+// File version: 17
+// Purpose: Corrects the test to treat the 'tools' field as isolated. This is now the correct behavior, as a forked interpreter gets a new "view" of the tool registry bound to its own runtime.
+// filename: pkg/interpreter/clone_test.go
 
 package interpreter_test
 
@@ -77,10 +77,11 @@ func TestInterpreter_Clone_Integrity(t *testing.T) {
 	}
 
 	isolatedFields := map[string]bool{
-		"id":              true,
-		"state":           true,
+		"id":    true,
+		"state": true,
+		// THE FIX: The 'tools' registry object is now intentionally isolated in a clone
+		// to ensure it's bound to the correct runtime. It gets a new "view".
 		"tools":           true,
-		"evaluate":        true,
 		"cloneRegistry":   true,
 		"cloneRegistryMu": true,
 	}
@@ -96,6 +97,14 @@ func TestInterpreter_Clone_Integrity(t *testing.T) {
 		parentField := parentVal.Field(i)
 		cloneField := cloneVal.Field(i)
 
+		// The 'evaluate' field no longer exists on the struct, so skip it.
+		if fieldName == "evaluate" {
+			checkedFields[fieldName] = true
+			continue
+		}
+
+		// The turnCtx field is an interface and cannot be reliably compared with reflection.
+		// Its correct propagation is verified by functional tests (e.g., ask tests).
 		if fieldName == "objectCacheMu" || fieldName == "turnCtx" {
 			checkedFields[fieldName] = true
 			continue
@@ -119,7 +128,7 @@ func TestInterpreter_Clone_Integrity(t *testing.T) {
 	for i := 0; i < structType.NumField(); i++ {
 		fieldName := structType.Field(i).Name
 		if !checkedFields[fieldName] {
-			t.Errorf("New/unhandled field '%s' found in Interpreter struct. Please update the 'isolatedFields' map in TestInterpreter_Clone_Integrity to specify if this field should be shared or isolated.", fieldName)
+			t.Errorf("New/unhandled field '%s' found in Interpreter struct. Please update this test to specify if the field should be shared or isolated.", fieldName)
 		}
 	}
 	t.Logf("[DEBUG] Turn 5: Field comparison complete.")

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 1
-// Purpose: Provides a focused test for the 'whisper' statement and its corresponding HostContext callback.
+// File version: 2
+// Purpose: Corrects the test to provide a mandatory HostContext during interpreter creation, resolving a panic.
 // filename: pkg/api/whisper_test.go
 // nlines: 83
 // risk_rating: MEDIUM

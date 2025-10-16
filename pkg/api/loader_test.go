@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.6.0
-// File version: 6
-// Purpose: Adds a statement to the command block to prevent parser errors for empty blocks. Adds a test for skipping signature verification.
+// NeuroScript Version: 0.8.0
+// File version: 7
+// Purpose: Updates tests to pass a background context to the api.Load function, aligning with the new context-aware signature.
 // filename: pkg/api/loader_test.go
 // nlines: 101
 // risk_rating: MEDIUM

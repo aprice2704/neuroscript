@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 1
-// Purpose: Implements a fluent builder for the canonical HostContext.
+// File version: 3
+// Purpose: Implements a fluent builder for the canonical HostContext. Adds WithActor.
 // filename: pkg/interpreter/hostcontext_builder.go
-// nlines: 80
+// nlines: 87
 // risk_rating: LOW
 
 package interpreter
@@ -30,6 +30,12 @@ func NewHostContextBuilder() *HostContextBuilder {
 // WithLogger sets the mandatory structured logger.
 func (b *HostContextBuilder) WithLogger(l interfaces.Logger) *HostContextBuilder {
 	b.hc.Logger = l
+	return b
+}
+
+// WithActor sets the actor identity for the execution context.
+func (b *HostContextBuilder) WithActor(actor interfaces.Actor) *HostContextBuilder {
+	b.hc.Actor = actor
 	return b
 }
 

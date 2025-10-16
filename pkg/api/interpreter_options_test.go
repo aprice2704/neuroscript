@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 4
-// Purpose: Corrects the test to pass the sandbox directory as a configuration option at creation time.
+// File version: 6
+// Purpose: Corrects the test to use the proper api.NewCapability constructor for capabilities.
 // filename: pkg/api/interpreter_options_test.go
 // nlines: 70
 // risk_rating: MEDIUM

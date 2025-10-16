@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 55
-// Purpose: Centralizes all public API re-exports, exposing the canonical interpreter types and builders.
+// File version: 61
+// Purpose: Centralizes all public API re-exports. Removes the ambiguous WithActor option and adds TurnContextProvider. Corrects ToolGroup re-export.
 // filename: pkg/api/reexport.go
-// nlines: 136
+// nlines: 144
 // risk_rating: LOW
 package api
 
@@ -37,6 +37,7 @@ type (
 	Logger       = interfaces.Logger
 	LogLevel     = interfaces.LogLevel
 	RuntimeError = lang.RuntimeError
+	Actor        = interfaces.Actor
 	SignedAST    struct {
 		Blob []byte
 		Sum  [32]byte
@@ -74,6 +75,9 @@ type (
 	ToolName           = types.ToolName
 	ToolGroup          = types.ToolGroup
 	ArgType            = tool.ArgType
+
+	// Context Provider for Tools
+	TurnContextProvider = interpreter.TurnContextProvider
 
 	// AST Types (for advanced use)
 	RootNode = ast.Node
@@ -118,7 +122,8 @@ const (
 // Re-exported functions and constructors
 var (
 	// Configuration
-	NewHostContextBuilder    = interpreter.NewHostContextBuilder
+	NewHostContextBuilder = interpreter.NewHostContextBuilder
+	// WithActor is intentionally removed. Identity must be set via WithHostContext.
 	WithGlobals              = interpreter.WithGlobals
 	WithExecPolicy           = interpreter.WithExecPolicy
 	WithSandboxDir           = interpreter.WithSandboxDir

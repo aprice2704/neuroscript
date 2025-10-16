@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 6
-// Purpose: Registers the AEIOU v3 magic token tool.
+// File version: 7
+// Purpose: Corrected to use the exported context keys (e.g., AeiouSessionIDKey) to fix build failure.
 // filename: pkg/interpreter/tool_aeiou.go
 // nlines: 115
 // risk_rating: HIGH
@@ -104,15 +104,15 @@ func mapToControlPayload(params map[string]interface{}) (*aeiou.ControlPayload, 
 }
 
 func getHostContext(ctx context.Context) (*aeiou.HostContext, error) {
-	sid, ok := ctx.Value(aeiouSessionIDKey).(string)
+	sid, ok := ctx.Value(AeiouSessionIDKey).(string)
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "AEIOU session ID not found in turn context", nil)
 	}
-	turn, ok := ctx.Value(aeiouTurnIndexKey).(int)
+	turn, ok := ctx.Value(AeiouTurnIndexKey).(int)
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "AEIOU turn index not found in turn context", nil)
 	}
-	nonce, ok := ctx.Value(aeiouTurnNonceKey).(string)
+	nonce, ok := ctx.Value(AeiouTurnNonceKey).(string)
 	if !ok {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "AEIOU turn nonce not found in turn context", nil)
 	}

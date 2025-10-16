@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 35
-// Purpose: Corrects policy failures, removes duplicate helpers, and fixes unused variable errors.
+// File version: 36
+// Purpose: Corrects all tests to provide a mandatory HostContext via the newTestHostContext helper.
 // filename: pkg/api/interpreter_test.go
 // nlines: 215
 // risk_rating: LOW
@@ -51,7 +51,7 @@ func TestInterpreter_RunNonExistentProcedure(t *testing.T) {
 		t.Fatalf("Failed to load program: %v", err)
 	}
 
-	_, runErr := interp.Run("this_function_does_not_exist")
+	_, runErr := api.RunProcedure(context.Background(), interp, "this_function_does_not_exist")
 	if runErr == nil {
 		t.Fatal("Expected an error when running a non-existent procedure, but got nil")
 	}

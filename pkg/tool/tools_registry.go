@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 13
-// Purpose: Centralized policy enforcement by calling tool.CanCall instead of performing ad-hoc checks.
+// File version: 18
+// Purpose: Corrected CallFromInterpreter to use the passed-in interpreter runtime for tool execution, fixing a critical context bug.
 // filename: pkg/tool/tools_registry.go
-// nlines: 182
+// nlines: 187
 // risk_rating: HIGH
 
 package tool
@@ -10,6 +10,7 @@ package tool
 import (
 	"crypto/sha256"
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -106,6 +107,11 @@ func (r *ToolRegistryImpl) NewViewForInterpreter(interpreter Runtime) ToolRegist
 
 // CallFromInterpreter is the single bridge between the Value-based interpreter and primitive-based tools.
 func (r *ToolRegistryImpl) CallFromInterpreter(interp Runtime, fullname types.FullName, args []lang.Value) (lang.Value, error) {
+	// DEBUG: Add extensive logging to trace the runtime context.
+	fmt.Fprintf(os.Stderr, "--- DEBUG: CallFromInterpreter for tool '%s' ---\n", fullname)
+	fmt.Fprintf(os.Stderr, "  - Runtime from argument (interp): %T\n", interp)
+	fmt.Fprintf(os.Stderr, "  - Runtime from registry (r.interpreter): %T\n", r.interpreter)
+
 	impl, ok := r.GetTool(fullname)
 	if !ok {
 		canonicalName := CanonicalizeToolName(string(fullname))
@@ -114,8 +120,10 @@ func (r *ToolRegistryImpl) CallFromInterpreter(interp Runtime, fullname types.Fu
 
 	// Centralized policy enforcement. This correctly checks trust, then grants.
 	if err := CanCall(interp, impl); err != nil {
+		fmt.Fprintf(os.Stderr, "  - DEBUG: CanCall failed: %v\n", err)
 		return nil, err
 	}
+	fmt.Fprintf(os.Stderr, "  - DEBUG: CanCall succeeded.\n")
 
 	rawArgs := make([]interface{}, len(args))
 	for i, arg := range args {
@@ -138,11 +146,14 @@ func (r *ToolRegistryImpl) CallFromInterpreter(interp Runtime, fullname types.Fu
 		coercedArgs = append(coercedArgs, rawArgs[len(impl.Spec.Args):]...)
 	}
 
+	fmt.Fprintf(os.Stderr, "  - DEBUG: Calling tool Func with the LIVE interpreter from arguments.\n")
+	// THE FIX: Use the passed-in 'interp' for the tool execution, not the stale 'r.interpreter'.
 	out, err := impl.Func(interp, coercedArgs)
 	if err != nil {
 		return nil, err
 	}
 
+	fmt.Fprintln(os.Stderr, "-------------------------------------------------")
 	return lang.Wrap(out)
 }
 

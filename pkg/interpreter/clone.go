@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 27
-// Purpose: Corrected the fork method to properly share all root-level resources by reference, fixing numerous test failures related to policy, state, and parser configuration.
+// File version: 36
+// Purpose: Corrected a typo in a Printf format string that was causing a build failure.
 // filename: pkg/interpreter/clone.go
-// nlines: 55
-// risk_rating: HIGH
+// nlines: 70
+// risk_rating: LOW
 
 package interpreter
 
@@ -15,21 +15,21 @@ import (
 
 // fork creates a new interpreter instance for sandboxing procedure calls or event handlers.
 // It shares the immutable HostContext and a reference to the root interpreter.
-// It creates an isolated variable scope and a context-aware tool registry view.
+// It creates an isolated variable scope and a new tool registry view bound to itself.
 func (i *Interpreter) fork() *Interpreter {
 	root := i.rootInterpreter()
-	clone := &Interpreter{
-		// Assign a new unique ID to the clone
-		id: fmt.Sprintf("interp-%s", uuid.NewString()[:8]),
+	// THE FIX: Corrected the argument order for the format string.
+	fmt.Printf("[DEBUG] fork: Creating fork from interpreter %s (root: %s). Parent turnCtx is %p.\n", i.id, root.id, i.GetTurnContext())
 
-		// Share immutable or root-managed state by reference
+	clone := &Interpreter{
+		id:   fmt.Sprintf("interp-%s", uuid.NewString()[:8]),
+		root: root, // Explicitly set the root
+		// Copy/share all other fields from parent 'i'
 		hostContext:          i.hostContext,
-		root:                 root,
 		eventManager:         i.eventManager,
 		bufferManager:        i.bufferManager,
 		objectCache:          i.objectCache,
 		transientPrivateKey:  i.transientPrivateKey,
-		turnCtx:              i.turnCtx,
 		maxLoopIterations:    i.maxLoopIterations,
 		modelStore:           i.modelStore,
 		ExecPolicy:           i.ExecPolicy,
@@ -41,17 +41,22 @@ func (i *Interpreter) fork() *Interpreter {
 		aiWorker:             i.aiWorker,
 	}
 
-	if i.tools != nil {
-		clone.tools = i.tools.NewViewForInterpreter(clone)
-	}
+	// Create a new tool registry VIEW bound to the CLONE.
+	// Do not share the parent's registry object directly, as its internal
+	// 'interpreter' reference would be stale.
+	clone.tools = i.tools.NewViewForInterpreter(clone)
+	fmt.Printf("[DEBUG] fork: Created new tool registry view for clone %s.\n", clone.id)
 
-	// Create a new, isolated state for variables
+	// Create a new, isolated state, but inherit key properties.
 	clone.state = newInterpreterState()
 	clone.state.sandboxDir = i.state.sandboxDir
-	// FIX: Procedures from the parent/root must be available to the fork.
 	clone.state.knownProcedures = i.state.knownProcedures
 
-	// Copy global variables from the root into the new clone's scope
+	// CRITICAL: The clone must inherit the parent's context.
+	clone.SetTurnContext(i.GetTurnContext())
+	fmt.Printf("[DEBUG] fork: Cloned interpreter %s created. Clone turnCtx is %p.\n", clone.id, clone.GetTurnContext())
+
+	// Copy global variables from the root.
 	root.state.variablesMu.RLock()
 	for name, value := range root.state.variables {
 		if _, isGlobal := root.state.globalVarNames[name]; isGlobal {
@@ -61,7 +66,7 @@ func (i *Interpreter) fork() *Interpreter {
 	}
 	root.state.variablesMu.RUnlock()
 
-	// Register the clone with the root for debugging purposes.
+	// Register with root for debugging.
 	root.cloneRegistryMu.Lock()
 	root.cloneRegistry = append(root.cloneRegistry, clone)
 	root.cloneRegistryMu.Unlock()

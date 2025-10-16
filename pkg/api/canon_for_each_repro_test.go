@@ -1,13 +1,14 @@
-// filename: pkg/api/canon_for_each_repro_test.go
 // NeuroScript Version: 0.6.2
-// File version: 1
-// Purpose: Provides a definitive, failing test case to prove that the canonicalization process drops the 'Collection' field from a 'for each' loop's AST node.
+// File version: 2
+// Purpose: Corrects the test to pass a context.Context to the api.Decode function.
+// filename: pkg/api/canon_for_each_repro_test.go
 // nlines: 60
 // risk_rating: HIGH
 
 package api_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/api"
@@ -44,7 +45,7 @@ endfunc
 		t.Fatalf("api.Canonicalise() failed unexpectedly: %v", err)
 	}
 
-	decodedTree, _, err := api.Decode(blob)
+	decodedTree, _, err := api.Decode(context.Background(), blob)
 	if err != nil {
 		t.Fatalf("api.Decode() failed unexpectedly: %v", err)
 	}

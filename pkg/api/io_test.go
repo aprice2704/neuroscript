@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 10
-// Purpose: Provides focused tests for default and custom IO behaviors, including emit and a correctly-behaved custom tool.
+// File version: 11
+// Purpose: Corrects tests to provide a mandatory HostContext during interpreter creation, resolving a panic.
 // filename: pkg/api/io_test.go
 // nlines: 109
 // risk_rating: MEDIUM

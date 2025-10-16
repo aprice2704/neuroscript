@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.6.0
-// File version: 3
-// Purpose: Provides an exportable function for external projects to generate tool metadata. FIX: Now accepts a tool.ToolRegistry to decouple it from interpreter creation.
+// NeuroScript Version: 0.8.0
+// File version: 4
+// Purpose: Decouples the function from interpreter creation by accepting a tool.ToolRegistry directly.
 // filename: pkg/api/toolsmeta/export.go
 // nlines: 45
 // risk_rating: LOW

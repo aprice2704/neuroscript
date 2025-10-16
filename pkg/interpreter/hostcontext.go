@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 2
-// Purpose: Defines the canonical HostContext struct. This is the single source of truth for host dependencies.
+// File version: 4
+// Purpose: Defines the canonical HostContext struct. Adds the Actor field to carry identity.
 // filename: pkg/interpreter/hostcontext.go
-// nlines: 26
+// nlines: 28
 // risk_rating: LOW
 
 package interpreter
@@ -26,6 +26,7 @@ type HostContext struct {
 	Stdout                    io.Writer
 	Stdin                     io.Reader
 	Stderr                    io.Writer
+	Actor                     interfaces.Actor // <-- Identity for the execution context
 	EmitFunc                  func(lang.Value)
 	WhisperFunc               func(handle, data lang.Value)
 	EventHandlerErrorCallback func(eventName, source string, err *lang.RuntimeError)

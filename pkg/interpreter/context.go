@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 3
-// Purpose: Defines context keys for passing AEIOU v3 session data.
+// File version: 4
+// Purpose: Defines and EXPORTS context keys for passing AEIOU v3 session data, making them accessible to other packages.
 // filename: pkg/interpreter/context.go
-// nlines: 18
+// nlines: 20
 // risk_rating: LOW
 
 package interpreter
@@ -11,8 +11,10 @@ package interpreter
 type ContextKey string
 
 // Context keys for passing AEIOU session information through the interpreter context.
+// These are exported to be accessible by tools and other packages that need to
+// inspect the interpreter's turn-specific context.
 var (
-	aeiouSessionIDKey = ContextKey("aeiou.sessionID")
-	aeiouTurnIndexKey = ContextKey("aeiou.turnIndex")
-	aeiouTurnNonceKey = ContextKey("aeiou.turnNonce")
+	AeiouSessionIDKey = ContextKey("aeiou.sessionID")
+	AeiouTurnIndexKey = ContextKey("aeiou.turnIndex")
+	AeiouTurnNonceKey = ContextKey("aeiou.turnNonce")
 )

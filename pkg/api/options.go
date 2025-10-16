@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 8
-// Purpose: Defines the public configuration options for the NeuroScript interpreter API. FIX: The default EmitFunc now correctly prints to Stdout if no custom function is provided.
+// File version: 12
+// Purpose: Defines the public configuration options. Corrects WithActor re-export and correctly passes identity via WithHostContext.
 // filename: pkg/api/options.go
-// nlines: 45
+// nlines: 55
 // risk_rating: MEDIUM
 
 package api
@@ -27,16 +27,14 @@ func WithHostContext(hc *HostContext) Option {
 			Stdout:       hc.Stdout,
 			Stdin:        hc.Stdin,
 			Stderr:       hc.Stderr,
+			Actor:        hc.Actor,
 			EmitFunc: func(v lang.Value) {
-				// If the user provided a custom emit function, use it.
 				if hc.EmitFunc != nil {
 					hc.EmitFunc(v)
 					return
 				}
-				// Otherwise, default to printing the unwrapped value to Stdout.
 				if hc.Stdout != nil {
 					unwrapped := lang.Unwrap(v)
-					// Use Fprintln to ensure a newline, matching 'emit' behavior.
 					fmt.Fprintln(hc.Stdout, unwrapped)
 				}
 			},

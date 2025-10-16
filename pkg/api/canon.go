@@ -1,13 +1,15 @@
-// NeuroScript Version: 0.6.3
-// File version: 8
-// Purpose: Public API wrapper for the canonicalization engine, updated for the new registry-based functions.
+// NeuroScript Version: 0.8.0
+// File version: 10
+// Purpose: Public API wrapper for the canonicalization engine, updated to be context-aware.
 // filename: pkg/api/canon.go
-// nlines: 30
+// nlines: 31
 // risk_rating: LOW
 
 package api
 
 import (
+	"context"
+
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/canon"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
@@ -18,12 +20,14 @@ import (
 // It wraps the internal canonicalizer.
 func Canonicalise(tree *interfaces.Tree) ([]byte, [32]byte, error) {
 	internalTree := &ast.Tree{Root: tree.Root, Comments: tree.Comments}
+	// Note: Canonicalization is a pure function and does not need a context.
 	return canon.CanonicaliseWithRegistry(internalTree)
 }
 
 // Decode reconstructs an AST from its canonical binary representation.
 // It wraps the internal decoder and computes the hash of the input blob.
-func Decode(blob []byte) (*interfaces.Tree, [32]byte, error) {
+// It now accepts a context to allow for cancellation.
+func Decode(ctx context.Context, blob []byte) (*interfaces.Tree, [32]byte, error) {
 	internalTree, err := canon.DecodeWithRegistry(blob)
 	if err != nil {
 		return nil, [32]byte{}, err

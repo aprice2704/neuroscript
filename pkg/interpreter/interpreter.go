@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 84
-// Purpose: Corrected a race condition by using the thread-safe setGlobalVariable method for concurrent initializations.
+// File version: 88
+// Purpose: Corrects test failures by calling RegisterStandardTools from the internal constructor, ensuring test interpreters have a populated tool registry.
 // filename: pkg/interpreter/interpreter.go
-// nlines: 230
+// nlines: 252
 // risk_rating: HIGH
 
 package interpreter
@@ -80,6 +80,43 @@ func (i *Interpreter) ASTBuilder() *parser.ASTBuilder {
 	return i.astBuilder
 }
 
+// SetToolRegistry allows the public API wrapper to replace the tool registry.
+func (i *Interpreter) SetToolRegistry(r tool.ToolRegistry) {
+	fmt.Printf("[DEBUG] SetToolRegistry: Interpreter %s registry is being OVERWRITTEN by public API wrapper.\n", i.id)
+	i.tools = r
+}
+
+// RegisterStandardTools registers the built-in toolsets. This is called by the
+// public api.New wrapper after the tool registry has been correctly initialized.
+func (i *Interpreter) RegisterStandardTools() {
+	fmt.Printf("[DEBUG] RegisterStandardTools called for interpreter %s. Registry is nil: %v\n", i.id, i.tools == nil)
+	if i.tools == nil {
+		i.Logger().Warn("RegisterStandardTools called with a nil tool registry. Skipping.")
+		return
+	}
+	if !i.skipStdTools {
+		if err := tool.RegisterGlobalToolsets(i.tools); err != nil {
+			panic(fmt.Sprintf("FATAL: Failed to register global toolsets: %v", err))
+		}
+	}
+	if err := registerDebugTools(i.tools); err != nil {
+		panic(fmt.Sprintf("FATAL: Failed to register debug tools: %v", err))
+	}
+	_, transientPrivateKey, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		panic(fmt.Sprintf("FATAL: Failed to generate transient private key for AEIOU tool: %v", err))
+	}
+	i.transientPrivateKey = transientPrivateKey
+	primaryMinter, err := aeiou.NewMagicMinter(i.transientPrivateKey)
+	if err != nil {
+		panic(fmt.Sprintf("FATAL: Failed to create AEIOU primary minter: %v", err))
+	}
+	magicTool := aeiou.NewMagicTool(primaryMinter, nil)
+	if err := registerAeiouTools(i.tools, magicTool); err != nil {
+		panic(fmt.Sprintf("FATAL: Failed to register AEIOU tools: %v", err))
+	}
+}
+
 // SetAccountStore replaces the interpreter's default account store with a host-provided one.
 func (i *Interpreter) SetAccountStore(store *account.Store) {
 	i.rootInterpreter().accountStore = store
@@ -102,7 +139,10 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 		capsuleStore:      capsule.NewStore(capsule.DefaultRegistry()),
 		cloneRegistry:     make([]*Interpreter, 0),
 	}
+
 	i.tools = tool.NewToolRegistry(i)
+	fmt.Printf("[DEBUG] NewInterpreter (internal): Interpreter %s created with a default, NON-IDENTITY-AWARE tool registry.\n", i.id)
+
 	i.root = i // A root's root is itself.
 	i.modelStore = agentmodel.NewAgentModelStore()
 	i.accountStore = account.NewStore()
@@ -123,42 +163,22 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	if i.astBuilder == nil {
 		i.astBuilder = parser.NewASTBuilder(i.hostContext.Logger)
 	}
-	// If no execution policy is provided, default to the most restrictive one.
 	if i.ExecPolicy == nil {
 		i.ExecPolicy = policy.NewBuilder(policy.ContextNormal).Build()
 	}
 
-	// The interpreter is responsible for wiring its AST builder to its event
-	// registration method. This direct call is checked at compile time.
 	i.astBuilder.SetEventHandlerCallback(i.RegisterEventHandler)
-	i.hostContext.Logger.Debug("[DEBUG] NewInterpreter: Event handler callback has been wired to ASTBuilder", "interpreter_id", i.id, "ast_builder_addr", fmt.Sprintf("%p", i.astBuilder))
 
 	if i.hostContext.WhisperFunc == nil {
 		i.hostContext.WhisperFunc = i.defaultWhisperFunc
 	}
 	i.bufferManager.Create(DefaultSelfHandle)
 
-	if !i.skipStdTools {
-		if err := tool.RegisterGlobalToolsets(i.tools); err != nil {
-			panic(fmt.Sprintf("FATAL: Failed to register global toolsets: %v", err))
-		}
-	}
-	if err := registerDebugTools(i.tools); err != nil {
-		panic(fmt.Sprintf("FATAL: Failed to register debug tools: %v", err))
-	}
-	_, transientPrivateKey, err := ed25519.GenerateKey(nil)
-	if err != nil {
-		panic(fmt.Sprintf("FATAL: Failed to generate transient private key for AEIOU tool: %v", err))
-	}
-	i.transientPrivateKey = transientPrivateKey
-	primaryMinter, err := aeiou.NewMagicMinter(i.transientPrivateKey)
-	if err != nil {
-		panic(fmt.Sprintf("FATAL: Failed to create AEIOU primary minter: %v", err))
-	}
-	magicTool := aeiou.NewMagicTool(primaryMinter, nil)
-	if err := registerAeiouTools(i.tools, magicTool); err != nil {
-		panic(fmt.Sprintf("FATAL: Failed to register AEIOU tools: %v", err))
-	}
+	// THE FIX: Register standard tools for test interpreters.
+	// This ensures tests calling NewInterpreter directly get a populated registry.
+	i.RegisterStandardTools()
+	fmt.Printf("[DEBUG] NewInterpreter (internal): Standard tools registered for interpreter %s.\n", i.id)
+
 	i.SetInitialVariable("self", lang.StringValue{Value: DefaultSelfHandle})
 	return i
 }
@@ -182,7 +202,6 @@ func (i *Interpreter) SetInitialVariable(name string, value any) error {
 	if err != nil {
 		return fmt.Errorf("failed to wrap initial variable '%s': %w", name, err)
 	}
-	// This now correctly uses the thread-safe method to update both maps.
 	i.state.setGlobalVariable(name, wrappedValue)
 	return nil
 }
@@ -231,7 +250,7 @@ func (i *Interpreter) GetGrantSet() *capability.GrantSet {
 
 func (i *Interpreter) rootInterpreter() *Interpreter {
 	root := i
-	for root.root != root { // Correct loop condition for finding the root
+	for root.root != root {
 		root = root.root
 	}
 	return root
@@ -260,4 +279,13 @@ func (i *Interpreter) CapsuleRegistryForAdmin() *capsule.Registry {
 // GetExecPolicy satisfies the policygate.Runtime interface.
 func (i *Interpreter) GetExecPolicy() *policy.ExecPolicy {
 	return i.ExecPolicy
+}
+
+// Actor returns the actor identity associated with the interpreter's HostContext.
+// This method makes the internal interpreter satisfy the interfaces.ActorProvider interface.
+func (i *Interpreter) Actor() (interfaces.Actor, bool) {
+	if i.hostContext == nil || i.hostContext.Actor == nil {
+		return nil, false
+	}
+	return i.hostContext.Actor, true
 }

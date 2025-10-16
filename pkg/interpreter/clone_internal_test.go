@@ -1,11 +1,12 @@
 // NeuroScript Version: 0.8.0
-// File version: 11
-// Purpose: Corrected the test logic by moving the 'root' field from 'isolated' to 'shared', as it must be a shared reference.
-// filename: pkg/interpreter/interpreter_clone_internal_test.go
+// File version: 14
+// Purpose: Corrects the test to treat the 'tools' field as isolated. This is now the correct behavior, as a forked interpreter gets a new "view" of the tool registry bound to its own runtime.
+// filename: pkg/interpreter/clone_internal_test.go
 
 package interpreter
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -57,8 +58,6 @@ func areFieldsEqual(t *testing.T, fieldName string, v1, v2 reflect.Value) bool {
 // correctly handles every field in the Interpreter struct.
 func TestInterpreter_Clone_Integrity(t *testing.T) {
 	t.Logf("[DEBUG] Turn 1: Starting TestInterpreter_Clone_Integrity.")
-	// The harness is not used here because we are testing the unexported `clone` method directly.
-	// We still need a valid parent interpreter to start with.
 	parent, err := NewTestInterpreter(t, nil, nil, true)
 	if err != nil {
 		t.Fatalf("Failed to create parent interpreter: %v", err)
@@ -69,16 +68,19 @@ func TestInterpreter_Clone_Integrity(t *testing.T) {
 	clone := parent.Clone()
 	t.Logf("[DEBUG] Turn 3: Interpreter cloned.")
 
+	fmt.Printf("[DEBUG] Parent tools pointer: %p, Clone tools pointer: %p\n", parent.tools, clone.tools)
+
 	if clone.state.sandboxDir != parent.state.sandboxDir {
 		t.Errorf("Sandbox path was not propagated to clone. Parent: '%s', Clone: '%s'",
 			parent.state.sandboxDir, clone.state.sandboxDir)
 	}
 
 	isolatedFields := map[string]bool{
-		"id":              true,
-		"state":           true,
+		"id":    true,
+		"state": true,
+		// THE FIX: The 'tools' registry object is now intentionally isolated in a clone
+		// to ensure it's bound to the correct runtime. It gets a new "view".
 		"tools":           true,
-		"evaluate":        true,
 		"cloneRegistry":   true,
 		"cloneRegistryMu": true,
 	}
@@ -94,6 +96,13 @@ func TestInterpreter_Clone_Integrity(t *testing.T) {
 		parentField := parentVal.Field(i)
 		cloneField := cloneVal.Field(i)
 
+		// The 'evaluate' field no longer exists.
+		if fieldName == "evaluate" {
+			checkedFields[fieldName] = true
+			continue
+		}
+
+		// The turnCtx field's propagation is checked by functional tests.
 		if fieldName == "objectCacheMu" || fieldName == "turnCtx" {
 			checkedFields[fieldName] = true
 			continue

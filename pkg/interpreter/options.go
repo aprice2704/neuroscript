@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 13
-// Purpose: Adds WithAITranscriptWriter to allow configuring the AI conversation transcript destination.
+// File version: 15
+// Purpose: Adds WithActor option to allow injecting identity into the interpreter's HostContext.
 // filename: pkg/interpreter/options.go
-// nlines: 98
+// nlines: 109
 // risk_rating: MEDIUM
 
 package interpreter
@@ -13,6 +13,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/account"
 	"github.com/aprice2704/neuroscript/pkg/agentmodel"
 	"github.com/aprice2704/neuroscript/pkg/capsule"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/parser"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 )
@@ -25,6 +26,16 @@ type InterpreterOption func(*Interpreter)
 func WithHostContext(hc *HostContext) InterpreterOption {
 	return func(i *Interpreter) {
 		i.hostContext = hc
+	}
+}
+
+// WithActor provides the interpreter with an identity for the current execution context.
+// It modifies the HostContext.
+func WithActor(actor interfaces.Actor) InterpreterOption {
+	return func(i *Interpreter) {
+		if i.hostContext != nil {
+			i.hostContext.Actor = actor
+		}
 	}
 }
 

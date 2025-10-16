@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 13
-// Purpose: Updates the AEIOU host loop to use HostContext for logging and AI transcripts.
+// File version: 18
+// Purpose: Reverted to the correct behavior where the final result is a string concatenation of clean emits. This aligns with the language spec.
 // filename: pkg/interpreter/steps_ask_hostloop.go
-// nlines: 220
+// nlines: 243
 // risk_rating: HIGH
 
 package interpreter
@@ -69,10 +69,13 @@ func (i *Interpreter) runAskHostLoop(pos *types.Position, agentModel *types.Agen
 			TurnNonce: turnNonce,
 			KeyID:     "transient-key-01",
 		}
-		turnCtxForInterpreter := context.WithValue(context.Background(), aeiouSessionIDKey, sessionID)
-		turnCtxForInterpreter = context.WithValue(turnCtxForInterpreter, aeiouTurnIndexKey, turn)
-		turnCtxForInterpreter = context.WithValue(turnCtxForInterpreter, aeiouTurnNonceKey, turnNonce)
-		i.setTurnContext(turnCtxForInterpreter)
+
+		baseCtx := i.GetTurnContext()
+		turnCtxForInterpreter := context.WithValue(baseCtx, AeiouSessionIDKey, sessionID)
+		turnCtxForInterpreter = context.WithValue(turnCtxForInterpreter, AeiouTurnIndexKey, turn)
+		turnCtxForInterpreter = context.WithValue(turnCtxForInterpreter, AeiouTurnNonceKey, turnNonce)
+		i.SetTurnContext(turnCtxForInterpreter)
+		fmt.Printf("[DEBUG] runAskHostLoop: Turn %d. Set context on interpreter %s. Base ctx %p -> New ctx %p.\n", turn, i.id, baseCtx, turnCtxForInterpreter)
 
 		if i.hostContext.AITranscript != nil {
 			if composedPrompt, err := turnEnvelope.Compose(); err == nil {
@@ -99,7 +102,7 @@ func (i *Interpreter) runAskHostLoop(pos *types.Position, agentModel *types.Agen
 		}
 
 		execInterp := i.fork()
-		var actionEmits []string
+		var actionEmits []string // Reverted to string slice
 		var actionWhispers = make(map[string]lang.Value)
 
 		actionsTrimmed := strings.TrimSpace(responseEnvelope.Actions)
@@ -120,7 +123,8 @@ func (i *Interpreter) runAskHostLoop(pos *types.Position, agentModel *types.Agen
 		}
 
 		if _, err := verifier.ParseAndVerify(lastNonEmptyLine, hostCtx); err != nil {
-			return nil, lang.NewRuntimeError(lang.ErrorCodePolicy, "The last non-empty emitted line must be a valid tool.aeiou.magic() control token.", err).WithPosition(pos)
+			errMsg := fmt.Sprintf("The last non-empty emitted line must be a valid tool.aeiou.magic() control token. Got error: %v. Line was: '%s'", err, lastNonEmptyLine)
+			return nil, lang.NewRuntimeError(lang.ErrorCodePolicy, errMsg, err).WithPosition(pos)
 		}
 
 		var cleanEmits []string
@@ -131,6 +135,7 @@ func (i *Interpreter) runAskHostLoop(pos *types.Position, agentModel *types.Agen
 		}
 		outputBody := strings.Join(cleanEmits, "\n")
 		if strings.TrimSpace(outputBody) != "" {
+			// THE FIX: The final result is the string concatenation of all clean emits.
 			finalResult = lang.StringValue{Value: outputBody}
 		}
 

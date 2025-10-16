@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 6
-// Purpose: Corrects the test to provide a mandatory HostContext during interpreter creation, resolving a panic.
+// File version: 7
+// Purpose: Corrects the test to provide a mandatory HostContext during interpreter creation and to pass the registry to the updated ExportTools function.
 // filename: pkg/api/toolsmeta/export_test.go
 // nlines: 71
 // risk_rating: LOW
