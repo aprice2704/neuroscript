@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 6
-// Purpose: Removed non-existent 'capsule' toolset to fix build.
+// File version: 7
+// Purpose: Adds the 'capsule' toolset to the standard library imports.
 // filename: pkg/api/toolsets.go
-// nlines: 21
+// nlines: 22
 // risk_rating: LOW
 package api
 
@@ -15,6 +15,7 @@ import (
 	_ "github.com/aprice2704/neuroscript/pkg/tool/account"
 	_ "github.com/aprice2704/neuroscript/pkg/tool/aeiou"
 	_ "github.com/aprice2704/neuroscript/pkg/tool/agentmodel"
+	_ "github.com/aprice2704/neuroscript/pkg/tool/capsule"
 	_ "github.com/aprice2704/neuroscript/pkg/tool/fs"
 	_ "github.com/aprice2704/neuroscript/pkg/tool/gotools"
 	_ "github.com/aprice2704/neuroscript/pkg/tool/io"
