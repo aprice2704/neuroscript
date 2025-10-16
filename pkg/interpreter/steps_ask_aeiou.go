@@ -1,13 +1,16 @@
 // NeuroScript Version: 0.8.0
-// File version: 9
-// Purpose: Reverted to capturing emitted values as strings, aligning with the host loop's expectation.
+// File version: 11
+// Purpose: Use lang.ErrToolDenied to break circular dependency with api package.
 // filename: pkg/interpreter/steps_ask_aeiou.go
-// nlines: 53
+// nlines: 62
 // risk_rating: HIGH
 
 package interpreter
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 )
@@ -52,7 +55,13 @@ func executeAeiouTurn(i *Interpreter, env *aeiou.Envelope, actionEmits *[]string
 	// in turnHostContext will capture all relevant output.
 	_, err := i.Execute(program)
 	if err != nil {
-		return err // Propagate runtime errors from the executed code
+		// Check for an internal policy error and wrap it in the public API's sentinel error.
+		var rtErr *lang.RuntimeError
+		if errors.As(err, &rtErr) && rtErr.Code == lang.ErrorCodePolicy {
+			// Wrap the detailed internal error with the stable, public error type from lang.
+			return fmt.Errorf("%w: %s", lang.ErrToolDenied, rtErr.Message)
+		}
+		return err // Propagate other runtime errors as they are
 	}
 
 	return nil
