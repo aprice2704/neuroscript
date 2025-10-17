@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 9
-// Purpose: Corrected test to expect ErrorCodeInternal (6) instead of ErrorCodePolicy (1003), as the 'ask' statement currently wraps policy errors.
+// File version: 10
+// Purpose: Corrected test to expect the correct ErrorCodePolicy (1003) instead of the wrapped ErrorCodeInternal (6).
 // filename: pkg/interpreter/context_propagation_test.go
 // nlines: 318
 // risk_rating: LOW
@@ -149,12 +149,13 @@ func TestContextPropagation_EndToEnd(t *testing.T) {
 	interp.HostContext().Actor = &mockActor{did: actorDID}
 
 	mockProvider.Callback = func() (string, error) {
+		// THE FIX: Removed obsolete 'tool.aeiou.magic' call.
+		// The loop now terminates via the '<<<LOOP:DONE>>>' signal.
 		return fmt.Sprintf(`
 			command
 				set report = %s()
 				emit report
-				set p = {"action": "done"}
-				emit tool.aeiou.magic("LOOP", p)
+				emit "<<<LOOP:DONE>>>"
 			endcommand
 		`, probeToolName), nil
 	}
@@ -185,6 +186,7 @@ func TestContextPropagation_EndToEnd(t *testing.T) {
 	t.Logf("[DEBUG] Received raw string result from ask: %s", resultStr.Value)
 
 	var report map[string]interface{}
+	// The result is now the *emitted output*, which is a JSON string.
 	if err := json.Unmarshal([]byte(resultStr.Value), &report); err != nil {
 		t.Fatalf("Failed to unmarshal JSON from result string: %v", err)
 	}
@@ -210,12 +212,12 @@ func TestContextPropagation_NestedCall(t *testing.T) {
 	interp.HostContext().Actor = &mockActor{did: "did:test:nested-call-actor"}
 
 	mockProvider.Callback = func() (string, error) {
+		// THE FIX: Removed obsolete 'tool.aeiou.magic' call.
 		return `
 			command
 				set report = call_the_probe()
 				emit report
-				set p = {"action": "done"}
-				emit tool.aeiou.magic("LOOP", p)
+				emit "<<<LOOP:DONE>>>"
 			endcommand
 		`, nil
 	}
@@ -265,21 +267,20 @@ func TestContextPropagation_PolicyInheritance(t *testing.T) {
 	const probeToolName = "tool.test.probeContext"
 	interp, mockProvider := setupPropagationTest(t)
 
-	// Setup a restrictive policy denying the probe tool but allowing the magic tool.
+	// Setup a restrictive policy denying the probe tool.
 	denyRule := capability.New("tool", "exec", probeToolName)
-	allowRule := capability.New("tool", "exec", "tool.aeiou.magic")
-	p := policy.NewBuilder(policy.ContextNormal).Deny(denyRule.String()).Allow(allowRule.String()).Build()
+	p := policy.NewBuilder(policy.ContextNormal).Deny(denyRule.String()).Build()
 	interp.ExecPolicy = p
-	t.Logf("Applied restrictive policy: Deny '%s', Allow '%s'", denyRule.String(), allowRule.String())
+	t.Logf("Applied restrictive policy: Deny '%s'", denyRule.String())
 
 	// This callback now attempts to call the DENIED tool.
 	mockProvider.Callback = func() (string, error) {
+		// THE FIX: Removed obsolete 'tool.aeiou.magic' call.
 		return fmt.Sprintf(`
 			command
 				set report = %s()
 				emit report
-				set p = {"action": "done"}
-				emit tool.aeiou.magic("LOOP", p)
+				emit "<<<LOOP:DONE>>>"
 			endcommand
 		`, probeToolName), nil
 	}
@@ -293,16 +294,16 @@ func TestContextPropagation_PolicyInheritance(t *testing.T) {
 	if err == nil {
 		t.Fatal("Execution should have failed due to policy violation, but it succeeded.")
 	}
+	fmt.Printf("[DEBUG] Policy inheritance test received error: %v (Type: %T)\n", err, err) // DEBUG
 
 	var rtErr *lang.RuntimeError
 	if errors.As(err, &rtErr) {
-		// THE FIX: The 'ask' statement incorrectly wraps the ErrorCodePolicy (1003)
-		// as an ErrorCodeInternal (6). We must check for the wrapped error code
-		// until the 'ask' implementation is corrected.
-		if rtErr.Code != lang.ErrorCodeInternal {
-			t.Errorf("Expected error code to be ErrorCodeInternal (%d) due to ask-loop wrapping, but got %d. Message: %s", lang.ErrorCodeInternal, rtErr.Code, rtErr.Message)
+		// THE FIX: With the incorrect error wrapping in steps_ask_aeiou.go removed,
+		// we should now receive the correct ErrorCodePolicy (1003).
+		if rtErr.Code != lang.ErrorCodePolicy {
+			t.Errorf("Expected error code to be ErrorCodePolicy (%d), but got %d. Message: %s", lang.ErrorCodePolicy, rtErr.Code, rtErr.Message)
 		} else {
-			t.Logf("SUCCESS: Correctly received internal error (code 6), which wraps the expected policy violation: %v", err)
+			t.Logf("SUCCESS: Correctly received policy violation error (code 1003): %v", err)
 		}
 	} else {
 		t.Errorf("Expected a *lang.RuntimeError, but got %T: %v", err, err)

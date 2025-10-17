@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 20
-// Purpose: Corrected the test provider to be a functional AEIOU v3 mock. It now correctly parses the USERDATA section from the envelope to return canned success responses, rather than incorrectly returning a hardcoded error. This fixes the contradictions and restores the provider's utility for testing success paths.
+// File version: 21
+// Purpose: Replaces obsolete 'tool.aeiou.magic' call with '<<<LOOP:DONE>>>' signal.
 // filename: pkg/provider/test/test.go
-// nlines: 88
+// nlines: 90
 // risk_rating: LOW
 
 package test
@@ -28,9 +28,11 @@ func New() *Provider {
 // WrapResponseInAEIOU is a local test helper that takes a simple string and
 // wraps it in a minimal, valid AEIOU envelope to be used as a mock AI response.
 func WrapResponseInAEIOU(responseContent string) (string, error) {
+	log.Printf("[DEBUG] WrapResponseInAEIOU: Wrapping content: %q\n", responseContent) // DEBUG
 	sanitizedResponse := strings.ReplaceAll(responseContent, "\"", "\\\"")
-	// The response must be a valid V3 envelope with a control token.
-	fakeDoneToken := `emit tool.aeiou.magic("LOOP", {"action":"done"})`
+	// THE FIX: Replace the obsolete 'tool.aeiou.magic' tool with the
+	// standard '<<<LOOP:DONE>>>' signal.
+	fakeDoneToken := `emit "<<<LOOP:DONE>>>"`
 	actions := fmt.Sprintf("command\n  emit \"%s\"\n  %s\nendcommand", sanitizedResponse, fakeDoneToken)
 
 	env := &aeiou.Envelope{
@@ -38,7 +40,13 @@ func WrapResponseInAEIOU(responseContent string) (string, error) {
 		UserData: `{"subject":"test-response"}`,
 		Actions:  actions,
 	}
-	return env.Compose()
+	composed, err := env.Compose()
+	if err != nil {
+		log.Printf("[DEBUG] WrapResponseInAEIOU: FAILED to compose: %v\n", err) // DEBUG
+	} else {
+		log.Printf("[DEBUG] WrapResponseInAEIOU: Composed envelope:\n%s\n", composed) // DEBUG
+	}
+	return composed, err
 }
 
 // Chat expects the req.Prompt to be a valid AEIOU envelope. It finds the last
@@ -56,8 +64,10 @@ func (p *Provider) Chat(ctx context.Context, req provider.AIRequest) (*provider.
 
 	env, _, err := aeiou.Parse(strings.NewReader(promptToParse))
 	if err != nil {
+		log.Printf("[DEBUG] TestProvider: FAILED to parse prompt envelope: %v\n", err) // DEBUG
 		return nil, fmt.Errorf("test provider requires a valid AEIOU envelope, but parsing failed: %w", err)
 	}
+	log.Printf("[DEBUG] TestProvider: Parsed UserData: %s\n", env.UserData) // DEBUG
 
 	// Simulate canned responses based on UserData content
 	var responseText string
@@ -69,6 +79,7 @@ func (p *Provider) Chat(ctx context.Context, req provider.AIRequest) (*provider.
 	default:
 		responseText = "test_provider_ok:default_response"
 	}
+	log.Printf("[DEBUG] TestProvider: Selected response: %q\n", responseText) // DEBUG
 
 	// The AI's response must itself be a valid envelope.
 	finalResponse, err := WrapResponseInAEIOU(responseText)

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 27
-// Purpose: Removed the local ExecPolicy override to rely on the fully-privileged default from the TestHarness.
+// File version: 28
+// Purpose: Removes all obsolete 'tool.aeiou.magic' calls from the mock E2E provider.
 // filename: pkg/interpreter/ask_e2e_test.go
-// nlines: 260
+// nlines: 254
 // risk_rating: LOW
 
 package interpreter_test
@@ -67,11 +67,10 @@ func (m *mockE2EProvider) Chat(ctx context.Context, req provider.AIRequest) (*pr
 		if err != nil {
 			m.t.Fatalf("RoundTripMode: failed to parse incoming prompt envelope: %v", err)
 		}
+		// THE FIX: AI just emits its answer.
 		env.Actions = `
 			command
 				emit "round trip success"
-				set p = {"action":"done"}
-				emit tool.aeiou.magic("LOOP", p)
 			endcommand
 		`
 		respText, err := env.Compose()
@@ -81,11 +80,10 @@ func (m *mockE2EProvider) Chat(ctx context.Context, req provider.AIRequest) (*pr
 		return &provider.AIResponse{TextContent: respText}, nil
 	}
 
+	// THE FIX: AI just emits its answer.
 	actions := `
 		command
 			emit "mock e2e success"
-			set p = {"action":"done"}
-			emit tool.aeiou.magic("LOOP", p)
 		endcommand`
 	env := &aeiou.Envelope{UserData: "{}", Actions: actions}
 	respText, err := env.Compose()

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 38
-// Purpose: Refactored to use the centralized TestHarness and the shared setupAskTest helper, removing the local duplicate.
+// File version: 39
+// Purpose: Removes the obsolete 'tool.aeiou.magic' call from the mock response.
 // filename: pkg/interpreter/interpreter_ask_integration_test.go
-// nlines: 100
+// nlines: 98
 // risk_rating: LOW
 
 package interpreter_test
@@ -53,10 +53,10 @@ func loadAskTestScript(t *testing.T, h *TestHarness) {
 func TestAskIntegrationV3(t *testing.T) {
 	t.Run("Basic ask statement success", func(t *testing.T) {
 		h, mockProv := setupAskTest(t)
+		// THE FIX: The AI's job is just to emit the answer.
+		// The Go loop handles loop termination.
 		actions := `command
 		    emit "Victoria"
-			set p = {"action": "done"}
-			emit tool.aeiou.magic("LOOP", p)
 		endcommand`
 		envText, _ := (&aeiou.Envelope{UserData: "{}", Actions: actions}).Compose()
 		mockProv.ResponseToReturn = &provider.AIResponse{TextContent: envText}

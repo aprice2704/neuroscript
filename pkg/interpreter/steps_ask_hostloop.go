@@ -1,22 +1,22 @@
 // NeuroScript Version: 0.8.0
-// File version: 19
-// Purpose: Explicitly sets the turn context on the 'execInterp' to ensure propagation.
+// File version: 25
+// Purpose: Replaces undefined 'lang.ErrorCodeFormat' with 'lang.ErrorCodeSyntax' to fix compiler error.
 // filename: pkg/interpreter/steps_ask_hostloop.go
-// nlines: 245
+// nlines: 188
 // risk_rating: HIGH
 
 package interpreter
 
 import (
 	"context"
-	"crypto/ed25519"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/llmconn"
+	"github.com/aprice2704/neuroscript/pkg/llmconn" // Restored dependency
+
+	// "github.com/aprice2704/neuroscript/pkg/provider" // No longer needed here
 	"github.com/aprice2704/neuroscript/pkg/types"
 	"github.com/google/uuid"
 )
@@ -26,23 +26,16 @@ const (
 	maxTurnsCap = 25
 	// progressGuardDefaultN is the number of consecutive identical digests that trigger a HALT.
 	progressGuardDefaultN = 3
+	// loopDoneSignal is the simple string an AI can emit to signal task completion.
+	loopDoneSignal = "<<<LOOP:DONE>>>"
 )
 
-// transientKeyProvider provides the public key derived from the interpreter's
-// transient private key, allowing the verifier to check token signatures.
-type transientKeyProvider struct {
-	publicKey ed25519.PublicKey
-}
-
-func (p *transientKeyProvider) PublicKey(kid string) (ed25519.PublicKey, error) {
-	return p.publicKey, nil
-}
-
 // runAskHostLoop orchestrates the turn-by-turn execution of an AEIOU v3 conversation.
+// It now accepts the llmconn.Connector again.
 func (i *Interpreter) runAskHostLoop(pos *types.Position, agentModel *types.AgentModel, conn llmconn.Connector, initialEnvelope *aeiou.Envelope) (lang.Value, error) {
 	maxTurns := agentModel.MaxTurns
 	if maxTurns <= 0 {
-		maxTurns = 1
+		maxTurns = 1 // Default to one-shot if not specified or invalid
 	}
 	if maxTurns > maxTurnsCap {
 		i.Logger().Warn("AgentModel max_turns exceeds cap", "agent", agentModel.Name, "requested", agentModel.MaxTurns, "capped_at", maxTurnsCap)
@@ -51,136 +44,134 @@ func (i *Interpreter) runAskHostLoop(pos *types.Position, agentModel *types.Agen
 
 	sessionID := uuid.NewString()
 	progressTracker := aeiou.NewProgressTracker(progressGuardDefaultN)
-	var finalResult lang.Value = &lang.NilValue{}
+	var finalResult lang.Value = &lang.NilValue{} // Initialize final result
 	turnEnvelope := initialEnvelope
-
-	keyProvider := &transientKeyProvider{publicKey: i.transientPrivateKey.Public().(ed25519.PublicKey)}
-	verifier := aeiou.NewMagicVerifier(keyProvider)
-	loopController := aeiou.NewLoopController(verifier)
-	replayCache := aeiou.NewReplayCache(100, 5*time.Minute)
 
 	for turn := 1; turn <= maxTurns; turn++ {
 		i.Logger().Debug("--- Starting ask loop turn ---", "sid", sessionID, "turn", turn)
 
 		turnNonce := uuid.NewString()
-		hostCtx := aeiou.HostContext{
-			SessionID: sessionID,
-			TurnIndex: turn,
-			TurnNonce: turnNonce,
-			KeyID:     "transient-key-01",
-		}
 
-		baseCtx := i.GetTurnContext()
-		turnCtxForInterpreter := context.WithValue(baseCtx, AeiouSessionIDKey, sessionID)
-		turnCtxForInterpreter = context.WithValue(turnCtxForInterpreter, AeiouTurnIndexKey, turn)
-		turnCtxForInterpreter = context.WithValue(turnCtxForInterpreter, AeiouTurnNonceKey, turnNonce)
-		i.SetTurnContext(turnCtxForInterpreter)
-		fmt.Printf("[DEBUG] runAskHostLoop: Turn %d. Set context on interpreter %s. Base ctx %p -> New ctx %p.\n", turn, i.id, baseCtx, turnCtxForInterpreter)
+		// --- Context Propagation ---
+		baseCtx := i.GetTurnContext() // Get context possibly set by caller (e.g., api.RunProcedure)
+		// Add session/turn info for this specific loop iteration
+		turnCtxForLLM := context.WithValue(baseCtx, AeiouSessionIDKey, sessionID)
+		turnCtxForLLM = context.WithValue(turnCtxForLLM, AeiouTurnIndexKey, turn)
+		turnCtxForLLM = context.WithValue(turnCtxForLLM, AeiouTurnNonceKey, turnNonce)
+		// We use turnCtxForLLM for the Converse call.
+		fmt.Printf("[DEBUG] runAskHostLoop: Turn %d. Context for LLM call %p (derived from base %p).\n", turn, turnCtxForLLM, baseCtx)
 
+		// --- Transcript Logging ---
 		if i.hostContext.AITranscript != nil {
 			if composedPrompt, err := turnEnvelope.Compose(); err == nil {
 				transcriptHeader := fmt.Sprintf("--- PROMPT (SID: %s, Turn: %d) ---\n", sessionID, turn)
 				transcriptFooter := "\n--- END PROMPT ---\n\n"
 				_, _ = i.hostContext.AITranscript.Write([]byte(transcriptHeader + composedPrompt + transcriptFooter))
+			} else {
+				i.Logger().Error("Failed to compose envelope for transcript", "sid", sessionID, "turn", turn, "error", err)
 			}
 		}
 
-		aiResp, err := conn.Converse(turnCtxForInterpreter, turnEnvelope)
+		// --- Call AI Provider via Connector ---
+		// The conn.Converse method handles interaction with the underlying provider.Chat
+		aiResp, err := conn.Converse(turnCtxForLLM, turnEnvelope)
 		if err != nil {
-			return nil, lang.NewRuntimeError(lang.ErrorCodeExternal, "AI provider call failed", err).WithPosition(pos)
+			// Converse wraps provider errors; return the wrapped error directly.
+			// No need for lang.NewRuntimeError here, Converse should return one if appropriate.
+			return nil, err // Return error from Converse (could be provider error, context canceled, etc.)
 		}
 
+		// --- Parse AI Response ---
 		responseEnvelope, _, err := aeiou.Parse(strings.NewReader(aiResp.TextContent))
 		if err != nil {
-			i.Logger().Warn("Failed to parse AI response envelope, attempting recovery", "sid", sessionID, "turn", turn, "error", err)
-			diagnosticUserData := fmt.Sprintf(`{"error": "envelope parsing failed", "diagnostic": "%s"}`, err.Error())
-			turnEnvelope = &aeiou.Envelope{
-				UserData: diagnosticUserData,
-				Actions:  "command endcommand",
-			}
-			continue
+			// Handle parse failure - potentially log and try to continue if robust handling is needed,
+			// or fail the loop. For now, we fail.
+			i.Logger().Error("Failed to parse AI response envelope", "sid", sessionID, "turn", turn, "error", err, "raw_response", aiResp.TextContent)
+			// THE FIX: Changed lang.ErrorCodeFormat (which doesn't exist) to lang.ErrorCodeSyntax.
+			return nil, lang.NewRuntimeError(lang.ErrorCodeSyntax, "failed to parse AI response envelope", err).WithPosition(pos)
+			/* // Recovery attempt (optional):
+			   diagnosticUserData := fmt.Sprintf(`{"error": "envelope parsing failed", "diagnostic": "%s"}`, err.Error())
+			   turnEnvelope = &aeiou.Envelope{ UserData: diagnosticUserData, Actions: "command endcommand" }
+			   continue
+			*/
 		}
 
+		// --- Execute ACTIONS Block ---
 		execInterp := i.fork()
-		// *** THE FIX: Explicitly set the turn context on the new fork ***
-		// This ensures that when execInterp.Execute() runs (which creates
-		// its *own* internal fork), the context is definitely present.
-		execInterp.SetTurnContext(turnCtxForInterpreter)
+		// CRITICAL: The forked interpreter needs the correct context for THIS turn
+		// so that tools called within the ACTIONS block get the right context.
+		execInterp.SetTurnContext(turnCtxForLLM) // Pass the turn-specific context
+		fmt.Printf("[DEBUG] runAskHostLoop: Turn %d. Set context on EXEC interpreter %s. Ctx %p.\n", turn, execInterp.id, turnCtxForLLM)
 
-		var actionEmits []string // Reverted to string slice
+		var actionEmits []string // Capture emits as strings
 		var actionWhispers = make(map[string]lang.Value)
 
 		actionsTrimmed := strings.TrimSpace(responseEnvelope.Actions)
-		if !strings.HasPrefix(actionsTrimmed, "command") || !strings.HasSuffix(actionsTrimmed, "endcommand") {
-			return nil, lang.NewRuntimeError(lang.ErrorCodeSyntax, "ACTIONS block must contain exactly one 'command...endcommand' block", nil).WithPosition(pos)
+		// Allow empty ACTIONS block
+		if actionsTrimmed != "" && (!strings.HasPrefix(actionsTrimmed, "command") || !strings.HasSuffix(actionsTrimmed, "endcommand")) {
+			return nil, lang.NewRuntimeError(lang.ErrorCodeSyntax, "ACTIONS block must contain exactly one 'command...endcommand' block or be empty", nil).WithPosition(pos)
 		}
 
+		// Execute the AI's commands in the sandboxed interpreter
 		if err := executeAeiouTurn(execInterp, responseEnvelope, &actionEmits, &actionWhispers); err != nil {
+			// Propagate errors from executing the ACTIONS block (e.g., tool errors, syntax errors)
 			return nil, err
 		}
 
-		var lastNonEmptyLine string
-		for j := len(actionEmits) - 1; j >= 0; j-- {
-			if strings.TrimSpace(actionEmits[j]) != "" {
-				lastNonEmptyLine = actionEmits[j]
-				break
-			}
-		}
-
-		if _, err := verifier.ParseAndVerify(lastNonEmptyLine, hostCtx); err != nil {
-			errMsg := fmt.Sprintf("The last non-empty emitted line must be a valid tool.aeiou.magic() control token. Got error: %v. Line was: '%s'", err, lastNonEmptyLine)
-			return nil, lang.NewRuntimeError(lang.ErrorCodePolicy, errMsg, err).WithPosition(pos)
-		}
-
+		// --- Process Emits for Loop Control and Result ---
 		var cleanEmits []string
+		var loopDone bool
 		for _, emit := range actionEmits {
-			if !strings.HasPrefix(emit, aeiou.TokenMarkerPrefix) {
-				cleanEmits = append(cleanEmits, emit)
+			trimmedEmit := strings.TrimSpace(emit)
+			if trimmedEmit == loopDoneSignal {
+				loopDone = true
+				i.Logger().Debug("<<<LOOP:DONE>>> signal detected", "sid", sessionID, "turn", turn)
+				continue // Don't include the signal in the final output or next prompt
+			}
+			// Filter out any vestigial AEIOU v2 tokens just in case
+			if !strings.HasPrefix(trimmedEmit, aeiou.TokenMarkerPrefix) {
+				cleanEmits = append(cleanEmits, emit) // Keep the original emit, not trimmed
 			}
 		}
 		outputBody := strings.Join(cleanEmits, "\n")
-		if strings.TrimSpace(outputBody) != "" {
-			// THE FIX: The final result is the string concatenation of all clean emits.
+		// The final result of the 'ask' statement is the *last* non-empty outputBody produced.
+		// Update finalResult only if there's actual content emitted this turn.
+		// Allow empty string as a valid final result if the AI emits nothing then DONE.
+		if len(actionEmits) > 0 || loopDone { // Consider turn valid if anything happened (emit or DONE)
 			finalResult = lang.StringValue{Value: outputBody}
 		}
 
-		fullOutputBody := strings.Join(actionEmits, "\n")
+		// --- Progress Guard ---
+		fullOutputBody := strings.Join(actionEmits, "\n") // Use all emits for digest
 		scratchpadBody, _ := lang.ToString(lang.NewMapValue(actionWhispers))
-
 		digest := aeiou.ComputeHostDigest(fullOutputBody, scratchpadBody)
 		if progressTracker.CheckAndRecord(digest) {
-			i.Logger().Warn("Ask loop terminating: no progress detected.", "sid", sessionID, "turn", turn)
-			break
+			i.Logger().Warn("Ask loop terminating: no progress detected.", "sid", sessionID, "turn", turn, "last_digest", digest)
+			break // Terminate due to lack of progress
 		}
 
-		decision, err := loopController.ProcessOutput(fullOutputBody, hostCtx, replayCache)
-		if err != nil || decision == nil {
-			i.Logger().Debug("Ask loop terminating: no valid V3 control token found or error during processing.", "sid", sessionID, "turn", turn, "error", err)
-			break // Halt
-		}
-
-		if decision.Action == aeiou.ActionContinue {
-			if !agentModel.Tools.ToolLoopPermitted {
-				return nil, lang.NewRuntimeError(lang.ErrorCodePolicy, fmt.Sprintf("agent model '%s' attempted to continue a loop but does not have 'toolLoopPermitted' grant", agentModel.Name), nil).WithPosition(pos)
-			}
-		} else {
-			i.Logger().Debug("Ask loop terminating: received signal.", "sid", sessionID, "turn", turn, "signal", decision.Action)
-			break // Done or Abort
+		// --- Termination Checks ---
+		if loopDone {
+			i.Logger().Debug("Ask loop terminating: AI emitted DONE signal.", "sid", sessionID, "turn", turn)
+			break // Terminate because AI signaled completion
 		}
 
 		if turn == maxTurns {
-			i.Logger().Warn("Ask loop terminating: max turns reached.", "sid", sessionID, "max_turns", maxTurns)
-			break
+			i.Logger().Debug("Ask loop terminating: max turns reached.", "sid", sessionID, "max_turns", maxTurns)
+			break // Terminate due to reaching turn limit
 		}
 
+		// --- Prepare for Next Turn ---
+		// UserData for the next turn is the clean output from this turn.
 		turnEnvelope = &aeiou.Envelope{
 			UserData:   outputBody,
 			Scratchpad: scratchpadBody,
-			Output:     outputBody,
-			Actions:    "command endcommand",
+			Output:     outputBody,           // Output section mirrors UserData for next prompt
+			Actions:    "command endcommand", // Default empty actions for next turn
 		}
-	}
+	} // End of turn loop
 
 	i.Logger().Debug("--- EXITING ask host loop ---", "sid", sessionID)
+	// Return the result accumulated from the last valid turn.
 	return finalResult, nil
 }

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 14
-// Purpose: Corrects the test to provide a mandatory HostContext during interpreter creation, resolving a panic.
+// File version: 15
+// Purpose: Refactors test to remove dependency on 'tool.aeiou.magic', aligning with new design.
 // filename: pkg/api/provider_test.go
-// nlines: 97
+// nlines: 106
 // risk_rating: LOW
 
 package api_test
@@ -12,11 +12,31 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/api"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/policy"
-	"github.com/aprice2704/neuroscript/pkg/provider/test"
+	"github.com/aprice2704/neuroscript/pkg/provider"
 )
+
+// mockSimpleProvider is a test provider that emulates the new AI behavior:
+// It just emits the answer and does NOT call tool.aeiou.magic.
+type mockSimpleProvider struct{}
+
+func (m *mockSimpleProvider) Chat(ctx context.Context, req provider.AIRequest) (*provider.AIResponse, error) {
+	// 1. We'd find the prompt in the req.RawPrompt...
+	//    For this test, we'll just assume it was "ping".
+
+	// 2. Compose the new, simpler response.
+	actions := `
+command
+    emit "test_provider_ok:pong"
+endcommand
+`
+	env := &aeiou.Envelope{UserData: "{}", Actions: actions}
+	respText, _ := env.Compose()
+	return &provider.AIResponse{TextContent: respText}, nil
+}
 
 func TestAPI_RegisterAndUseProvider(t *testing.T) {
 	providerName := "test_provider"
@@ -29,10 +49,10 @@ func main(returns string) means
 endfunc
 `
 	// Create an interpreter with a trusted 'config' context to allow registration.
-	// FIX: The mock provider needs permission to call the magic tool.
+	// FIX: The policy no longer needs to allow tool.aeiou.magic.
 	configPolicy := &policy.ExecPolicy{
 		Context: policy.ContextConfig,
-		Allow:   []string{"tool.aeiou.magic"},
+		Allow:   []string{}, // No 'magic' tool needed
 	}
 
 	// FIX: A HostContext is now mandatory for creating an interpreter.
@@ -42,7 +62,8 @@ endfunc
 		interpreter.WithExecPolicy(configPolicy),
 	)
 
-	interp.RegisterProvider(providerName, test.New())
+	// Register our new mock provider.
+	interp.RegisterProvider(providerName, &mockSimpleProvider{})
 
 	// Register an AgentModel configured to use our test provider.
 	agentConfig := map[string]any{
@@ -63,8 +84,8 @@ endfunc
 	}
 
 	// Run the procedure.
-	// The 'ask' statement will internally create a V3 envelope with a USERDATA
-	// section like: {"subject":"ask","fields":{"prompt":"ping"}}
+	// The 'ask' statement will now run the ACTIONS block and return
+	// the emitted value. The Go loop manages completion.
 	result, err := api.RunProcedure(context.Background(), interp, "main")
 	if err != nil {
 		t.Fatalf("api.RunProcedure() failed: %v", err)
@@ -81,7 +102,7 @@ endfunc
 		t.Fatalf("Expected a string return type, but got %T", unwrapped)
 	}
 
-	// The mock provider is hard-coded to return "test_provider_ok:pong" for a "ping" prompt.
+	// The mock provider is hard-coded to return "test_provider_ok:pong".
 	expectedResponse := "test_provider_ok:pong"
 	if !strings.Contains(val, expectedResponse) {
 		t.Errorf("Expected response to contain '%s', but got '%s'", expectedResponse, val)

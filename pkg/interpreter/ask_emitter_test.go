@@ -1,19 +1,21 @@
 // NeuroScript Version: 0.8.0
-// File version: 11
-// Purpose: Removed local ExecPolicy override to rely on the fully-privileged default from the TestHarness.
+// File version: 13
+// Purpose: Fixes a syntax error in the mock provider's 'ACTIONS' block.
 // filename: pkg/interpreter/ask_emitter_test.go
-// nlines: 95
+// nlines: 112
 // risk_rating: LOW
 
 package interpreter_test
 
 import (
+	"context"
 	"sync"
 	"testing"
 
+	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/provider/test"
+	"github.com/aprice2704/neuroscript/pkg/provider"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
@@ -53,6 +55,20 @@ func (m *mockEmitter) EmitLLMCallFailed(info interfaces.LLMCallFailureInfo) {
 	}
 }
 
+// simplePingProvider is a mock provider that just emits "pong".
+type simplePingProvider struct{}
+
+func (m *simplePingProvider) Chat(ctx context.Context, req provider.AIRequest) (*provider.AIResponse, error) {
+	// THE FIX: Added required newlines to the 'command' block.
+	actions := `
+command
+    emit "pong"
+endcommand`
+	env := &aeiou.Envelope{UserData: "{}", Actions: actions}
+	respText, _ := env.Compose()
+	return &provider.AIResponse{TextContent: respText}, nil
+}
+
 func TestInterpreter_Ask_EmitterIntegration(t *testing.T) {
 	t.Logf("[DEBUG] Turn 1: Starting TestInterpreter_Ask_EmitterIntegration.")
 	h := NewTestHarness(t)
@@ -60,11 +76,10 @@ func TestInterpreter_Ask_EmitterIntegration(t *testing.T) {
 	emitter := &mockEmitter{t: t}
 	h.HostContext.Emitter = emitter
 
-	provider := test.New()
+	// THE FIX: Use our new simple mock provider instead of the obsolete test.New().
+	provider := &simplePingProvider{}
 	providerName := "test-provider"
 
-	// REMOVED: The local policy override has been removed.
-	// The test now correctly uses the fully privileged policy from the TestHarness.
 	interp.RegisterProvider(providerName, provider)
 	t.Logf("[DEBUG] Turn 2: Harness configured with emitter and provider.")
 

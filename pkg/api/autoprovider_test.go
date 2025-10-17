@@ -1,14 +1,16 @@
 // NeuroScript Version: 0.8.0
-// File version: 17
-// Purpose: Corrects the test failure by adding the required 'tool.aeiou.magic' to the policy's allow list.
+// File version: 19
+// Purpose: Corrects test failure by using api.NewPolicyBuilder to construct the policy.
 // filename: pkg/api/autoprovider_test.go
-// nlines: 84
+// nlines: 86
 // risk_rating: LOW
 
 package api_test
 
 import (
 	"context"
+	"fmt" // DEBUG
+	"os"  // DEBUG
 	"strings"
 	"testing"
 
@@ -21,6 +23,9 @@ import (
 // TestAPI_AutoProviderRegistration verifies that a provider registered via the
 // top-level API function is correctly configured and accessible to scripts via 'ask'.
 func TestAPI_AutoProviderRegistration(t *testing.T) {
+	// DEBUG
+	fmt.Fprintf(os.Stderr, "[DEBUG] TestAPI_AutoProviderRegistration: START\n")
+
 	// 1. Define a script that uses an AgentModel.
 	scriptContent := `
 func main(returns string) means
@@ -31,11 +36,11 @@ endfunc
 `
 	// 2. Configure a policy that allows running in a trusted 'config' context.
 	// This is required to call RegisterAgentModel.
-	// FIX: The 'ask' statement requires permission for the magic tool.
-	configPolicy := &policy.ExecPolicy{
-		Context: policy.ContextConfig,
-		Allow:   []string{"tool.aeiou.magic"},
-	}
+	// THE FIX: Use the api.NewPolicyBuilder to correctly create the policy
+	// with the required 'model:admin:*' grant.
+	configPolicy := api.NewPolicyBuilder(policy.ContextConfig).
+		Grant("model:admin:*").
+		Build()
 
 	interp := api.New(
 		api.WithHostContext(newTestHostContext(nil)),
@@ -44,6 +49,7 @@ endfunc
 
 	// 3. Register the mock provider.
 	interp.RegisterProvider("mock", test.New())
+	fmt.Fprintf(os.Stderr, "[DEBUG] TestAPI_AutoProviderRegistration: Mock provider registered.\n")
 
 	// 4. Register an AgentModel using native Go types.
 	agentConfig := map[string]any{
@@ -51,8 +57,10 @@ endfunc
 		"model":    "test-model",
 	}
 	if err := interp.RegisterAgentModel("test_agent", agentConfig); err != nil {
+		fmt.Fprintf(os.Stderr, "[DEBUG] TestAPI_AutoProviderRegistration: RegisterAgentModel FAILED: %v\n", err) // DEBUG
 		t.Fatalf("Failed to register agent model: %v", err)
 	}
+	fmt.Fprintf(os.Stderr, "[DEBUG] TestAPI_AutoProviderRegistration: Agent model registered.\n")
 
 	// 5. Parse and load the script.
 	tree, err := api.Parse([]byte(scriptContent), api.ParseSkipComments)
@@ -62,14 +70,17 @@ endfunc
 	if _, err := api.ExecWithInterpreter(context.Background(), interp, tree); err != nil {
 		t.Fatalf("api.ExecWithInterpreter failed: %v", err)
 	}
+	fmt.Fprintf(os.Stderr, "[DEBUG] TestAPI_AutoProviderRegistration: Script loaded.\n")
 
 	// 6. Run the procedure.
 	// The 'ask' statement will internally create a V3 envelope with a USERDATA
 	// section like: {"subject":"ask","fields":{"prompt":"What is a large language model?"}}
 	result, err := api.RunProcedure(context.Background(), interp, "main")
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "[DEBUG] TestAPI_AutoProviderRegistration: RunProcedure FAILED: %v\n", err) // DEBUG
 		t.Fatalf("api.RunProcedure failed unexpectedly: %v", err)
 	}
+	fmt.Fprintf(os.Stderr, "[DEBUG] TestAPI_AutoProviderRegistration: RunProcedure complete.\n")
 
 	// 7. Verify the result from the mock provider.
 	unwrapped, err := api.Unwrap(result)
@@ -85,4 +96,5 @@ endfunc
 	if !strings.Contains(val, expectedResponse) {
 		t.Errorf("Expected response to contain '%s', but got: '%s'", expectedResponse, val)
 	}
+	fmt.Fprintf(os.Stderr, "[DEBUG] TestAPI_AutoProviderRegistration: END\n")
 }

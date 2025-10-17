@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 21
-// Purpose: Pass the current interpreter 'i' as the runtime to ExecuteTool, ensuring the tool registry gets the correct *clone* for internal tools.
+// File version: 18
+// Purpose: Reverted to the simple version. 'tool.aeiou.magic' is no longer handled here.
 // filename: pkg/interpreter/tools.go
-// nlines: 54
+// nlines: 50
 // risk_rating: HIGH
 
 package interpreter
@@ -34,11 +34,7 @@ func (i *Interpreter) CallTool(toolName types.FullName, args []any) (any, error)
 		}
 	}
 
-	// THE FIX: We must pass 'i' (the current interpreter clone) as the runtime.
-	// This allows the tool registry to differentiate:
-	// 1. For Internal tools: Pass 'i' (the clone) so they get the correct ephemeral context.
-	// 2. For External tools: Pass 'i.PublicAPI' (the wrapper) so they get the identity context.
-	resultVal, err := i.tools.ExecuteTool(i, fullToolNameForLookup, langArgs)
+	resultVal, err := i.tools.ExecuteTool(fullToolNameForLookup, langArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -47,10 +43,7 @@ func (i *Interpreter) CallTool(toolName types.FullName, args []any) (any, error)
 }
 
 // ExecuteTool is the primary entry point for the interpreter's 'call' statement.
-// It delegates directly to the tool registry, passing itself ('i') as the
-// active tool.Runtime. This is critical for propagating the ephemeral turn context
-// to internal tools like 'tool.aeiou.magic'.
+// It delegates directly to the tool registry.
 func (i *Interpreter) ExecuteTool(toolName types.FullName, args map[string]lang.Value) (lang.Value, error) {
-	// THE FIX: Pass 'i' (the clone) as the runtime.
-	return i.tools.ExecuteTool(i, toolName, args)
+	return i.tools.ExecuteTool(toolName, args)
 }

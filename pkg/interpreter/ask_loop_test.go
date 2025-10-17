@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 18
-// Purpose: Added a test for the 'ask' loop's progress guard to ensure it terminates stuck loops.
+// File version: 21
+// Purpose: Updates mock provider to use the '<<<LOOP:DONE>>>' signal and verifies it stops the loop.
 // filename: pkg/interpreter/ask_loop_test.go
-// nlines: 205
+// nlines: 169
 // risk_rating: LOW
 
 package interpreter_test
@@ -20,6 +20,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/provider"
 )
 
+// mockLoopingProvider now emits '<<<LOOP:DONE>>>' on turn 3.
 type mockLoopingProvider struct {
 	turnCount int32
 	t         *testing.T
@@ -29,22 +30,22 @@ func (m *mockLoopingProvider) Chat(ctx context.Context, req provider.AIRequest) 
 	turn := atomic.AddInt32(&m.turnCount, 1)
 	m.t.Logf("[DEBUG] mockLoopingProvider: Chat call, turn %d", turn)
 
-	var control, notes string
+	// THE FIX: The AI emits its answer, and optionally emits the DONE signal.
+	var actionsScript string
 	if turn >= 3 {
-		control = "done"
-		notes = "Completed the task in three turns."
+		actionsScript = fmt.Sprintf(`
+		command
+			emit "This is the result from turn %d."
+			emit "<<<LOOP:DONE>>>"
+		endcommand
+		`, turn)
 	} else {
-		control = "continue"
-		notes = fmt.Sprintf("Continuing to turn %d.", turn+1)
+		actionsScript = fmt.Sprintf(`
+		command
+			emit "This is the result from turn %d."
+		endcommand
+		`, turn)
 	}
-
-	actionsScript := fmt.Sprintf(`
-	command
-		emit "This is the result from turn %d."
-		set params = {"action": "%s", "notes": "%s"}
-		emit tool.aeiou.magic("LOOP", params)
-	endcommand
-	`, turn, control, notes)
 
 	env := &aeiou.Envelope{UserData: "{}", Actions: actionsScript}
 	respText, _ := env.Compose()
@@ -54,18 +55,16 @@ func (m *mockLoopingProvider) Chat(ctx context.Context, req provider.AIRequest) 
 	}, nil
 }
 
-// mockStuckProvider always returns the exact same response to test the progress guard.
+// mockStuckProvider always returns the exact same response (and no DONE signal).
 type mockStuckProvider struct {
 	t *testing.T
 }
 
 func (m *mockStuckProvider) Chat(ctx context.Context, req provider.AIRequest) (*provider.AIResponse, error) {
-	m.t.Logf("[DEBUG] mockStuckProvider: Chat call, returning a static 'continue' response.")
+	m.t.Logf("[DEBUG] mockStuckProvider: Chat call, returning a static response.")
 	actionsScript := `
 	command
 		emit "I am stuck."
-		set params = {"action": "continue"}
-		emit tool.aeiou.magic("LOOP", params)
 	endcommand
 	`
 	env := &aeiou.Envelope{UserData: "{}", Actions: actionsScript}
@@ -82,7 +81,7 @@ func TestAutoLoop_Success(t *testing.T) {
 		"provider":            lang.StringValue{Value: "mock_looper"},
 		"model":               lang.StringValue{Value: "looper_model"},
 		"tool_loop_permitted": lang.BoolValue{Value: true},
-		"max_turns":           lang.NumberValue{Value: 5},
+		"max_turns":           lang.NumberValue{Value: 5}, // Set higher than the AI's stop turn.
 	}
 	_ = h.Interpreter.RegisterAgentModel("test_agent", modelConfig)
 	t.Logf("[DEBUG] Turn 2: Mock provider and agent registered.")
@@ -114,6 +113,8 @@ func TestAutoLoop_Success(t *testing.T) {
 		t.Fatal("Expected script to emit a final result, but it emitted nothing.")
 	}
 	resultStr := capturedEmits[0]
+	// THE FIX: We now assert that the loop correctly stopped at turn 3
+	// because of the <<<LOOP:DONE>>> signal.
 	if !strings.Contains(resultStr, "result from turn 3") {
 		t.Errorf("Expected final result to contain output from turn 3, but got: %s", resultStr)
 	}
@@ -161,6 +162,8 @@ func TestAutoLoop_MaxTurnsExceeded(t *testing.T) {
 		t.Fatal("Expected script to emit a final result, but it emitted nothing.")
 	}
 	resultStr := capturedEmits[0]
+	// This test is still valid. The loop is cut off by max_turns at 2,
+	// before the AI can signal 'done' on turn 3.
 	if !strings.Contains(resultStr, "result from turn 2") {
 		t.Errorf("Expected result from turn 2, but got: %s", resultStr)
 	}
@@ -209,52 +212,7 @@ func TestAutoLoop_ProgressGuard(t *testing.T) {
 	if !strings.Contains(resultStr, "I am stuck.") {
 		t.Errorf("Expected final result to contain 'I am stuck.', but got: %s", resultStr)
 	}
-	// The key assertion is that this test completes in finite time, not reaching max_turns.
-	// The log messages from mockStuckProvider will show it was called ~3 times.
+	// This test is still valid. The mock AI never emits the DONE signal,
+	// so it is correctly terminated by the progress guard.
 	t.Logf("[DEBUG] Turn 4: TestAutoLoop_ProgressGuard completed, loop correctly terminated by progress guard.")
-}
-
-type mockAbortingProvider struct {
-	t *testing.T
-}
-
-func (m *mockAbortingProvider) Chat(ctx context.Context, req provider.AIRequest) (*provider.AIResponse, error) {
-	m.t.Logf("[DEBUG] mockAbortingProvider: Chat call, returning abort.")
-	actionsScript := `
-	command
-		set params = {"action": "abort", "reason": "precondition_failed"}
-		emit tool.aeiou.magic("LOOP", params)
-	endcommand
-	`
-	env := &aeiou.Envelope{UserData: "{}", Actions: actionsScript}
-	respText, _ := env.Compose()
-	return &provider.AIResponse{TextContent: respText}, nil
-}
-
-func TestAutoLoop_Abort(t *testing.T) {
-	h := NewTestHarness(t)
-	t.Logf("[DEBUG] Turn 1: Starting TestAutoLoop_Abort.")
-	h.Interpreter.RegisterProvider("mock_aborter", &mockAbortingProvider{t: t})
-	modelConfig := map[string]lang.Value{
-		"provider":            lang.StringValue{Value: "mock_aborter"},
-		"model":               lang.StringValue{Value: "aborter_model"},
-		"tool_loop_permitted": lang.BoolValue{Value: true},
-		"max_turns":           lang.NumberValue{Value: 5},
-	}
-	_ = h.Interpreter.RegisterAgentModel("test_agent", modelConfig)
-	t.Logf("[DEBUG] Turn 2: Mock provider and agent registered.")
-
-	script := `command ask "test_agent", "start" into result; emit result endcommand`
-	tree, _ := h.Parser.Parse(script)
-	program, _, _ := h.ASTBuilder.Build(tree)
-	if err := h.Interpreter.Load(&interfaces.Tree{Root: program}); err != nil {
-		t.Fatalf("Failed to load program: %v", err)
-	}
-	t.Logf("[DEBUG] Turn 3: Script loaded. Executing commands.")
-	_, err := h.Interpreter.Execute(program)
-
-	if err != nil {
-		t.Fatalf("Expected loop to succeed with empty result, but it failed: %v", err)
-	}
-	t.Logf("[DEBUG] Turn 4: TestAutoLoop_Abort completed.")
 }

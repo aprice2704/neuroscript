@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.2
-// File version: 2
-// Purpose: Refactored to use the centralized TestHarness for robust and consistent interpreter initialization.
+// NeuroScript Version: 0.8.0
+// File version: 3
+// Purpose: Removes the obsolete 'tool.aeiou.magic' call from the mock provider.
 // filename: pkg/interpreter/interpreter_ask_prompt_wrapping_test.go
-// nlines: 100
+// nlines: 98
 // risk_rating: LOW
 
 package interpreter_test
@@ -58,8 +58,10 @@ func (m *mockWrappingProvider) Chat(ctx context.Context, req provider.AIRequest)
 		}
 	}
 
+	// THE FIX: The AI's job is just to emit a response.
+	// The Go 'runAskHostLoop' handles loop termination.
 	actions := `command
-	   emit tool.aeiou.magic("LOOP", {"action":"done"}) 
+	   emit "ok"
 	endcommand`
 	respEnv := &aeiou.Envelope{UserData: `{"status":"ok"}`, Actions: actions}
 	respText, _ := respEnv.Compose()

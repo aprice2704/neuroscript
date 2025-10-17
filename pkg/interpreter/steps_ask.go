@@ -1,22 +1,25 @@
 // NeuroScript Version: 0.8.0
-// File version: 71
-// Purpose: Re-plumbed to use the external 'eval' package for agent and prompt evaluation.
+// File version: 75
+// Purpose: Reverts llmconn.New call to 3 arguments, removing capsuleStore to fix compiler error.
 // filename: pkg/interpreter/steps_ask.go
-// nlines: 125
-// risk_rating: MEDIUM
+// nlines: 133
+// risk_rating: HIGH
 
 package interpreter
 
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/aprice2704/neuroscript/pkg/account"
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/eval"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/llmconn"
+	"github.com/aprice2704/neuroscript/pkg/llmconn" // Restored dependency
+
+	// "github.com/aprice2704/neuroscript/pkg/provider" // No longer directly needed here
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
@@ -68,14 +71,25 @@ func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
 		if acc.APIKey == "" {
 			return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, fmt.Sprintf("account '%s' is missing or has an empty 'api_key' in its configuration", agentModel.AccountName), nil).WithPosition(node.GetPos())
 		}
-		agentModel.APIKey = acc.APIKey
+		agentModel.APIKey = acc.APIKey // Inject the API key into the model copy
 	}
 
-	// 3. Initialize LLM Connection
+	// 3. Initialize LLM Connection (FIXED)
+	// DEBUG: Add debug output per AGENTS.md
+	fmt.Fprintf(os.Stderr, "[DEBUG] executeAsk: Calling llmconn.New. Agent: '%s', Provider: '%s', Emitter: %T\n",
+		agentModel.Name, agentModel.Provider, i.hostContext.Emitter)
+
+	// THE FIX: Reverted to 3-argument call to llmconn.New.
+	// The capsule-loading logic must be *inside* llmconn.New, which gets the store
+	// from the provider or a default.
 	conn, err := llmconn.New(&agentModel, prov, i.hostContext.Emitter)
 	if err != nil {
+		// DEBUG: Log the specific error from llmconn.New
+		fmt.Fprintf(os.Stderr, "[DEBUG] executeAsk: llmconn.New FAILED: %v\n", err)
+		// If llmconn.New fails (e.g., capsule not found), wrap the error here.
 		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "failed to create LLM connection", err).WithPosition(node.GetPos())
 	}
+	fmt.Fprintf(os.Stderr, "[DEBUG] executeAsk: llmconn.New Succeeded. Connector created: %T\n", conn)
 
 	// 4. Construct Initial V3 Envelope
 	var userdataPayload string
@@ -95,19 +109,20 @@ func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
 	}
 	initialEnvelope := &aeiou.Envelope{
 		UserData: userdataPayload,
-		Actions:  "command endcommand",
+		Actions:  "command endcommand", // Start with empty actions
 	}
 
-	// 5. Delegate to the Host Loop
+	// 5. Delegate to the Host Loop - Pass the llmconn.Connector
 	finalResult, err := i.runAskHostLoop(node.GetPos(), &agentModel, conn, initialEnvelope)
 	if err != nil {
+		// Errors from the loop (including provider errors wrapped by Converse) are returned here
 		return nil, err
 	}
 
 	// 6. Set Final Result
 	if node.IntoTarget != nil {
 		if err := i.setSingleLValue(node.IntoTarget, finalResult); err != nil {
-			return nil, err
+			return nil, err // Propagate LValue setting errors
 		}
 	}
 	return finalResult, nil

@@ -14,7 +14,6 @@ import (
 	"sync"
 
 	"github.com/aprice2704/neuroscript/pkg/account"
-	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/agentmodel"
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/capability"
@@ -109,14 +108,6 @@ func (i *Interpreter) RegisterStandardTools() {
 		panic(fmt.Sprintf("FATAL: Failed to generate transient private key for AEIOU tool: %v", err))
 	}
 	i.transientPrivateKey = transientPrivateKey
-	primaryMinter, err := aeiou.NewMagicMinter(i.transientPrivateKey)
-	if err != nil {
-		panic(fmt.Sprintf("FATAL: Failed to create AEIOU primary minter: %v", err))
-	}
-	magicTool := aeiou.NewMagicTool(primaryMinter, nil)
-	if err := registerAeiouTools(i.tools, magicTool); err != nil {
-		panic(fmt.Sprintf("FATAL: Failed to register AEIOU tools: %v", err))
-	}
 }
 
 // SetAccountStore replaces the interpreter's default account store with a host-provided one.

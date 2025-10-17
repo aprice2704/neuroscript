@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 43
-// Purpose: Rewrote test to correctly validate 'ask...into' logic within a sandbox by checking emitted output.
+// File version: 44
+// Purpose: Updates mock provider to use '<<<LOOP:DONE>>>' signal, removing obsolete 'tool.aeiou.magic'.
 // filename: pkg/interpreter/steps_ask_test.go
 // nlines: 70
 // risk_rating: LOW
@@ -23,11 +23,12 @@ func TestAskStatementExecutionV3(t *testing.T) {
 		interp := h.Interpreter
 		t.Logf("[DEBUG] Turn 1: Harness created for 'Simple ask into variable' test.")
 
+		// THE FIX: The mock provider now emits the standard DONE signal
+		// instead of the obsolete 'tool.aeiou.magic' tool.
 		actions := `
 		command
 			emit "The capital of Canada is Ottawa."
-			set p = {"action": "done"}
-			emit tool.aeiou.magic("LOOP", p)
+			emit "<<<LOOP:DONE>>>"
 		endcommand
 		`
 		env := &aeiou.Envelope{UserData: "{}", Actions: actions}
