@@ -1,9 +1,9 @@
 // filename: pkg/lang/type_utils.go
 // NeuroScript Version: 0.4.1
-// File version: 12
-// Purpose: Corrected the reflection logic for tool type detection to work with interfaces, not just structs.
-// nlines: 290
-// risk_rating: LOW
+// File version: 14
+// Purpose: Fixes ToString to handle *NilValue pointers correctly.
+// nlines: 300
+// risk_rating: MEDIUM
 
 package lang
 
@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -49,7 +50,14 @@ func TypeOf(value interface{}) NeuroScriptType {
 
 	/* ---------- custom wrapper types that implement the Value interface ---------- */
 
+	// FIX: Must check for nil pointers/interfaces *before* calling methods.
 	if v, ok := value.(Value); ok {
+		rv := reflect.ValueOf(value)
+		if rv.Kind() == reflect.Ptr || rv.Kind() == reflect.Interface {
+			if rv.IsNil() {
+				return TypeNil
+			}
+		}
 		return v.Type()
 	}
 
@@ -127,6 +135,10 @@ func UnwrapValue(v interface{}) interface{} {
 		}
 		return unwrappedList
 	case *MapValue:
+		// FIX: Add nil check for pointer
+		if val == nil {
+			return nil
+		}
 		// Recursively unwrap values in the map
 		unwrappedMap := make(map[string]interface{})
 		for k, innerVal := range val.Value {
@@ -153,7 +165,9 @@ func ToFloat64(val interface{}) (float64, bool) {
 	case int:
 		return float64(v), true
 	case string:
-		f, err := strconv.ParseFloat(v, 64)
+		// FIX: Trim whitespace before parsing to handle " 5.5 "
+		trimmedV := strings.TrimSpace(v)
+		f, err := strconv.ParseFloat(trimmedV, 64)
 		return f, err == nil
 	case bool:
 		// FIX: Booleans should not be convertible to numbers.
@@ -191,16 +205,28 @@ func ToInt64(val interface{}) (int64, bool) {
 // was naturally a string.
 func ToString(val interface{}) (string, bool) {
 	if val == nil {
-		return "", false // FIX: Return empty string for nil to correct concatenation behavior.
+		return "", false // Handle raw nil
 	}
+
+	// FIX: Handle nil pointer/interface
+	rv := reflect.ValueOf(val)
+	if rv.Kind() == reflect.Ptr || rv.Kind() == reflect.Interface {
+		if rv.IsNil() {
+			return "", false
+		}
+	}
+
 	if s, ok := val.(string); ok {
 		return s, true
 	}
+
 	if v, ok := val.(Value); ok {
-		// Use the value's own String() method
-		if _, isNil := v.(NilValue); isNil {
-			return "", false // FIX: Also handle the NilValue type explicitly.
+		// FIX: Explicitly check for NilValue (value) AND *NilValue (pointer)
+		switch v.(type) {
+		case NilValue, *NilValue:
+			return "", false
 		}
+
 		_, isStr := v.(StringValue)
 		return v.String(), isStr
 	}
@@ -224,6 +250,13 @@ func IsTruthy(v Value) bool {
 	if v == nil {
 		return false
 	}
+	// FIX: Add nil safety check
+	rv := reflect.ValueOf(v)
+	if rv.Kind() == reflect.Ptr || rv.Kind() == reflect.Interface {
+		if rv.IsNil() {
+			return false
+		}
+	}
 	return v.IsTruthy()
 }
 
@@ -238,6 +271,13 @@ func IsZeroValue(val interface{}) bool {
 	if v, ok := val.(Value); ok {
 		if _, isNil := v.(NilValue); isNil {
 			return true
+		}
+		// FIX: Add nil safety check
+		rv := reflect.ValueOf(v)
+		if rv.Kind() == reflect.Ptr || rv.Kind() == reflect.Interface {
+			if rv.IsNil() {
+				return true
+			}
 		}
 		// For other value types, their IsTruthy method defines their non-zero state.
 		// isZero is the opposite of IsTruthy for these types.

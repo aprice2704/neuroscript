@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.5.2
-// File version: 2
-// Purpose: Contains tests for the regular expression string tools.
+// File version: 3
+// Purpose: Switched to use central newStringTestInterpreter but re-applies the required regex policy.
 // filename: pkg/tool/strtools/tools_string_regex_test.go
-// nlines: 74
+// nlines: 75
 // risk_rating: MEDIUM
 
 package strtools
@@ -21,6 +21,8 @@ import (
 )
 
 func TestToolStringRegex(t *testing.T) {
+	// We must create a custom interpreter for this test to set the
+	// specific policy required for regex tools.
 	t.Logf("DEBUG: Creating new test interpreter for regex tests with a valid HostContext.")
 	hostCtx := &interpreter.HostContext{
 		Logger: logging.NewTestLogger(t),
@@ -34,16 +36,20 @@ func TestToolStringRegex(t *testing.T) {
 		Grant("str:use:regex").
 		Build()
 
+	// We still use interpreter.NewInterpreter() which will
+	// trigger the init() function in register.go to register all tools.
 	interp := interpreter.NewInterpreter(
 		interpreter.WithHostContext(hostCtx),
 		interpreter.WithExecPolicy(testPolicy),
 	)
-	// Manually register the regex tools for the test.
-	for _, impl := range stringRegexToolsToRegister {
-		if _, err := interp.ToolRegistry().RegisterTool(impl); err != nil {
-			t.Fatalf("Failed to register tool %q: %v", impl.Spec.Name, err)
+	// We NO LONGER need the manual registration loop.
+	/*
+		for _, impl := range stringRegexToolsToRegister {
+			if _, err := interp.ToolRegistry().RegisterTool(impl); err != nil {
+				t.Fatalf("Failed to register tool %q: %v", impl.Spec.Name, err)
+			}
 		}
-	}
+	*/
 
 	tests := []struct {
 		name       string

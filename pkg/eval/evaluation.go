@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 6
-// Purpose: Added missing ElementAccessNode case to the main evaluation switch.
+// File version: 7
+// Purpose: Fixes element/lvalue access to handle `lang.MapValue` (value type) and `*lang.ListValue` (pointer type).
 // filename: pkg/eval/evaluation.go
-// nlines: 250
+// nlines: 278
 // risk_rating: HIGH
 
 package eval
@@ -77,8 +77,27 @@ func (e *evaluation) evaluateElementAccess(n *ast.ElementAccessNode) (lang.Value
 			return nil, lang.NewRuntimeError(lang.ErrorCodeBounds, "list index out of bounds", lang.ErrListIndexOutOfBounds).WithPosition(n.GetPos())
 		}
 		return coll.Value[int(index)], nil
+	case *lang.ListValue: // ADDED
+		index, ok := lang.ToInt64(accessorVal)
+		if !ok {
+			return nil, lang.NewRuntimeError(lang.ErrorCodeType, "list index must be an integer", lang.ErrListInvalidIndexType).WithPosition(n.GetPos())
+		}
+		if coll == nil || index < 0 || int(index) >= len(coll.Value) {
+			return nil, lang.NewRuntimeError(lang.ErrorCodeBounds, "list index out of bounds", lang.ErrListIndexOutOfBounds).WithPosition(n.GetPos())
+		}
+		return coll.Value[int(index)], nil
+	case lang.MapValue: // ADDED
+		key, _ := lang.ToString(accessorVal)
+		val, ok := coll.Value[key]
+		if !ok {
+			return &lang.NilValue{}, nil // Accessing a non-existent key returns nil
+		}
+		return val, nil
 	case *lang.MapValue:
 		key, _ := lang.ToString(accessorVal)
+		if coll == nil {
+			return &lang.NilValue{}, nil // Accessing key on nil map returns nil
+		}
 		val, ok := coll.Value[key]
 		if !ok {
 			return &lang.NilValue{}, nil // Accessing a non-existent key returns nil
@@ -111,12 +130,16 @@ func (e *evaluation) evaluateMapLiteral(node *ast.MapLiteralNode) (lang.Value, e
 		}
 		m[pair.Key.Value] = val
 	}
-	return lang.NewMapValue(m), nil
+	// Per lang/value_helpers.go, Wrap() now returns MapValue, not *MapValue.
+	// We return MapValue here for consistency, as NewMapValue() returns a pointer.
+	return lang.MapValue{Value: m}, nil
 }
 
 func (e *evaluation) evaluateIdentifier(node *ast.VariableNode) (lang.Value, error) {
 	val, exists := e.rt.GetVariable(node.Name)
 	if !exists {
+		// As per our discussion, tool.context.get_payload() returns a MapValue.
+		// If a variable is not found, it should be nil, not an error.
 		return &lang.NilValue{}, nil
 	}
 	return val, nil
@@ -180,10 +203,23 @@ func (e *evaluation) evaluateLValue(lval *ast.LValueNode) (lang.Value, error) {
 	current := baseVar
 	for _, accessor := range lval.Accessors {
 		switch c := current.(type) {
+		case lang.MapValue: // ADDED
+			key, err := e.evaluateAccessorKey(accessor)
+			if err != nil {
+				return nil, err
+			}
+			child, ok := c.Value[key]
+			if !ok {
+				return &lang.NilValue{}, nil
+			}
+			current = child
 		case *lang.MapValue:
 			key, err := e.evaluateAccessorKey(accessor)
 			if err != nil {
 				return nil, err
+			}
+			if c == nil {
+				return &lang.NilValue{}, nil
 			}
 			child, ok := c.Value[key]
 			if !ok {
@@ -195,7 +231,7 @@ func (e *evaluation) evaluateLValue(lval *ast.LValueNode) (lang.Value, error) {
 			if err != nil {
 				return nil, err
 			}
-			if index >= int64(len(c.Value)) {
+			if index < 0 || index >= int64(len(c.Value)) {
 				return &lang.NilValue{}, nil
 			}
 			current = c.Value[index]
@@ -204,7 +240,7 @@ func (e *evaluation) evaluateLValue(lval *ast.LValueNode) (lang.Value, error) {
 			if err != nil {
 				return nil, err
 			}
-			if index >= int64(len(c.Value)) {
+			if c == nil || index < 0 || index >= int64(len(c.Value)) {
 				return &lang.NilValue{}, nil
 			}
 			current = c.Value[index]

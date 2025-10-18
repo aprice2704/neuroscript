@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 4
-// Purpose: Adds the 'Required' field to the local ArgSpec to fully decouple it from the tool package.
+// File version: 5
+// Purpose: Adds a nil-check for the runtime to prevent panics (defense-in-depth).
 // filename: pkg/eval/eval.go
-// nlines: 43
+// nlines: 49
 // risk_rating: HIGH
 
 package eval
@@ -37,6 +37,10 @@ type Runtime interface {
 
 // Expression evaluates an AST expression node within the given runtime.
 func Expression(rt Runtime, node ast.Expression) (lang.Value, error) {
+	// DEFENSE-IN-DEPTH: Prevent nil panic if a nil runtime is ever passed.
+	if rt == nil {
+		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "evaluator received a nil runtime", lang.ErrInternal)
+	}
 	if node == nil {
 		return &lang.NilValue{}, nil
 	}

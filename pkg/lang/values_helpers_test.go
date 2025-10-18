@@ -1,7 +1,7 @@
 // filename: pkg/lang/values_helpers_test.go
-// NeuroScript Version: 0.4.1
-// File version: 5
-// Purpose: Implements the core Value wrapping/unwrapping contract.
+// NeuroScript Version: 0.8.0
+// File version: 6
+// Purpose: Corrected the map[string]any test case to expect MapValue (by value), not pointer.
 // nlines: 134
 // risk_rating: MEDIUM
 package lang
@@ -63,14 +63,13 @@ func TestWrap(t *testing.T) {
 				"a": 1,
 				"b": "two",
 			},
-			expected: &MapValue{Value: map[string]Value{
+			// THE FIX: Expect MapValue (value type), not *MapValue (pointer type).
+			expected: MapValue{Value: map[string]Value{
 				"a": NumberValue{1},
 				"b": StringValue{"two"},
 			}},
 			hasError: false,
 		},
-		// FIX: The `Wrap` function now supports `struct{}` by marshaling it to JSON.
-		// The test has been updated to use a type that is still unsupported (a slice of non-string).
 		{"unsupported type", []int{1, 2}, nil, true},
 	}
 
@@ -89,8 +88,9 @@ func TestWrap(t *testing.T) {
 				if err != nil {
 					t.Errorf("Did not expect an error, but got: %v", err)
 				}
+				// Use reflect.DeepEqual for comparison
 				if !reflect.DeepEqual(wrapped, tc.expected) {
-					t.Errorf("Expected wrapped value %+v, but got %+v", tc.expected, wrapped)
+					t.Errorf("Expected wrapped value %#v (%T), but got %#v (%T)", tc.expected, tc.expected, wrapped, wrapped)
 				}
 			}
 		})
@@ -111,6 +111,8 @@ func TestUnwrap(t *testing.T) {
 		{"TimedateValue", TimedateValue{time.Unix(0, 0)}, time.Unix(0, 0)},
 		{"FuzzyValue", FuzzyValue{0.5}, 0.5},
 		{"ListValue", ListValue{[]Value{StringValue{"a"}, NumberValue{1}}}, []any{"a", float64(1)}},
+		// Test unwrapping both MapValue and *MapValue
+		{"MapValue", MapValue{Value: map[string]Value{"a": NumberValue{1}}}, map[string]any{"a": float64(1)}},
 		{"*MapValue", &MapValue{Value: map[string]Value{"a": NumberValue{1}}}, map[string]any{"a": float64(1)}},
 		{"ErrorValue", ErrorValue{map[string]Value{"message": StringValue{"error"}}}, map[string]any{"message": "error"}},
 		{"EventValue", EventValue{map[string]Value{"name": StringValue{"event"}}}, map[string]any{"name": "event"}},

@@ -1,42 +1,25 @@
 // NeuroScript Version: 0.5.2
-// File version: 6
-// Purpose: Contains tests for the 'Inspect' string formatting tool.
+// File version: 8
+// Purpose: Contains tests for the 'Inspect' string formatting tool. Switched to use central newStringTestInterpreter.
 // filename: pkg/tool/strtools/tools_string_format_test.go
-// nlines: 99
+// nlines: 111
 // risk_rating: LOW
 
 package strtools
 
 import (
 	"errors"
-	"os"
 	"reflect"
 	"testing"
 
-	"github.com/aprice2704/neuroscript/pkg/interpreter"
-	"github.com/aprice2704/neuroscript/pkg/logging"
-	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 func TestToolInspect(t *testing.T) {
-	t.Logf("DEBUG: Creating new test interpreter for format tests with a valid HostContext.")
-	hostCtx := &interpreter.HostContext{
-		Logger: logging.NewTestLogger(t),
-		Stdout: os.Stdout,
-		Stdin:  os.Stdin,
-		Stderr: os.Stderr,
-	}
-	interp := interpreter.NewInterpreter(
-		interpreter.WithHostContext(hostCtx),
-		interpreter.WithExecPolicy(policy.AllowAll()),
-	)
-
-	for _, impl := range stringFormatToolsToRegister {
-		if _, err := interp.ToolRegistry().RegisterTool(impl); err != nil {
-			t.Fatalf("Failed to register tool %q: %v", impl.Spec.Name, err)
-		}
-	}
+	t.Logf("DEBUG: Creating new test interpreter for format tests.")
+	// Use the centralized test interpreter.
+	// It relies on init() to register all strtools, including "Inspect".
+	interp := newStringTestInterpreter(t)
 
 	nestedMap := map[string]interface{}{
 		"level1": map[string]interface{}{
@@ -77,6 +60,31 @@ func TestToolInspect(t *testing.T) {
 			toolName:   "Inspect",
 			args:       MakeArgs(nestedMap, int64(128), int64(2)),
 			wantResult: `{"level1":{"level2":"level2_value"}}`,
+		},
+		// --- Tests for nil optional arguments ---
+		{
+			name:       "Nil max_length (2 args, nil)",
+			toolName:   "Inspect",
+			args:       MakeArgs("hello", nil), // Should use default max_length
+			wantResult: `"hello"`,
+		},
+		{
+			name:       "Nil max_depth (3 args, nil)",
+			toolName:   "Inspect",
+			args:       MakeArgs(nestedMap, int64(128), nil), // Should use default max_depth (5)
+			wantResult: `{"level1":{"level2":"level2_value"}}`,
+		},
+		{
+			name:       "Both nil (3 args)",
+			toolName:   "Inspect",
+			args:       MakeArgs(nestedMap, nil, nil), // Should use default max_length (128) and max_depth (5)
+			wantResult: `{"level1":{"level2":"level2_value"}}`,
+		},
+		{
+			name:       "Nil max_length, set max_depth",
+			toolName:   "Inspect",
+			args:       MakeArgs(nestedMap, nil, int64(1)), // Should use default max_length (128) and depth 1
+			wantResult: `{"level1":...}`,
 		},
 	}
 	for _, tt := range tests {

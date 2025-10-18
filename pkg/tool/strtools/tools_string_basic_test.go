@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.4.0
-// File version: 2
-// Purpose: Refactored to test primitive-based tool implementations directly.
+// NeuroScript Version: 0.5.2
+// File version: 4
+// Purpose: Removed manual tool registration loop from newStringTestInterpreter. Registration is now handled by the package's init() function.
 // filename: pkg/tool/strtools/tools_string_basic_test.go
-// nlines: 178
+// nlines: 201
 // risk_rating: LOW
 
 package strtools
@@ -30,6 +30,7 @@ func MakeArgs(vals ...interface{}) []interface{} {
 }
 
 // newStringTestInterpreter creates a self-contained interpreter for string tool testing.
+// It relies on the package's init() function to register all strtools.
 func newStringTestInterpreter(t *testing.T) *interpreter.Interpreter {
 	t.Helper()
 	t.Logf("DEBUG: Creating new test interpreter for strtools with a valid HostContext.")
@@ -45,12 +46,11 @@ func newStringTestInterpreter(t *testing.T) *interpreter.Interpreter {
 		interpreter.WithHostContext(hostCtx),
 		interpreter.WithExecPolicy(policy.AllowAll()),
 	)
-	// Register the string tools
-	for _, toolImpl := range stringToolsToRegister {
-		if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
-			t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
-		}
-	}
+
+	// REGISTRATION REMOVED: The interpreter.NewInterpreter() call
+	// automatically triggers the init() function in register.go,
+	// which now handles all tool registration.
+
 	return interp
 }
 
@@ -93,6 +93,36 @@ func testStringToolHelper(t *testing.T, interp tool.Runtime, tc struct {
 				gotResult, gotResult, tc.wantResult, tc.wantResult)
 		}
 	})
+}
+
+// TestToInt64 validates the behavior of the toInt64 conversion helper.
+func TestToInt64(t *testing.T) {
+	t.Logf("DEBUG: Testing toInt64 helper function.")
+	tests := []struct {
+		name    string
+		input   interface{}
+		wantVal int64
+		wantOk  bool
+	}{
+		{name: "Nil Input", input: nil, wantVal: 0, wantOk: true},
+		{name: "Int64 Input", input: int64(123), wantVal: 123, wantOk: true},
+		{name: "Float64 Input", input: float64(45.6), wantVal: 45, wantOk: true},
+		{name: "Float64 Zero", input: float64(0.0), wantVal: 0, wantOk: true},
+		{name: "Invalid Type String", input: "hello", wantVal: 0, wantOk: false},
+		{name: "Invalid Type Bool", input: true, wantVal: 0, wantOk: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotVal, gotOk := toInt64(tt.input)
+			if gotVal != tt.wantVal {
+				t.Errorf("toInt64() value = %v, want %v", gotVal, tt.wantVal)
+			}
+			if gotOk != tt.wantOk {
+				t.Errorf("toInt64() ok = %v, want %v", gotOk, tt.wantOk)
+			}
+		})
+	}
 }
 
 func TestToolStringLength(t *testing.T) {

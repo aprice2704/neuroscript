@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 3
-// Purpose: Implements the 'Inspect' tool for pretty-printing variables.
+// File version: 4
+// Purpose: Implements the 'Inspect' tool for pretty-printing variables. Fixed nil handling for optional args.
 // filename: pkg/tool/strtools/tools_string_format.go
 // nlines: 100
 // risk_rating: MEDIUM
@@ -29,7 +29,7 @@ func toolInspect(interpreter tool.Runtime, args []interface{}) (interface{}, err
 	target := args[0]
 
 	maxLength := int64(defaultMaxLength)
-	if len(args) > 1 {
+	if len(args) > 1 && args[1] != nil { // Check for nil before coercion
 		var ok bool
 		maxLength, ok = toInt64(args[1])
 		if !ok {
@@ -38,7 +38,7 @@ func toolInspect(interpreter tool.Runtime, args []interface{}) (interface{}, err
 	}
 
 	maxDepth := int64(defaultMaxDepth)
-	if len(args) > 2 {
+	if len(args) > 2 && args[2] != nil { // Check for nil before coercion
 		var ok bool
 		maxDepth, ok = toInt64(args[2])
 		if !ok {

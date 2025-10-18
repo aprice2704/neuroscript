@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 19
-// Purpose: Updated mockRuntime to correctly implement the eval.Runtime interface using eval.ToolSpec.
+// File version: 20
+// Purpose: Adds regression tests for accessing map-by-value and list-by-pointer.
 // filename: pkg/eval/access_test.go
-// nlines: 104
+// nlines: 130
 // risk_rating: HIGH
 
 package eval
@@ -51,14 +51,17 @@ func runLocalExpressionTest(t *testing.T, tc localEvalTestCase) {
 	t.Helper()
 	t.Run(tc.Name, func(t *testing.T) {
 		mock := &mockRuntime{vars: tc.InitialVars}
+		// DEBUG
 		fmt.Printf("--- RUNNING TEST: %s ---\n", tc.Name)
-		fmt.Printf("INPUT NODE: %#v\n", tc.InputNode)
+		fmt.Printf("DEBUG: Initial variables: %v\n", tc.InitialVars)
+		fmt.Printf("DEBUG: INPUT NODE: %#v\n", tc.InputNode)
 
 		result, err := Expression(mock, tc.InputNode)
 
-		fmt.Printf("RESULT: %#v (%T)\n", result, result)
-		fmt.Printf("ERROR: %v\n", err)
-		fmt.Printf("EXPECTED: %#v (%T)\n", tc.Expected, tc.Expected)
+		// DEBUG
+		fmt.Printf("DEBUG: RESULT: %#v (%T)\n", result, result)
+		fmt.Printf("DEBUG: ERROR: %v\n", err)
+		fmt.Printf("DEBUG: EXPECTED: %#v (%T)\n", tc.Expected, tc.Expected)
 		fmt.Printf("--- END TEST: %s ---\n\n", tc.Name)
 
 		if (err != nil) != tc.WantErr {
@@ -79,14 +82,23 @@ func runLocalExpressionTest(t *testing.T, tc localEvalTestCase) {
 // --- Test ---
 
 func TestElementAccess(t *testing.T) {
+	listPtr := &lang.ListValue{Value: []lang.Value{
+		lang.StringValue{Value: "ptr_apple"},
+		lang.NumberValue{Value: 142},
+	}}
+
 	initialVars := map[string]lang.Value{
 		"myList": lang.ListValue{Value: []lang.Value{
 			lang.StringValue{Value: "apple"},
 			lang.NumberValue{Value: 42},
 		}},
-		"myMap": lang.NewMapValue(map[string]lang.Value{
-			"key1": lang.StringValue{Value: "value1"},
+		"myListPtr": listPtr, // ADDED
+		"myMapPtr": lang.NewMapValue(map[string]lang.Value{ // This is *MapValue
+			"key1": lang.StringValue{Value: "value1_ptr"},
 		}),
+		"myMapVal": lang.MapValue{Value: map[string]lang.Value{ // This is MapValue
+			"key1": lang.StringValue{Value: "value1_val"},
+		}},
 		"idx": lang.NumberValue{Value: 1},
 	}
 
@@ -104,6 +116,12 @@ func TestElementAccess(t *testing.T) {
 			Expected:    lang.NumberValue{Value: 42},
 		},
 		{
+			Name:        "List Ptr Access Valid Index 0", // ADDED
+			InputNode:   &ast.ElementAccessNode{Collection: &ast.VariableNode{Name: "myListPtr"}, Accessor: &ast.NumberLiteralNode{Value: int64(0)}},
+			InitialVars: initialVars,
+			Expected:    lang.StringValue{Value: "ptr_apple"},
+		},
+		{
 			Name:            "List Access Index Out of Bounds (High)",
 			InputNode:       &ast.ElementAccessNode{Collection: &ast.VariableNode{Name: "myList"}, Accessor: &ast.NumberLiteralNode{Value: int64(99)}},
 			InitialVars:     initialVars,
@@ -111,10 +129,22 @@ func TestElementAccess(t *testing.T) {
 			ExpectedErrorIs: lang.ErrListIndexOutOfBounds,
 		},
 		{
-			Name:        "Map Access Valid Key",
-			InputNode:   &ast.ElementAccessNode{Collection: &ast.VariableNode{Name: "myMap"}, Accessor: &ast.StringLiteralNode{Value: "key1"}},
+			Name:        "Map Ptr Access Valid Key",
+			InputNode:   &ast.ElementAccessNode{Collection: &ast.VariableNode{Name: "myMapPtr"}, Accessor: &ast.StringLiteralNode{Value: "key1"}},
 			InitialVars: initialVars,
-			Expected:    lang.StringValue{Value: "value1"},
+			Expected:    lang.StringValue{Value: "value1_ptr"},
+		},
+		{
+			Name:        "Map Val Access Valid Key", // ADDED
+			InputNode:   &ast.ElementAccessNode{Collection: &ast.VariableNode{Name: "myMapVal"}, Accessor: &ast.StringLiteralNode{Value: "key1"}},
+			InitialVars: initialVars,
+			Expected:    lang.StringValue{Value: "value1_val"},
+		},
+		{
+			Name:        "Map Val Access Non-existent Key", // ADDED
+			InputNode:   &ast.ElementAccessNode{Collection: &ast.VariableNode{Name: "myMapVal"}, Accessor: &ast.StringLiteralNode{Value: "badkey"}},
+			InitialVars: initialVars,
+			Expected:    &lang.NilValue{},
 		},
 	}
 

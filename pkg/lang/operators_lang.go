@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 5
-// Purpose: Corrected the fuzzy logic precedence for AND/OR operators to ensure boolean operations return booleans.
+// File version: 6
+// Purpose: Fixes nil equality checks and prevents stringification of collection addition.
 // filename: pkg/lang/operators_lang.go
-// nlines: 240
+// nlines: 260
 // risk_rating: MEDIUM
 
 package lang
@@ -68,7 +68,7 @@ func PerformBinaryOperation(op string, left, right Value) (Value, error) {
 
 // PerformUnaryOperation handles unary operations like NOT, -, and ~.
 func PerformUnaryOperation(op string, operand Value) (Value, error) {
-	if operand == nil && (op == "-" || op == "~") {
+	if isNilLike(operand) && (op == "-" || op == "~") {
 		return nil, fmt.Errorf("%w: unary operator '%s'", ErrNilOperand, op)
 	}
 
@@ -163,11 +163,17 @@ func performStringConcatOrNumericAdd(left, right Value) (Value, error) {
 		return NumberValue{Value: leftNum.Value + rightNum.Value}, nil
 	}
 
+	// FIX: Only stringify if one operand is *actually* a string.
+	// This prevents list + list from being stringified.
+	_, isLeftString := left.(StringValue)
+	_, isRightString := right.(StringValue)
+
+	if !isLeftString && !isRightString {
+		return nil, typeErrorForOp("+", left, right)
+	}
+
 	stringify := func(v Value) string {
-		if v == nil {
-			return ""
-		}
-		if _, ok := v.(*NilValue); ok {
+		if isNilLike(v) {
 			return ""
 		}
 		s, _ := ToString(v)
@@ -179,15 +185,30 @@ func performStringConcatOrNumericAdd(left, right Value) (Value, error) {
 	return StringValue{Value: leftStr + rightStr}, nil
 }
 
+// isNilLike checks if a value is nil, NilValue, or a nil pointer/interface.
+func isNilLike(v Value) bool {
+	if v == nil {
+		return true
+	}
+	switch v.(type) {
+	case NilValue, *NilValue:
+		return true
+	}
+	// Check for nil pointers that implement Value
+	rv := reflect.ValueOf(v)
+	if rv.Kind() == reflect.Ptr || rv.Kind() == reflect.Interface {
+		return rv.IsNil()
+	}
+	return false
+}
+
 // areValuesEqual provides a more robust, type-aware equality check.
 func areValuesEqual(left, right Value) bool {
-	// Nil is only equal to nil.
-	_, leftIsNil := left.(NilValue)
-	_, leftIsNilPtr := left.(*NilValue)
-	_, rightIsNil := right.(NilValue)
-	_, rightIsNilPtr := right.(*NilValue)
-	if (leftIsNil || leftIsNilPtr) || (rightIsNil || rightIsNilPtr) {
-		return (leftIsNil || leftIsNilPtr) && (rightIsNil || rightIsNilPtr)
+	// FIX: Use isNilLike to handle all nil types robustly.
+	leftIsNil := isNilLike(left)
+	rightIsNil := isNilLike(right)
+	if leftIsNil || rightIsNil {
+		return leftIsNil && rightIsNil // Both must be nil to be equal
 	}
 
 	// Handle core types directly for clarity and correctness.
@@ -280,7 +301,7 @@ func performComparison(left, right Value, op string) (Value, error) {
 }
 
 func performBitwise(left, right Value, op string) (Value, error) {
-	if left == nil || right == nil {
+	if isNilLike(left) || isNilLike(right) {
 		return nil, fmt.Errorf("bitwise op '%s' needs non-nil operands: %w", op, ErrNilOperand)
 	}
 	leftI, lOk := ToInt64(left)

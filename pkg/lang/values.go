@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.5.2
-// File version: 13
-// Purpose: Removed the dependency on 'interfaces.Tool' from ToolValue to break the lang-interfaces import cycle.
+// File version: 14
+// Purpose: Adds nil-safety to (*MapValue).String() method.
 // filename: pkg/lang/values.go
 // nlines: 245
 // risk_rating: HIGH
@@ -84,6 +84,10 @@ type MapValue struct {
 
 func (v MapValue) Type() NeuroScriptType { return TypeMap }
 func (v MapValue) String() string {
+	// FIX: Add nil-safety for pointer receiver
+	if v.Value == nil {
+		return "nil"
+	}
 	items := make([]string, 0, len(v.Value))
 	for k, val := range v.Value {
 		items = append(items, fmt.Sprintf("%q: %s", k, valueToString(val)))

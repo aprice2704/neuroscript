@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.5.2
-// File version: 1
-// Purpose: Corrected Substring and Replace tools to properly coerce floating-point numbers into integers for index and count arguments, resolving runtime errors.
-// nlines: 280
+// File version: 2
+// Purpose: Corrected Substring and Replace tools to properly coerce floating-point numbers into integers for index and count arguments, resolving runtime errors. Updated toInt64 to handle nil.
+// nlines: 283
 // risk_rating: LOW
 // filename: pkg/tool/strtools/tools_string.go
 
@@ -16,8 +16,11 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
-// toInt64 robustly converts an interface{} to int64, handling float64.
+// toInt64 robustly converts an interface{} to int64, handling float64 and nil.
 func toInt64(v interface{}) (int64, bool) {
+	if v == nil {
+		return 0, true // Per request, treat nil as a valid 0
+	}
 	if i, ok := v.(int64); ok {
 		return i, true
 	}

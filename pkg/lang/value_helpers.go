@@ -1,15 +1,15 @@
 // NeuroScript Version: 0.8.0
-// File version: 5
-// Purpose: Implements the core Value wrapping/unwrapping contract, now with support for wrapping arbitrary structs via JSON marshaling.
+// File version: 8
+// Purpose: Fixes a non-constant format string error in Wrap().
 // filename: pkg/lang/value_helpers.go
 // nlines: 190
-// risk_rating: MEDIUM
+// risk_rating: HIGH
 
 package lang
 
 import (
-	"encoding/json"
 	"fmt"
+	"os"
 	"reflect"
 	"time"
 )
@@ -26,6 +26,10 @@ func Wrap(x any) (Value, error) {
 		return NilValue{}, nil
 
 	case Value: // already wrapped
+		// Ensure MapValue pointers from incorrect wrapping are dereferenced
+		if mvPtr, ok := v.(*MapValue); ok && mvPtr != nil {
+			return *mvPtr, nil // Return the value, not the pointer
+		}
 		return v, nil
 
 	case string:
@@ -63,7 +67,8 @@ func Wrap(x any) (Value, error) {
 			}
 			newMap[key] = wrappedVal
 		}
-		return &MapValue{Value: newMap}, nil
+		// THE FIX: Return MapValue by value, not by pointer.
+		return MapValue{Value: newMap}, nil
 
 	default:
 		// Use reflection to handle slices of any string-based type.
@@ -79,19 +84,14 @@ func Wrap(x any) (Value, error) {
 			}
 		}
 
-		// Fallback for structs: convert to map[string]any via JSON
-		if val.Kind() == reflect.Struct {
-			var asMap map[string]any
-			bytes, err := json.Marshal(v)
-			if err != nil {
-				return nil, fmt.Errorf("core.Wrap: failed to marshal struct of type %T: %w", v, err)
-			}
-			if err := json.Unmarshal(bytes, &asMap); err != nil {
-				return nil, fmt.Errorf("core.Wrap: failed to unmarshal struct JSON for type %T: %w", v, err)
-			}
-			return Wrap(asMap)
-		}
-		return nil, fmt.Errorf("core.Wrap: unsupported type %T", v)
+		// --- REMOVED DANGEROUS STRUCT-TO-JSON FALLBACK ---
+		// if val.Kind() == reflect.Struct { ... }
+
+		// FIX: Add explicit logging and error on failure
+		errMsg := fmt.Sprintf("core.Wrap: unsupported type %T. Tool authors must return map[string]any, not structs.", v)
+		fmt.Fprintf(os.Stderr, "--- CRITICAL: lang.Wrap failed: %s ---\n", errMsg)
+		// FIX: Use "%s" to satisfy the vet linter
+		return nil, fmt.Errorf("%s", errMsg)
 	}
 }
 
@@ -128,7 +128,17 @@ func Unwrap(v Value) any {
 		}
 		return out
 
+	// Handle both MapValue and *MapValue during unwrap for robustness
+	case MapValue:
+		out := make(map[string]any)
+		for k, e := range t.Value {
+			out[k] = Unwrap(e)
+		}
+		return out
 	case *MapValue:
+		if t == nil { // Handle nil pointer case
+			return nil
+		}
 		out := make(map[string]any)
 		for k, e := range t.Value {
 			out[k] = Unwrap(e)
