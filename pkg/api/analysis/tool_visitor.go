@@ -1,16 +1,17 @@
 // NeuroScript Version: 0.8.0
-// File version: 1
-// Purpose: Implements an AST visitor to find all tool calls within a script.
+// File version: 5
+// Purpose: Corrects visitor guard logic to check struct fields directly, not compare the struct to nil.
 // filename: pkg/api/analysis/tool_visitor.go
-// nlines: 105
-// risk_rating: MEDIUM
+// nlines: 105+
+// risk_rating: HIGH
 
 package analysis
 
 import (
+	"reflect"
+
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
-	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // toolVisitor walks the AST and collects the names of all referenced tools.
@@ -47,27 +48,26 @@ func (v *toolVisitor) visit(node interfaces.Node) {
 		for _, event := range n.Events {
 			v.visit(event)
 		}
-		// Also visit top-level expressions if they can contain calls (less common)
 		for _, expr := range n.Expressions {
 			v.visit(expr)
 		}
 	case *ast.CommandNode:
-		for _, step := range n.Body {
-			v.visitStep(&step)
+		for i := range n.Body {
+			v.visitStep(&n.Body[i])
 		}
-		for _, handler := range n.ErrorHandlers {
-			v.visitStep(handler)
+		for i := range n.ErrorHandlers {
+			v.visitStep(n.ErrorHandlers[i])
 		}
 	case *ast.Procedure:
-		for _, step := range n.Steps {
-			v.visitStep(&step)
+		for i := range n.Steps {
+			v.visitStep(&n.Steps[i])
 		}
-		for _, handler := range n.ErrorHandlers {
-			v.visitStep(handler)
+		for i := range n.ErrorHandlers {
+			v.visitStep(n.ErrorHandlers[i])
 		}
 	case *ast.OnEventDecl:
-		for _, step := range n.Body {
-			v.visitStep(&step)
+		for i := range n.Body {
+			v.visitStep(&n.Body[i])
 		}
 	case ast.Expression: // Handle expressions directly
 		v.visitExpression(n)
@@ -105,24 +105,27 @@ func (v *toolVisitor) visitStep(step *ast.Step) {
 	}
 
 	// Recurse into nested bodies
-	for _, subStep := range step.Body {
-		v.visitStep(&subStep)
+	for i := range step.Body {
+		v.visitStep(&step.Body[i])
 	}
-	for _, subStep := range step.ElseBody {
-		v.visitStep(&subStep)
+	for i := range step.ElseBody {
+		v.visitStep(&step.ElseBody[i])
 	}
 }
 
 // visitExpression checks if an expression is a tool call and recurses.
 func (v *toolVisitor) visitExpression(expr ast.Expression) {
-	if expr == nil {
+	// Check for both nil interface and nil underlying value to prevent panics.
+	if expr == nil || (reflect.ValueOf(expr).Kind() == reflect.Ptr && reflect.ValueOf(expr).IsNil()) {
 		return
 	}
 
 	// Check if this expression IS a tool call
-	if callExpr, ok := expr.(*ast.CallableExprNode); ok && callExpr.Target.IsTool {
-		toolName := types.MakeFullName(callExpr.Target.Name, "") // Ensure canonical form
-		v.requiredTools[string(toolName)] = struct{}{}
+	if callExpr, ok := expr.(*ast.CallableExprNode); ok {
+		// FIX: Check the fields of the Target struct directly. Do not compare the struct to nil.
+		if callExpr.Target.IsTool && callExpr.Target.Name != "" {
+			v.requiredTools[callExpr.Target.Name] = struct{}{}
+		}
 	}
 
 	// Recurse into sub-expressions
@@ -153,6 +156,5 @@ func (v *toolVisitor) visitExpression(expr ast.Expression) {
 		v.visitExpression(e.Argument)
 	case *ast.TypeOfNode:
 		v.visitExpression(e.Argument)
-		// Other node types (literals, variables, etc.) don't contain further expressions.
 	}
 }

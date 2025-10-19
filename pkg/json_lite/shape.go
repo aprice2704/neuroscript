@@ -1,14 +1,15 @@
 // NeuroScript Version: 0.5.2
-// File version: 16
-// Purpose: Implements shape validation with options for case-insensitivity.
+// File version: 17
+// Purpose: Implements shape validation with options for case-insensitivity and float-to-int coercion.
 // filename: pkg/json-lite/shape.go
-// nlines: 282
+// nlines: 302
 // risk_rating: MEDIUM
 
 package json_lite
 
 import (
 	"fmt"
+	"math"
 	"regexp"
 	"strings"
 )
@@ -216,13 +217,39 @@ func validatePrimitive(value any, shapeType string, path string) error {
 		return nil
 	}
 
-	typeName, _ := getTypeName(value)
+	// Handle special string types (email, url, etc.) first.
 	isSpecial, err := isSpecialType(value, shapeType, path)
 	if err != nil {
-		return err
+		return err // This was a format validation failure (e.g., bad email)
 	}
 	if isSpecial {
-		return nil
+		return nil // This was a successful special type validation
+	}
+
+	typeName, _ := getTypeName(value)
+
+	// Special case: If the shape expects an "int", also allow a "float"
+	// value IF AND ONLY IF it represents a whole number. This handles
+	// type mismatches from systems like NeuroScript that unwrap all
+	// numbers as float64.
+	if shapeType == "int" && typeName == "float" {
+		var f64 float64
+		var ok bool
+		if f32, isF32 := value.(float32); isF32 {
+			f64 = float64(f32)
+			ok = true
+		} else if f64, ok = value.(float64); ok {
+			// f64 is already assigned
+		}
+
+		if ok {
+			// Use math.Modf to check for a fractional part
+			_, frac := math.Modf(f64)
+			if frac == 0.0 {
+				return nil // It's a whole number, so it's a valid "int"
+			}
+			// If frac != 0.0, it's a real float, fall through to the error
+		}
 	}
 
 	if typeName != shapeType {

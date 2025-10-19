@@ -169,6 +169,13 @@ type ValidateOptions struct {
 * A present key with `nil` value is a **type mismatch** (`ErrValidationTypeMismatch`)
   unless the declared type is `any`.
 
+### Type Coercion
+
+* If a shape expects type `int`, the validator will also accept a `float32` or `float64`
+  value, **if and only if** that float has no fractional part (i.e., it is a
+  whole number). This handles type-system mismatches, such as data unwrapped
+  from JSON or NeuroScript where all numbers may be floats.
+
 ### Depth limits
 
 * **Parsing** enforces a maximum **shape definition** depth: `maxShapeDepth`.
@@ -185,6 +192,7 @@ type ValidateOptions struct {
 * **Select Options**: `Select(..., &SelectOptions{CaseInsensitive: true})`.
 * Prefer **string form** (`"a.b[0].c"`) for normal keys.
 * Use **array form** (`[{Key:"a"},{Index:0},{Key:"c"}]`) for literal `.` or `[]` in keys.
+Example
 * Errors: `ErrInvalidPath`, `ErrMapKeyNotFound`, etc.
 * Limits: `maxPathSegments`, `maxPathSegmentLen`.
 
@@ -195,5 +203,6 @@ type ValidateOptions struct {
 * Values: primitive type name **or** nested shape map.
 * Primitives: `string`, `int`, `float`, `bool`, `any`; special string types `email`, `url`, `isoDatetime`.
 * `nil` is only valid for type `any`.
+* A `float` value is accepted for type `int` if it's a whole number.
 * Limits: `maxShapeDepth`.
 * Errors: `ErrValidationRequiredArgMissing`, `ErrValidationTypeMismatch`, etc.

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.5.2
-// File version: 8
-// Purpose: Additional spec-compliance tests for path-lite and shape-lite (v0.2) — updated with valid test data.
+// File version: 9
+// Purpose: Additional spec-compliance tests for path-lite and shape-lite (v0.2) — updated with float-int coercion test.
 // filename: pkg/json-lite/spec_compliance_additional_test.go
-// nlines: 188
+// nlines: 213
 // risk_rating: LOW
 
 package json_lite
@@ -208,6 +208,45 @@ func TestShapeValidate_MissingRequiredNested(t *testing.T) {
 	err = s.Validate(data, nil)
 	if !errors.Is(err, ErrValidationRequiredArgMissing) {
 		t.Fatalf("expected required missing error, got: %v", err)
+	}
+}
+
+// This test specifically verifies the fix for float64 values (like unwrapped
+// timestamps) being validated against an "int" shape type.
+func TestShapeValidate_IntFloatCoercion(t *testing.T) {
+	shapeDef := map[string]any{"ts": "int"}
+	s, err := ParseShape(shapeDef)
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+
+	cases := []struct {
+		name    string
+		value   any
+		wantErr error
+	}{
+		{"native int", int(12345), nil},
+		{"native int64", int64(1234567890), nil},
+		{"float64 whole number", float64(12345.0), nil},
+		{"float32 whole number", float32(123.0), nil},
+		{"float64 with fraction", float64(123.45), ErrValidationTypeMismatch},
+		{"float32 with fraction", float32(123.5), ErrValidationTypeMismatch},
+		{"string value", "12345", ErrValidationTypeMismatch},
+		{"bool value", true, ErrValidationTypeMismatch},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			data := map[string]any{"ts": tc.value}
+			err := s.Validate(data, nil)
+			if tc.wantErr != nil {
+				if !errors.Is(err, tc.wantErr) {
+					t.Fatalf("expected error %v, got %v", tc.wantErr, err)
+				}
+			} else if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+		})
 	}
 }
 

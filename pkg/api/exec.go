@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 28
-// Purpose: Extracted pre-flight tool check into a separate CheckScriptTools function. Removed automatic checks from Load/Exec.
+// File version: 30
+// Purpose: Corrects CheckScriptTools to use the registry's canonicalizing GetTool lookup and report full tool names.
 // filename: pkg/api/exec.go
 // nlines: 139
 // risk_rating: HIGH
@@ -20,11 +20,10 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // CheckScriptTools verifies that all tools required by the script exist in the interpreter's registry.
-// This function should be called by the host before LoadFromUnit or ExecWithInterpreter
-// if pre-flight validation is desired.
 func CheckScriptTools(tree *Tree, interp Runtime) error {
 	if tree == nil || tree.Root == nil {
 		return fmt.Errorf("cannot check tools on a nil tree")
@@ -39,30 +38,26 @@ func CheckScriptTools(tree *Tree, interp Runtime) error {
 
 	program, ok := tree.Root.(*ast.Program)
 	if !ok {
-		// Or handle gracefully if non-program roots are possible but cannot contain tools
 		return fmt.Errorf("internal error: tree root is not a checkable *ast.Program, but %T", tree.Root)
 	}
 
-	requiredTools := analysis.FindRequiredTools(&interfaces.Tree{Root: program}) // Pass interfaces.Tree
+	requiredTools := analysis.FindRequiredTools(&interfaces.Tree{Root: program})
 	if len(requiredTools) == 0 {
-		return nil // No tools required
-	}
-
-	availableTools := make(map[string]struct{})
-	for _, impl := range registry.ListTools() {
-		availableTools[string(impl.FullName)] = struct{}{}
+		return nil
 	}
 
 	var missingTools []string
-	for toolName := range requiredTools {
-		if _, found := availableTools[toolName]; !found {
-			missingTools = append(missingTools, toolName)
+	for rawToolName := range requiredTools {
+		// The registry's GetTool function handles canonicalization (e.g., adding "tool." if missing).
+		// We pass the raw name (e.g., "test.dummy") from the visitor.
+		if _, found := registry.GetTool(types.FullName(rawToolName)); !found {
+			// For the error message, show the user the fully qualified name they'd expect.
+			missingTools = append(missingTools, "tool."+rawToolName)
 		}
 	}
 
 	if len(missingTools) > 0 {
 		errMsg := fmt.Sprintf("script requires tools that are not registered: [%s]", strings.Join(missingTools, ", "))
-		// Log this loudly as well
 		if interp.GetLogger() != nil {
 			interp.GetLogger().Error("Tool check failed", "missing", missingTools)
 		} else {
@@ -82,9 +77,7 @@ func ExecInNewInterpreter(ctx context.Context, src string, opts ...interpreter.I
 	}
 
 	interp := New(opts...)
-	interp.SetTurnContext(ctx) // Set ephemeral context
-
-	// Host *could* call CheckScriptTools(tree, interp) here if desired.
+	interp.SetTurnContext(ctx)
 
 	return ExecWithInterpreter(ctx, interp, tree)
 }
@@ -95,23 +88,18 @@ func ExecWithInterpreter(ctx context.Context, interp Runtime, tree *Tree) (Value
 	if !ok {
 		return nil, fmt.Errorf("ExecWithInterpreter requires an *api.Interpreter, but got %T", interp)
 	}
-
 	if concreteInterp == nil {
 		return nil, fmt.Errorf("ExecWithInterpreter requires a non-nil interpreter")
 	}
 	if tree == nil || tree.Root == nil {
 		return nil, fmt.Errorf("cannot execute a nil tree")
 	}
-
 	program, ok := tree.Root.(*ast.Program)
 	if !ok {
 		return nil, fmt.Errorf("internal error: tree root is not a runnable *ast.Program, but %T", tree.Root)
 	}
 
-	// --- PRE-FLIGHT TOOL CHECK REMOVED ---
-	// Host should call CheckScriptTools(tree, interp) before this if needed.
-
-	concreteInterp.SetTurnContext(ctx) // Set ephemeral context
+	concreteInterp.SetTurnContext(ctx)
 
 	if err := concreteInterp.Load(&interfaces.Tree{Root: program}); err != nil {
 		return nil, fmt.Errorf("failed to load program into interpreter: %w", err)
@@ -119,7 +107,7 @@ func ExecWithInterpreter(ctx context.Context, interp Runtime, tree *Tree) (Value
 
 	finalValue, err := concreteInterp.Execute(tree)
 	if err != nil {
-		return nil, err // Propagate runtime errors (including tool not found during actual call)
+		return nil, err
 	}
 
 	return finalValue, nil
@@ -130,7 +118,6 @@ func ExecScript(ctx context.Context, script string, stdout io.Writer) (Value, er
 	if stdout == nil {
 		stdout = io.Discard
 	}
-
 	hc, err := NewHostContextBuilder().
 		WithLogger(logging.NewNoOpLogger()).
 		WithStdout(stdout).
@@ -140,11 +127,9 @@ func ExecScript(ctx context.Context, script string, stdout io.Writer) (Value, er
 	if err != nil {
 		return nil, fmt.Errorf("ExecScript failed to build minimal HostContext: %w", err)
 	}
-
 	opts := []interpreter.InterpreterOption{
 		WithHostContext(hc),
 	}
-	// Note: ExecInNewInterpreter is used, so the check isn't automatic there either.
 	return ExecInNewInterpreter(ctx, script, opts...)
 }
 
@@ -160,11 +145,7 @@ func LoadFromUnit(interp *Interpreter, unit *LoadedUnit) error {
 	if !ok {
 		return fmt.Errorf("internal error: loaded unit root is not a runnable *ast.Program, but %T", unit.Tree.Root)
 	}
-
-	// --- PRE-FLIGHT TOOL CHECK REMOVED ---
-	// Host should call CheckScriptTools(unit.Tree, interp) before this if needed.
-
-	return interp.Load(&interfaces.Tree{Root: program}) // Load definitions
+	return interp.Load(&interfaces.Tree{Root: program})
 }
 
 // RunProcedure executes a named procedure with Go-native arguments.
@@ -172,9 +153,7 @@ func RunProcedure(ctx context.Context, interp *Interpreter, name string, args ..
 	if interp == nil {
 		return nil, fmt.Errorf("RunProcedure requires a non-nil interpreter")
 	}
-
-	interp.SetTurnContext(ctx) // Set ephemeral context
-
+	interp.SetTurnContext(ctx)
 	wrappedArgs := make([]lang.Value, len(args))
 	for i, arg := range args {
 		var err error
@@ -183,6 +162,5 @@ func RunProcedure(ctx context.Context, interp *Interpreter, name string, args ..
 			return nil, fmt.Errorf("error converting argument %d for procedure '%s': %w", i, name, err)
 		}
 	}
-	// Tool check is not performed here; assumed to be done during loading.
 	return interp.Run(name, wrappedArgs...)
 }
