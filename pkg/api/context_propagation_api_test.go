@@ -11,8 +11,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
-	"os" // DEBUG
+	"fmt" // DEBUG
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
@@ -32,13 +31,13 @@ type mockContextProviderAPI struct {
 
 func (m *mockContextProviderAPI) Chat(ctx context.Context, req provider.AIRequest) (*provider.AIResponse, error) {
 	// DEBUG
-	fmt.Fprintf(os.Stderr, "[DEBUG] mockContextProviderAPI.Chat: Callback initiated.\n")
+	// fmt.Fprintf(os.Stderr, "[DEBUG] mockContextProviderAPI.Chat: Callback initiated.\n")
 	actions, err := m.Callback()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[DEBUG] mockContextProviderAPI.Chat: Callback returned error: %v\n", err)
+		// fmt.Fprintf(os.Stderr, "[DEBUG] mockContextProviderAPI.Chat: Callback returned error: %v\n", err)
 		return nil, err
 	}
-	fmt.Fprintf(os.Stderr, "[DEBUG] mockContextProviderAPI.Chat: Callback returned actions:\n%s\n", actions)
+	// fmt.Fprintf(os.Stderr, "[DEBUG] mockContextProviderAPI.Chat: Callback returned actions:\n%s\n", actions)
 	env := &aeiou.Envelope{UserData: "{}", Actions: actions}
 	respText, _ := env.Compose()
 	return &provider.AIResponse{TextContent: respText}, nil
@@ -88,7 +87,7 @@ func buildProbeToolAPI() api.ToolImplementation {
 			} else {
 				report["aeiou_session_id"] = "provider_unsupported"
 			}
-			fmt.Fprintf(os.Stderr, "[DEBUG] probeTool (API): Probe complete. Report: %v\n", report) // DEBUG
+			// fmt.Fprintf(os.Stderr, "[DEBUG] probeTool (API): Probe complete. Report: %v\n", report) // DEBUG
 			return report, nil
 		},
 	}
@@ -142,21 +141,21 @@ func setupPropagationTestAPI(t *testing.T, actor api.Actor, policy *api.ExecPoli
         must tool.agentmodel.Register("probe_agent_api", config)
     endfunc
     `
-	fmt.Fprintf(os.Stderr, "[DEBUG] setupPropagationTestAPI: Parsing setup script...\n") // DEBUG
+	// fmt.Fprintf(os.Stderr, "[DEBUG] setupPropagationTestAPI: Parsing setup script...\n") // DEBUG
 	tree, pErr := api.Parse([]byte(setupScript), api.ParseSkipComments)
 	if pErr != nil {
-		fmt.Fprintf(os.Stderr, "[DEBUG] setupPropagationTestAPI: Setup script parse FAILED: %v\n", pErr) // DEBUG
+		// fmt.Fprintf(os.Stderr, "[DEBUG] setupPropagationTestAPI: Setup script parse FAILED: %v\n", pErr) // DEBUG
 		t.Fatalf("Setup script parse failed: %v", pErr)
 	}
-	fmt.Fprintf(os.Stderr, "[DEBUG] setupPropagationTestAPI: Executing setup script...\n") // DEBUG
+	// fmt.Fprintf(os.Stderr, "[DEBUG] setupPropagationTestAPI: Executing setup script...\n") // DEBUG
 	_, err = api.ExecWithInterpreter(context.Background(), interp, tree)
 	if err != nil {
 		t.Fatalf("Failed to load setup script: %v", err)
 	}
-	fmt.Fprintf(os.Stderr, "[DEBUG] setupPropagationTestAPI: Running _SetupProbeAgent procedure...\n") // DEBUG
+	// fmt.Fprintf(os.Stderr, "[DEBUG] setupPropagationTestAPI: Running _SetupProbeAgent procedure...\n") // DEBUG
 	_, err = api.RunProcedure(context.Background(), interp, "_SetupProbeAgent")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[DEBUG] setupPropagationTestAPI: _SetupProbeAgent FAILED: %v\n", err) // DEBUG
+		// fmt.Fprintf(os.Stderr, "[DEBUG] setupPropagationTestAPI: _SetupProbeAgent FAILED: %v\n", err) // DEBUG
 		t.Fatalf("Agent setup procedure failed: %v", err)
 	}
 	t.Logf("[DEBUG] Agent 'probe_agent_api' registered via setup script.")

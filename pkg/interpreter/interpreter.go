@@ -83,14 +83,14 @@ func (i *Interpreter) ASTBuilder() *parser.ASTBuilder {
 
 // SetToolRegistry allows the public API wrapper to replace the tool registry.
 func (i *Interpreter) SetToolRegistry(r tool.ToolRegistry) {
-	fmt.Printf("[DEBUG] SetToolRegistry: Interpreter %s registry is being OVERWRITTEN by public API wrapper.\n", i.id)
+	// fmt.Printf("[DEBUG] SetToolRegistry: Interpreter %s registry is being OVERWRITTEN by public API wrapper.\n", i.id)
 	i.tools = r
 }
 
 // RegisterStandardTools registers the built-in toolsets. This is called by the
 // public api.New wrapper after the tool registry has been correctly initialized.
 func (i *Interpreter) RegisterStandardTools() {
-	fmt.Printf("[DEBUG] RegisterStandardTools called for interpreter %s. Registry is nil: %v\n", i.id, i.tools == nil)
+	// fmt.Printf("[DEBUG] RegisterStandardTools called for interpreter %s. Registry is nil: %v\n", i.id, i.tools == nil)
 	if i.tools == nil {
 		i.Logger().Warn("RegisterStandardTools called with a nil tool registry. Skipping.")
 		return
@@ -134,7 +134,7 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	}
 
 	i.tools = tool.NewToolRegistry(i)
-	fmt.Printf("[DEBUG] NewInterpreter (internal): Interpreter %s created with a default, NON-IDENTITY-AWARE tool registry.\n", i.id)
+	// fmt.Printf("[DEBUG] NewInterpreter (internal): Interpreter %s created with a default, NON-IDENTITY-AWARE tool registry.\n", i.id)
 
 	i.root = i // A root's root is itself.
 	i.modelStore = agentmodel.NewAgentModelStore()
@@ -170,7 +170,7 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	// THE FIX: Register standard tools for test interpreters.
 	// This ensures tests calling NewInterpreter directly get a populated registry.
 	i.RegisterStandardTools()
-	fmt.Printf("[DEBUG] NewInterpreter (internal): Standard tools registered for interpreter %s.\n", i.id)
+	// fmt.Printf("[DEBUG] NewInterpreter (internal): Standard tools registered for interpreter %s.\n", i.id)
 
 	i.SetInitialVariable("self", lang.StringValue{Value: DefaultSelfHandle})
 	return i

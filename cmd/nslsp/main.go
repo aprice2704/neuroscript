@@ -1,14 +1,14 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.3
-// Purpose: CRITICAL FIX - Add blank import for toolbundles to ensure tools are registered at startup. FEAT: Add build-time variable injection for versioning.
+// File version: 0.1.5
+// Purpose: CRITICAL FIX - Silence all default logging at the very start of main to prevent stdout pollution that breaks LSP communication.
 // filename: cmd/nslsp/main.go
-// nlines: 63
-// risk_rating: LOW
+// nlines: 66
 
 package main
 
 import (
 	"context"
+	"io"
 	"log"
 	"os"
 
@@ -20,22 +20,31 @@ import (
 var buildDate string // These variables are set by the linker during the build process.
 
 func main() {
+	// CRITICAL FIX: The NeuroScript API's initialization routines can log debug
+	// messages to the default global logger. For the LSP, stdout MUST be kept
+	// completely clean for JSON-RPC communication. By setting the default logger's
+	// output to discard at the absolute start of main(), we ensure no library
+	// code can pollute stdout.
+	log.SetOutput(io.Discard)
 
-	// THE FIX IS HERE: Log to a file instead of stderr.
+	// Application-specific logging for the server's own logic can still be
+	// directed to a file for debugging purposes.
 	logFile, err := os.OpenFile("/tmp/nslsp.log", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
 	if err != nil {
 		// If we can't create the log file, we can't run.
 		// A silent exit is bad, but logging to stderr would break the client.
-		// In a real-world scenario, you might try a fallback path.
 		return
 	}
 	defer logFile.Close()
 
+	// This new logger instance, which writes to the file, will be used by the server.
 	logger := log.New(logFile, "[nslsp] ", log.LstdFlags|log.Lshortfile)
 
 	logger.Printf("--- NeuroScript Language Server ---\n\tVersion: %s",
 		buildDate)
 
+	// When NewServer is called, it will use our file-based logger. Any underlying
+	// calls in the api package that use the default logger will be silenced.
 	server := nslsp.NewServer(logger)
 
 	var connOpt []jsonrpc2.ConnOpt

@@ -76,7 +76,7 @@ func TestWrap(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// DEBUG: Adding debug output to trace the failing test case.
-			t.Logf("DEBUG: Testing Wrap with input type %T", tc.input)
+			//	t.Logf("DEBUG: Testing Wrap with input type %T", tc.input)
 
 			wrapped, err := Wrap(tc.input)
 

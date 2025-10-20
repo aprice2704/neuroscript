@@ -9,7 +9,6 @@ package agentmodel
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 
@@ -110,37 +109,37 @@ func toolListAgentModels(rt tool.Runtime, args []interface{}) (interface{}, erro
 }
 
 func toolGetAgentModel(rt tool.Runtime, args []interface{}) (interface{}, error) {
-	fmt.Fprintf(os.Stderr, "DEBUG: Entered toolGetAgentModel\n")
+	// fmt.Fprintf(os.Stderr, "DEBUG: Entered toolGetAgentModel\n")
 	reader, err := getAgentModelReader(rt)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "DEBUG: toolGetAgentModel: Failed to get reader: %v\n", err)
+		// fmt.Fprintf(os.Stderr, "DEBUG: toolGetAgentModel: Failed to get reader: %v\n", err)
 		return nil, err
 	}
 	name, ok := args[0].(string)
 	if !ok {
-		fmt.Fprintf(os.Stderr, "DEBUG: toolGetAgentModel: Argument 'name' is not a string (got %T)\n", args[0])
+		// fmt.Fprintf(os.Stderr, "DEBUG: toolGetAgentModel: Argument 'name' is not a string (got %T)\n", args[0])
 		return nil, fmt.Errorf("argument 'name' must be a string")
 	}
-	fmt.Fprintf(os.Stderr, "DEBUG: toolGetAgentModel: Attempting to get model '%s'\n", name)
+	// fmt.Fprintf(os.Stderr, "DEBUG: toolGetAgentModel: Attempting to get model '%s'\n", name)
 	model, found := reader.Get(types.AgentModelName(name))
 	if !found {
-		fmt.Fprintf(os.Stderr, "DEBUG: toolGetAgentModel: Model '%s' not found, returning nil map\n", name)
+		// fmt.Fprintf(os.Stderr, "DEBUG: toolGetAgentModel: Model '%s' not found, returning nil map\n", name)
 		return lang.NewMapValue(nil), nil // Return nil if not found
 	}
 
 	// Convert struct to map via JSON, then wrap for NeuroScript
 	data, err := json.Marshal(model)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "DEBUG: toolGetAgentModel: Failed to marshal agent model struct: %v\n", err)
+		// fmt.Fprintf(os.Stderr, "DEBUG: toolGetAgentModel: Failed to marshal agent model struct: %v\n", err)
 		return nil, fmt.Errorf("failed to marshal agent model struct: %w", err)
 	}
 	var modelMap map[string]any
 	if err := json.Unmarshal(data, &modelMap); err != nil {
-		fmt.Fprintf(os.Stderr, "DEBUG: toolGetAgentModel: Failed to unmarshal agent model to map: %v\n", err)
+		// fmt.Fprintf(os.Stderr, "DEBUG: toolGetAgentModel: Failed to unmarshal agent model to map: %v\n", err)
 		return nil, fmt.Errorf("failed to unmarshal agent model to map: %w", err)
 	}
 
-	fmt.Fprintf(os.Stderr, "DEBUG: toolGetAgentModel: Wrapping and returning model map. Keys: %d\n", len(modelMap))
+	// fmt.Fprintf(os.Stderr, "DEBUG: toolGetAgentModel: Wrapping and returning model map. Keys: %d\n", len(modelMap))
 	return lang.Wrap(modelMap)
 }
 

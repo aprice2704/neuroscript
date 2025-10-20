@@ -10,7 +10,6 @@ package interpreter
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/aprice2704/neuroscript/pkg/account"
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
@@ -76,8 +75,8 @@ func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
 
 	// 3. Initialize LLM Connection (FIXED)
 	// DEBUG: Add debug output per AGENTS.md
-	fmt.Fprintf(os.Stderr, "[DEBUG] executeAsk: Calling llmconn.New. Agent: '%s', Provider: '%s', Emitter: %T\n",
-		agentModel.Name, agentModel.Provider, i.hostContext.Emitter)
+	// fmt.Fprintf(os.Stderr, "[DEBUG] executeAsk: Calling llmconn.New. Agent: '%s', Provider: '%s', Emitter: %T\n",
+	//agentModel.Name, agentModel.Provider, i.hostContext.Emitter)
 
 	// THE FIX: Reverted to 3-argument call to llmconn.New.
 	// The capsule-loading logic must be *inside* llmconn.New, which gets the store
@@ -85,11 +84,11 @@ func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
 	conn, err := llmconn.New(&agentModel, prov, i.hostContext.Emitter)
 	if err != nil {
 		// DEBUG: Log the specific error from llmconn.New
-		fmt.Fprintf(os.Stderr, "[DEBUG] executeAsk: llmconn.New FAILED: %v\n", err)
+		// fmt.Fprintf(os.Stderr, "[DEBUG] executeAsk: llmconn.New FAILED: %v\n", err)
 		// If llmconn.New fails (e.g., capsule not found), wrap the error here.
 		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "failed to create LLM connection", err).WithPosition(node.GetPos())
 	}
-	fmt.Fprintf(os.Stderr, "[DEBUG] executeAsk: llmconn.New Succeeded. Connector created: %T\n", conn)
+	// fmt.Fprintf(os.Stderr, "[DEBUG] executeAsk: llmconn.New Succeeded. Connector created: %T\n", conn)
 
 	// 4. Construct Initial V3 Envelope
 	var userdataPayload string

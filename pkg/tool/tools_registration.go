@@ -73,16 +73,16 @@ func (r *ToolRegistryImpl) RegisterTool(impl ToolImplementation) (ToolImplementa
 	impl.SignatureChecksum = calculateChecksum(impl.Spec)
 
 	// <<< ADDED OVERWRITE CHECK >>>
-	if existingImpl, exists := r.tools[fullName]; exists {
+	if _, exists := r.tools[fullName]; exists {
 		errMsg := fmt.Sprintf("tool '%s' already registered", fullName)
 		// Provide more context in the error if possible (e.g., existing func pointer)
-		fmt.Fprintf(os.Stderr, "[DEBUG][RegisterTool] ERROR: Attempted to overwrite tool '%s'. Existing Func: %p, New Func: %p\n", fullName, existingImpl.Func, impl.Func) // DEBUG
-		return impl, fmt.Errorf("%w: %s", lang.ErrDuplicateKey, errMsg)                                                                                                    // Use lang.ErrDuplicateKey
+		// fmt.Fprintf(os.Stderr, "[DEBUG][RegisterTool] ERROR: Attempted to overwrite tool '%s'. Existing Func: %p, New Func: %p\n", fullName, existingImpl.Func, impl.Func) // DEBUG
+		return impl, fmt.Errorf("%w: %s", lang.ErrDuplicateKey, errMsg) // Use lang.ErrDuplicateKey
 	}
 	// <<< END OVERWRITE CHECK >>>
 
 	r.tools[fullName] = impl
-	//fmt.Fprintf(os.Stderr, "[DEBUG][RegisterTool] Registered tool '%s' with Func: %p\n", fullName, impl.Func) // DEBUG
+	//// fmt.Fprintf(os.Stderr, "[DEBUG][RegisterTool] Registered tool '%s' with Func: %p\n", fullName, impl.Func) // DEBUG
 
 	return impl, nil
 }

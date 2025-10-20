@@ -18,7 +18,7 @@ import (
 // It creates an isolated variable scope and a new tool registry view bound to itself.
 func (i *Interpreter) fork() *Interpreter {
 	root := i.rootInterpreter()
-	fmt.Printf("[DEBUG] fork: Creating fork from interpreter %s (root: %s). Parent turnCtx is %p.\n", i.id, root.id, i.GetTurnContext())
+	// fmt.Printf("[DEBUG] fork: Creating fork from interpreter %s (root: %s). Parent turnCtx is %p.\n", i.id, root.id, i.GetTurnContext())
 
 	clone := &Interpreter{
 		id:   fmt.Sprintf("interp-%s", uuid.NewString()[:8]),
@@ -42,17 +42,17 @@ func (i *Interpreter) fork() *Interpreter {
 		PublicAPI: i.PublicAPI,
 	}
 	// DEBUG: Print the memory address of the newly created clone.
-	fmt.Printf("[DEBUG] fork: New clone %s created at pointer %p\n", clone.id, clone)
+	// fmt.Printf("[DEBUG] fork: New clone %s created at pointer %p\n", clone.id, clone)
 
 	// THE FIX: STEP 3b - Create a tool registry VIEW bound to the PUBLIC API WRAPPER, not the internal clone.
 	// This guarantees that tools called from a sandbox still receive the identity-aware runtime.
 	if clone.PublicAPI != nil {
 		clone.tools = i.tools.NewViewForInterpreter(clone.PublicAPI)
-		fmt.Printf("[DEBUG] fork: Created new tool registry view for clone %s, bound to PublicAPI wrapper.\n", clone.id)
+		// fmt.Printf("[DEBUG] fork: Created new tool registry view for clone %s, bound to PublicAPI wrapper.\n", clone.id)
 	} else {
 		// Fallback for safety, though this path should not be taken in normal operation.
 		clone.tools = i.tools.NewViewForInterpreter(clone)
-		fmt.Printf("[DEBUG] fork: (Fallback) Created new tool registry view for clone %s, bound to internal clone.\n", clone.id)
+		// fmt.Printf("[DEBUG] fork: (Fallback) Created new tool registry view for clone %s, bound to internal clone.\n", clone.id)
 	}
 
 	// Create a new, isolated state, but inherit key properties.
@@ -62,7 +62,7 @@ func (i *Interpreter) fork() *Interpreter {
 
 	// CRITICAL: The clone must inherit the parent's context.
 	clone.SetTurnContext(i.GetTurnContext())
-	fmt.Printf("[DEBUG] fork: Cloned interpreter %s created. Clone turnCtx is %p.\n", clone.id, clone.GetTurnContext())
+	// fmt.Printf("[DEBUG] fork: Cloned interpreter %s created. Clone turnCtx is %p.\n", clone.id, clone.GetTurnContext())
 
 	// Copy global variables from the root.
 	root.state.variablesMu.RLock()

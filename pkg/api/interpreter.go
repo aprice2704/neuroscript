@@ -1,16 +1,14 @@
 // NeuroScript Version: 0.8.0
-// File version: 62
-// Purpose: Creates the ToolRegistry with the public wrapper, not the internal interpreter.
+// File version: 63
+// Purpose: Creates the ToolRegistry with the public wrapper, not the internal interpreter. FIX: Removed debug fmt.Println statements that were polluting stdout.
 // filename: pkg/api/interpreter.go
-// nlines: 139
-// risk_rating: HIGH
+// nlines: 126
 
 package api
 
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
@@ -35,15 +33,11 @@ var _ tool.Wrapper = (*Interpreter)(nil) // Statically assert wrapper interface
 
 // New creates a new, persistent NeuroScript interpreter instance.
 func New(opts ...Option) *Interpreter {
-	fmt.Println("[DEBUG] api.New: Starting interpreter creation.")
-
 	// 1. Create the internal interpreter.
 	internalInterp := interpreter.NewInterpreter(opts...)
-	fmt.Printf("[DEBUG] api.New: Internal interpreter created with ID: %s\n", internalInterp.ID())
 
 	// 2. Create the public API wrapper by embedding the internal one.
 	publicInterp := &Interpreter{Interpreter: internalInterp}
-	fmt.Printf("[DEBUG] api.New: Public API wrapper created for internal interpreter %s.\n", internalInterp.ID())
 
 	// THE FIX: STEP 2 - Set the back-reference from the internal interpreter to the public wrapper.
 	internalInterp.PublicAPI = publicInterp
@@ -52,19 +46,15 @@ func New(opts ...Option) *Interpreter {
 	// The registry will now pass this public wrapper to tools, which is
 	// correct for external tools and can be unwrapped for internal tools.
 	registry := tool.NewToolRegistry(publicInterp)
-	fmt.Println("[DEBUG] api.New: Tool registry created with public interpreter as context.")
 
 	// 4. Inject the correctly-contextualized registry back into the internal interpreter.
 	internalInterp.SetToolRegistry(registry)
-	fmt.Println("[DEBUG] api.New: Tool registry injected into internal interpreter.")
 
 	// 5. Now, register standard tools on the new registry.
 	internalInterp.RegisterStandardTools()
-	fmt.Println("[DEBUG] api.New: Standard tools registered.")
 
 	googleProvider := google.New()
 	internalInterp.RegisterProvider("google", googleProvider)
-	fmt.Println("[DEBUG] api.New: Google provider registered. Initialization complete.")
 
 	return publicInterp
 }

@@ -118,7 +118,7 @@ func (l *ErrorListener) SyntaxError(recognizer antlr.Recognizer, offendingSymbol
 	if l.logger != nil {
 		l.logger.Error("Syntax Error Reported by Listener", "source", effectiveSourceName, "line", finalLine, "column", finalColumn, "message", finalMsg, "token", strings.TrimSpace(offendingTokenText))
 	} else {
-		fmt.Printf("[SYNTAX ERROR LISTENER - %s] %s\n", effectiveSourceName, errorMsgForLog)
+		// fmt.Printf("[SYNTAX ERROR LISTENER - %s] %s\n", effectiveSourceName, errorMsgForLog)
 	}
 }
 

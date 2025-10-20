@@ -59,7 +59,7 @@ func (i *Interpreter) runAskHostLoop(pos *types.Position, agentModel *types.Agen
 		turnCtxForLLM = context.WithValue(turnCtxForLLM, AeiouTurnIndexKey, turn)
 		turnCtxForLLM = context.WithValue(turnCtxForLLM, AeiouTurnNonceKey, turnNonce)
 		// We use turnCtxForLLM for the Converse call.
-		fmt.Printf("[DEBUG] runAskHostLoop: Turn %d. Context for LLM call %p (derived from base %p).\n", turn, turnCtxForLLM, baseCtx)
+		// fmt.Printf("[DEBUG] runAskHostLoop: Turn %d. Context for LLM call %p (derived from base %p).\n", turn, turnCtxForLLM, baseCtx)
 
 		// --- Transcript Logging ---
 		if i.hostContext.AITranscript != nil {
@@ -101,7 +101,7 @@ func (i *Interpreter) runAskHostLoop(pos *types.Position, agentModel *types.Agen
 		// CRITICAL: The forked interpreter needs the correct context for THIS turn
 		// so that tools called within the ACTIONS block get the right context.
 		execInterp.SetTurnContext(turnCtxForLLM) // Pass the turn-specific context
-		fmt.Printf("[DEBUG] runAskHostLoop: Turn %d. Set context on EXEC interpreter %s. Ctx %p.\n", turn, execInterp.id, turnCtxForLLM)
+		// fmt.Printf("[DEBUG] runAskHostLoop: Turn %d. Set context on EXEC interpreter %s. Ctx %p.\n", turn, execInterp.id, turnCtxForLLM)
 
 		var actionEmits []string // Capture emits as strings
 		var actionWhispers = make(map[string]lang.Value)
