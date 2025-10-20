@@ -1,16 +1,33 @@
 :: lang_version: neuroscript@0.5.0
-:: file_version: 1.0
+:: file_version: 2.0
 
-func main means
-:: description: Lists available tools and their help information.
-:: purpose: Demonstrates tool usage and output handling.
-    set listResult = tool.Meta.ListTools()
-    emit "Compact Tool List:"
-    emit listResult
-    emit ```
-    --------------------
-    ```
-    set helpResult = tool.Meta.ToolsHelp("")
-    emit "Detailed Tool Help (Markdown):"
-    emit helpResult
-endfunc
+command
+    :: description: Lists available tools with formatted signatures.
+    :: purpose: Provides a clean, readable list of all registered tools.
+
+    set toolList = tool.Meta.ListTools()
+    emit "Available Tools:"
+    emit "----------------"
+
+    for each toolSpec in toolList
+        set signature = ""
+        set params = toolSpec["args"]
+
+        if params != nil and len(params) > 0
+            set paramStrings = []
+            for each param in params
+                set pName = param["name"]
+                set pType = param["type"]
+                set paramStrings = tool.list.Append(paramStrings, pName + ": " + pType)
+            endfor
+            set signature = tool.str.Join(paramStrings, ", ")
+        endif
+
+        set fullName = toolSpec["fullname"]
+        set returnType = toolSpec["returnType"]
+
+        // Format: tool.group.Name(param1: type, param2: type) -> returnType
+        set finalOutput = fullName + "(" + signature + ") -> " + returnType
+        emit finalOutput
+    endfor
+endcommand

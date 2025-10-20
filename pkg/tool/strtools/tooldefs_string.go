@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.5
-// Purpose: Revised examples to omit 'String.' prefix for direct tool calls.
+// File version: 0.1.8
+// Purpose: Changed 'Join' and 'Concat' ArgType from SliceString to ArgTypeAny to allow generic lists.
 // filename: pkg/tool/strtools/tooldefs_string.go
 // nlines: 198
 // risk_rating: LOW
@@ -138,13 +138,14 @@ var stringToolsToRegister = []tool.ToolImplementation{
 			Description: "Joins elements of a list of strings with a separator.",
 			Category:    "String Operations",
 			Args: []tool.ArgSpec{
-				{Name: "string_list", Type: tool.ArgTypeSliceString, Required: true, Description: "List of strings to join."},
+				// FIX: Changed tool.ArgTypeSliceString to tool.ArgTypeAny
+				{Name: "string_list", Type: tool.ArgTypeAny, Required: true, Description: "List of strings to join."},
 				{Name: "separator", Type: tool.ArgTypeString, Required: true, Description: "String to place between elements."},
 			},
 			ReturnType:      tool.ArgTypeString,
 			ReturnHelp:      "Returns a single string created by joining the elements of string_list with the separator.",
 			Example:         `tool.Join(["apple", "banana"], ", ") // Returns "apple, banana"`,
-			ErrorConditions: "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `string_list` is not a list of strings or `separator` is not a string.",
+			ErrorConditions: "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `string_list` is not a list or `separator` is not a string.",
 		},
 		Func: toolStringJoin,
 	},
@@ -155,12 +156,13 @@ var stringToolsToRegister = []tool.ToolImplementation{
 			Description: "Concatenates a list of strings without a separator.",
 			Category:    "String Operations",
 			Args: []tool.ArgSpec{
-				{Name: "strings_list", Type: tool.ArgTypeSliceString, Required: true, Description: "List of strings to concatenate."},
+				// FIX: Changed tool.ArgTypeSliceString to tool.ArgTypeAny
+				{Name: "strings_list", Type: tool.ArgTypeAny, Required: true, Description: "List of strings to concatenate."},
 			},
 			ReturnType:      tool.ArgTypeString,
 			ReturnHelp:      "Returns a single string by concatenating all strings in the strings_list.",
 			Example:         `tool.Concat(["hello", " ", "world"]) // Returns "hello world"`,
-			ErrorConditions: "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `strings_list` is not a list of strings. May return `ErrTypeAssertionFailed` (with `ErrorCodeInternal`) if type validation fails unexpectedly.",
+			ErrorConditions: "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `strings_list` is not a list.",
 		},
 		Func: toolStringConcat,
 	},

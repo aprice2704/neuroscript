@@ -1,8 +1,8 @@
 # NeuroScript Version: 0.3.0
-# File version: 16
+# File version: 17
 # Purpose: Build system configuration for the NeuroScript project. FEAT: Standardized build-time variable injection for both nslsp and ng.
 # filename: Makefile
-# nlines: 144
+# nlines: 145
 # risk_rating: LOW
 
 # Directories
@@ -37,7 +37,7 @@ LDFLAGS := -ldflags="-X 'main.version=$(G4_VERSION)' -X 'main.commit=$(GIT_COMMI
 # Find all .go files in the project to use as dependencies
 ALL_PKG_GO_FILES   := $(shell find $(PKG_DIR) -name '*.go')
 NSLSP_GO_FILES     := $(shell find $(CMDS_DIR)/nslsp -name '*.go')
-NG_GO_FILES        := $(shell find $(CMDS_DIR)/ng -name '*.go')
+NSRUN_GO_FILES     := $(shell find $(CMDS_DIR)/ng -name '*.go')
 
 # ------------------------------------------------------------------------------
 # ANTLR variables
@@ -68,12 +68,13 @@ $(BIN_INSTALL_DIR)/nslsp: $(NSLSP_GO_FILES) $(ALL_PKG_GO_FILES) $(ANTLR_STAMP_FI
 	@echo "--> Installing nslsp Go binary to $(BIN_INSTALL_DIR)..."
 	$(GO) install $(LDFLAGS) ./cmd/nslsp
 
-$(BIN_INSTALL_DIR)/ng: $(NG_GO_FILES) $(ALL_PKG_GO_FILES) $(ANTLR_STAMP_FILE)
-	@echo "--> Installing ng Go binary to $(BIN_INSTALL_DIR)..."
-	# Note: This assumes cmd/ng/main.go is updated to use version, commit, and buildDate vars.
-	$(GO) install $(LDFLAGS) ./cmd/ng
-	@echo "--> Updating alltools.md documentation..."
-	@$(BIN_INSTALL_DIR)/ng -trusted-config ./library/list_tools.ns.txt > alltools.md
+$(BIN_INSTALL_DIR)/ng: $(NSRUN_GO_FILES) $(ALL_PKG_GO_FILES) $(ANTLR_STAMP_FILE)
+	@echo "--> Building ng and installing as 'ng' to $(BIN_INSTALL_DIR)..."
+	$(GO) build -o $@ $(LDFLAGS) ./cmd/ng
+	@echo "--> Skipping alltools.md documentation update."
+	@echo "    NOTE: The new ng tool does not yet support flags for doc generation."
+	@# TODO: Re-enable when ng supports the required flags.
+	@# @$(BIN_INSTALL_DIR)/ng -trusted-config ./library/list_tools.ns.txt > alltools.md
 
 # ------------------------------------------------------------------------------
 # Generate ANTLR parser (only if grammar changes)

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.1
-// File version: 0.1.3
-// Purpose: Populated Category, Example, ReturnHelp, and ErrorConditions for all list tool specs.
+// File version: 0.1.4
+// Purpose: Added AppendInPlace tool specification.
 // filename: pkg/tool/list/tooldefs_list.go
-// nlines: 148
+// nlines: 167
 // risk_rating: MEDIUM
 
 package list
@@ -38,6 +38,22 @@ var listToolsToRegister = []tool.ToolImplementation{
 		Example:         `tool.List.Append([1, 2], 3) // returns [1, 2, 3]`,
 		ErrorConditions: "None expected, as input validation ensures 'list' is a slice. Appending 'nil' is allowed.",
 	}, Func: toolListAppend},
+	// *** New Tool Added Below ***
+	{Spec: tool.ToolSpec{
+		Name:        "AppendInPlace",
+		Group:       group,
+		Description: "Efficiently returns a list with the element added. Intended for building lists in loops.",
+		Category:    "List Operations",
+		Args: []tool.ArgSpec{
+			{Name: "list", Type: tool.ArgTypeSliceAny, Required: true, Description: "The list to append to."},
+			{Name: "element", Type: tool.ArgTypeAny, Required: false, Description: "The element to append (can be nil)."},
+		},
+		ReturnType:      tool.ArgTypeSliceAny, // Still returns the modified list
+		ReturnHelp:      "Returns the list with the 'element' added to the end. Although named 'InPlace' for intent, it returns the potentially re-allocated list.",
+		Example:         `set my_list = [1, 2]\nset my_list = tool.List.AppendInPlace(my_list, 3) // my_list is now [1, 2, 3]`,
+		ErrorConditions: "None expected, as input validation ensures 'list' is a slice. Appending 'nil' is allowed.",
+	}, Func: toolListAppendInPlace}, // Points to the new implementation
+	// *** End New Tool ***
 	{Spec: tool.ToolSpec{
 		Name:        "Prepend",
 		Group:       group,

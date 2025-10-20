@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.4.0
-// File version: 4
-// Purpose: Corrected test setup to initialize the interpreter with a valid HostContext, fixing a panic.
+// File version: 6
+// Purpose: Corrected error assertion in TestToolListTail/Wrong_Count_Type_Float_NonInt.
 package list
 
 import (
@@ -36,14 +36,7 @@ func testListTool(t *testing.T, toolName types.ToolName, cases []testCase) {
 	// Create a new interpreter with the list tools loaded
 	interp := interpreter.NewInterpreter(interpreter.WithHostContext(hostCtx))
 	// This assumes that the list tools are registered via an init() function
-	// in the list package, which is a common pattern. If not, they would
-	// need to be registered here manually.
-	// err := tool.RegisterGlobalToolsets(interp.ToolRegistry())
-	// if err != nil {
-	// 	t.Fatalf("Failed to register extended tools: %v", err)
-	// }
-
-	// Get the tool from the registry using its full name
+	// in the list package.
 	fullName := types.MakeFullName(group, string(toolName))
 	toolImpl, found := interp.ToolRegistry().GetTool(fullName)
 	if !found {
@@ -67,11 +60,85 @@ func testListTool(t *testing.T, toolName types.ToolName, cases []testCase) {
 					t.Errorf("unexpected error: %v", err)
 				}
 				if !reflect.DeepEqual(result, tc.Expected) {
-					t.Errorf("result does not match expected: got %#v, want %#v", result, tc.Expected)
+					// Add more detail for slice comparison failures
+					resSlice, resOk := result.([]interface{})
+					expSlice, expOk := tc.Expected.([]interface{})
+					if resOk && expOk {
+						t.Errorf("result slice does not match expected:\n got: %#v (%d items)\nwant: %#v (%d items)",
+							resSlice, len(resSlice), expSlice, len(expSlice))
+					} else {
+						t.Errorf("result does not match expected:\n got: %#v (%T)\nwant: %#v (%T)",
+							result, result, tc.Expected, tc.Expected)
+					}
 				}
 			}
 		})
 	}
+}
+
+func TestToolListAppend(t *testing.T) {
+	testCases := []testCase{
+		{
+			Name:     "Append_Simple",
+			Args:     []interface{}{[]interface{}{"a", "b"}, "c"},
+			Expected: []interface{}{"a", "b", "c"},
+		},
+		{
+			Name:     "Append_To_Empty",
+			Args:     []interface{}{[]interface{}{}, "a"},
+			Expected: []interface{}{"a"},
+		},
+		{
+			Name:     "Append_Nil",
+			Args:     []interface{}{[]interface{}{"a"}, nil},
+			Expected: []interface{}{"a", nil},
+		},
+		{
+			Name:          "Wrong_Type",
+			Args:          []interface{}{"not a list", "a"},
+			ExpectedErrIs: lang.ErrArgumentMismatch,
+		},
+	}
+	testListTool(t, "Append", testCases)
+}
+
+func TestToolListAppendInPlace(t *testing.T) {
+	testCases := []testCase{
+		{
+			Name:     "AppendInPlace_Simple",
+			Args:     []interface{}{[]interface{}{"a", "b"}, "c"},
+			Expected: []interface{}{"a", "b", "c"},
+		},
+		{
+			Name:     "AppendInPlace_To_Empty",
+			Args:     []interface{}{[]interface{}{}, "a"},
+			Expected: []interface{}{"a"},
+		},
+		{
+			Name:     "AppendInPlace_Nil",
+			Args:     []interface{}{[]interface{}{"a"}, nil},
+			Expected: []interface{}{"a", nil},
+		},
+		{
+			Name:          "AppendInPlace_Wrong_Type",
+			Args:          []interface{}{"not a list", "a"},
+			ExpectedErrIs: lang.ErrArgumentMismatch,
+		},
+		// Test that it doesn't modify the *original* slice passed in
+		// (because Go passes slices by value, the tool gets a copy)
+		{
+			Name: "AppendInPlace_DoesNotModifyOriginalArg",
+			Args: func() []interface{} {
+				originalList := []interface{}{"original"}
+				// Pass the original list as the first argument
+				return []interface{}{originalList, "new"}
+			}(),
+			Expected: []interface{}{"original", "new"},
+			// We can't easily check the original slice *after* the call here,
+			// but this test ensures the *returned* value is correct.
+		},
+	}
+	testListTool(t, "AppendInPlace", testCases)
 }
 
 func TestToolListHead(t *testing.T) {
@@ -145,12 +212,27 @@ func TestToolListTail(t *testing.T) {
 			Expected: []interface{}{},
 		},
 		{
+			Name:     "Tail_Count_Negative", // Added test for negative count
+			Args:     []interface{}{[]interface{}{"a", "b", "c"}, int64(-1)},
+			Expected: []interface{}{},
+		},
+		{
 			Name:     "Tail_Empty_List",
 			Args:     []interface{}{[]interface{}{}, int64(2)},
 			Expected: []interface{}{},
 		},
 		{
-			Name:          "Wrong_Count_Type",
+			Name:          "Wrong_Count_Type_Float_NonInt", // Test float count with fraction
+			Args:          []interface{}{[]interface{}{"a"}, float64(1.5)},
+			ExpectedErrIs: lang.ErrArgumentMismatch, // FIX: Expect ArgumentMismatch (wrapped by type error)
+		},
+		{
+			Name:     "Wrong_Count_Type_Float_Int", // Test float count that is whole number
+			Args:     []interface{}{[]interface{}{"a", "b"}, float64(1.0)},
+			Expected: []interface{}{"b"}, // Should succeed
+		},
+		{
+			Name:          "Wrong_Count_Type_String",
 			Args:          []interface{}{[]interface{}{"a"}, "not an integer"},
 			ExpectedErrIs: lang.ErrArgumentMismatch,
 		},
@@ -162,3 +244,5 @@ func TestToolListTail(t *testing.T) {
 	}
 	testListTool(t, "Tail", testCases)
 }
+
+// Add other test functions (TestToolListSort, TestToolListGet, etc.) here...

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.4.0
-// File version: 2
-// Purpose: Refactored to test primitive-based tool implementations directly.
+// File version: 3
+// Purpose: Corrected test case Validation_Non-string_elements_in_slice to reflect Join's new coercion behavior.
 // filename: pkg/tool/strtools/tools_string_split_join_test.go
 // nlines: 109
 // risk_rating: MEDIUM
@@ -108,7 +108,14 @@ func TestToolJoinStrings(t *testing.T) {
 		{name: "Join_Empty_Slice", toolName: "Join", args: MakeArgs([]string{}, ","), wantResult: ""},
 		{name: "Validation_Non-slice_First_Arg", toolName: "Join", args: MakeArgs("abc", ","), wantErrIs: lang.ErrArgumentMismatch},
 		{name: "Validation_Non-string_Separator", toolName: "Join", args: MakeArgs([]string{"a"}, 123), wantErrIs: lang.ErrArgumentMismatch},
-		{name: "Validation_Non-string_elements_in_slice", toolName: "Join", args: MakeArgs([]interface{}{"a", 1}, ","), wantErrIs: lang.ErrArgumentMismatch},
+		// FIX: Updated test to expect successful coercion, not an error.
+		{
+			name:       "Validation_Non-string_elements_in_slice",
+			toolName:   "Join",
+			args:       MakeArgs([]interface{}{"a", 1, true}, ","), // Mixed types
+			wantResult: "a,1,true",                                 // Expect coercion to string
+			wantErrIs:  nil,                                        // No error expected now
+		},
 	}
 	for _, tt := range tests {
 		testStringSplitJoinToolHelper(t, interp, tt)

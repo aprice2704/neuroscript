@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.5.2
-// File version: 2
-// Purpose: Corrected Substring and Replace tools to properly coerce floating-point numbers into integers for index and count arguments, resolving runtime errors. Updated toInt64 to handle nil.
-// nlines: 283
+// File version: 3
+// Purpose: Made toolStringJoin robust by handling []interface{} and coercing elements to strings.
+// nlines: 295
 // risk_rating: LOW
 // filename: pkg/tool/strtools/tools_string.go
 
@@ -168,18 +168,30 @@ func toolStringJoin(interpreter tool.Runtime, args []interface{}) (interface{}, 
 	if len(args) != 2 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "String.Join: expected 2 arguments (string_list, separator)", lang.ErrArgumentMismatch)
 	}
-	// Corrected: Expect []string directly due to ArgTypeSliceString spec
-	stringList, okList := args[0].([]string)
+	// FIX: Expect []interface{} due to ArgTypeList spec
+	anyList, okList := args[0].([]interface{})
 	separator, okSep := args[1].(string)
 
 	if !okList {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("String.Join: string_list argument must be a list of strings, got %T", args[0]), lang.ErrArgumentMismatch)
+		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("String.Join: string_list argument must be a list, got %T", args[0]), lang.ErrArgumentMismatch)
 	}
 	if !okSep {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("String.Join: separator argument must be a string, got %T", args[1]), lang.ErrArgumentMismatch)
 	}
 
-	// No need to convert elements if input is already []string
+	// FIX: Manually build a []string by coercing each element
+	stringList := make([]string, len(anyList))
+	for i, item := range anyList {
+		s, ok := item.(string)
+		if !ok {
+			// Handle non-string items gracefully (e.g., convert them or error out)
+			// For now, we'll convert using fmt.Sprint
+			s = fmt.Sprint(item)
+			interpreter.GetLogger().Warn("Tool: String.Join coercing non-string element to string", "index", i, "type", fmt.Sprintf("%T", item))
+		}
+		stringList[i] = s
+	}
+
 	result := strings.Join(stringList, separator)
 	interpreter.GetLogger().Debug("Tool: String.Join", "input_count", len(stringList), "separator", separator, "result_length", len(result))
 	return result, nil
