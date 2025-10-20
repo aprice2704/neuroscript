@@ -1,9 +1,7 @@
 // NeuroScript Version: 0.8.0
-// File version: 14
-// Purpose: Adds the exported TurnContextProvider interface to allow tools to access turn-specific context.
+// File version: 15
+// Purpose: Adds the exported TurnContextProvider interface to allow tools to access turn-specific context. Adds KnownEventHandlers method.
 // filename: pkg/interpreter/api.go
-// nlines: 136
-// risk_rating: MEDIUM
 
 package interpreter
 
@@ -85,6 +83,20 @@ func (i *Interpreter) KnownProcedures() map[string]*ast.Procedure {
 		return make(map[string]*ast.Procedure)
 	}
 	return i.state.knownProcedures
+}
+
+// KnownEventHandlers returns a map of all registered event handler declarations.
+// The map key is the event name.
+func (i *Interpreter) KnownEventHandlers() map[string][]*ast.OnEventDecl {
+	i.eventManager.eventHandlersMu.RLock()
+	defer i.eventManager.eventHandlersMu.RUnlock()
+
+	// Return a copy to prevent concurrent modification issues.
+	handlersCopy := make(map[string][]*ast.OnEventDecl, len(i.eventManager.eventHandlers))
+	for eventName, handlers := range i.eventManager.eventHandlers {
+		handlersCopy[eventName] = handlers // Note: this copies the slice, which is fine.
+	}
+	return handlersCopy
 }
 
 // Logger returns the interpreter's configured logger from the HostContext.

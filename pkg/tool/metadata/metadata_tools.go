@@ -1,12 +1,14 @@
-// NeuroScript Version: 0.7.2
-// File version: 1
-// Purpose: Defines and implements the 'metadata' toolset for NeuroScript.
+// NeuroScript Version: 0.8.0
+// File version: 2
+// Purpose: Refactored to use a local RegisterTools function, fixing double-registration bug.
 // filename: pkg/tool/metadata/tools.go
-// nlines: 90
+// nlines: 104
 // risk_rating: LOW
 package metadata
 
 import (
+	"fmt"
+	"log" // DEBUG
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -16,6 +18,18 @@ import (
 
 // Group is the official tool group name for this toolset.
 const Group = "metadata"
+
+// RegisterTools registers all the tools in the metadata package with the provided registrar.
+func RegisterTools(registrar tool.ToolRegistrar) error {
+	// DEBUG: Per AGENTS.md Rule 1b
+	log.Printf("[DEBUG] RegisterTools called for toolset '%s'", Group)
+	for _, t := range MetadataToolsToRegister {
+		if _, err := registrar.RegisterTool(t); err != nil {
+			return fmt.Errorf("failed to register metadata tool '%s': %w", t.Spec.Name, err)
+		}
+	}
+	return nil
+}
 
 // MetadataToolsToRegister is the list of tool implementations for registration.
 var MetadataToolsToRegister = []tool.ToolImplementation{

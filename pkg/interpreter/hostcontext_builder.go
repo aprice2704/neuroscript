@@ -75,6 +75,12 @@ func (b *HostContextBuilder) WithEventHandlerErrorCallback(f func(eventName, sou
 	return b
 }
 
+// WithEmitter sets the event emitter for publishing internal events (like LLM calls).
+func (b *HostContextBuilder) WithEmitter(e interfaces.Emitter) *HostContextBuilder {
+	b.hc.Emitter = e
+	return b
+}
+
 // Build validates the constructed HostContext and returns it, or an error if mandatory fields are missing.
 func (b *HostContextBuilder) Build() (*HostContext, error) {
 	if b.hc.Logger == nil {

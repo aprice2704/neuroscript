@@ -39,11 +39,11 @@ func TestToolCryptoHash(t *testing.T) {
 		interpreter.WithHostContext(hostCtx),
 	)
 	// Manually register the hash tools for the test.
-	for _, impl := range cryptoHashToolsToRegister {
-		if _, err := interp.ToolRegistry().RegisterTool(impl); err != nil {
-			t.Fatalf("Failed to register tool %q: %v", impl.Spec.Name, err)
-		}
-	}
+	// for _, impl := range cryptoHashToolsToRegister {
+	// 	if _, err := interp.ToolRegistry().RegisterTool(impl); err != nil {
+	// 		t.Fatalf("Failed to register tool %q: %v", impl.Spec.Name, err)
+	// 	}
+	// }
 
 	tests := []struct {
 		name       string
@@ -95,13 +95,13 @@ func TestToolCryptoUUID(t *testing.T) {
 		Stderr: &bytes.Buffer{},
 	}
 	interp := interpreter.NewInterpreter(interpreter.WithHostContext(hostCtx))
-	for _, impl := range cryptoHashToolsToRegister {
-		if impl.Spec.Name == "UUID" {
-			if _, err := interp.ToolRegistry().RegisterTool(impl); err != nil {
-				t.Fatalf("Failed to register UUID tool: %v", err)
-			}
-		}
-	}
+	// for _, impl := range cryptoHashToolsToRegister {
+	// 	if impl.Spec.Name == "UUID" {
+	// 		if _, err := interp.ToolRegistry().RegisterTool(impl); err != nil {
+	// 			t.Fatalf("Failed to register UUID tool: %v", err)
+	// 		}
+	// 	}
+	// }
 
 	uuidTool, _ := interp.ToolRegistry().GetTool(types.MakeFullName(group, "UUID"))
 	result, err := uuidTool.Func(interp, []interface{}{})

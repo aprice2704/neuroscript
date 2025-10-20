@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 10
-// Purpose: Corrected test to expect the correct ErrorCodePolicy (1003) instead of the wrapped ErrorCodeInternal (6).
+// File version: 11
+// Purpose: Removed redundant registration of standard tools already handled by NewTestHarness.
 // filename: pkg/interpreter/context_propagation_test.go
 // nlines: 318
 // risk_rating: LOW
@@ -22,7 +22,8 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/provider"
 	"github.com/aprice2704/neuroscript/pkg/tool"
-	"github.com/aprice2704/neuroscript/pkg/tool/agentmodel"
+	// NOTE: Imports for specific tool packages are no longer needed here
+	// as registration happens centrally.
 )
 
 // mockContextProvider is an AI provider that executes a specific callback
@@ -98,9 +99,13 @@ func setupPropagationTest(t *testing.T) (*interpreter.Interpreter, *mockContextP
 	h := NewTestHarness(t)
 	interp := h.Interpreter
 
-	if err := tool.CreateRegistrationFunc("agentmodel", agentmodel.AgentModelToolsToRegister)(interp.ToolRegistry()); err != nil {
-		t.Fatalf("Failed to register agentmodel toolset: %v", err)
-	}
+	// THE FIX: Remove redundant tool registrations.
+	/*
+		if err := tool.CreateRegistrationFunc("agentmodel", agentmodel.AgentModelToolsToRegister)(interp.ToolRegistry()); err != nil {
+			t.Fatalf("Failed to register agentmodel toolset: %v", err)
+		}
+	*/
+	// Register the *custom* probe tool, which is not part of the standard set.
 	if _, err := interp.ToolRegistry().RegisterTool(buildProbeTool()); err != nil {
 		t.Fatalf("Failed to register probe tool: %v", err)
 	}
@@ -115,6 +120,7 @@ func setupPropagationTest(t *testing.T) (*interpreter.Interpreter, *mockContextP
             "model": "probe_model",\
             "tool_loop_permitted": true\
         }
+        # agentmodel tools are already registered by the harness
         must tool.agentmodel.Register("probe_agent", config)
     endfunc
     `

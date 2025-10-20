@@ -33,9 +33,9 @@ func testShapeToolHelper(t *testing.T, testName string, testFunc func(t *testing
 		}
 
 		interp := interpreter.NewInterpreter(interpreter.WithHostContext(hostCtx))
-		if err := tool.RegisterGlobalToolsets(interp.ToolRegistry()); err != nil {
-			t.Fatalf("Failed to register extended tools: %v", err)
-		}
+		// if err := tool.RegisterGlobalToolsets(interp.ToolRegistry()); err != nil {
+		// 	t.Fatalf("Failed to register extended tools: %v", err)
+		// }
 		testFunc(t, interp)
 	})
 }

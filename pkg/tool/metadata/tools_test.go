@@ -34,11 +34,11 @@ func newMetadataTestInterpreter(t *testing.T) *interpreter.Interpreter {
 		interpreter.WithExecPolicy(testPolicy),
 	)
 
-	for _, toolImpl := range toolmeta.MetadataToolsToRegister {
-		if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
-			t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
-		}
-	}
+	// for _, toolImpl := range toolmeta.MetadataToolsToRegister {
+	// 	if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
+	// 		t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
+	// 	}
+	// }
 	return interp
 }
 

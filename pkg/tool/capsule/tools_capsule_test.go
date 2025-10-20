@@ -65,11 +65,11 @@ func newCapsuleTestInterpreter(t *testing.T, isPrivileged bool) *interpreter.Int
 
 	interp := interpreter.NewInterpreter(opts...)
 
-	for _, toolImpl := range toolcapsule.CapsuleToolsToRegister {
-		if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
-			t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
-		}
-	}
+	// for _, toolImpl := range toolcapsule.CapsuleToolsToRegister {
+	// 	if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
+	// 		t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
+	// 	}
+	// }
 	return interp
 }
 

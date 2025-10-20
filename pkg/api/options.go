@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 12
-// Purpose: Defines the public configuration options. Corrects WithActor re-export and correctly passes identity via WithHostContext.
+// File version: 14
+// Purpose: Defines the public configuration options. Hardens WithHostContext to panic if mandatory fields (Logger, IO) are nil.
 // filename: pkg/api/options.go
-// nlines: 55
-// risk_rating: MEDIUM
+// nlines: 70
+// risk_rating: HIGH
 
 package api
 
@@ -20,23 +20,39 @@ func WithHostContext(hc *HostContext) Option {
 	// This function acts as a bridge, converting the public, opaque api.HostContext
 	// into the internal interpreter.HostContext that the core logic requires.
 	return func(i *interpreter.Interpreter) {
+		// FIX: Enforce mandatory HostContext fields.
+		// This aligns with Rule 9 (Fail Fast) and the panic-on-config-error
+		// pattern established in config.go, as this Option func cannot
+		// return an error.
+		if hc.Logger == nil {
+			panic("api.WithHostContext: provided HostContext must have a non-nil Logger")
+		}
+		if hc.Stdout == nil {
+			panic("api.WithHostContext: provided HostContext must have a non-nil Stdout")
+		}
+		if hc.Stdin == nil {
+			panic("api.WithHostContext: provided HostContext must have a non-nil Stdin")
+		}
+		if hc.Stderr == nil {
+			panic("api.WithHostContext: provided HostContext must have a non-nil Stderr")
+		}
+
 		internalHC := &interpreter.HostContext{
-			Logger:       hc.Logger,
+			Logger:       hc.Logger, // Now guaranteed non-nil
 			Emitter:      hc.Emitter,
 			AITranscript: hc.AITranscript,
-			Stdout:       hc.Stdout,
-			Stdin:        hc.Stdin,
-			Stderr:       hc.Stderr,
+			Stdout:       hc.Stdout, // Now guaranteed non-nil
+			Stdin:        hc.Stdin,  // Now guaranteed non-nil
+			Stderr:       hc.Stderr, // Now guaranteed non-nil
 			Actor:        hc.Actor,
 			EmitFunc: func(v lang.Value) {
 				if hc.EmitFunc != nil {
 					hc.EmitFunc(v)
 					return
 				}
-				if hc.Stdout != nil {
-					unwrapped := lang.Unwrap(v)
-					fmt.Fprintln(hc.Stdout, unwrapped)
-				}
+				// Stdout is guaranteed non-nil by the check above.
+				unwrapped := lang.Unwrap(v)
+				fmt.Fprintln(hc.Stdout, unwrapped)
 			},
 			WhisperFunc: func(handle, data lang.Value) {
 				if hc.WhisperFunc != nil {

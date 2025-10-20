@@ -1,15 +1,16 @@
 // NeuroScript Version: 0.8.0
-// File version: 11
-// Purpose: Corrected interpreter instantiation to use the HostContext builder, fixing a compiler error.
+// File version: 12
+// Purpose: Removed redundant tool.RegisterGlobalToolsets call to fix duplicate key errors.
 // filename: pkg/tool/tree/tools_tree_helpers_test.go
-// nlines: 160
-// risk_rating: LOW
+// nlines: 163
 package tree_test
 
 import (
 	"bytes"
 	"errors"
 	"fmt"
+	"log" // DEBUG
+	"os"  // DEBUG
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
@@ -34,20 +35,32 @@ type treeTestCase struct {
 
 func testTreeToolHelper(t *testing.T, testName string, testFunc func(t *testing.T, interp tool.Runtime)) {
 	t.Run(testName, func(t *testing.T) {
+		// DEBUG: Per AGENTS.md Rule 1b
+		log.Printf("[DEBUG] START %s", testName)
 		hostCtx, err := interpreter.NewHostContextBuilder().
 			WithLogger(logging.NewTestLogger(t)).
 			WithStdout(&bytes.Buffer{}).
 			WithStdin(&bytes.Buffer{}).
-			WithStderr(&bytes.Buffer{}).
+			WithStderr(os.Stderr). // DEBUG: Send stderr to os.Stderr
 			Build()
 		if err != nil {
 			t.Fatalf("Failed to create host context: %v", err)
 		}
+		// DEBUG: Per AGENTS.md Rule 1b
+		log.Printf("[DEBUG] %s: HostContext created.", testName)
 		interp := interpreter.NewInterpreter(interpreter.WithHostContext(hostCtx))
-		if err := tool.RegisterGlobalToolsets(interp.ToolRegistry()); err != nil {
-			t.Fatalf("Failed to register extended tools: %v", err)
-		}
+		// DEBUG: Per AGENTS.md Rule 1b
+		log.Printf("[DEBUG] %s: NewInterpreter created. Tool registry should be populated.", testName)
+
+		// XXX: This call is redundant. NewInterpreter already calls
+		// RegisterStandardTools, which in turn calls RegisterGlobalToolsets.
+		// Calling it again causes the "duplicate key" errors.
+		// if err := tool.RegisterGlobalToolsets(interp.ToolRegistry()); err != nil {
+		// 	t.Fatalf("Failed to register extended tools: %v", err)
+		// }
 		testFunc(t, interp)
+		// DEBUG: Per AGENTS.md Rule 1b
+		log.Printf("[DEBUG] END %s", testName)
 	})
 }
 

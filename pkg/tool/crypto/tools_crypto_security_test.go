@@ -34,11 +34,11 @@ func TestToolJWTSecurity(t *testing.T) {
 		interpreter.WithExecPolicy(testPolicy),
 		interpreter.WithHostContext(hostCtx),
 	)
-	for _, impl := range cryptoToolsToRegister {
-		if _, err := interp.ToolRegistry().RegisterTool(impl); err != nil {
-			t.Fatalf("Failed to register tool %q: %v", impl.Spec.Name, err)
-		}
-	}
+	// for _, impl := range cryptoToolsToRegister {
+	// 	if _, err := interp.ToolRegistry().RegisterTool(impl); err != nil {
+	// 		t.Fatalf("Failed to register tool %q: %v", impl.Spec.Name, err)
+	// 	}
+	// }
 
 	secret := "a-different-secret-for-security-tests"
 	signTool, _ := interp.ToolRegistry().GetTool(types.MakeFullName(group, "SignJWT"))

@@ -1,14 +1,15 @@
 // NeuroScript Version: 0.8.0
-// File version: 2
-// Purpose: Corrects the test to provide a mandatory HostContext during interpreter creation, resolving a panic.
+// File version: 3
+// Purpose: Corrects type assertion in TestInterpreter_WhisperFunc from *lang.MapValue to lang.MapValue.
 // filename: pkg/api/whisper_test.go
-// nlines: 83
+// nlines: 87
 // risk_rating: MEDIUM
 
 package api_test
 
 import (
 	"context"
+	"fmt" // DEBUG
 	"io"
 	"os"
 	"strings"
@@ -89,10 +90,14 @@ endcommand`
 		t.Errorf("Expected handle to have 'test::' prefix, got %s", handleStr.Value)
 	}
 
+	// DEBUG: Log the type of the captured data
+	fmt.Fprintf(os.Stderr, "--- DEBUG: TestInterpreter_WhisperFunc: capturedData type is %T ---\n", capturedData)
+
 	// Verify data
-	dataMap, ok := capturedData.(*lang.MapValue)
+	// FIX: The interpreter now wraps maps as lang.MapValue (value), not *lang.MapValue (pointer).
+	dataMap, ok := capturedData.(lang.MapValue)
 	if !ok {
-		t.Fatalf("Expected data to be a *lang.MapValue, got %T", capturedData)
+		t.Fatalf("Expected data to be a lang.MapValue, got %T", capturedData)
 	}
 	statusVal := dataMap.Value["status"]
 	statusStr, _ := statusVal.(lang.StringValue)

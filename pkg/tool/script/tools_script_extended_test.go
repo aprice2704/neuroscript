@@ -15,7 +15,6 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/policy"
-	"github.com/aprice2704/neuroscript/pkg/tool/script"
 )
 
 type scriptTestCase struct {
@@ -163,11 +162,11 @@ func TestScriptToolsExtended(t *testing.T) {
 				interpreter.WithExecPolicy(execPolicy),
 			)
 
-			for _, toolImpl := range script.ToolsToRegister {
-				if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
-					t.Fatalf("failed to register tool '%s': %v", toolImpl.Spec.Name, err)
-				}
-			}
+			// for _, toolImpl := range script.ToolsToRegister {
+			// 	if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
+			// 		t.Fatalf("failed to register tool '%s': %v", toolImpl.Spec.Name, err)
+			// 	}
+			// }
 
 			tree, err := api.Parse([]byte(tc.script), api.ParseSkipComments)
 			if err != nil {

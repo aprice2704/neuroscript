@@ -1,14 +1,15 @@
 // NeuroScript Version: 0.8.0
-// File version: 8
-// Purpose: Fixes test failures by adding a dummy function to the test tool and correcting assertions for unwrapped structs.
+// File version: 9
+// Purpose: Removes test for deprecated getTool and corrects assertion for listTools.
 // filename: pkg/tool/meta/tools_meta_test.go
-// nlines: 130
+// nlines: 88
 // risk_rating: MEDIUM
 
 package meta_test
 
 import (
-	"errors"
+	"fmt"
+	"os"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/capability"
@@ -39,12 +40,12 @@ func (m *mockRuntime) GetGrantSet() *capability.GrantSet {
 }
 
 // --- Unused tool.Runtime methods ---
-func (m *mockRuntime) Println(...any)                                        {}
+func (m *mockRuntime) Println(args ...any)                                   { fmt.Fprintln(os.Stderr, args...) } // DEBUG
 func (m *mockRuntime) PromptUser(prompt string) (string, error)              { return "", nil }
 func (m *mockRuntime) GetVar(name string) (any, bool)                        { return nil, false }
 func (m *mockRuntime) SetVar(name string, val any)                           {}
 func (m *mockRuntime) CallTool(name types.FullName, args []any) (any, error) { return nil, nil }
-func (m *mockRuntime) GetLogger() interfaces.Logger                          { return nil }
+func (m *mockRuntime) GetLogger() interfaces.Logger                          { return nil } // Use Println for test debug
 func (m *mockRuntime) SandboxDir() string                                    { return "" }
 func (m *mockRuntime) LLM() interfaces.LLMClient                             { return nil }
 func (m *mockRuntime) RegisterHandle(obj interface{}, typePrefix string) (string, error) {
@@ -68,65 +69,6 @@ func newTestRuntime(t *testing.T) *mockRuntime {
 	return rt
 }
 
-func TestToolMetaGetTool(t *testing.T) {
-	rt := newTestRuntime(t)
-
-	dummyTool := tool.ToolImplementation{
-		Spec: tool.ToolSpec{Name: "dummy", Group: "test"},
-		Func: func(rt tool.Runtime, args []any) (any, error) { return "ok", nil },
-	}
-	if _, err := rt.ToolRegistry().RegisterTool(dummyTool); err != nil {
-		t.Fatalf("Failed to register dummy tool: %v", err)
-	}
-
-	testCases := []struct {
-		name          string
-		args          map[string]lang.Value
-		wantFound     bool
-		wantFullName  string
-		wantToolErrIs error
-	}{
-		{"Success - Find existing tool", map[string]lang.Value{"fullName": lang.StringValue{Value: "tool.test.dummy"}}, true, "tool.test.dummy", nil},
-		{"Failure - Tool not found", map[string]lang.Value{"fullName": lang.StringValue{Value: "tool.nonexistent.tool"}}, false, "", nil},
-		{"Failure - Invalid argument type", map[string]lang.Value{"fullName": lang.NumberValue{Value: 123}}, false, "", lang.ErrArgumentMismatch},
-		{"Failure - Missing required argument", map[string]lang.Value{}, false, "", lang.ErrArgumentMismatch},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result, err := rt.ToolRegistry().ExecuteTool("tool.meta.getTool", tc.args)
-
-			if tc.wantToolErrIs != nil {
-				if !errors.Is(err, tc.wantToolErrIs) {
-					t.Errorf("Expected error wrapping [%v], but got: %v", tc.wantToolErrIs, err)
-				}
-				return
-			}
-			if err != nil {
-				t.Fatalf("Unexpected error: %v", err)
-			}
-
-			unwrapped := lang.Unwrap(result)
-			resultMap, ok := unwrapped.(map[string]any)
-			if !ok {
-				t.Fatalf("Expected result to be a map, got %T", result)
-			}
-
-			if found, _ := resultMap["found"].(bool); found != tc.wantFound {
-				t.Errorf("Mismatched 'found' status: got %v, want %v", found, tc.wantFound)
-			}
-
-			if tc.wantFound {
-				specMap, _ := resultMap["spec"].(map[string]any)
-				fullName, _ := specMap["fullname"].(string)
-				if types.FullName(fullName) != types.FullName(tc.wantFullName) {
-					t.Errorf("Mismatched tool name: got %s, want %s", fullName, tc.wantFullName)
-				}
-			}
-		})
-	}
-}
-
 func TestToolMetaListTools(t *testing.T) {
 	rt := newTestRuntime(t)
 	dummyTool := tool.ToolImplementation{
@@ -148,8 +90,8 @@ func TestToolMetaListTools(t *testing.T) {
 		t.Fatalf("Expected result to be a slice of specs, but got %T", unwrapped)
 	}
 
-	// Should find the 3 meta tools + the 1 dummy tool
-	if len(specs) != 4 {
-		t.Errorf("Expected to find 4 tools, but got %d", len(specs))
+	// Should find the 2 meta tools + the 1 dummy tool
+	if len(specs) != 3 {
+		t.Errorf("Expected to find 3 tools, but got %d", len(specs))
 	}
 }

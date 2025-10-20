@@ -34,11 +34,11 @@ func TestToolIOInputValidation(t *testing.T) {
 		Stderr: &bytes.Buffer{},
 	}
 	interp := interpreter.NewInterpreter(interpreter.WithHostContext(hostCtx))
-	for _, toolImpl := range ioToolsToRegister {
-		if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
-			t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
-		}
-	}
+	// for _, toolImpl := range ioToolsToRegister {
+	// 	if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
+	// 		t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
+	// 	}
+	// }
 
 	testCases := []struct {
 		name      string

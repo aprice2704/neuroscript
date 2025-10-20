@@ -1,8 +1,15 @@
-// filename: pkg/lang/lang_additional_test.go
+// filename: lang_additional_test.go
+// NeuroScript Version: 0.8.0
+// File version: 2
+// Purpose: Corrects TestWrapUnwrapNested to expect lang.MapValue (by value) instead of a pointer.
+// nlines: 167
+// risk_rating: LOW
 package lang
 
 import (
 	"errors"
+	"fmt" // DEBUG
+	"os"  // DEBUG
 	"reflect"
 	"strings"
 	"testing"
@@ -108,6 +115,7 @@ func TestConversionLogicEdgeCases(t *testing.T) {
 
 // TestWrapUnwrapNested verifies recursive wrapping and unwrapping of a complex structure.
 func TestWrapUnwrapNested(t *testing.T) {
+	fmt.Fprintf(os.Stderr, "--- DEBUG RUNNING TEST: TestWrapUnwrapNested ---\n")
 	original := map[string]any{
 		"a": float64(1),
 		"b": "hello",
@@ -123,9 +131,10 @@ func TestWrapUnwrapNested(t *testing.T) {
 		t.Fatalf("Wrap failed: %v", err)
 	}
 
-	// Ensure it's a *MapValue
-	if _, ok := wrapped.(*MapValue); !ok {
-		t.Fatalf("Expected wrapped type to be *MapValue, got %T", wrapped)
+	fmt.Fprintf(os.Stderr, "--- DEBUG: TestWrapUnwrapNested: Wrapped type is %T ---\n", wrapped)
+	// Ensure it's a MapValue (by value)
+	if _, ok := wrapped.(MapValue); !ok {
+		t.Fatalf("Expected wrapped type to be lang.MapValue, got %T", wrapped)
 	}
 
 	unwrapped := Unwrap(wrapped)

@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -127,4 +128,17 @@ func Unwrap(v Value) (any, error) {
 // ParseLoopControl is deprecated and will be removed.
 func ParseLoopControl(output string) (*LoopController, error) {
 	return nil, errors.New("ParseLoopControl is deprecated; use the AEIOU v3 LoopController")
+}
+
+// KnownProcedures returns a map of all loaded procedures (func definitions).
+// This provides a stable public API for introspecting the interpreter's state.
+func (i *Interpreter) KnownProcedures() map[string]*ast.Procedure {
+	return i.Interpreter.KnownProcedures()
+}
+
+// KnownEventHandlers returns a map of all loaded event handlers (on event definitions),
+// keyed by the event name.
+// This provides a stable public API for introscessing the interpreter's state.
+func (i *Interpreter) KnownEventHandlers() map[string][]*ast.OnEventDecl {
+	return i.Interpreter.KnownEventHandlers()
 }

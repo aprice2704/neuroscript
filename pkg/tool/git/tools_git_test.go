@@ -42,11 +42,11 @@ func newGitTestInterpreter(t *testing.T) *interpreter.Interpreter {
 	interp := interpreter.NewInterpreter(interpreter.WithHostContext(hc), sandboxOpt)
 
 	// Register the git tools for this test suite
-	for _, toolImpl := range gitToolsToRegister {
-		if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
-			t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
-		}
-	}
+	// for _, toolImpl := range gitToolsToRegister {
+	// 	if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
+	// 		t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
+	// 	}
+	// }
 	return interp
 }
 

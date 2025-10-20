@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 28
-// Purpose: Removes all obsolete 'tool.aeiou.magic' calls from the mock E2E provider.
+// File version: 29
+// Purpose: Removes redundant registration of standard tools already handled by NewTestHarness.
 // filename: pkg/interpreter/ask_e2e_test.go
 // nlines: 254
 // risk_rating: LOW
@@ -9,6 +9,7 @@ package interpreter_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -18,10 +19,8 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/provider"
-	"github.com/aprice2704/neuroscript/pkg/tool"
-	"github.com/aprice2704/neuroscript/pkg/tool/account"
-	"github.com/aprice2704/neuroscript/pkg/tool/agentmodel"
-	"github.com/aprice2704/neuroscript/pkg/tool/os"
+	// NOTE: Imports for specific tool packages are no longer needed here
+	// as registration happens centrally.
 )
 
 // --- Mock E2E AI Provider ---
@@ -145,16 +144,20 @@ func setupE2ETest(t *testing.T, mockAPIKey string) (*interpreter.Interpreter, *m
 
 	mockProv := &mockE2EProvider{t: t, ExpectedAPIKey: mockAPIKey}
 
-	if err := tool.CreateRegistrationFunc("agentmodel", agentmodel.AgentModelToolsToRegister)(interp.ToolRegistry()); err != nil {
-		t.Fatalf("Failed to register agentmodel toolset: %v", err)
-	}
-	if err := tool.CreateRegistrationFunc("account", account.AccountToolsToRegister)(interp.ToolRegistry()); err != nil {
-		t.Fatalf("Failed to register account toolset: %v", err)
-	}
-	if err := tool.CreateRegistrationFunc("os", os.OsToolsToRegister)(interp.ToolRegistry()); err != nil {
-		t.Fatalf("Failed to register os toolset: %v", err)
-	}
-	t.Logf("[DEBUG] Turn 2: Tools registered.")
+	// THE FIX: Remove redundant tool registrations. NewTestHarness already
+	// registers all standard tools via NewInterpreter -> RegisterStandardTools.
+	/*
+		if err := tool.CreateRegistrationFunc("agentmodel", agentmodel.AgentModelToolsToRegister)(interp.ToolRegistry()); err != nil {
+			t.Fatalf("Failed to register agentmodel toolset: %v", err)
+		}
+		if err := tool.CreateRegistrationFunc("account", account.AccountToolsToRegister)(interp.ToolRegistry()); err != nil {
+			t.Fatalf("Failed to register account toolset: %v", err)
+		}
+		if err := tool.CreateRegistrationFunc("os", os.OsToolsToRegister)(interp.ToolRegistry()); err != nil {
+			t.Fatalf("Failed to register os toolset: %v", err)
+		}
+	*/
+	t.Logf("[DEBUG] Turn 2: Standard tools are already registered by the harness.")
 
 	interp.RegisterProvider("mock_e2e_provider", mockProv)
 
@@ -173,7 +176,13 @@ func setupE2ETest(t *testing.T, mockAPIKey string) (*interpreter.Interpreter, *m
 
 	_, err := interp.Run("_SetupMockAgent")
 	if err != nil {
-		t.Fatalf("Agent setup procedure failed unexpectedly: %v", err)
+		// Add more debug info if setup fails
+		var rtErr *lang.RuntimeError
+		if errors.As(err, &rtErr) {
+			t.Fatalf("Agent setup procedure failed unexpectedly: %v\nUnderlying: %v\nPosition: %s", err, rtErr.Unwrap(), rtErr.Position.String())
+		} else {
+			t.Fatalf("Agent setup procedure failed unexpectedly: %v", err)
+		}
 	}
 	t.Logf("[DEBUG] Turn 4: Mock agent setup complete.")
 

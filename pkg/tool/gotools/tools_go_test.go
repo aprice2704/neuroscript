@@ -20,7 +20,6 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/testutil"
-	"github.com/aprice2704/neuroscript/pkg/tool/gotools"
 )
 
 // MakeArgs is a convenience function to create a slice of interfaces, useful for constructing tool arguments programmatically.
@@ -52,11 +51,11 @@ func testGoGetModuleInfoHelper(t *testing.T, tc struct {
 		sandboxRoot := interp.SandboxDir()
 
 		// Manually register the Go tools for this test run.
-		for _, toolToRegister := range gotools.GoToolsToRegister {
-			if _, err := interp.ToolRegistry().RegisterTool(toolToRegister); err != nil {
-				t.Fatalf("Setup: failed to register tool %q: %v", toolToRegister.Spec.Name, err)
-			}
-		}
+		// for _, toolToRegister := range gotools.GoToolsToRegister {
+		// 	if _, err := interp.ToolRegistry().RegisterTool(toolToRegister); err != nil {
+		// 		t.Fatalf("Setup: failed to register tool %q: %v", toolToRegister.Spec.Name, err)
+		// 	}
+		// }
 
 		// Look up the tool using its fully-qualified name and check that it exists.
 		toolImpl, ok := interp.ToolRegistry().GetTool("tool.gotools.GetModuleInfo")

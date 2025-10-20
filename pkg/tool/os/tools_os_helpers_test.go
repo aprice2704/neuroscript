@@ -63,12 +63,12 @@ func newOsTestInterpreter(t *testing.T) *interpreter.Interpreter {
 	)
 
 	// Manually register all os tools for the test interpreter
-	allOsTools := append(ostool.OsToolsToRegister, ostool.OsProcToolsToRegister...)
-	for _, toolImpl := range allOsTools {
-		if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
-			t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
-		}
-	}
+	// allOsTools := append(ostool.OsToolsToRegister, ostool.OsProcToolsToRegister...)
+	// for _, toolImpl := range allOsTools {
+	// 	if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
+	// 		t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
+	// 	}
+	// }
 	return interp
 }
 

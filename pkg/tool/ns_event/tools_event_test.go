@@ -48,11 +48,11 @@ func newEventTestInterpreter(t *testing.T) *interpreter.Interpreter {
 		interpreter.WithExecPolicy(policy.AllowAll()),
 	)
 
-	for _, toolImpl := range toolnsevent.EventToolsToRegister {
-		if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
-			t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
-		}
-	}
+	// for _, toolImpl := range toolnsevent.EventToolsToRegister {
+	// 	if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
+	// 		t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
+	// 	}
+	// }
 	return interp
 }
 

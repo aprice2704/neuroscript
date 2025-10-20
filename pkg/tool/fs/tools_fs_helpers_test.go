@@ -43,11 +43,11 @@ func newFsTestInterpreter(t *testing.T) *interpreter.Interpreter {
 	sandboxOpt := testutil.NewTestSandbox(t)
 	interp := interpreter.NewInterpreter(interpreter.WithHostContext(hostCtx), sandboxOpt)
 
-	for _, toolImpl := range fs.FsToolsToRegister {
-		if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
-			t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
-		}
-	}
+	// for _, toolImpl := range fs.FsToolsToRegister {
+	// 	if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
+	// 		t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
+	// 	}
+	// }
 	return interp
 }
 

@@ -40,11 +40,11 @@ func TestToolJWT(t *testing.T) {
 		interpreter.WithHostContext(hostCtx),
 	)
 
-	for _, impl := range cryptoToolsToRegister {
-		if _, err := interp.ToolRegistry().RegisterTool(impl); err != nil {
-			t.Fatalf("Failed to register tool %q: %v", impl.Spec.Name, err)
-		}
-	}
+	// for _, impl := range cryptoToolsToRegister {
+	// 	if _, err := interp.ToolRegistry().RegisterTool(impl); err != nil {
+	// 		t.Fatalf("Failed to register tool %q: %v", impl.Spec.Name, err)
+	// 	}
+	// }
 
 	// --- Test Case Data ---
 	claims := map[string]interface{}{"sub": "12345", "nbf": float64(time.Now().Unix())}

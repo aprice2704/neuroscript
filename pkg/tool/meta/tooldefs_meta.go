@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 7
-// Purpose: Defines the tool specifications for the 'meta' tool group, linking them to their implementations.
+// File version: 8
+// Purpose: Defines the tool specifications for the 'meta' tool group, linking them to their implementations. Removed deprecated getTool.
 // filename: pkg/tool/meta/tooldefs.go
-// nlines: 55
+// nlines: 40
 // risk_rating: LOW
 
 package meta
@@ -13,19 +13,6 @@ import (
 
 // metaToolsToRegister holds the definitions for tools that provide information about other tools.
 var metaToolsToRegister = []tool.ToolImplementation{
-	{
-		Spec: tool.ToolSpec{
-			Name:        "getTool",
-			Group:       "meta",
-			Description: "Retrieves the specification of a single registered tool by its full name.",
-			Args: []tool.ArgSpec{
-				{Name: "fullName", Type: tool.ArgTypeString, Description: "The full canonical name of the tool (e.g., 'tool.fs.readFile').", Required: true},
-			},
-			ReturnType: tool.ArgTypeMap,
-			ReturnHelp: "A map containing a 'found' boolean and the tool 'spec' if found.",
-		},
-		Func: GetTool,
-	},
 	{
 		Spec: tool.ToolSpec{
 			Name:        "listTools",

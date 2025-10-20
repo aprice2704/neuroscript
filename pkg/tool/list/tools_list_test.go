@@ -12,7 +12,6 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
-	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
@@ -39,10 +38,10 @@ func testListTool(t *testing.T, toolName types.ToolName, cases []testCase) {
 	// This assumes that the list tools are registered via an init() function
 	// in the list package, which is a common pattern. If not, they would
 	// need to be registered here manually.
-	err := tool.RegisterGlobalToolsets(interp.ToolRegistry())
-	if err != nil {
-		t.Fatalf("Failed to register extended tools: %v", err)
-	}
+	// err := tool.RegisterGlobalToolsets(interp.ToolRegistry())
+	// if err != nil {
+	// 	t.Fatalf("Failed to register extended tools: %v", err)
+	// }
 
 	// Get the tool from the registry using its full name
 	fullName := types.MakeFullName(group, string(toolName))

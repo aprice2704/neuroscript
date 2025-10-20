@@ -1,5 +1,5 @@
 // NeuroScript Version: 0.8.0
-// File version: 3
+// File version: 4
 // Purpose: Added tests for privilege inheritance, function redefinition, and variable scoping between root and forks.
 // filename: pkg/interpreter/inheritance_test.go
 // nlines: 200
@@ -143,10 +143,13 @@ func TestInterpreter_Inheritance(t *testing.T) {
 		}
 		t.Logf("[DEBUG] Fork 'main' executed.")
 
-		resultMap, ok := result.(*lang.MapValue)
+		// THE FIX: The tool returns a lang.MapValue (a struct), not a *lang.MapValue (a pointer).
+		// Change the type assertion to match the actual returned type.
+		resultMap, ok := result.(lang.MapValue)
 		if !ok {
-			t.Fatalf("Expected tool call to return a map, but got %T", result)
+			t.Fatalf("Expected tool call to return a map (lang.MapValue), but got %T", result)
 		}
+
 		if model, _ := resultMap.Value["model"].(lang.StringValue); model.Value != "m" {
 			t.Errorf("Fork retrieved incorrect model data. Expected model 'm', got '%s'", model.Value)
 		}
