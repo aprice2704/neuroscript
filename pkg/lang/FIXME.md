@@ -61,3 +61,79 @@ doesn't throw errors on the prints, even though they should be emit
 
 
 4. should allow whitespace after \ to be line continuations (or render unneccessary)
+
+5. Need to rationalize types:
+
+Okay, let's sort this out.
+
+You're right, the type names used in the tool specs (`slice_string`, `list`, `any`, etc.) seem inconsistent and are causing these coercion headaches. Rationalizing them is a good idea.
+
+First, here's the corrected code block for `SetRespectGitignore` in `tooldefs_fdm.go`. I've removed the erroneous line:
+
+```go
+		{
+			Spec: api.ToolSpec{
+				Name:        "SetRespectGitignore",
+				Group:       "FDM.Plan",
+				Description: "Sets whether the ingestion plan should respect .gitignore files.",
+				Args: []api.ArgSpec{
+					{Name: "planID", Type: "string", Required: true, Description: "The NodeID of the ingest_plan to modify."},
+					// Corrected line below:
+					{Name: "respect", Type: "bool", Required: true, Description: "Set to true to respect .gitignore, false to ignore it."},
+				},
+				ReturnType: "string", // Returns new NodeID
+				ReturnHelp: "Returns the NodeID of the new, updated ingest_plan node.",
+			},
+			Func: mediator.ToolPlanSetRespectGitignore,
+		},
+```
+
+-----
+
+## Tool Argument Type Options
+
+Based on the `lang` package files and the `tooldefs_fdm.go` file, here are the type names I can identify being used or implied for `api.ArgSpec.Type`:
+
+**Directly from `lang/type_names.go`:**
+
+  * `string`
+  * `number` (maps to Go `float64`)
+  * `boolean` (seems `bool` is used in practice)
+  * `bytes`
+  * `list`
+  * `map`
+  * `nil` (unlikely to be used as an *expected* argument type)
+  * `function` (unlikely for tool args)
+  * `tool` (unlikely for tool args)
+  * `error` (unlikely for tool args)
+  * `event` (unlikely for tool args)
+  * `timedate`
+  * `fuzzy`
+
+**Observed in `tooldefs_fdm.go`:**
+
+  * `string`
+  * `map`
+  * `int` (This implies the coercion layer *might* handle Go `int`/`int64` separately from `number`/`float64`)
+  * `bool` (Used instead of `boolean`)
+  * `slice_string` (The source of our current problem, likely intended to map to Go `[]string`)
+  * `any` (The most flexible type, likely mapping to Go `any` or `interface{}`)
+
+**Implicit/Potential:**
+
+  * `float` / `float64`: Possibly distinct from `number` or `int`.
+  * `slice_map` / `list_map`: Used as a *return* type, could potentially be an input type.
+
+**Summary of Confusion:**
+
+The core issue seems to be the inconsistent mapping between:
+
+1.  NeuroScript's internal types (`lang.Value` implementations).
+2.  The string names used in `api.ArgSpec.Type`.
+3.  The expected Go types in the tool's implementation function signature.
+4.  How the `lang.Unwrap` function converts NS types to Go types.
+5.  How the tool-calling machinery (coercion layer) uses the `Type` string to validate the unwrapped Go type against the tool function's signature.
+
+The types `slice_string`, `int`, and `bool` (vs `boolean`) strongly suggest the `api.ArgSpec.Type` string is intended to map more closely to Go types than to the core NeuroScript types. `list` and `map` seem to map to the NS/Go concepts, while `any` is the catch-all.
+
+We definitely need to clarify and document the canonical set of allowed `Type` strings and exactly which Go types they correspond to during coercion. Using `"any"` in the spec for the list arguments seems like the most robust path forward for now, given the implementation already handles `[]any`.

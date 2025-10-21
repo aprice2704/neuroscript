@@ -1,6 +1,42 @@
 [
   {
     "spec": {
+      "name": "get_noetic_script",
+      "groupname": "fdm.agent",
+      "fullname": "",
+      "description": "Retrieves the agent's own startup (Noetic) script source.",
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_charter_capsule",
+      "groupname": "fdm.agent",
+      "fullname": "",
+      "description": "Retrieves the contents of the agent's charter capsule.",
+      "returnType": "any"
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_message_handler_capsule",
+      "groupname": "fdm.agent",
+      "fullname": "",
+      "description": "Retrieves the contents of the agent's message handler capsule.",
+      "returnType": "any"
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
       "name": "List",
       "groupname": "FDM.Services",
       "fullname": "",
@@ -14,608 +50,32 @@
   },
   {
     "spec": {
-      "name": "add_mount",
-      "groupname": "fdm.persist_admin",
+      "name": "Send",
+      "groupname": "FDM.IPC",
       "fullname": "",
-      "description": "Adds a new mount to the storage configuration. Privileged.",
+      "description": "Encodes arbitrary data into a high-performance binary envelope and sends it to a connected IPC client like Lotfi.",
       "args": [
         {
-          "name": "mount_definition",
-          "type": "map",
-          "description": "A map defining the mount, e.g., {'prefix':'store://...','buckets':['b1']}",
-          "required": false
-        }
-      ],
-      "returnType": "string"
-    },
-    "requiresTrust": true,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "add_alias",
-      "groupname": "fdm.persist_admin",
-      "fullname": "",
-      "description": "Adds a new alias to the storage configuration. Privileged.",
-      "args": [
-        {
-          "name": "alias_name",
-          "type": "string",
-          "description": "",
-          "required": true
-        },
-        {
-          "name": "target_uri",
-          "type": "string",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "string"
-    },
-    "requiresTrust": true,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "Publish",
-      "groupname": "FDM.Bus",
-      "fullname": "",
-      "description": "Publishes a message to a topic on the FDM event bus (fire-and-forget). Payload must be Base64 encoded.",
-      "args": [
-        {
-          "name": "topic",
-          "type": "string",
-          "description": "",
-          "required": true
-        },
-        {
-          "name": "payload_base64",
-          "type": "string",
-          "description": "Base64 encoded string representing the payload bytes.",
-          "required": true
-        },
-        {
-          "name": "scope",
-          "type": "string",
-          "description": "Optional scope.",
-          "required": false
-        },
-        {
-          "name": "correlationId",
-          "type": "string",
-          "description": "Optional correlation ID.",
-          "required": false
-        },
-        {
-          "name": "source",
-          "type": "string",
-          "description": "Optional source. Defaults to agent DID.",
-          "required": false
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the unique message ID assigned to the published event."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "Request",
-      "groupname": "FDM.Bus",
-      "fullname": "",
-      "description": "Sends a request message and waits for a reply. Request payload must be Base64 encoded.",
-      "args": [
-        {
-          "name": "topic",
-          "type": "string",
-          "description": "",
-          "required": true
-        },
-        {
-          "name": "payload_base64",
-          "type": "string",
-          "description": "Base64 encoded string representing the request payload bytes.",
-          "required": true
-        },
-        {
-          "name": "scope",
-          "type": "string",
-          "description": "Optional scope.",
-          "required": false
-        },
-        {
-          "name": "timeoutMs",
-          "type": "int",
-          "description": "Optional timeout (default 5s).",
-          "required": false
-        },
-        {
-          "name": "source",
-          "type": "string",
-          "description": "Optional source. Defaults to agent DID.",
-          "required": false
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the reply payload as a string, or an error on timeout."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "admin_add_mount",
-      "groupname": "FDM.Store",
-      "fullname": "",
-      "description": "Adds a mount point to the persistence router (privileged).",
-      "args": [
-        {
-          "name": "mount_definition",
-          "type": "map",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns a confirmation message."
-    },
-    "requiresTrust": true,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "admin_add_alias",
-      "groupname": "FDM.Store",
-      "fullname": "",
-      "description": "Adds an alias to the persistence router (privileged).",
-      "args": [
-        {
-          "name": "alias_name",
-          "type": "string",
-          "description": "",
-          "required": true
-        },
-        {
-          "name": "target_uri",
-          "type": "string",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns a confirmation message."
-    },
-    "requiresTrust": true,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "put",
-      "groupname": "FDM.Store",
-      "fullname": "",
-      "description": "Saves a value to the persistence layer.",
-      "args": [
-        {
-          "name": "uri",
-          "type": "string",
-          "description": "",
-          "required": true
-        },
-        {
-          "name": "value",
-          "type": "string",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns 'ok' on success."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "get",
-      "groupname": "FDM.Store",
-      "fullname": "",
-      "description": "Retrieves a value from the persistence layer.",
-      "args": [
-        {
-          "name": "uri",
-          "type": "string",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the stored value as a string, or nil if not found."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "list",
-      "groupname": "FDM.Store",
-      "fullname": "",
-      "description": "Lists keys and values under a given URI prefix.",
-      "args": [
-        {
-          "name": "uri_prefix",
-          "type": "string",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map where keys are full URIs and values are stored strings."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "delete",
-      "groupname": "FDM.Store",
-      "fullname": "",
-      "description": "Deletes a value from the persistence layer.",
-      "args": [
-        {
-          "name": "uri",
-          "type": "string",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns 'ok' on success."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "put",
-      "groupname": "fdm.persist",
-      "fullname": "",
-      "description": "Saves a value (string or bytes) to a storage URI.",
-      "args": [
-        {
-          "name": "uri",
-          "type": "string",
-          "description": "",
-          "required": true
-        },
-        {
-          "name": "value",
+          "name": "data",
           "type": "any",
-          "description": "",
+          "description": "The data (map, list, string, etc.) to send.",
           "required": true
         }
       ],
-      "returnType": "string"
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "get",
-      "groupname": "fdm.persist",
-      "fullname": "",
-      "description": "Retrieves a value from a storage URI as a string.",
-      "args": [
-        {
-          "name": "uri",
-          "type": "string",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "string"
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "list",
-      "groupname": "fdm.persist",
-      "fullname": "",
-      "description": "Lists all keys and values under a given URI prefix.",
-      "args": [
-        {
-          "name": "uri_prefix",
-          "type": "string",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "map"
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "del",
-      "groupname": "fdm.persist",
-      "fullname": "",
-      "description": "Deletes a value at a specific storage URI.",
-      "args": [
-        {
-          "name": "uri",
-          "type": "string",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "string"
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "patch",
-      "groupname": "FDM.File",
-      "fullname": "",
-      "description": "Applies a diff patch to a file, writes it to disk, and triggers relevant FDM updates via events.",
-      "args": [
-        {
-          "name": "path",
-          "type": "string",
-          "description": "The repository-relative path to the file to patch.",
-          "required": true
-        },
-        {
-          "name": "patchText",
-          "type": "string",
-          "description": "The patch content in standard diff format.",
-          "required": true
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map with 'accepted': true and 'receipt_id' on success."
+      "returnType": "bool",
+      "returnHelp": "Returns true on success, false otherwise."
     },
     "requiresTrust": false,
     "isInternal": false,
     "requiredCaps": [
       {
-        "Resource": "fs",
+        "Resource": "ipc",
         "Verbs": [
           "write"
         ],
         "Scopes": null
       }
     ],
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "Create",
-      "groupname": "FDM.Project",
-      "fullname": "",
-      "description": "Creates a new project node.",
-      "args": [
-        {
-          "name": "id",
-          "type": "string",
-          "description": "Unique machine ID (e.g., 'fdm-core').",
-          "required": true
-        },
-        {
-          "name": "name",
-          "type": "string",
-          "description": "Human-readable name.",
-          "required": true
-        },
-        {
-          "name": "repos",
-          "type": "slice_string",
-          "description": "List of repository URLs.",
-          "required": false
-        },
-        {
-          "name": "goals",
-          "type": "slice_string",
-          "description": "List of high-level goals.",
-          "required": false
-        },
-        {
-          "name": "overlays",
-          "type": "slice_string",
-          "description": "List of overlay IDs.",
-          "required": false
-        },
-        {
-          "name": "teamGroupID",
-          "type": "string",
-          "description": "NodeID of the team group node.",
-          "required": false
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map representing the new project node."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "Get",
-      "groupname": "FDM.Project",
-      "fullname": "",
-      "description": "Retrieves a project node by its unique project ID.",
-      "args": [
-        {
-          "name": "id",
-          "type": "string",
-          "description": "The unique machine ID of the project.",
-          "required": true
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map representing the project node, or nil if not found."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "Update",
-      "groupname": "FDM.Project",
-      "fullname": "",
-      "description": "Updates fields on an existing project node.",
-      "args": [
-        {
-          "name": "id",
-          "type": "string",
-          "description": "The unique ID of the project to update.",
-          "required": true
-        },
-        {
-          "name": "fields",
-          "type": "map",
-          "description": "A map of field names (string) to new values (any).",
-          "required": true
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map representing the updated project node."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "send",
-      "groupname": "fdm.events",
-      "fullname": "",
-      "description": "Sends a pre-composed event object (from fdm.events.compose) to the FDM bus.",
-      "args": [
-        {
-          "name": "event_object",
-          "type": "map",
-          "description": "A standard event object map, created with fdm.events.compose().",
-          "required": true
-        }
-      ],
-      "returnType": "bool",
-      "returnHelp": "Returns true if the event was successfully published, false otherwise."
-    },
-    "requiresTrust": true,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "get_payload",
-      "groupname": "fdm.events",
-      "fullname": "",
-      "description": "Extracts the payload from a standard event object.",
-      "args": [
-        {
-          "name": "event_object",
-          "type": "map",
-          "description": "The event object received by an 'on event' handler.",
-          "required": true
-        }
-      ],
-      "returnType": "any",
-      "returnHelp": "Returns the inner payload map or value."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "get_id",
-      "groupname": "fdm.events",
-      "fullname": "",
-      "description": "Extracts the message ID from a standard event object.",
-      "args": [
-        {
-          "name": "event_object",
-          "type": "map",
-          "description": "The event object received by an 'on event' handler.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the event's unique message ID string."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "get_kind",
-      "groupname": "fdm.events",
-      "fullname": "",
-      "description": "Extracts the kind (topic) from a standard event object.",
-      "args": [
-        {
-          "name": "event_object",
-          "type": "map",
-          "description": "The event object received by an 'on event' handler.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the event's kind (topic) string."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "compose",
-      "groupname": "fdm.events",
-      "fullname": "",
-      "description": "Composes a new, standard event object suitable for sending with fdm.events.send.",
-      "args": [
-        {
-          "name": "kind",
-          "type": "string",
-          "description": "The kind (topic) for the new event, e.g., 'agent.pong'.",
-          "required": true
-        },
-        {
-          "name": "payload",
-          "type": "map",
-          "description": "A map containing the data for the event payload.",
-          "required": true
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns the composed event object map."
-    },
-    "requiresTrust": true,
-    "isInternal": false,
     "signatureChecksum": ""
   },
   {
@@ -754,26 +214,486 @@
   },
   {
     "spec": {
-      "name": "Send",
-      "groupname": "FDM.IPC",
+      "name": "Create",
+      "groupname": "FDM.Project",
       "fullname": "",
-      "description": "Encodes arbitrary data into a high-performance binary envelope and sends it to a connected IPC client like Lotfi.",
+      "description": "Creates a new project node.",
       "args": [
         {
-          "name": "data",
-          "type": "any",
-          "description": "The data (map, list, string, etc.) to send.",
+          "name": "id",
+          "type": "string",
+          "description": "Unique machine ID (e.g., 'fdm-core').",
+          "required": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "description": "Human-readable name.",
+          "required": true
+        },
+        {
+          "name": "repos",
+          "type": "slice_string",
+          "description": "List of repository URLs.",
+          "required": false
+        },
+        {
+          "name": "goals",
+          "type": "slice_string",
+          "description": "List of high-level goals.",
+          "required": false
+        },
+        {
+          "name": "overlays",
+          "type": "slice_string",
+          "description": "List of overlay IDs.",
+          "required": false
+        },
+        {
+          "name": "teamGroupID",
+          "type": "string",
+          "description": "NodeID of the team group node.",
+          "required": false
+        }
+      ],
+      "returnType": "map",
+      "returnHelp": "Returns a map representing the new project node."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "Get",
+      "groupname": "FDM.Project",
+      "fullname": "",
+      "description": "Retrieves a project node by its unique project ID.",
+      "args": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "The unique machine ID of the project.",
+          "required": true
+        }
+      ],
+      "returnType": "map",
+      "returnHelp": "Returns a map representing the project node, or nil if not found."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "Update",
+      "groupname": "FDM.Project",
+      "fullname": "",
+      "description": "Updates fields on an existing project node.",
+      "args": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "The unique ID of the project to update.",
+          "required": true
+        },
+        {
+          "name": "fields",
+          "type": "map",
+          "description": "A map of field names (string) to new values (any).",
+          "required": true
+        }
+      ],
+      "returnType": "map",
+      "returnHelp": "Returns a map representing the updated project node."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "CreateNode",
+      "groupname": "FDM",
+      "fullname": "",
+      "description": "Creates a new node in the FDM.",
+      "args": [
+        {
+          "name": "type",
+          "type": "string",
+          "description": "",
+          "required": true
+        },
+        {
+          "name": "fields",
+          "type": "map",
+          "description": "",
+          "required": false
+        }
+      ],
+      "returnType": "map",
+      "returnHelp": "Returns a map representing the newly created node, including its ID."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "GetNode",
+      "groupname": "FDM",
+      "fullname": "",
+      "description": "Retrieves a node by its ID from the FDM.",
+      "args": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "map",
+      "returnHelp": "Returns a map representing the node's data, or nil if not found."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "DeleteNode",
+      "groupname": "FDM",
+      "fullname": "",
+      "description": "Deletes a node by its ID from the FDM.",
+      "args": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "",
           "required": true
         }
       ],
       "returnType": "bool",
-      "returnHelp": "Returns true on success, false otherwise."
+      "returnHelp": "Returns true on success or if node didn't exist."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "Query",
+      "groupname": "FDM",
+      "fullname": "",
+      "description": "Performs a filtered query for nodes in the FDM.",
+      "args": [
+        {
+          "name": "filter",
+          "type": "map",
+          "description": "A map defining the filter criteria (e.g., {'type': 'agent', 'agent:class': 'ai'}).",
+          "required": true
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "description": "An optional maximum number of results to return.",
+          "required": false
+        }
+      ],
+      "returnType": "slice_map",
+      "returnHelp": "Returns a list of maps, where each map represents a matched node."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "RegisterOverlay",
+      "groupname": "FDM",
+      "fullname": "",
+      "description": "Creates and registers a standard, named overlay required by a script.",
+      "args": [
+        {
+          "name": "overlayName",
+          "type": "string",
+          "description": "The name of the overlay to register (e.g., 'forum:vote').",
+          "required": true
+        }
+      ],
+      "returnType": "bool",
+      "returnHelp": "Returns true on success or if already registered."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "ListMeta",
+      "groupname": "FDM.Overlays",
+      "fullname": "",
+      "description": "Lists metadata for all registered overlays.",
+      "returnType": "slice_map",
+      "returnHelp": "Returns a list of maps, where each map contains metadata about an overlay: id, kind, label, node_count, file_count"
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "Find",
+      "groupname": "FDM.Symbol",
+      "fullname": "",
+      "description": "Finds all definitions of a given Go symbol.",
+      "args": [
+        {
+          "name": "symbolName",
+          "type": "string",
+          "description": "The exact name of the symbol to find (e.g., 'NewFDM').",
+          "required": true
+        }
+      ],
+      "returnType": "slice_map",
+      "returnHelp": "Returns a list of maps, each detailing a symbol definition with keys: 'file', 'pos', 'kind', 'recv'."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "Create",
+      "groupname": "FDM.Plan",
+      "fullname": "",
+      "description": "Creates a new, empty ingest_plan node for a given repository path.",
+      "args": [
+        {
+          "name": "repoPath",
+          "type": "string",
+          "description": "The local filesystem path to the repository to be ingested.",
+          "required": true
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns the NodeID of the newly created ingest_plan node."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "AddOverlay",
+      "groupname": "FDM.Plan",
+      "fullname": "",
+      "description": "Adds an overlay to an ingest_plan, creating a new version of the plan.",
+      "args": [
+        {
+          "name": "planID",
+          "type": "string",
+          "description": "",
+          "required": true
+        },
+        {
+          "name": "overlayID",
+          "type": "string",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns the NodeID of the new, updated ingest_plan node."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "AddIndex",
+      "groupname": "FDM.Plan",
+      "fullname": "",
+      "description": "Adds an index to an ingest_plan, creating a new version of the plan.",
+      "args": [
+        {
+          "name": "planID",
+          "type": "string",
+          "description": "",
+          "required": true
+        },
+        {
+          "name": "indexID",
+          "type": "string",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns the NodeID of the new, updated ingest_plan node."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "AddIgnorePatterns",
+      "groupname": "FDM.Plan",
+      "fullname": "",
+      "description": "Adds a list of glob patterns to an ingest_plan's ignore list.",
+      "args": [
+        {
+          "name": "planID",
+          "type": "string",
+          "description": "The NodeID of the ingest_plan to modify.",
+          "required": true
+        },
+        {
+          "name": "patterns",
+          "type": "any",
+          "description": "A list of glob patterns to add (e.g., ['**/node_modules', '*.log']).",
+          "required": true
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns the NodeID of the new, updated ingest_plan node."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "SetRespectGitignore",
+      "groupname": "FDM.Plan",
+      "fullname": "",
+      "description": "Sets whether the ingestion plan should respect .gitignore files.",
+      "args": [
+        {
+          "name": "planID",
+          "type": "string",
+          "description": "The NodeID of the ingest_plan to modify.",
+          "required": true
+        },
+        {
+          "name": "respect",
+          "type": "bool",
+          "description": "Set to true to respect .gitignore, false to ignore it.",
+          "required": true
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns the NodeID of the new, updated ingest_plan node."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "AddExcludeMIMETypes",
+      "groupname": "FDM.Plan",
+      "fullname": "",
+      "description": "Adds a list of MIME types to the plan's exclusion list.",
+      "args": [
+        {
+          "name": "planID",
+          "type": "string",
+          "description": "The NodeID of the ingest_plan to modify.",
+          "required": true
+        },
+        {
+          "name": "mimeTypes",
+          "type": "any",
+          "description": "A list of MIME type strings to exclude (e.g., ['image/png', 'application/pdf']).",
+          "required": true
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns the NodeID of the new, updated ingest_plan node."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "Ingest",
+      "groupname": "FDM.Repo",
+      "fullname": "",
+      "description": "Executes a full ingestion process by walking the entire repository based on a specified ingest_plan.",
+      "args": [
+        {
+          "name": "planID",
+          "type": "string",
+          "description": "The NodeID of the ingest_plan to execute.",
+          "required": true
+        }
+      ],
+      "returnType": "bool",
+      "returnHelp": "Returns true on successful completion of the ingestion."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "IngestChanges",
+      "groupname": "FDM.Repo",
+      "fullname": "",
+      "description": "Executes an incremental ingestion process for a specified list of changed files.",
+      "args": [
+        {
+          "name": "planID",
+          "type": "string",
+          "description": "The NodeID of the ingest_plan to use for context.",
+          "required": true
+        },
+        {
+          "name": "filePaths",
+          "type": "slice_string",
+          "description": "A list of file paths that have been added or changed.",
+          "required": true
+        }
+      ],
+      "returnType": "bool",
+      "returnHelp": "Returns true on successful completion of the incremental ingestion."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "patch",
+      "groupname": "FDM.File",
+      "fullname": "",
+      "description": "Applies a diff patch to a file, writes it to disk, and triggers relevant FDM updates via events.",
+      "args": [
+        {
+          "name": "path",
+          "type": "string",
+          "description": "The repository-relative path to the file to patch.",
+          "required": true
+        },
+        {
+          "name": "patchText",
+          "type": "string",
+          "description": "The patch content in standard diff format.",
+          "required": true
+        }
+      ],
+      "returnType": "map",
+      "returnHelp": "Returns a map with 'accepted': true and 'receipt_id' on success."
     },
     "requiresTrust": false,
     "isInternal": false,
     "requiredCaps": [
       {
-        "Resource": "ipc",
+        "Resource": "fs",
         "Verbs": [
           "write"
         ],
@@ -784,251 +704,20 @@
   },
   {
     "spec": {
-      "name": "ListDir",
-      "groupname": "FDM.FS",
+      "name": "FindSymbol",
+      "groupname": "FDM.SIO",
       "fullname": "",
-      "description": "Lists the contents of a directory in the FDM.",
+      "description": "Finds all definitions of a given Go symbol from the Symbol Index Overlay.",
       "args": [
         {
-          "name": "dirPath",
+          "name": "symbolName",
           "type": "string",
-          "description": "The path of the directory to list.",
-          "required": true
-        },
-        {
-          "name": "recursive",
-          "type": "bool",
-          "description": "If true, lists contents recursively.",
-          "required": false
-        }
-      ],
-      "returnType": "slice_map",
-      "returnHelp": "Returns a list of maps (file/dir nodes), or empty list."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "Lookup",
-      "groupname": "FDM.FS",
-      "fullname": "",
-      "description": "Looks up a specific path in the filesystem overlay.",
-      "args": [
-        {
-          "name": "path",
-          "type": "string",
-          "description": "The exact path to look up.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the NodeID string, or nil if not found."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "History",
-      "groupname": "FDM.FS",
-      "fullname": "",
-      "description": "Retrieves the rename/move history for a given path.",
-      "args": [
-        {
-          "name": "path",
-          "type": "string",
-          "description": "The current path to trace history for.",
+          "description": "The exact symbol name (e.g., 'NewFDM').",
           "required": true
         }
       ],
       "returnType": "slice_map",
-      "returnHelp": "Returns a list of maps (rename nodes), or empty list."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "Rename",
-      "groupname": "FDM.FS",
-      "fullname": "",
-      "description": "Records a rename/move event for a file or directory.",
-      "args": [
-        {
-          "name": "srcPath",
-          "type": "string",
-          "description": "",
-          "required": true
-        },
-        {
-          "name": "dstPath",
-          "type": "string",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map representing the created fs_rename node."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "get_forum",
-      "groupname": "FDM.Overlays",
-      "fullname": "",
-      "description": "Returns the canonical name of the forum overlay.",
-      "returnType": "string",
-      "returnHelp": "The string ID of the forum overlay (e.g., 'forum')."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "get_fco",
-      "groupname": "FDM.Overlays",
-      "fullname": "",
-      "description": "Returns the canonical name of the File Content Overlay (FCO).",
-      "returnType": "string",
-      "returnHelp": "The string ID of the File Content Overlay (e.g., 'fco:git')."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "get_fileoverlay",
-      "groupname": "FDM.Overlays",
-      "fullname": "",
-      "description": "Returns the canonical name of the File Overlay.",
-      "returnType": "string",
-      "returnHelp": "The string ID of the File Overlay (e.g., 'file')."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "get_fso",
-      "groupname": "FDM.Overlays",
-      "fullname": "",
-      "description": "Returns the canonical name of the Filesystem Overlay.",
-      "returnType": "string",
-      "returnHelp": "The string ID of the Filesystem Overlay (e.g., 'fso:git')."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "get_fvo",
-      "groupname": "FDM.Overlays",
-      "fullname": "",
-      "description": "Returns the canonical name of the File Version Overlay.",
-      "returnType": "string",
-      "returnHelp": "The string ID of the File Version Overlay (e.g., 'fvo')."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "get_legacy",
-      "groupname": "FDM.Overlays",
-      "fullname": "",
-      "description": "Returns the canonical name of the legacy overlay.",
-      "returnType": "string",
-      "returnHelp": "The string ID of the legacy overlay (e.g., 'legacy')."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "get_natlang",
-      "groupname": "FDM.Overlays",
-      "fullname": "",
-      "description": "Returns the canonical name of the natural language overlay.",
-      "returnType": "string",
-      "returnHelp": "The string ID of the natural language overlay (e.g., 'natlang')."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "get_neuromorphic",
-      "groupname": "FDM.Overlays",
-      "fullname": "",
-      "description": "Returns the canonical name of the Neuromorphic Overlay.",
-      "returnType": "string",
-      "returnHelp": "The string ID of the Neuromorphic Overlay (e.g., 'neuromorphic')."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "get_plan",
-      "groupname": "FDM.Overlays",
-      "fullname": "",
-      "description": "Returns the canonical name of the plan overlay.",
-      "returnType": "string",
-      "returnHelp": "The string ID of the plan overlay (e.g., 'plan')."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "get_sio",
-      "groupname": "FDM.Overlays",
-      "fullname": "",
-      "description": "Returns the canonical name of the Symbol Index Overlay (SIO).",
-      "returnType": "string",
-      "returnHelp": "The string ID of the Symbol Index Overlay (e.g., 'sio')."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "get_summary",
-      "groupname": "FDM.Overlays",
-      "fullname": "",
-      "description": "Returns the canonical name of the summary overlay.",
-      "returnType": "string",
-      "returnHelp": "The string ID of the summary overlay (e.g., 'summary')."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "get_welcome",
-      "groupname": "FDM.Overlays",
-      "fullname": "",
-      "description": "Returns the canonical name of the welcome overlay.",
-      "returnType": "string",
-      "returnHelp": "The string ID of the welcome overlay (e.g., 'welcome')."
+      "returnHelp": "Returns a list of maps detailing symbol locations: NodeID, FilePath, Kind, Position, Recv."
     },
     "requiresTrust": false,
     "isInternal": false,
@@ -1546,26 +1235,38 @@
   },
   {
     "spec": {
-      "name": "CreateNode",
-      "groupname": "FDM",
+      "name": "Publish",
+      "groupname": "FDM.Bus",
       "fullname": "",
-      "description": "Creates a new node in the FDM.",
+      "description": "Publishes a message to a topic on the FDM event bus (fire-and-forget). Payload must be Base64 encoded. Source is automatically set from the calling agent's context.",
       "args": [
         {
-          "name": "type",
+          "name": "topic",
           "type": "string",
           "description": "",
           "required": true
         },
         {
-          "name": "fields",
-          "type": "map",
-          "description": "",
+          "name": "payload_base64",
+          "type": "string",
+          "description": "Base64 encoded string representing the payload bytes.",
+          "required": true
+        },
+        {
+          "name": "scope",
+          "type": "string",
+          "description": "Optional scope.",
+          "required": false
+        },
+        {
+          "name": "correlationId",
+          "type": "string",
+          "description": "Optional correlation ID.",
           "required": false
         }
       ],
-      "returnType": "map",
-      "returnHelp": "Returns a map representing the newly created node, including its ID."
+      "returnType": "string",
+      "returnHelp": "Returns the unique message ID assigned to the published event."
     },
     "requiresTrust": false,
     "isInternal": false,
@@ -1573,68 +1274,203 @@
   },
   {
     "spec": {
-      "name": "GetNode",
-      "groupname": "FDM",
+      "name": "Request",
+      "groupname": "FDM.Bus",
       "fullname": "",
-      "description": "Retrieves a node by its ID from the FDM.",
+      "description": "Sends a request message and waits for a reply. Request payload must be Base64 encoded. Source is automatically set from the calling agent's context.",
       "args": [
         {
-          "name": "id",
+          "name": "topic",
           "type": "string",
           "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "map",
-      "returnHelp": "Returns a map representing the node's data, or nil if not found."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "DeleteNode",
-      "groupname": "FDM",
-      "fullname": "",
-      "description": "Deletes a node by its ID from the FDM.",
-      "args": [
-        {
-          "name": "id",
-          "type": "string",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "bool",
-      "returnHelp": "Returns true on success or if node didn't exist."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "Query",
-      "groupname": "FDM",
-      "fullname": "",
-      "description": "Performs a filtered query for nodes in the FDM.",
-      "args": [
-        {
-          "name": "filter",
-          "type": "map",
-          "description": "A map defining the filter criteria (e.g., {'type': 'agent', 'agent:class': 'ai'}).",
           "required": true
         },
         {
-          "name": "limit",
+          "name": "payload_base64",
+          "type": "string",
+          "description": "Base64 encoded string representing the request payload bytes.",
+          "required": true
+        },
+        {
+          "name": "scope",
+          "type": "string",
+          "description": "Optional scope.",
+          "required": false
+        },
+        {
+          "name": "timeoutMs",
           "type": "int",
-          "description": "An optional maximum number of results to return.",
+          "description": "Optional timeout (default 5s).",
+          "required": false
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns the reply payload as a string, or an error on timeout."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "admin_add_mount",
+      "groupname": "FDM.Store",
+      "fullname": "",
+      "description": "Adds a mount point to the persistence router (privileged).",
+      "args": [
+        {
+          "name": "mount_definition",
+          "type": "map",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns a confirmation message."
+    },
+    "requiresTrust": true,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "admin_add_alias",
+      "groupname": "FDM.Store",
+      "fullname": "",
+      "description": "Adds an alias to the persistence router (privileged).",
+      "args": [
+        {
+          "name": "alias_name",
+          "type": "string",
+          "description": "",
+          "required": true
+        },
+        {
+          "name": "target_uri",
+          "type": "string",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns a confirmation message."
+    },
+    "requiresTrust": true,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "put",
+      "groupname": "FDM.Store",
+      "fullname": "",
+      "description": "Saves a value to the persistence layer.",
+      "args": [
+        {
+          "name": "uri",
+          "type": "string",
+          "description": "",
+          "required": true
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns 'ok' on success."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get",
+      "groupname": "FDM.Store",
+      "fullname": "",
+      "description": "Retrieves a value from the persistence layer.",
+      "args": [
+        {
+          "name": "uri",
+          "type": "string",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns the stored value as a string, or nil if not found."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "list",
+      "groupname": "FDM.Store",
+      "fullname": "",
+      "description": "Lists keys and values under a given URI prefix.",
+      "args": [
+        {
+          "name": "uri_prefix",
+          "type": "string",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "map",
+      "returnHelp": "Returns a map where keys are full URIs and values are stored strings."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "delete",
+      "groupname": "FDM.Store",
+      "fullname": "",
+      "description": "Deletes a value from the persistence layer.",
+      "args": [
+        {
+          "name": "uri",
+          "type": "string",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns 'ok' on success."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "ListDir",
+      "groupname": "FDM.FS",
+      "fullname": "",
+      "description": "Lists the contents of a directory in the FDM.",
+      "args": [
+        {
+          "name": "dirPath",
+          "type": "string",
+          "description": "The path of the directory to list.",
+          "required": true
+        },
+        {
+          "name": "recursive",
+          "type": "bool",
+          "description": "If true, lists contents recursively.",
           "required": false
         }
       ],
       "returnType": "slice_map",
-      "returnHelp": "Returns a list of maps, where each map represents a matched node."
+      "returnHelp": "Returns a list of maps (file/dir nodes), or empty list."
     },
     "requiresTrust": false,
     "isInternal": false,
@@ -1642,20 +1478,20 @@
   },
   {
     "spec": {
-      "name": "RegisterOverlay",
-      "groupname": "FDM",
+      "name": "Lookup",
+      "groupname": "FDM.FS",
       "fullname": "",
-      "description": "Creates and registers a standard, named overlay required by a script.",
+      "description": "Looks up a specific path in the filesystem overlay.",
       "args": [
         {
-          "name": "overlayName",
+          "name": "path",
           "type": "string",
-          "description": "The name of the overlay to register (e.g., 'forum:vote').",
+          "description": "The exact path to look up.",
           "required": true
         }
       ],
-      "returnType": "bool",
-      "returnHelp": "Returns true on success or if already registered."
+      "returnType": "string",
+      "returnHelp": "Returns the NodeID string, or nil if not found."
     },
     "requiresTrust": false,
     "isInternal": false,
@@ -1663,54 +1499,60 @@
   },
   {
     "spec": {
-      "name": "ListMeta",
+      "name": "History",
+      "groupname": "FDM.FS",
+      "fullname": "",
+      "description": "Retrieves the rename/move history for a given path.",
+      "args": [
+        {
+          "name": "path",
+          "type": "string",
+          "description": "The current path to trace history for.",
+          "required": true
+        }
+      ],
+      "returnType": "slice_map",
+      "returnHelp": "Returns a list of maps (rename nodes), or empty list."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "Rename",
+      "groupname": "FDM.FS",
+      "fullname": "",
+      "description": "Records a rename/move event for a file or directory.",
+      "args": [
+        {
+          "name": "srcPath",
+          "type": "string",
+          "description": "",
+          "required": true
+        },
+        {
+          "name": "dstPath",
+          "type": "string",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "map",
+      "returnHelp": "Returns a map representing the created fs_rename node."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_forum",
       "groupname": "FDM.Overlays",
       "fullname": "",
-      "description": "Lists metadata for all registered overlays.",
-      "returnType": "slice_map",
-      "returnHelp": "Returns a list of maps, where each map contains metadata about an overlay: id, kind, label, node_count, file_count"
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "Find",
-      "groupname": "FDM.Symbol",
-      "fullname": "",
-      "description": "Finds all definitions of a given Go symbol.",
-      "args": [
-        {
-          "name": "symbolName",
-          "type": "string",
-          "description": "The exact name of the symbol to find (e.g., 'NewFDM').",
-          "required": true
-        }
-      ],
-      "returnType": "slice_map",
-      "returnHelp": "Returns a list of maps, each detailing a symbol definition with keys: 'file', 'pos', 'kind', 'recv'."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "Create",
-      "groupname": "FDM.Plan",
-      "fullname": "",
-      "description": "Creates a new, empty ingest_plan node for a given repository path.",
-      "args": [
-        {
-          "name": "repoPath",
-          "type": "string",
-          "description": "The local filesystem path to the repository to be ingested.",
-          "required": true
-        }
-      ],
+      "description": "Returns the canonical name of the forum overlay.",
       "returnType": "string",
-      "returnHelp": "Returns the NodeID of the newly created ingest_plan node."
+      "returnHelp": "The string ID of the forum overlay (e.g., 'forum')."
     },
     "requiresTrust": false,
     "isInternal": false,
@@ -1718,26 +1560,168 @@
   },
   {
     "spec": {
-      "name": "AddOverlay",
-      "groupname": "FDM.Plan",
+      "name": "get_fco",
+      "groupname": "FDM.Overlays",
       "fullname": "",
-      "description": "Adds an overlay to an ingest_plan, creating a new version of the plan.",
+      "description": "Returns the canonical name of the File Content Overlay (FCO).",
+      "returnType": "string",
+      "returnHelp": "The string ID of the File Content Overlay (e.g., 'fco:git')."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_fileoverlay",
+      "groupname": "FDM.Overlays",
+      "fullname": "",
+      "description": "Returns the canonical name of the File Overlay.",
+      "returnType": "string",
+      "returnHelp": "The string ID of the File Overlay (e.g., 'file')."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_fso",
+      "groupname": "FDM.Overlays",
+      "fullname": "",
+      "description": "Returns the canonical name of the Filesystem Overlay.",
+      "returnType": "string",
+      "returnHelp": "The string ID of the Filesystem Overlay (e.g., 'fso:git')."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_fvo",
+      "groupname": "FDM.Overlays",
+      "fullname": "",
+      "description": "Returns the canonical name of the File Version Overlay.",
+      "returnType": "string",
+      "returnHelp": "The string ID of the File Version Overlay (e.g., 'fvo')."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_legacy",
+      "groupname": "FDM.Overlays",
+      "fullname": "",
+      "description": "Returns the canonical name of the legacy overlay.",
+      "returnType": "string",
+      "returnHelp": "The string ID of the legacy overlay (e.g., 'legacy')."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_natlang",
+      "groupname": "FDM.Overlays",
+      "fullname": "",
+      "description": "Returns the canonical name of the natural language overlay.",
+      "returnType": "string",
+      "returnHelp": "The string ID of the natural language overlay (e.g., 'natlang')."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_neuromorphic",
+      "groupname": "FDM.Overlays",
+      "fullname": "",
+      "description": "Returns the canonical name of the Neuromorphic Overlay.",
+      "returnType": "string",
+      "returnHelp": "The string ID of the Neuromorphic Overlay (e.g., 'neuromorphic')."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_plan",
+      "groupname": "FDM.Overlays",
+      "fullname": "",
+      "description": "Returns the canonical name of the plan overlay.",
+      "returnType": "string",
+      "returnHelp": "The string ID of the plan overlay (e.g., 'plan')."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_sio",
+      "groupname": "FDM.Overlays",
+      "fullname": "",
+      "description": "Returns the canonical name of the Symbol Index Overlay (SIO).",
+      "returnType": "string",
+      "returnHelp": "The string ID of the Symbol Index Overlay (e.g., 'sio')."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_summary",
+      "groupname": "FDM.Overlays",
+      "fullname": "",
+      "description": "Returns the canonical name of the summary overlay.",
+      "returnType": "string",
+      "returnHelp": "The string ID of the summary overlay (e.g., 'summary')."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_welcome",
+      "groupname": "FDM.Overlays",
+      "fullname": "",
+      "description": "Returns the canonical name of the welcome overlay.",
+      "returnType": "string",
+      "returnHelp": "The string ID of the welcome overlay (e.g., 'welcome')."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "set_bootstrap_config",
+      "groupname": "system",
+      "fullname": "",
+      "description": "Sets the system's core bootstrap configuration. This is a privileged operation.",
       "args": [
         {
-          "name": "planID",
+          "name": "fdm_name",
           "type": "string",
-          "description": "",
+          "description": "The human-readable name for this FDM instance.",
           "required": true
         },
         {
-          "name": "overlayID",
+          "name": "sai_agent_id",
           "type": "string",
-          "description": "",
+          "description": "The full Agent ID (e.g., 'did:zadeh:sai') of the designated SAI.",
           "required": true
         }
       ],
-      "returnType": "string",
-      "returnHelp": "Returns the NodeID of the new, updated ingest_plan node."
+      "returnType": "string"
     },
     "requiresTrust": false,
     "isInternal": false,
@@ -1745,128 +1729,41 @@
   },
   {
     "spec": {
-      "name": "AddIndex",
-      "groupname": "FDM.Plan",
+      "name": "send",
+      "groupname": "fdm.events",
       "fullname": "",
-      "description": "Adds an index to an ingest_plan, creating a new version of the plan.",
+      "description": "Sends a pre-composed event object (from fdm.events.compose) to the FDM bus.",
       "args": [
         {
-          "name": "planID",
-          "type": "string",
-          "description": "",
-          "required": true
-        },
-        {
-          "name": "indexID",
-          "type": "string",
-          "description": "",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the NodeID of the new, updated ingest_plan node."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "AddIgnorePatterns",
-      "groupname": "FDM.Plan",
-      "fullname": "",
-      "description": "Adds a list of glob patterns to an ingest_plan's ignore list.",
-      "args": [
-        {
-          "name": "planID",
-          "type": "string",
-          "description": "The NodeID of the ingest_plan to modify.",
-          "required": true
-        },
-        {
-          "name": "patterns",
-          "type": "slice_string",
-          "description": "A list of glob patterns to add (e.g., ['**/node_modules', '*.log']).",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the NodeID of the new, updated ingest_plan node."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "SetRespectGitignore",
-      "groupname": "FDM.Plan",
-      "fullname": "",
-      "description": "Sets whether the ingestion plan should respect .gitignore files.",
-      "args": [
-        {
-          "name": "planID",
-          "type": "string",
-          "description": "The NodeID of the ingest_plan to modify.",
-          "required": true
-        },
-        {
-          "name": "respect",
-          "type": "bool",
-          "description": "Set to true to respect .gitignore, false to ignore it.",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the NodeID of the new, updated ingest_plan node."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "AddExcludeMIMETypes",
-      "groupname": "FDM.Plan",
-      "fullname": "",
-      "description": "Adds a list of MIME types to the plan's exclusion list.",
-      "args": [
-        {
-          "name": "planID",
-          "type": "string",
-          "description": "The NodeID of the ingest_plan to modify.",
-          "required": true
-        },
-        {
-          "name": "mimeTypes",
-          "type": "slice_string",
-          "description": "A list of MIME type strings to exclude (e.g., ['image/png', 'application/pdf']).",
-          "required": true
-        }
-      ],
-      "returnType": "string",
-      "returnHelp": "Returns the NodeID of the new, updated ingest_plan node."
-    },
-    "requiresTrust": false,
-    "isInternal": false,
-    "signatureChecksum": ""
-  },
-  {
-    "spec": {
-      "name": "Ingest",
-      "groupname": "FDM.Repo",
-      "fullname": "",
-      "description": "Executes a full ingestion process by walking the entire repository based on a specified ingest_plan.",
-      "args": [
-        {
-          "name": "planID",
-          "type": "string",
-          "description": "The NodeID of the ingest_plan to execute.",
+          "name": "event_object",
+          "type": "map",
+          "description": "A standard event object map, created with fdm.events.compose().",
           "required": true
         }
       ],
       "returnType": "bool",
-      "returnHelp": "Returns true on successful completion of the ingestion."
+      "returnHelp": "Returns true if the event was successfully published, false otherwise."
+    },
+    "requiresTrust": true,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_payload",
+      "groupname": "fdm.events",
+      "fullname": "",
+      "description": "Extracts the payload from a standard event object.",
+      "args": [
+        {
+          "name": "event_object",
+          "type": "map",
+          "description": "The event object received by an 'on event' handler.",
+          "required": true
+        }
+      ],
+      "returnType": "any",
+      "returnHelp": "Returns the inner payload map or value."
     },
     "requiresTrust": false,
     "isInternal": false,
@@ -1874,26 +1771,94 @@
   },
   {
     "spec": {
-      "name": "IngestChanges",
-      "groupname": "FDM.Repo",
+      "name": "get_id",
+      "groupname": "fdm.events",
       "fullname": "",
-      "description": "Executes an incremental ingestion process for a specified list of changed files.",
+      "description": "Extracts the message ID from a standard event object.",
       "args": [
         {
-          "name": "planID",
+          "name": "event_object",
+          "type": "map",
+          "description": "The event object received by an 'on event' handler.",
+          "required": true
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns the event's unique message ID string."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_kind",
+      "groupname": "fdm.events",
+      "fullname": "",
+      "description": "Extracts the kind (topic) from a standard event object.",
+      "args": [
+        {
+          "name": "event_object",
+          "type": "map",
+          "description": "The event object received by an 'on event' handler.",
+          "required": true
+        }
+      ],
+      "returnType": "string",
+      "returnHelp": "Returns the event's kind (topic) string."
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "compose",
+      "groupname": "fdm.events",
+      "fullname": "",
+      "description": "Composes a new, standard event object suitable for sending with fdm.events.send.",
+      "args": [
+        {
+          "name": "kind",
           "type": "string",
-          "description": "The NodeID of the ingest_plan to use for context.",
+          "description": "The kind (topic) for the new event, e.g., 'agent.pong'.",
           "required": true
         },
         {
-          "name": "filePaths",
-          "type": "slice_string",
-          "description": "A list of file paths that have been added or changed.",
+          "name": "payload",
+          "type": "map",
+          "description": "A map containing the data for the event payload.",
           "required": true
         }
       ],
-      "returnType": "bool",
-      "returnHelp": "Returns true on successful completion of the incremental ingestion."
+      "returnType": "map",
+      "returnHelp": "Returns the composed event object map."
+    },
+    "requiresTrust": true,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "put",
+      "groupname": "fdm.persist",
+      "fullname": "",
+      "description": "Saves a value (string or bytes) to a storage URI.",
+      "args": [
+        {
+          "name": "uri",
+          "type": "string",
+          "description": "",
+          "required": true
+        },
+        {
+          "name": "value",
+          "type": "any",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "string"
     },
     "requiresTrust": false,
     "isInternal": false,
@@ -1901,20 +1866,233 @@
   },
   {
     "spec": {
-      "name": "FindSymbol",
-      "groupname": "FDM.SIO",
+      "name": "get",
+      "groupname": "fdm.persist",
       "fullname": "",
-      "description": "Finds all definitions of a given Go symbol from the Symbol Index Overlay.",
+      "description": "Retrieves a value from a storage URI as a string.",
       "args": [
         {
-          "name": "symbolName",
+          "name": "uri",
           "type": "string",
-          "description": "The exact symbol name (e.g., 'NewFDM').",
+          "description": "",
           "required": true
         }
       ],
-      "returnType": "slice_map",
-      "returnHelp": "Returns a list of maps detailing symbol locations: NodeID, FilePath, Kind, Position, Recv."
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "list",
+      "groupname": "fdm.persist",
+      "fullname": "",
+      "description": "Lists all keys and values under a given URI prefix.",
+      "args": [
+        {
+          "name": "uri_prefix",
+          "type": "string",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "map"
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "del",
+      "groupname": "fdm.persist",
+      "fullname": "",
+      "description": "Deletes a value at a specific storage URI.",
+      "args": [
+        {
+          "name": "uri",
+          "type": "string",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "merged_prompt",
+      "groupname": "context",
+      "fullname": "",
+      "description": "",
+      "args": [
+        {
+          "name": "events",
+          "type": "list",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "string"
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "latest_event",
+      "groupname": "context",
+      "fullname": "",
+      "description": "",
+      "args": [
+        {
+          "name": "events",
+          "type": "list",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "map"
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "latest_node",
+      "groupname": "context",
+      "fullname": "",
+      "description": "",
+      "args": [
+        {
+          "name": "events",
+          "type": "list",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "map"
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_payload",
+      "groupname": "context",
+      "fullname": "",
+      "description": "Extracts the business payload (data map or raw wrapper map) from a raw ns_event structure.",
+      "args": [
+        {
+          "name": "event",
+          "type": "map",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "map"
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "add_mount",
+      "groupname": "fdm.persist_admin",
+      "fullname": "",
+      "description": "Adds a new mount to the storage configuration. Privileged.",
+      "args": [
+        {
+          "name": "mount_definition",
+          "type": "map",
+          "description": "A map defining the mount, e.g., {'prefix':'store://...','buckets':['b1']}",
+          "required": false
+        }
+      ],
+      "returnType": "string"
+    },
+    "requiresTrust": true,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "add_alias",
+      "groupname": "fdm.persist_admin",
+      "fullname": "",
+      "description": "Adds a new alias to the storage configuration. Privileged.",
+      "args": [
+        {
+          "name": "alias_name",
+          "type": "string",
+          "description": "",
+          "required": true
+        },
+        {
+          "name": "target_uri",
+          "type": "string",
+          "description": "",
+          "required": true
+        }
+      ],
+      "returnType": "string"
+    },
+    "requiresTrust": true,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_identity",
+      "groupname": "fdm.agent",
+      "fullname": "",
+      "description": "Retrieves the agent's own core identity attributes.",
+      "returnType": "map"
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_model",
+      "groupname": "fdm.agent",
+      "fullname": "",
+      "description": "Retrieves the agent's own default agent_model node.",
+      "returnType": "map"
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_node",
+      "groupname": "fdm.agent",
+      "fullname": "",
+      "description": "Retrieves the agent's own FDM node.",
+      "returnType": "map"
+    },
+    "requiresTrust": false,
+    "isInternal": false,
+    "signatureChecksum": ""
+  },
+  {
+    "spec": {
+      "name": "get_model_name",
+      "groupname": "fdm.agent",
+      "fullname": "",
+      "description": "Retrieves the registered name of the agent's own default agent_model.",
+      "returnType": "string"
     },
     "requiresTrust": false,
     "isInternal": false,
