@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 35
-// Purpose: Implements full arity checking for user-defined procedures using min/max arg counts from the SymbolManager. FIX: Only report 'ProcNotFound' if the workspace-aware SymbolManager is active.
+// File version: 36
+// Purpose: Implements full arity checking for user-defined procedures using min/max arg counts from the SymbolManager. FIX: Only report 'ProcNotFound' if the workspace-aware SymbolManager is active. FIX: Correctly check tool arity using min/max required args, and report missing optional args as 'Info' instead of 'Error'.
 // filename: pkg/nslsp/semantic_analyzer.go
-// nlines: 224
+// nlines: 247
 // risk_rating: HIGH
 
 package nslsp
@@ -148,14 +148,39 @@ func (l *validationListener) validateToolCall(ctx *gen.Callable_exprContext) {
 	if argList != nil && argList.Expression_list() != nil {
 		actualArgCount = len(argList.Expression_list().AllExpression())
 	}
-	if !spec.Variadic && len(spec.Args) != actualArgCount {
-		token := ctx.Call_target().GetStart()
+	token := ctx.Call_target().GetStart()
+
+	// THE FIX IS HERE: Calculate min/max args and validate against the range.
+	minArgs := 0
+	for _, arg := range spec.Args {
+		if arg.Required {
+			minArgs++
+		}
+	}
+	maxArgs := len(spec.Args)
+
+	if !spec.Variadic && (actualArgCount < minArgs || actualArgCount > maxArgs) {
+		var expected string
+		if minArgs == maxArgs {
+			expected = fmt.Sprintf("%d", minArgs)
+		} else {
+			expected = fmt.Sprintf("%d to %d", minArgs, maxArgs)
+		}
 		l.diagnostics = append(l.diagnostics, lsp.Diagnostic{
 			Range:    lspRangeFromToken(token, ctx.Call_target().GetText()),
 			Severity: lsp.Error,
 			Source:   "nslsp-semantic",
-			Message:  fmt.Sprintf("Expected %d argument(s) for tool '%s', but got %d.", len(spec.Args), astTextFullName, actualArgCount),
+			Message:  fmt.Sprintf("Expected %s argument(s) for tool '%s', but got %d.", expected, astTextFullName, actualArgCount),
 			Code:     string(DiagCodeArgCountMismatch),
+		})
+	} else if !spec.Variadic && actualArgCount < maxArgs {
+		// Valid number of args, but missing optional ones. This is an Info.
+		l.diagnostics = append(l.diagnostics, lsp.Diagnostic{
+			Range:    lspRangeFromToken(token, ctx.Call_target().GetText()),
+			Severity: lsp.Information,
+			Source:   "nslsp-semantic",
+			Message:  fmt.Sprintf("Call to '%s' is missing %d optional argument(s).", astTextFullName, maxArgs-actualArgCount),
+			Code:     string(DiagCodeOptionalArgMissing),
 		})
 	}
 }

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 5
-// Purpose: Defines standardized error codes for LSP diagnostics. FIX: Added DiagCodeProcNotFound.
+// File version: 6
+// Purpose: Defines standardized error codes for LSP diagnostics. FIX: Added DiagCodeProcNotFound. FIX: Added DiagCodeOptionalArgMissing.
 // filename: pkg/nslsp/errors.go
-// nlines: 17
+// nlines: 20
 // risk_rating: LOW
 
 package nslsp
@@ -17,4 +17,6 @@ const (
 	DiagCodeArgCountMismatch DiagnosticCode = "ArgCountMismatch"
 	// DiagCodeProcNotFound indicates that a procedure definition could not be found in the workspace.
 	DiagCodeProcNotFound DiagnosticCode = "ProcNotFound"
+	// DiagCodeOptionalArgMissing indicates that a tool is called with a valid number of arguments, but is missing one or more optional ones.
+	DiagCodeOptionalArgMissing DiagnosticCode = "OptionalArgMissing"
 )

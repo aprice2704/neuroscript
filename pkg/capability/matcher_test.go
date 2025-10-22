@@ -1,37 +1,61 @@
 // NeuroScript Version: 0.3.0
-// File version: 1
-// Purpose: Unit tests for capability matching and limits enforcement in pkg/policy/capability.
+// File version: 3 // Bumped version
+// Purpose: Unit tests for capability matching logic, separated from test case data. Fixed panic by constructing invalid grants directly.
 // filename: pkg/policy/capability/matcher_test.go
-// nlines: 87
+// nlines: 70 // Adjusted line count
 // risk_rating: LOW
 
 package capability
 
 import "testing"
 
-func TestCapsSatisfied_Exact(t *testing.T) {
-	need := []Capability{{Resource: "env", Verbs: []string{"read"}, Scopes: []string{"OPENAI_API_KEY"}}}
-	grants := []Capability{{Resource: "env", Verbs: []string{"read"}, Scopes: []string{"OPENAI_API_KEY"}}}
-	if !CapsSatisfied(need, grants) {
-		t.Fatal("expected exact match to satisfy")
+// Test cases are defined in matcher_test_cases.go
+
+func TestCapsSatisfied(t *testing.T) {
+	for _, tc := range capsSatisfiedTestCases { // Use test cases from separate file
+		t.Run(tc.name, func(t *testing.T) {
+			// Handle cases that would cause MustParse to panic by creating structs directly
+			needs := make([]Capability, len(tc.needs))
+			for i, s := range tc.needs {
+				if s == "*" || s == "*:*" { // Check for invalid strings for MustParse
+					// Handle reconstruction if needed, though needs should generally be valid
+					t.Fatalf("Test setup error: Invalid capability string '%s' found in 'needs' for test case '%s'. Needs must be parsable.", s, tc.name)
+				}
+				needs[i] = MustParse(s)
+			}
+
+			grants := make([]Capability, len(tc.grants))
+			for i, s := range tc.grants {
+				if s == "*" {
+					grants[i] = Capability{Resource: "*"} // Create incomplete struct directly
+				} else if s == "*:*" {
+					grants[i] = Capability{Resource: "*", Verbs: []string{"*"}} // Create incomplete struct directly
+				} else {
+					// Use MustParse for valid grant strings
+					func() {
+						defer func() {
+							if r := recover(); r != nil {
+								t.Fatalf("Test setup error: MustParse panicked for grant string '%s' in test case '%s': %v", s, tc.name, r)
+							}
+						}()
+						grants[i] = MustParse(s)
+					}()
+				}
+			}
+
+			satisfied := CapsSatisfied(needs, grants)
+			if satisfied != tc.expectSatisfied {
+				t.Errorf("CapsSatisfied() = %v, want %v", satisfied, tc.expectSatisfied)
+				t.Logf("  Needs (parsed): %v", needs)
+				t.Logf("  Grants (parsed): %v", grants)
+				t.Logf("  Needs (original): %v", tc.needs)
+				t.Logf("  Grants (original): %v", tc.grants)
+			}
+		})
 	}
 }
 
-func TestCapsSatisfied_Wildcards(t *testing.T) {
-	need := []Capability{{Resource: "net", Verbs: []string{"read"}, Scopes: []string{"api.openai.com:443"}}}
-	grants := []Capability{{Resource: "net", Verbs: []string{"read"}, Scopes: []string{"*.openai.com:443"}}}
-	if !CapsSatisfied(need, grants) {
-		t.Fatal("expected wildcard grant to satisfy net need")
-	}
-}
-
-func TestCapsSatisfied_Missing(t *testing.T) {
-	need := []Capability{{Resource: "fs", Verbs: []string{"read"}, Scopes: []string{"/secure/config"}}}
-	grants := []Capability{{Resource: "fs", Verbs: []string{"read"}, Scopes: []string{"/other"}}}
-	if CapsSatisfied(need, grants) {
-		t.Fatal("expected missing scope to fail")
-	}
-}
+// --- Keep existing Limits tests ---
 
 func TestLimits_BudgetRunAndPerCall(t *testing.T) {
 	gs := GrantSet{

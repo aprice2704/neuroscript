@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.3.0
-// File version: 3
-// Purpose: Defines standardized constants for capability resources and verbs, adding ResCrypto and VerbSign.
+// File version: 4 // Bumped version
+// Purpose: Defines standardized constants for capability resources and verbs, adding CapabilityAllowAll.
 // filename: pkg/policy/capability/constants.go
-// nlines: 24
+// nlines: 28 // Adjusted line count
 // risk_rating: LOW
 
 package capability
@@ -31,4 +31,10 @@ const (
 	VerbUse   = "use"
 	VerbExec  = "exec"
 	VerbSign  = "sign"
+)
+
+// Common Capability Grant Patterns
+const (
+	// Capability.AllowAll grants all permissions. Use with extreme caution.
+	AllowAll = "*:*:*"
 )

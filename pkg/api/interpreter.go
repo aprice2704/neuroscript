@@ -132,3 +132,7 @@ func (i *Interpreter) KnownProcedures() map[string]*ast.Procedure {
 func (i *Interpreter) KnownEventHandlers() map[string][]*ast.OnEventDecl {
 	return i.Interpreter.KnownEventHandlers()
 }
+
+func (i *Interpreter) ToolRegistry() tool.ToolRegistry {
+	return i.Interpreter.ToolRegistry()
+}

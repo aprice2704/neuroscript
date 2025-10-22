@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 10
-// Purpose: Updated tests to provide the new SymbolManager dependency when creating a SemanticAnalyzer.
+// File version: 11
+// Purpose: Updated tests to provide the new SymbolManager dependency when creating a SemanticAnalyzer. FIX: Added tests for new informational diagnostic on missing optional tool arguments.
 // filename: pkg/nslsp/semantic_analyzer_test.go
-// nlines: 165
+// nlines: 201
 // risk_rating: MEDIUM
 
 package nslsp
@@ -18,6 +18,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/parser"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	_ "github.com/aprice2704/neuroscript/pkg/toolbundles/all" // Ensure tools are registered
+	lsp "github.com/sourcegraph/go-lsp"
 )
 
 func TestSemanticAnalyzer_BuiltInTools(t *testing.T) {
@@ -37,29 +38,46 @@ func TestSemanticAnalyzer_BuiltInTools(t *testing.T) {
 	t.Logf("[SemanticAnalyzerTest] Tool registry initialized with %d tools for test run.", registry.NTools())
 
 	testCases := []struct {
-		name         string
-		script       string
-		expectedCode interface{} // Can be nil if no error is expected
+		name             string
+		script           string
+		expectedCode     interface{} // Can be nil if no error is expected
+		expectedSeverity lsp.DiagnosticSeverity
 	}{
 		{
-			name:         "Valid: Correct tool and argument count (Mixed Case)",
-			script:       "func M() means\n  set x = tool.FS.Read(\"/path/to/file\")\nendfunc",
-			expectedCode: nil,
+			name:             "Valid: Correct tool and argument count (tool.FS.Read)",
+			script:           "func M() means\n  set x = tool.FS.Read(\"/path/to/file\")\nendfunc",
+			expectedCode:     nil,
+			expectedSeverity: 0, // No diagnostic
 		},
 		{
-			name:         "Invalid: Undefined tool",
-			script:       "func M() means\n  set x = tool.nonexistent.Tool()\nendfunc",
-			expectedCode: string(DiagCodeToolNotFound),
+			name:             "Invalid: Undefined tool",
+			script:           "func M() means\n  set x = tool.nonexistent.Tool()\nendfunc",
+			expectedCode:     string(DiagCodeToolNotFound),
+			expectedSeverity: lsp.Error,
 		},
 		{
-			name:         "Invalid: Too few arguments for tool.FS.Read",
-			script:       "func M() means\n  set x = tool.FS.Read()\nendfunc",
-			expectedCode: string(DiagCodeArgCountMismatch),
+			name:             "Invalid: Too few arguments for tool.FS.Read",
+			script:           "func M() means\n  set x = tool.FS.Read()\nendfunc",
+			expectedCode:     string(DiagCodeArgCountMismatch),
+			expectedSeverity: lsp.Error,
 		},
 		{
-			name:         "Invalid: Too many arguments for tool.FS.Read",
-			script:       "func M() means\n  set x = tool.FS.Read(\"a\", \"b\")\nendfunc",
-			expectedCode: string(DiagCodeArgCountMismatch),
+			name:             "Invalid: Too many arguments for tool.FS.Read",
+			script:           "func M() means\n  set x = tool.FS.Read(\"a\", \"b\")\nendfunc",
+			expectedCode:     string(DiagCodeArgCountMismatch),
+			expectedSeverity: lsp.Error,
+		},
+		{
+			name:             "Valid: Missing optional arg for tool.FS.List",
+			script:           "func M() means\n  set x = tool.FS.List(\"/path\")\nendfunc",
+			expectedCode:     string(DiagCodeOptionalArgMissing),
+			expectedSeverity: lsp.Information,
+		},
+		{
+			name:             "Valid: All args for tool.FS.List",
+			script:           "func M() means\n  set x = tool.FS.List(\"/path\", true)\nendfunc",
+			expectedCode:     nil,
+			expectedSeverity: 0, // No diagnostic
 		},
 	}
 
@@ -89,6 +107,9 @@ func TestSemanticAnalyzer_BuiltInTools(t *testing.T) {
 			if diagnostics[0].Code != tc.expectedCode {
 				t.Errorf("Expected diagnostic code '%v', but got '%v'", tc.expectedCode, diagnostics[0].Code)
 			}
+			if diagnostics[0].Severity != tc.expectedSeverity {
+				t.Errorf("Expected diagnostic severity '%v', but got '%v'", tc.expectedSeverity, diagnostics[0].Severity)
+			}
 		})
 	}
 }
@@ -106,6 +127,7 @@ func TestSemanticAnalyzer_WithExternalTools(t *testing.T) {
 				Description: "Saves an FDM node.",
 				Args: []tool.ArgSpec{
 					{Name: "node_handle", Type: "string", Required: true},
+					{Name: "as_new", Type: "bool", Required: false}, // Added optional arg
 				},
 				ReturnType: "bool",
 			},
@@ -131,24 +153,34 @@ func TestSemanticAnalyzer_WithExternalTools(t *testing.T) {
 
 	// 3. Define test cases
 	testCases := []struct {
-		name         string
-		script       string
-		expectedCode interface{}
+		name             string
+		script           string
+		expectedCode     interface{}
+		expectedSeverity lsp.DiagnosticSeverity
 	}{
 		{
-			name:         "Valid: Correct external tool and argument count",
-			script:       "func M() means\n  set x = tool.fdm.core.SaveMemory(\"handle1\")\nendfunc",
-			expectedCode: nil,
+			name:             "Valid: External tool with missing optional arg",
+			script:           "func M() means\n  set x = tool.fdm.core.SaveMemory(\"handle1\")\nendfunc",
+			expectedCode:     string(DiagCodeOptionalArgMissing),
+			expectedSeverity: lsp.Information,
 		},
 		{
-			name:         "Invalid: Too few arguments for external tool",
-			script:       "func M() means\n  set x = tool.fdm.core.SaveMemory()\nendfunc",
-			expectedCode: string(DiagCodeArgCountMismatch),
+			name:             "Valid: External tool with all args",
+			script:           "func M() means\n  set x = tool.fdm.core.SaveMemory(\"handle1\", true)\nendfunc",
+			expectedCode:     nil,
+			expectedSeverity: 0, // No diagnostic
 		},
 		{
-			name:         "Invalid: Undefined external tool in known group",
-			script:       "func M() means\n  set x = tool.fdm.core.DeleteMemory()\nendfunc",
-			expectedCode: string(DiagCodeToolNotFound),
+			name:             "Invalid: Too few arguments for external tool",
+			script:           "func M() means\n  set x = tool.fdm.core.SaveMemory()\nendfunc",
+			expectedCode:     string(DiagCodeArgCountMismatch),
+			expectedSeverity: lsp.Error,
+		},
+		{
+			name:             "Invalid: Undefined external tool in known group",
+			script:           "func M() means\n  set x = tool.fdm.core.DeleteMemory()\nendfunc",
+			expectedCode:     string(DiagCodeToolNotFound),
+			expectedSeverity: lsp.Error,
 		},
 	}
 
@@ -172,6 +204,9 @@ func TestSemanticAnalyzer_WithExternalTools(t *testing.T) {
 			}
 			if diagnostics[0].Code != tc.expectedCode {
 				t.Errorf("Expected diagnostic code '%v', but got '%v'", tc.expectedCode, diagnostics[0].Code)
+			}
+			if diagnostics[0].Severity != tc.expectedSeverity {
+				t.Errorf("Expected diagnostic severity '%v', but got '%v'", tc.expectedSeverity, diagnostics[0].Severity)
 			}
 		})
 	}
