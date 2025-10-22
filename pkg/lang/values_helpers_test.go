@@ -1,13 +1,14 @@
 // filename: pkg/lang/values_helpers_test.go
 // NeuroScript Version: 0.8.0
-// File version: 7
-// Purpose: Added tests for unwrapping *NilValue and nested structures.
-// nlines: 153
+// File version: 8
+// Purpose: Added tests for numeric slice wrapping and to verify the lang.Wrap error message.
+// nlines: 177
 // risk_rating: MEDIUM
 package lang
 
 import (
 	"reflect"
+	"strings" // Added import
 	"testing"
 	"time"
 
@@ -69,7 +70,38 @@ func TestWrap(t *testing.T) {
 			}},
 			hasError: false,
 		},
-		{"unsupported type", []int{1, 2}, nil, true},
+		// --- MODIFIED & ADDED TESTS ---
+		{
+			name:     "[]int", // Was "unsupported type", now supported
+			input:    []int{1, 2},
+			expected: ListValue{[]Value{NumberValue{1}, NumberValue{2}}},
+			hasError: false,
+		},
+		{
+			name:     "[]int64",
+			input:    []int64{10, 20},
+			expected: ListValue{[]Value{NumberValue{10}, NumberValue{20}}},
+			hasError: false,
+		},
+		{
+			name:     "[]float64",
+			input:    []float64{1.1, 2.2},
+			expected: ListValue{[]Value{NumberValue{1.1}, NumberValue{2.2}}},
+			hasError: false,
+		},
+		{
+			name:     "[]uint",
+			input:    []uint{5, 6},
+			expected: ListValue{[]Value{NumberValue{5}, NumberValue{6}}},
+			hasError: false,
+		},
+		{
+			name:     "unsupported struct", // New test for unsupported type
+			input:    struct{ F string }{"test"},
+			expected: nil,
+			hasError: true,
+		},
+		// --- END MODIFIED & ADDED TESTS ---
 		{"already wrapped NilValue", NilValue{}, NilValue{}, false},
 		{"already wrapped *NilValue", &NilValue{}, NilValue{}, false}, // Wrap should handle pointer
 	}
@@ -81,6 +113,13 @@ func TestWrap(t *testing.T) {
 			if tc.hasError {
 				if err == nil {
 					t.Error("Expected an error, but got nil")
+				}
+				// Check for the specific error message from lang.Wrap
+				if tc.name == "unsupported struct" {
+					expectedErr := "lang.Wrap: unsupported type"
+					if !strings.Contains(err.Error(), expectedErr) {
+						t.Errorf("Expected error to contain %q, but got: %v", expectedErr, err)
+					}
 				}
 			} else {
 				if err != nil {
@@ -154,7 +193,7 @@ func TestUnwrapSlice(t *testing.T) {
 		expected := []any{"a", float64(1)}
 		unwrapped, err := UnwrapSlice(input)
 		if err != nil {
-			t.Errorf("Did not expect an error, but got: %v", err)
+			t.Errorf("Did not expect an error, but got: %V", err)
 		}
 		if !reflect.DeepEqual(unwrapped, expected) {
 			t.Errorf("Expected unwrapped slice %#v, but got %#v", expected, unwrapped)

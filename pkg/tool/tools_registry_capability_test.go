@@ -1,14 +1,15 @@
-// NeuroScript Version: 0.4.0
-// File version: 6
-// Purpose: Corrected test failures by properly setting grants within the mock execution policy.
+// NeuroScript Version: 0.8.0
+// File version: 9
+// Purpose: Fixes compiler errors by adding a local mustWrap helper function to handle lang.Wrap.
 // filename: pkg/tool/tools_registry_capability_test.go
-// nlines: 162
-// risk_rating: MEDIUM
+// nlines: 227
+// risk_rating: LOW
 
 package tool_test
 
 import (
 	"errors"
+	"fmt" // DEBUG
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/capability"
@@ -52,8 +53,10 @@ func (t *testRuntime) RegisterHandle(obj interface{}, typePrefix string) (string
 func (t *testRuntime) GetHandleValue(handle string, expectedTypePrefix string) (interface{}, error) {
 	return nil, nil
 }
-func (t *testRuntime) AgentModels() interfaces.AgentModelReader     { return nil }
-func (t *testRuntime) AgentModelsAdmin() interfaces.AgentModelAdmin { return nil }
+func (t *testRuntime) AgentModels() interfaces.AgentModelReader { return nil }
+func (t *testRuntime) AgentModelsAdmin() interfaces.AgentModelAdmin {
+	return nil
+} // Fixed: Added missing method and corrected typo 't_testRuntime'
 
 // secureTool is a sample tool implementation that requires a specific capability.
 var secureTool = tool.ToolImplementation{
@@ -66,6 +69,21 @@ var secureTool = tool.ToolImplementation{
 	},
 	RequiredCaps: []capability.Capability{
 		{Resource: "fs", Verbs: []string{"write"}, Scopes: []string{"/data/user.txt"}},
+	},
+}
+
+// stringSliceTool is a sample tool for testing argument type validation.
+var stringSliceTool = tool.ToolImplementation{
+	Spec: tool.ToolSpec{
+		Name:  "stringSliceCheck",
+		Group: "test",
+		Args: []tool.ArgSpec{
+			{Name: "values", Type: tool.ArgTypeSliceString, Required: true},
+		},
+	},
+	Func: func(rt tool.Runtime, args []interface{}) (interface{}, error) {
+		// This should only be called if validation succeeds
+		return "ok", nil
 	},
 }
 
@@ -252,5 +270,94 @@ func TestCallFromInterpreter_CapabilityCheck_CaseInsensitive(t *testing.T) {
 	_, execErr := registry.ExecuteTool("tool.fs.writeFile", map[string]lang.Value{})
 	if execErr != nil {
 		t.Errorf("Expected call to succeed with case-insensitive grant, but it failed: %v", execErr)
+	}
+}
+
+// TestExecuteTool_Validation_SliceTypeMismatch confirms that the validation
+// layer catches type mismatches for specifically-typed slice arguments.
+func TestExecuteTool_Validation_SliceTypeMismatch(t *testing.T) {
+	// mustWrap is a test-local helper to replace the imaginary testutil.MustWrap
+	mustWrap := func(v any) lang.Value {
+		t.Helper()
+		wrapped, err := lang.Wrap(v)
+		if err != nil {
+			t.Fatalf("test setup failed: could not wrap value %v: %v", v, err)
+		}
+		return wrapped
+	}
+
+	// Setup runtime and registry
+	mockRuntime := &testRuntime{}
+	registry := tool.NewToolRegistry(mockRuntime)
+	_, err := registry.RegisterTool(stringSliceTool)
+	if err != nil {
+		t.Fatalf("Failed to register tool: %v", err)
+	}
+	mockRuntime.registry = registry
+	// Give it a default policy that allows the tool
+	mockRuntime.execPolicy = &policy.ExecPolicy{
+		Context: policy.ContextNormal,
+		Allow:   []string{"tool.test.stringslicecheck"},
+		Grants:  capability.GrantSet{},
+	}
+
+	testCases := []struct {
+		name    string
+		args    map[string]lang.Value
+		wantErr bool
+		errCode lang.ErrorCode
+	}{
+		{
+			name:    "Success - correct type []string",
+			args:    map[string]lang.Value{"values": mustWrap([]string{"a", "b"})}, // Fixed
+			wantErr: false,
+		},
+		{
+			name:    "Success - convertible type []any{string, string}",
+			args:    map[string]lang.Value{"values": mustWrap([]any{"a", "b"})}, // Fixed
+			wantErr: false,
+		},
+		{
+			name:    "Failure - non-convertible type []any{string, int}",
+			args:    map[string]lang.Value{"values": mustWrap([]any{"a", 123})}, // Fixed
+			wantErr: true,
+			errCode: lang.ErrorCodeArgMismatch,
+		},
+		{
+			name:    "Failure - wrong slice type []int",
+			args:    map[string]lang.Value{"values": mustWrap([]int{1, 2})}, // Fixed
+			wantErr: true,
+			errCode: lang.ErrorCodeArgMismatch,
+		},
+		{
+			name:    "Failure - wrong type string",
+			args:    map[string]lang.Value{"values": lang.StringValue{Value: "not a slice"}},
+			wantErr: true,
+			errCode: lang.ErrorCodeArgMismatch,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			fmt.Printf("[DEBUG] Running test case: %s\n", tc.name) // DEBUG
+			_, execErr := registry.ExecuteTool("tool.test.stringSliceCheck", tc.args)
+
+			if (execErr != nil) != tc.wantErr {
+				t.Fatalf("ExecuteTool() error = %v, wantErr %v", execErr, tc.wantErr)
+			}
+
+			if tc.wantErr {
+				var rtErr *lang.RuntimeError
+				if !errors.As(execErr, &rtErr) {
+					t.Fatalf("Expected a *lang.RuntimeError, but got %T: %v", execErr, execErr)
+				}
+				if rtErr.Code != tc.errCode {
+					t.Errorf("Expected error code %v, got %v. (Error: %v)", tc.errCode, rtErr.Code, rtErr)
+				}
+				fmt.Printf("[DEBUG] Correctly caught expected error: %v\n", execErr) // DEBUG
+			} else {
+				fmt.Printf("[DEBUG] Correctly succeeded.\n") // DEBUG
+			}
+		})
 	}
 }

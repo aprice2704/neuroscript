@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 9
-// Purpose: Fixes Unwrap to correctly handle *NilValue pointers.
+// File version: 10
+// Purpose: Corrects 'core.Wrap' error message to 'lang.Wrap' and adds reflection-based wrapping for numeric slices.
 // filename: pkg/lang/value_helpers.go
-// nlines: 194
+// nlines: 219
 // risk_rating: HIGH
 
 package lang
@@ -76,14 +76,34 @@ func Wrap(x any) (Value, error) {
 		return MapValue{Value: newMap}, nil
 
 	default:
-		// Use reflection to handle slices of any string-based type.
+		// Use reflection to handle common slice types.
 		val := reflect.ValueOf(x)
 		if val.Kind() == reflect.Slice {
+			elems := make([]Value, val.Len())
 			elemType := val.Type().Elem()
-			if elemType.Kind() == reflect.String {
-				elems := make([]Value, val.Len())
+
+			switch elemType.Kind() {
+			case reflect.String:
 				for i := 0; i < val.Len(); i++ {
 					elems[i] = StringValue{Value: val.Index(i).String()}
+				}
+				return ListValue{Value: elems}, nil
+
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				for i := 0; i < val.Len(); i++ {
+					elems[i] = NumberValue{Value: float64(val.Index(i).Int())}
+				}
+				return ListValue{Value: elems}, nil
+
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+				for i := 0; i < val.Len(); i++ {
+					elems[i] = NumberValue{Value: float64(val.Index(i).Uint())}
+				}
+				return ListValue{Value: elems}, nil
+
+			case reflect.Float32, reflect.Float64:
+				for i := 0; i < val.Len(); i++ {
+					elems[i] = NumberValue{Value: val.Index(i).Float()}
 				}
 				return ListValue{Value: elems}, nil
 			}
@@ -93,7 +113,7 @@ func Wrap(x any) (Value, error) {
 		// if val.Kind() == reflect.Struct { ... }
 
 		// FIX: Add explicit logging and error on failure
-		errMsg := fmt.Sprintf("core.Wrap: unsupported type %T. Tool authors must return map[string]any, not structs.", v)
+		errMsg := fmt.Sprintf("lang.Wrap: unsupported type %T. Tool authors must return map[string]any, not structs.", v) // <-- FIXED "core.Wrap"
 		fmt.Fprintf(os.Stderr, "--- CRITICAL: lang.Wrap failed: %s ---\n", errMsg)
 		// FIX: Use "%s" to satisfy the vet linter
 		return nil, fmt.Errorf("%s", errMsg)

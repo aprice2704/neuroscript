@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 8
-// Purpose: Removes all fmt.Fprintf(os.Stderr, ...) debug output.
+// File version: 12
+// Purpose: Adds a defer/recover block to ExecuteTool for panic safety, matching CallFromInterpreter.
 // filename: pkg/tool/tools_bridge.go
-// nlines: 125+
-// risk_rating: MEDIUM
+// nlines: 178
+// risk_rating: HIGH
 
 package tool
 
@@ -11,10 +11,10 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/types"
-	// "github.com/aprice2704/neuroscript/pkg/utils" // No longer needed here
 )
 
 // CallFromInterpreter is the single bridge between the Value-based interpreter and primitive-based tools.
@@ -27,9 +27,7 @@ func (r *ToolRegistryImpl) CallFromInterpreter(interp Runtime, fullname types.Fu
 		errMsg := fmt.Sprintf("tool '%s' not found", canonicalName)
 
 		// --- LOUD FAILURE (START) ---
-		// Log to stderr for immediate visibility
 		fmt.Fprintf(os.Stderr, "  - ERROR: Tool not found: %s\n", canonicalName)
-		// Log to the host application's logger
 		if interp != nil && interp.GetLogger() != nil {
 			interp.GetLogger().Error("Tool call failed: "+errMsg, "tool", canonicalName)
 		}
@@ -40,44 +38,26 @@ func (r *ToolRegistryImpl) CallFromInterpreter(interp Runtime, fullname types.Fu
 
 	// Policy enforcement using the live interpreter context.
 	if err := CanCall(interp, impl); err != nil {
-		return nil, err
+		return nil, err // Return policy violation error directly
 	}
 
-	// --- Argument Processing ---
+	// --- Argument Unwrapping ---
 	rawArgs := make([]interface{}, len(args))
 	for i, arg := range args {
 		rawArgs[i] = lang.Unwrap(arg)
 	}
 
-	if len(rawArgs) < len(impl.Spec.Args) {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("tool '%s': expected at least %d args, got %d", impl.FullName, len(impl.Spec.Args), len(rawArgs)), lang.ErrArgumentMismatch)
-	}
-
-	coercedArgs := make([]interface{}, len(impl.Spec.Args))
-	for i, spec := range impl.Spec.Args {
-		var coercedVal interface{}
-		var coerceErr error
-		// Call coerceArg (now in tools_coerce.go)
-		coercedVal, coerceErr = coerceArg(rawArgs[i], spec.Type)
-
-		if coerceErr != nil {
-			// Ensure error wrapping happens here if coerceArg fails
-			wrappedErr := lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("tool '%s' arg '%s': %v", impl.FullName, spec.Name, coerceErr), lang.ErrArgumentMismatch)
-			return nil, wrappedErr
-		}
-		coercedArgs[i] = coercedVal
-	}
-
-	if impl.Spec.Variadic {
-		coercedArgs = append(coercedArgs, rawArgs[len(impl.Spec.Args):]...)
+	// --- Centralized Validation and Coercion ---
+	coercedArgs, validationErr := validateAndCoerceArgs(impl.FullName, rawArgs, impl.Spec)
+	if validationErr != nil {
+		return nil, validationErr
 	}
 
 	// --- Runtime Selection ---
-	runtimeForTool := interp // Default: pass the potentially wrapped runtime
+	runtimeForTool := interp
 	if impl.IsInternal {
 		if wrapper, ok := interp.(Wrapper); ok {
-			runtimeForTool = wrapper.Unwrap() // Unwrap for internal tools
-		} else {
+			runtimeForTool = wrapper.Unwrap()
 		}
 	}
 
@@ -97,10 +77,10 @@ func (r *ToolRegistryImpl) CallFromInterpreter(interp Runtime, fullname types.Fu
 			out = nil
 			return
 		}
-
 		out, err = impl.Func(runtimeForTool, coercedArgs)
 	}()
 
+	// --- Result Handling ---
 	if err != nil {
 		var rtErr *lang.RuntimeError
 		if !errors.As(err, &rtErr) {
@@ -108,8 +88,8 @@ func (r *ToolRegistryImpl) CallFromInterpreter(interp Runtime, fullname types.Fu
 		}
 		return nil, err
 	}
-	wrappedOut, wrapErr := lang.Wrap(out)
 
+	wrappedOut, wrapErr := lang.Wrap(out)
 	if wrapErr != nil {
 		wrapRuntimeErr := lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("failed to wrap result from tool '%s': %v", fullname, wrapErr), wrapErr)
 		return nil, wrapRuntimeErr
@@ -119,8 +99,8 @@ func (r *ToolRegistryImpl) CallFromInterpreter(interp Runtime, fullname types.Fu
 }
 
 // ExecuteTool provides an entry point for external Go code to execute a tool using named arguments.
+// It now uses the centralized validation logic.
 func (r *ToolRegistryImpl) ExecuteTool(fullname types.FullName, args map[string]lang.Value) (lang.Value, error) {
-	// ... (implementation unchanged) ...
 	impl, ok := r.GetTool(fullname)
 	if !ok {
 		canonicalName := CanonicalizeToolName(string(fullname))
@@ -129,17 +109,75 @@ func (r *ToolRegistryImpl) ExecuteTool(fullname types.FullName, args map[string]
 	if r.interpreter == nil {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "ToolRegistry not configured with a valid runtime context for ExecuteTool", lang.ErrConfiguration)
 	}
-	orderedLangArgs := make([]lang.Value, len(impl.Spec.Args))
+
+	// --- [FIX] Policy Enforcement ---
+	fmt.Fprintf(os.Stderr, "[DEBUG][ExecuteTool] Checking policy for tool: %s\n", impl.FullName)
+	if err := CanCall(r.interpreter, impl); err != nil {
+		fmt.Fprintf(os.Stderr, "[DEBUG][ExecuteTool] Policy check FAILED for %s: %v\n", impl.FullName, err)
+		return nil, err // Return policy violation error directly
+	}
+	fmt.Fprintf(os.Stderr, "[DEBUG][ExecuteTool] Policy check PASSED for: %s\n", impl.FullName)
+	// --- End [FIX] ---
+
+	// --- Build positional rawArgs from named args map ---
+	numSpecArgs := len(impl.Spec.Args)
+	rawArgs := make([]any, numSpecArgs) // Size exactly to spec
+	var missingRequired []string
+
 	for i, spec := range impl.Spec.Args {
-		val, ok := args[spec.Name]
-		if !ok {
+		val, found := args[spec.Name]
+		if !found {
 			if spec.Required {
-				return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, fmt.Sprintf("missing required argument '%s' for tool '%s'", spec.Name, impl.FullName), lang.ErrArgumentMismatch)
+				missingRequired = append(missingRequired, spec.Name)
 			}
-			orderedLangArgs[i] = lang.NilValue{}
+			rawArgs[i] = nil // Not provided, insert nil
 		} else {
-			orderedLangArgs[i] = val
+			rawArgs[i] = lang.Unwrap(val) // Found, unwrap it
 		}
 	}
-	return r.CallFromInterpreter(r.interpreter, fullname, orderedLangArgs)
+
+	// Check for missing required args *before* validation call for a clearer error
+	if len(missingRequired) > 0 {
+		errMsg := fmt.Sprintf("missing required arguments for tool '%s': %s", impl.FullName, strings.Join(missingRequired, ", "))
+		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, errMsg, lang.ErrArgumentMismatch)
+	}
+
+	// --- Centralized Validation and Coercion ---
+	coercedArgs, validationErr := validateAndCoerceArgs(impl.FullName, rawArgs, impl.Spec)
+	if validationErr != nil {
+		return nil, validationErr // Return detailed error from validator
+	}
+
+	// --- Tool Invocation (Simplified, assumes external calls don't need runtime unwrapping) ---
+	// Note: ExecuteTool uses the registry's base interpreter context.
+	// --- [NEW] Add panic recovery ---
+	var out interface{}
+	var err error
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				// This now creates the error message the test was originally (and correctly) expecting.
+				err = lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("panic during tool '%s' invocation: %v", fullname, r), fmt.Errorf("panic: %v", r))
+				out = nil
+				fmt.Fprintf(os.Stderr, "[DEBUG][ExecuteTool] Recovered panic from tool %s: %v\n", fullname, r)
+			}
+		}()
+		out, err = impl.Func(r.interpreter, coercedArgs) // Pass validated args
+	}()
+	// --- End [NEW] ---
+
+	// --- Result Handling ---
+	if err != nil {
+		var rtErr *lang.RuntimeError
+		if !errors.As(err, &rtErr) {
+			err = lang.NewRuntimeError(lang.ErrorCodeToolExecutionFailed, fmt.Sprintf("tool '%s' failed: %v", fullname, err), err)
+		}
+		return nil, err
+	}
+	wrappedOut, wrapErr := lang.Wrap(out)
+	if wrapErr != nil {
+		wrapRuntimeErr := lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("failed to wrap result from tool '%s': %v", fullname, wrapErr), wrapErr)
+		return nil, wrapRuntimeErr
+	}
+	return wrappedOut, nil
 }
