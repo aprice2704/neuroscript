@@ -1,14 +1,15 @@
 // NeuroScript Version: 0.8.0
-// File version: 1
-// Purpose: Implements built-in functions for the evaluator.
+// File version: 2
+// Purpose: Implements all built-in type-checking functions (is_int, is_float, is_error, etc.).
 // filename: pkg/eval/functions.go
-// nlines: 150
+// nlines: 216
 // risk_rating: HIGH
 
 package eval
 
 import (
 	"fmt"
+	"math" // Added
 	"strings"
 	"unicode/utf8"
 
@@ -19,7 +20,9 @@ import (
 
 func isBuiltInFunction(name string) bool {
 	switch strings.ToLower(name) {
-	case "len", "typeof", "is_string", "is_number", "is_bool", "is_list", "is_map", "is_nil":
+	// Added all missing type checks
+	case "len", "typeof", "is_string", "is_number", "is_bool", "is_list", "is_map", "is_nil",
+		"is_int", "is_float", "is_error", "is_function", "is_tool", "is_event", "is_timedate", "is_fuzzy":
 		return true
 	default:
 		return false
@@ -106,6 +109,95 @@ func (e *evaluation) evaluateBuiltInFunction(funcName string, args []lang.Value,
 			return nil, err
 		}
 		_, ok := args[0].(*lang.NilValue)
+		return lang.BoolValue{Value: ok}, nil
+
+		// --- NEWLY IMPLEMENTED FUNCTIONS ---
+
+	case "is_int":
+		if err := checkArgCount(1); err != nil {
+			return nil, err
+		}
+		num, ok := args[0].(lang.NumberValue)
+		if !ok {
+			return lang.BoolValue{Value: false}, nil
+		}
+		// Check if the number has no fractional part
+		isInt := num.Value == math.Trunc(num.Value)
+		return lang.BoolValue{Value: isInt}, nil
+
+	case "is_float":
+		if err := checkArgCount(1); err != nil {
+			return nil, err
+		}
+		num, ok := args[0].(lang.NumberValue)
+		if !ok {
+			return lang.BoolValue{Value: false}, nil
+		}
+		// A number is a "float" if it has a fractional part
+		isFloat := num.Value != math.Trunc(num.Value)
+		return lang.BoolValue{Value: isFloat}, nil
+
+	case "is_error":
+		if err := checkArgCount(1); err != nil {
+			return nil, err
+		}
+		// Case 1: It's an actual ErrorValue type
+		if _, ok := args[0].(lang.ErrorValue); ok {
+			return lang.BoolValue{Value: true}, nil
+		}
+		// Case 2: It's a map that *looks* like an error
+		var valMap map[string]lang.Value
+		if mv, ok := args[0].(lang.MapValue); ok {
+			valMap = mv.Value
+		} else if mvPtr, ok := args[0].(*lang.MapValue); ok {
+			if mvPtr != nil {
+				valMap = mvPtr.Value
+			}
+		}
+
+		if valMap != nil {
+			_, hasCode := valMap[lang.ErrorKeyCode]
+			_, hasMsg := valMap[lang.ErrorKeyMessage]
+			// Per the test, it must have both keys to qualify
+			if hasCode && hasMsg {
+				return lang.BoolValue{Value: true}, nil
+			}
+		}
+		return lang.BoolValue{Value: false}, nil
+
+	case "is_function":
+		if err := checkArgCount(1); err != nil {
+			return nil, err
+		}
+		_, ok := args[0].(lang.FunctionValue)
+		return lang.BoolValue{Value: ok}, nil
+
+	case "is_tool":
+		if err := checkArgCount(1); err != nil {
+			return nil, err
+		}
+		_, ok := args[0].(lang.ToolValue)
+		return lang.BoolValue{Value: ok}, nil
+
+	case "is_event":
+		if err := checkArgCount(1); err != nil {
+			return nil, err
+		}
+		_, ok := args[0].(lang.EventValue)
+		return lang.BoolValue{Value: ok}, nil
+
+	case "is_timedate":
+		if err := checkArgCount(1); err != nil {
+			return nil, err
+		}
+		_, ok := args[0].(lang.TimedateValue)
+		return lang.BoolValue{Value: ok}, nil
+
+	case "is_fuzzy":
+		if err := checkArgCount(1); err != nil {
+			return nil, err
+		}
+		_, ok := args[0].(lang.FuzzyValue)
 		return lang.BoolValue{Value: ok}, nil
 	}
 

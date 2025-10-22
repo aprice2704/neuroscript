@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 8
-// Purpose: Fixes a non-constant format string error in Wrap().
+// File version: 9
+// Purpose: Fixes Unwrap to correctly handle *NilValue pointers.
 // filename: pkg/lang/value_helpers.go
-// nlines: 190
+// nlines: 194
 // risk_rating: HIGH
 
 package lang
@@ -29,6 +29,11 @@ func Wrap(x any) (Value, error) {
 		// Ensure MapValue pointers from incorrect wrapping are dereferenced
 		if mvPtr, ok := v.(*MapValue); ok && mvPtr != nil {
 			return *mvPtr, nil // Return the value, not the pointer
+		}
+		// FIX: Ensure NilValue pointers are handled correctly if passed in
+		if _, ok := v.(*NilValue); ok {
+			// Even if a pointer is passed, return the value type consistently
+			return NilValue{}, nil
 		}
 		return v, nil
 
@@ -104,6 +109,10 @@ func Unwrap(v Value) any {
 	switch t := v.(type) {
 	case NilValue:
 		return nil
+	// --- ADD THIS CASE ---
+	case *NilValue: // Handle pointer to NilValue explicitly
+		return nil
+	// --- END ADD ---
 	case StringValue:
 		return t.Value
 	case BytesValue:

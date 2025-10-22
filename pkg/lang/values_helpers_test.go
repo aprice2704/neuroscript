@@ -1,8 +1,8 @@
 // filename: pkg/lang/values_helpers_test.go
 // NeuroScript Version: 0.8.0
-// File version: 6
-// Purpose: Corrected the map[string]any test case to expect MapValue (by value), not pointer.
-// nlines: 134
+// File version: 7
+// Purpose: Added tests for unwrapping *NilValue and nested structures.
+// nlines: 153
 // risk_rating: MEDIUM
 package lang
 
@@ -63,7 +63,6 @@ func TestWrap(t *testing.T) {
 				"a": 1,
 				"b": "two",
 			},
-			// THE FIX: Expect MapValue (value type), not *MapValue (pointer type).
 			expected: MapValue{Value: map[string]Value{
 				"a": NumberValue{1},
 				"b": StringValue{"two"},
@@ -71,13 +70,12 @@ func TestWrap(t *testing.T) {
 			hasError: false,
 		},
 		{"unsupported type", []int{1, 2}, nil, true},
+		{"already wrapped NilValue", NilValue{}, NilValue{}, false},
+		{"already wrapped *NilValue", &NilValue{}, NilValue{}, false}, // Wrap should handle pointer
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// DEBUG: Adding debug output to trace the failing test case.
-			//	t.Logf("DEBUG: Testing Wrap with input type %T", tc.input)
-
 			wrapped, err := Wrap(tc.input)
 
 			if tc.hasError {
@@ -98,12 +96,23 @@ func TestWrap(t *testing.T) {
 }
 
 func TestUnwrap(t *testing.T) {
+	// Nested structure for testing recursion
+	nestedMapVal := MapValue{Value: map[string]Value{
+		"list": ListValue{[]Value{StringValue{"nested"}, NumberValue{99}}},
+		"num":  NumberValue{123},
+	}}
+	nestedMapRaw := map[string]any{
+		"list": []any{"nested", float64(99)},
+		"num":  float64(123),
+	}
+
 	testCases := []struct {
 		name     string
-		input    Value
+		input    Value // Input must be a Value type now
 		expected any
 	}{
 		{"NilValue", NilValue{}, nil},
+		{"*NilValue", &NilValue{}, nil}, // Test the specific fix
 		{"StringValue", StringValue{"hello"}, "hello"},
 		{"BytesValue", BytesValue{[]byte("bytes")}, []byte("bytes")},
 		{"BoolValue", BoolValue{true}, true},
@@ -111,18 +120,19 @@ func TestUnwrap(t *testing.T) {
 		{"TimedateValue", TimedateValue{time.Unix(0, 0)}, time.Unix(0, 0)},
 		{"FuzzyValue", FuzzyValue{0.5}, 0.5},
 		{"ListValue", ListValue{[]Value{StringValue{"a"}, NumberValue{1}}}, []any{"a", float64(1)}},
-		// Test unwrapping both MapValue and *MapValue
 		{"MapValue", MapValue{Value: map[string]Value{"a": NumberValue{1}}}, map[string]any{"a": float64(1)}},
 		{"*MapValue", &MapValue{Value: map[string]Value{"a": NumberValue{1}}}, map[string]any{"a": float64(1)}},
+		{"*MapValue (nil ptr)", (*MapValue)(nil), nil}, // Test nil pointer case
 		{"ErrorValue", ErrorValue{map[string]Value{"message": StringValue{"error"}}}, map[string]any{"message": "error"}},
 		{"EventValue", EventValue{map[string]Value{"name": StringValue{"event"}}}, map[string]any{"name": "event"}},
+		{"Nested MapValue", nestedMapVal, nestedMapRaw}, // Test nested structure
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			unwrapped := Unwrap(tc.input)
 			if !reflect.DeepEqual(unwrapped, tc.expected) {
-				t.Errorf("Expected unwrapped value %#v, but got %#v", tc.expected, unwrapped)
+				t.Errorf("Expected unwrapped value %#v (%T), but got %#v (%T)", tc.expected, tc.expected, unwrapped, unwrapped)
 			}
 		})
 	}
@@ -142,6 +152,30 @@ func TestUnwrapSlice(t *testing.T) {
 	t.Run("slice with values", func(t *testing.T) {
 		input := []Value{StringValue{"a"}, NumberValue{1}}
 		expected := []any{"a", float64(1)}
+		unwrapped, err := UnwrapSlice(input)
+		if err != nil {
+			t.Errorf("Did not expect an error, but got: %v", err)
+		}
+		if !reflect.DeepEqual(unwrapped, expected) {
+			t.Errorf("Expected unwrapped slice %#v, but got %#v", expected, unwrapped)
+		}
+	})
+
+	t.Run("slice with nil value", func(t *testing.T) {
+		input := []Value{StringValue{"a"}, NilValue{}, NumberValue{1}}
+		expected := []any{"a", nil, float64(1)}
+		unwrapped, err := UnwrapSlice(input)
+		if err != nil {
+			t.Errorf("Did not expect an error, but got: %v", err)
+		}
+		if !reflect.DeepEqual(unwrapped, expected) {
+			t.Errorf("Expected unwrapped slice %#v, but got %#v", expected, unwrapped)
+		}
+	})
+
+	t.Run("slice with pointer nil value", func(t *testing.T) {
+		input := []Value{StringValue{"a"}, &NilValue{}, NumberValue{1}}
+		expected := []any{"a", nil, float64(1)}
 		unwrapped, err := UnwrapSlice(input)
 		if err != nil {
 			t.Errorf("Did not expect an error, but got: %v", err)
