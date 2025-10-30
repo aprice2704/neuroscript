@@ -1,9 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 36
-// Purpose: Implements full arity checking for user-defined procedures using min/max arg counts from the SymbolManager. FIX: Only report 'ProcNotFound' if the workspace-aware SymbolManager is active. FIX: Correctly check tool arity using min/max required args, and report missing optional args as 'Info' instead of 'Error'.
+// File version: 38
+// Purpose: FIX: Reversed tool lookup order to allow external tools to override built-in tools.
 // filename: pkg/nslsp/semantic_analyzer.go
-// nlines: 247
-// risk_rating: HIGH
+// nlines: 250
 
 package nslsp
 
@@ -71,6 +70,13 @@ type symbolCollectorListener struct {
 }
 
 func (l *symbolCollectorListener) EnterProcedure_definition(ctx *gen.Procedure_definitionContext) {
+	// THE FIX IS HERE:
+	// If the parser recovers from a syntax error (e.g., "func () means..."),
+	// the IDENTIFIER token may be nil. We must check for this to prevent a panic.
+	if ctx.IDENTIFIER() == nil {
+		return // This is not a valid, named procedure to collect.
+	}
+
 	procName := ctx.IDENTIFIER().GetText()
 	if procName == "" {
 		return
@@ -125,12 +131,17 @@ func (l *validationListener) validateToolCall(ctx *gen.Callable_exprContext) {
 	var spec tool.ToolSpec
 	var found bool
 	var impl tool.ToolImplementation
-	if l.semanticAnalyzer.toolRegistry != nil {
-		impl, found = l.semanticAnalyzer.toolRegistry.GetTool(lookupName)
-	}
-	if !found && l.semanticAnalyzer.externalTools != nil {
+
+	// THE FIX IS HERE: Check external tools FIRST.
+	// This allows external tool definitions to override built-in tools
+	// of the same name, which is the behavior you are expecting.
+	if l.semanticAnalyzer.externalTools != nil {
 		impl, found = l.semanticAnalyzer.externalTools.GetTool(lookupName)
 	}
+	if !found && l.semanticAnalyzer.toolRegistry != nil {
+		impl, found = l.semanticAnalyzer.toolRegistry.GetTool(lookupName)
+	}
+
 	if !found {
 		token := ctx.Call_target().GetStart()
 		l.diagnostics = append(l.diagnostics, lsp.Diagnostic{

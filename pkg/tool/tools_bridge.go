@@ -111,12 +111,12 @@ func (r *ToolRegistryImpl) ExecuteTool(fullname types.FullName, args map[string]
 	}
 
 	// --- [FIX] Policy Enforcement ---
-	fmt.Fprintf(os.Stderr, "[DEBUG][ExecuteTool] Checking policy for tool: %s\n", impl.FullName)
+	//fmt.Fprintf(os.Stderr, "[DEBUG][ExecuteTool] Checking policy for tool: %s\n", impl.FullName)
 	if err := CanCall(r.interpreter, impl); err != nil {
-		fmt.Fprintf(os.Stderr, "[DEBUG][ExecuteTool] Policy check FAILED for %s: %v\n", impl.FullName, err)
+		//	fmt.Fprintf(os.Stderr, "[DEBUG][ExecuteTool] Policy check FAILED for %s: %v\n", impl.FullName, err)
 		return nil, err // Return policy violation error directly
 	}
-	fmt.Fprintf(os.Stderr, "[DEBUG][ExecuteTool] Policy check PASSED for: %s\n", impl.FullName)
+	//fmt.Fprintf(os.Stderr, "[DEBUG][ExecuteTool] Policy check PASSED for: %s\n", impl.FullName)
 	// --- End [FIX] ---
 
 	// --- Build positional rawArgs from named args map ---
@@ -159,7 +159,7 @@ func (r *ToolRegistryImpl) ExecuteTool(fullname types.FullName, args map[string]
 				// This now creates the error message the test was originally (and correctly) expecting.
 				err = lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("panic during tool '%s' invocation: %v", fullname, r), fmt.Errorf("panic: %v", r))
 				out = nil
-				fmt.Fprintf(os.Stderr, "[DEBUG][ExecuteTool] Recovered panic from tool %s: %v\n", fullname, r)
+				//	fmt.Fprintf(os.Stderr, "[DEBUG][ExecuteTool] Recovered panic from tool %s: %v\n", fullname, r)
 			}
 		}()
 		out, err = impl.Func(r.interpreter, coercedArgs) // Pass validated args

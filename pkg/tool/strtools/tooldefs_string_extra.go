@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 1
-// Purpose: Defines extra string/codec tools requested by FDM.
+// File version: 4
+// Purpose: Defines extra string/codec tools. Added pretty_print, prefix, and indent args to ToJsonString. Added ParseJsonString.
 // filename: pkg/tool/strtools/tooldefs_string_extra.go
-// nlines: 70
+// nlines: 88
 // risk_rating: LOW
 
 package strtools
@@ -63,17 +63,36 @@ var stringExtraToolsToRegister = []tool.ToolImplementation{
 	},
 	{
 		Spec: tool.ToolSpec{
+			Name:        "ParseJsonString",
+			Group:       group,
+			Description: "Parses JSON data from a plain string into a map or list.",
+			Category:    "String Codecs",
+			Args: []tool.ArgSpec{
+				{Name: "json_string", Type: tool.ArgTypeString, Required: true, Description: "The plain string representing JSON data."},
+			},
+			ReturnType:      tool.ArgTypeAny, // Can return map or list
+			ReturnHelp:      "Returns the parsed map or list.",
+			Example:         `str.ParseJsonString("{\"key\": \"value\"}") // Returns {"key": "value"}`,
+			ErrorConditions: "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` if input is not a string or is invalid JSON.",
+		},
+		Func: toolParseJsonString, // Added implementation function
+	},
+	{
+		Spec: tool.ToolSpec{
 			Name:        "ToJsonString",
 			Group:       group,
-			Description: "Converts a map or list into a JSON formatted string.",
+			Description: "Converts a map or list into a JSON formatted string, with optional pretty-printing.",
 			Category:    "String Codecs",
 			Args: []tool.ArgSpec{
 				{Name: "value", Type: tool.ArgTypeAny, Required: true, Description: "The map or list to stringify."},
+				{Name: "pretty_print", Type: tool.ArgTypeBool, Required: false, Description: "If true, formats the JSON with indentation. Default: false."},
+				{Name: "prefix", Type: tool.ArgTypeString, Required: false, Description: "The line prefix for pretty-printing. Default: \"\". Only used if pretty_print is true."},
+				{Name: "indent", Type: tool.ArgTypeString, Required: false, Description: "The indentation string for pretty-printing. Default: \"  \". Only used if pretty_print is true."},
 			},
 			ReturnType:      tool.ArgTypeString,
 			ReturnHelp:      "Returns the JSON formatted string.",
-			Example:         `str.ToJsonString({"key": "value"}) // Returns "{\"key\":\"value\"}"`,
-			ErrorConditions: "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` if the value cannot be represented as JSON (e.g., contains non-serializable types).",
+			Example:         `str.ToJsonString({"key": "value"}, pretty_print: true, indent: "\t") // Returns "{\n\t\"key\": \"value\"\n}"`,
+			ErrorConditions: "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` if the value cannot be represented as JSON or if optional arguments have wrong types.",
 		},
 		Func: toolToJsonString, // Renamed implementation function
 	},
