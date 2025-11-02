@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 19
-// Purpose: Corrects test failure by using api.NewPolicyBuilder to construct the policy.
+// File version: 21
+// Purpose: Refactored test to use the new ProviderRegistry pattern, removing direct RegisterProvider calls.
 // filename: pkg/api/autoprovider_test.go
-// nlines: 86
+// nlines: 92
 // risk_rating: LOW
 
 package api_test
@@ -14,17 +14,14 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/api"
-	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/policy"
+	"github.com/aprice2704/neuroscript/pkg/provider" // FIX: Import provider package
 	"github.com/aprice2704/neuroscript/pkg/provider/test"
 )
 
 // TestAPI_AutoProviderRegistration verifies that a provider registered via the
 // top-level API function is correctly configured and accessible to scripts via 'ask'.
 func TestAPI_AutoProviderRegistration(t *testing.T) {
-	// DEBUG
-	// fmt.Fprintf(os.Stderr, "[DEBUG] TestAPI_AutoProviderRegistration: START\n")
-
 	// 1. Define a script that uses an AgentModel.
 	scriptContent := `
 func main(returns string) means
@@ -34,32 +31,33 @@ func main(returns string) means
 endfunc
 `
 	// 2. Configure a policy that allows running in a trusted 'config' context.
-	// This is required to call RegisterAgentModel.
-	// THE FIX: Use the api.NewPolicyBuilder to correctly create the policy
-	// with the required 'model:admin:*' grant.
 	configPolicy := api.NewPolicyBuilder(policy.ContextConfig).
 		Grant("model:admin:*").
 		Build()
 
+	// 3. Create and populate the new ProviderRegistry
+	providerRegistry := api.NewProviderRegistry()
+	// FIX: Use provider.NewAdmin directly
+	providerAdmin := provider.NewAdmin(providerRegistry, configPolicy)
+	if err := providerAdmin.Register("mock", test.New()); err != nil {
+		t.Fatalf("Failed to register mock provider: %v", err)
+	}
+
 	interp := api.New(
 		api.WithHostContext(newTestHostContext(nil)),
-		interpreter.WithExecPolicy(configPolicy),
+		api.WithExecPolicy(configPolicy),
+		api.WithProviderRegistry(providerRegistry), // Inject the new registry
 	)
-
-	// 3. Register the mock provider.
-	interp.RegisterProvider("mock", test.New())
-	// fmt.Fprintf(os.Stderr, "[DEBUG] TestAPI_AutoProviderRegistration: Mock provider registered.\n")
 
 	// 4. Register an AgentModel using native Go types.
 	agentConfig := map[string]any{
 		"provider": "mock",
 		"model":    "test-model",
 	}
+	// Use the string-based method
 	if err := interp.RegisterAgentModel("test_agent", agentConfig); err != nil {
-		// fmt.Fprintf(os.Stderr, "[DEBUG] TestAPI_AutoProviderRegistration: RegisterAgentModel FAILED: %v\n", err) // DEBUG
 		t.Fatalf("Failed to register agent model: %v", err)
 	}
-	// fmt.Fprintf(os.Stderr, "[DEBUG] TestAPI_AutoProviderRegistration: Agent model registered.\n")
 
 	// 5. Parse and load the script.
 	tree, err := api.Parse([]byte(scriptContent), api.ParseSkipComments)
@@ -69,17 +67,12 @@ endfunc
 	if _, err := api.ExecWithInterpreter(context.Background(), interp, tree); err != nil {
 		t.Fatalf("api.ExecWithInterpreter failed: %v", err)
 	}
-	// fmt.Fprintf(os.Stderr, "[DEBUG] TestAPI_AutoProviderRegistration: Script loaded.\n")
 
 	// 6. Run the procedure.
-	// The 'ask' statement will internally create a V3 envelope with a USERDATA
-	// section like: {"subject":"ask","fields":{"prompt":"What is a large language model?"}}
 	result, err := api.RunProcedure(context.Background(), interp, "main")
 	if err != nil {
-		// fmt.Fprintf(os.Stderr, "[DEBUG] TestAPI_AutoProviderRegistration: RunProcedure FAILED: %v\n", err) // DEBUG
 		t.Fatalf("api.RunProcedure failed unexpectedly: %v", err)
 	}
-	// fmt.Fprintf(os.Stderr, "[DEBUG] TestAPI_AutoProviderRegistration: RunProcedure complete.\n")
 
 	// 7. Verify the result from the mock provider.
 	unwrapped, err := api.Unwrap(result)
@@ -95,5 +88,4 @@ endfunc
 	if !strings.Contains(val, expectedResponse) {
 		t.Errorf("Expected response to contain '%s', but got: '%s'", expectedResponse, val)
 	}
-	// fmt.Fprintf(os.Stderr, "[DEBUG] TestAPI_AutoProviderRegistration: END\n")
 }

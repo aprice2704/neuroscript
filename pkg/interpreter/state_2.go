@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 8.0.1
-// Purpose: Re-plumbed event name evaluation to use the external 'eval' package.
+// File version: 9
+// Purpose: Removes the obsolete, state-based provider map, completing the registry refactor.
 // filename: pkg/interpreter/state_2.go
-// nlines: 75
+// nlines: 66
 // risk_rating: MEDIUM
 
 package interpreter
@@ -13,7 +13,6 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/eval"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/provider"
 )
 
 // interpreterState holds all the non-exported, mutable state of the interpreter.
@@ -30,8 +29,8 @@ type interpreterState struct {
 	globalVarNames    map[string]bool
 
 	// --- Provider State (Root Only) ---
-	providers   map[string]provider.AIProvider
-	providersMu sync.RWMutex
+	// REMOVED: providers map and providersMu
+	// This is now handled by the root-level, injected provider.Registry.
 }
 
 // EventManager handles event subscriptions and emissions.
@@ -47,7 +46,7 @@ func newInterpreterState() *interpreterState {
 		commands:        []*ast.CommandNode{},
 		stackFrames:     []string{},
 		globalVarNames:  make(map[string]bool),
-		providers:       make(map[string]provider.AIProvider),
+		// REMOVED: providers map initialization
 	}
 }
 

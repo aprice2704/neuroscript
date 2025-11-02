@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 17.0.0
-// Purpose: Removed all local ExecPolicy overrides to rely on the new, fully-privileged default TestHarness.
+// File version: 18.0.0
+// Purpose: Updated all method calls to use 'string' instead of 'types.AgentModelName' to match the refactored interface.
 // filename: pkg/interpreter/agentmodel_test.go
 // nlines: 115
 // risk_rating: LOW
@@ -26,7 +26,7 @@ func TestInterpreterAgentModelManagement(t *testing.T) {
 			"provider": lang.StringValue{Value: "test_provider"},
 			"model":    lang.StringValue{Value: "test_model"},
 		}
-		agentName := types.AgentModelName("test_agent")
+		agentName := "test_agent" // FIX: Use string
 		t.Logf("[DEBUG] Turn 2: Registering agent model.")
 
 		t.Logf("[DEBUG] PRE-CALL CHECK: Interpreter ExecPolicy is: %+v", interp.ExecPolicy)
@@ -44,7 +44,7 @@ func TestInterpreterAgentModelManagement(t *testing.T) {
 		if !ok {
 			t.Fatalf("GetAgentModel() returned an unexpected type: %T", modelAny)
 		}
-		if model.Name != agentName || model.Provider != "test_provider" {
+		if model.Name != types.AgentModelName(agentName) || model.Provider != "test_provider" {
 			t.Errorf("Registered agent has incorrect data. Got: %+v", model)
 		}
 		t.Logf("[DEBUG] Turn 3: Assertions passed.")
@@ -58,7 +58,7 @@ func TestInterpreterAgentModelManagement(t *testing.T) {
 		config := map[string]lang.Value{
 			"provider": lang.StringValue{Value: "p"},
 		}
-		agentName := types.AgentModelName("bad_agent")
+		agentName := "bad_agent" // FIX: Use string
 		t.Logf("[DEBUG] Turn 2: Attempting to register agent with missing fields.")
 		err := interp.RegisterAgentModel(agentName, config)
 		if err == nil {
@@ -74,22 +74,18 @@ func TestInterpreterAgentModelManagement(t *testing.T) {
 
 		config1 := map[string]lang.Value{"provider": lang.StringValue{Value: "p"}, "model": lang.StringValue{Value: "m1"}}
 		config2 := map[string]lang.Value{"provider": lang.StringValue{Value: "p"}, "model": lang.StringValue{Value: "m2"}}
-		agent1Name := types.AgentModelName("agent1")
-		agent2Name := types.AgentModelName("agent2")
+		agent1Name := "agent1" // FIX: Use string
+		agent2Name := "agent2" // FIX: Use string
 
 		_ = interp.RegisterAgentModel(agent1Name, config1)
 		_ = interp.RegisterAgentModel(agent2Name, config2)
 		t.Logf("[DEBUG] Turn 2: Two agent models registered.")
 
-		initialList := interp.ListAgentModels()
-		stringList := make([]string, len(initialList))
-		for i, v := range initialList {
-			stringList[i] = string(v)
-		}
-		sort.Strings(stringList)
+		initialList := interp.ListAgentModels() // FIX: Returns []string
+		sort.Strings(initialList)
 		expected := []string{"agent1", "agent2"}
-		if !reflect.DeepEqual(stringList, expected) {
-			t.Errorf("ListAgentModels() mismatch. Got: %v, Want: %v", stringList, expected)
+		if !reflect.DeepEqual(initialList, expected) {
+			t.Errorf("ListAgentModels() mismatch. Got: %v, Want: %v", initialList, expected)
 		}
 		t.Logf("[DEBUG] Turn 3: List assertion passed.")
 
@@ -115,7 +111,7 @@ func TestInterpreterAgentModelManagement(t *testing.T) {
 			"provider": lang.StringValue{Value: "p_orig"},
 			"model":    lang.StringValue{Value: "m_orig"},
 		}
-		agentName := types.AgentModelName("agent_to_update")
+		agentName := "agent_to_update" // FIX: Use string
 		_ = interp.RegisterAgentModel(agentName, initialConfig)
 		t.Logf("[DEBUG] Turn 2: Initial agent registered.")
 

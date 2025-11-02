@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.4.0
-// File version: 10
-// Purpose: Corrected tool names to align with the new registration system.
+// File version: 11
+// Purpose: Updated checkFunc to assert for []interface{} instead of []map[string]interface{} to match tool's new return type.
 // filename: pkg/tool/fs/tools_fs_dirs_test.go
 // nlines: 250 // Approximate
 // risk_rating: LOW
@@ -48,9 +48,10 @@ func TestToolListDirectoryFunctional(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Unexpected error: %v", err)
 				}
-				res, ok := result.([]map[string]interface{})
+				// --- MODIFIED ---
+				res, ok := result.([]interface{})
 				if !ok {
-					t.Fatalf("Expected []map[string]interface{}, got %T", result)
+					t.Fatalf("Expected []interface{}, got %T", result)
 				}
 				// Expecting dir1, empty_dir, file1.txt
 				if len(res) != 3 {

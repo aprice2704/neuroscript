@@ -98,6 +98,6 @@ func toolStringReplace(interpreter tool.Runtime, args []interface{}) (interface{
 
 	count := int(countRaw)
 	result := strings.Replace(inputStr, oldSubstr, newSubstr, count)
-	interpreter.GetLogger().Debug("Tool: String.Replace", "input", inputStr, "old", oldSubstr, "new", newSubstr, "count", count, "result", result)
+	//interpreter.GetLogger().Debug("Tool: String.Replace", "input", inputStr, "old", oldSubstr, "new", newSubstr, "count", count, "result", result)
 	return result, nil
 }

@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.7.0
-// File version: 9
-// Purpose: Purified the interpreter interface to use 'any' instead of 'lang.Value', breaking the core import cycle.
+// NeuroScript Version: 0.8.0
+// File version: 10
+// Purpose: Removed RegisterProvider method to enforce use of a separate ProviderRegistry.
 // filename: pkg/interfaces/interpreter.go
-// nlines: 45
+// nlines: 44
 // risk_rating: COSMIC
 
 package interfaces
@@ -28,7 +28,7 @@ type Interpreter interface {
 	SetEmitFunc(f func(any))
 	SetAITranscript(w io.Writer)
 	GetLogger() Logger
-	RegisterProvider(name string, p any)
+	// RegisterProvider(name string, p any) // This is now handled by ProviderRegistry
 }
 
 // Node represents a node in the AST.

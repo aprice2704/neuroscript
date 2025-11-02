@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 29
-// Purpose: Removes redundant registration of standard tools already handled by NewTestHarness.
+// File version: 31
+// Purpose: Corrected call to provider.NewAdmin to include the ExecPolicy.
 // filename: pkg/interpreter/ask_e2e_test.go
-// nlines: 254
+// nlines: 257
 // risk_rating: LOW
 
 package interpreter_test
@@ -159,7 +159,11 @@ func setupE2ETest(t *testing.T, mockAPIKey string) (*interpreter.Interpreter, *m
 	*/
 	t.Logf("[DEBUG] Turn 2: Standard tools are already registered by the harness.")
 
-	interp.RegisterProvider("mock_e2e_provider", mockProv)
+	// --- FIX: Register provider via the harness's registry ---
+	if err := provider.NewAdmin(h.ProviderRegistry, h.Interpreter.GetExecPolicy()).Register("mock_e2e_provider", mockProv); err != nil {
+		t.Fatalf("Failed to register mock provider: %v", err)
+	}
+	// --- End Fix ---
 
 	tree, pErr := h.Parser.Parse(e2eScript)
 	if pErr != nil {

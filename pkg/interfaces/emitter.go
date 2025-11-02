@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.2
-// File version: 2
-// Purpose: Defines a neutral, dependency-free interface for emitting LLM telemetry.
+// File version: 3
+// Purpose: Updated to import pkg/types for AIRequest/AIResponse to break import cycles.
 // filename: pkg/ns_interfaces/emitter.go
 
 package interfaces
@@ -9,14 +9,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/aprice2704/neuroscript/pkg/provider"
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // LLMCallStartInfo contains the metadata available at the start of an LLM call.
 type LLMCallStartInfo struct {
 	Ctx     context.Context
 	CallID  string
-	Request provider.AIRequest
+	Request types.AIRequest
 	Start   time.Time
 }
 
@@ -24,8 +24,8 @@ type LLMCallStartInfo struct {
 type LLMCallSuccessInfo struct {
 	Ctx      context.Context
 	CallID   string
-	Request  provider.AIRequest
-	Response provider.AIResponse
+	Request  types.AIRequest
+	Response types.AIResponse
 	Latency  time.Duration
 }
 
@@ -33,7 +33,7 @@ type LLMCallSuccessInfo struct {
 type LLMCallFailureInfo struct {
 	Ctx     context.Context
 	CallID  string
-	Request provider.AIRequest
+	Request types.AIRequest
 	Err     error
 	Latency time.Duration
 }

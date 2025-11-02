@@ -1,9 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 9
-// Purpose: Corrected final test assertions to align with the centralized policy logic.
+// File version: 12
+// Purpose: Fixed helper func to use a privileged policy and non-nil mock provider for setup.
 // filename: pkg/interpreter/integration_policy_test.go
-// nlines: 120
-// risk_rating: HIGH
+// nlines: 133
 
 package interpreter
 
@@ -16,6 +15,8 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/policy"
+	"github.com/aprice2704/neuroscript/pkg/provider"
+	"github.com/aprice2704/neuroscript/pkg/provider/test"     // FIX: Import test provider
 	_ "github.com/aprice2704/neuroscript/pkg/toolbundles/all" // Ensure tools are registered
 )
 
@@ -27,8 +28,23 @@ func runPolicyIntegrationTest(t *testing.T, p *policy.ExecPolicy, script string)
 		Stdin:  os.Stdin,
 		Stderr: os.Stderr,
 	}
-	interp := NewInterpreter(WithHostContext(hostCtx), WithExecPolicy(p))
-	interp.RegisterProvider("p", nil)
+	// --- FIX: Create registry, inject it, and use it for registration ---
+	reg := provider.NewRegistry()
+	interp := NewInterpreter(
+		WithHostContext(hostCtx),
+		WithExecPolicy(p), // Pass the test's policy
+		WithProviderRegistry(reg),
+	)
+
+	// --- FIX: Register the helper's mock provider "p" ---
+	// This must be done with a privileged policy, otherwise the
+	// test that passes a ContextNormal policy will fail here.
+	privilegedPolicy := &policy.ExecPolicy{Context: policy.ContextConfig}
+	if err := provider.NewAdmin(reg, privilegedPolicy).Register("p", test.New()); err != nil {
+		t.Fatalf("Failed to register mock provider 'p': %v", err)
+	}
+	// --- End Fix ---
+
 	fullScript := "func main() means\n" + script + "\nendfunc"
 	_, rErr := interp.ExecuteScriptString("main", fullScript, nil)
 	if rErr == nil {

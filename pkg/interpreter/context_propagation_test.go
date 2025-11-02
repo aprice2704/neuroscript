@@ -1,9 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 11
-// Purpose: Removed redundant registration of standard tools already handled by NewTestHarness.
+// File version: 12
+// Purpose: Fixed call to register provider using provider.NewAdmin.
 // filename: pkg/interpreter/context_propagation_test.go
-// nlines: 318
-// risk_rating: LOW
+// nlines: 320
 
 package interpreter_test
 
@@ -111,7 +110,11 @@ func setupPropagationTest(t *testing.T) (*interpreter.Interpreter, *mockContextP
 	}
 
 	mockProv := &mockContextProvider{t: t}
-	interp.RegisterProvider("probe_provider", mockProv)
+	// --- FIX: Use provider.NewAdmin to register the provider ---
+	if err := provider.NewAdmin(h.ProviderRegistry, interp.GetExecPolicy()).Register("probe_provider", mockProv); err != nil {
+		t.Fatalf("Failed to register mock provider: %v", err)
+	}
+	// --- End Fix ---
 
 	setupScript := `
     func _SetupProbeAgent() means

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 14
-// Purpose: Defines the public configuration options. Hardens WithHostContext to panic if mandatory fields (Logger, IO) are nil.
+// File version: 16
+// Purpose: Defines the public configuration options. Hardens WithHostContext. Removed WithProviderRegistry (which must be defined in the internal pkg).
 // filename: pkg/api/options.go
 // nlines: 70
 // risk_rating: HIGH
@@ -69,3 +69,7 @@ func WithHostContext(hc *HostContext) Option {
 		interpreter.WithHostContext(internalHC)(i)
 	}
 }
+
+// FIX: Removed WithProviderRegistry. It must be defined in the internal
+// 'interpreter' package and re-exported via api/reexport.go,
+// just like WithAccountStore and WithAgentModelStore.

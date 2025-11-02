@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 75
-// Purpose: Reverts llmconn.New call to 3 arguments, removing capsuleStore to fix compiler error.
+// File version: 77
+// Purpose: Fixed compile error by passing a 'string' (not types.AgentModelName) to AgentModels().Get().
 // filename: pkg/interpreter/steps_ask.go
-// nlines: 133
+// nlines: 139
 // risk_rating: HIGH
 
 package interpreter
@@ -43,7 +43,8 @@ func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
 	initialPrompt, _ := lang.ToString(promptVal)
 
 	// 2. Retrieve AgentModel and Provider
-	agentModelObj, found := i.AgentModels().Get(types.AgentModelName(agentName))
+	// FIX: Use string 'agentName' directly
+	agentModelObj, found := i.AgentModels().Get(agentName)
 	if !found {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("AgentModel '%s' is not registered", agentName), nil).WithPosition(node.AgentModelExpr.GetPos())
 	}
@@ -74,21 +75,10 @@ func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
 	}
 
 	// 3. Initialize LLM Connection (FIXED)
-	// DEBUG: Add debug output per AGENTS.md
-	// fmt.Fprintf(os.Stderr, "[DEBUG] executeAsk: Calling llmconn.New. Agent: '%s', Provider: '%s', Emitter: %T\n",
-	//agentModel.Name, agentModel.Provider, i.hostContext.Emitter)
-
-	// THE FIX: Reverted to 3-argument call to llmconn.New.
-	// The capsule-loading logic must be *inside* llmconn.New, which gets the store
-	// from the provider or a default.
 	conn, err := llmconn.New(&agentModel, prov, i.hostContext.Emitter)
 	if err != nil {
-		// DEBUG: Log the specific error from llmconn.New
-		// fmt.Fprintf(os.Stderr, "[DEBUG] executeAsk: llmconn.New FAILED: %v\n", err)
-		// If llmconn.New fails (e.g., capsule not found), wrap the error here.
 		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "failed to create LLM connection", err).WithPosition(node.GetPos())
 	}
-	// fmt.Fprintf(os.Stderr, "[DEBUG] executeAsk: llmconn.New Succeeded. Connector created: %T\n", conn)
 
 	// 4. Construct Initial V3 Envelope
 	var userdataPayload string
@@ -114,7 +104,11 @@ func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
 	// 5. Delegate to the Host Loop - Pass the llmconn.Connector
 	finalResult, err := i.runAskHostLoop(node.GetPos(), &agentModel, conn, initialEnvelope)
 	if err != nil {
-		// Errors from the loop (including provider errors wrapped by Converse) are returned here
+		// --- FIX: Wrap the error to ensure it's a RuntimeError ---
+		if _, ok := err.(*lang.RuntimeError); !ok {
+			return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "ask host loop failed", err).WithPosition(node.GetPos())
+		}
+		// --- End Fix ---
 		return nil, err
 	}
 

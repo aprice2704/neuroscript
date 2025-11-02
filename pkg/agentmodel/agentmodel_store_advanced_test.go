@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 6
-// Purpose: Removed obsolete test cases that are now handled correctly by the mapstructure parser.
+// File version: 7
+// Purpose: Updated admin/reader calls to use plain 'string' for model names instead of 'types.AgentModelName'.
 // filename: pkg/agentmodel/agentmodel_store_advanced_test.go
 // nlines: 221
 // risk_rating: HIGH
@@ -99,7 +99,7 @@ func TestAgentModelStore_FullConfigParsing(t *testing.T) {
 	admin := NewAgentModelAdmin(store, &policy.ExecPolicy{Context: policy.ContextConfig})
 	cfg, expectedModel := newFullConfig("full-model", "test-provider", "test-model-123")
 
-	if err := admin.Register("full-model", cfg); err != nil {
+	if err := admin.Register("full-model", cfg); err != nil { // Use string
 		t.Fatalf("Register failed: %v", err)
 	}
 
@@ -121,7 +121,7 @@ func TestAgentModelStore_PartialUpdate(t *testing.T) {
 	admin := NewAgentModelAdmin(store, &policy.ExecPolicy{Context: policy.ContextConfig})
 	cfg, _ := newFullConfig("partial-update-model", "p1", "m1")
 
-	if err := admin.Register("partial-update-model", cfg); err != nil {
+	if err := admin.Register("partial-update-model", cfg); err != nil { // Use string
 		t.Fatalf("Register failed: %v", err)
 	}
 
@@ -131,7 +131,7 @@ func TestAgentModelStore_PartialUpdate(t *testing.T) {
 		"disabled":    true,
 	}
 
-	if err := admin.Update("partial-update-model", updates); err != nil {
+	if err := admin.Update("partial-update-model", updates); err != nil { // Use string
 		t.Fatalf("Update failed: %v", err)
 	}
 
@@ -168,7 +168,7 @@ func TestAgentModelStore_ConfigTypeMismatch(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			store := NewAgentModelStore() // Use a fresh store for each sub-test
 			admin := NewAgentModelAdmin(store, &policy.ExecPolicy{Context: policy.ContextConfig})
-			modelName := types.AgentModelName("model-" + tc.name)
+			modelName := "model-" + tc.name // Use string
 
 			cfg := map[string]interface{}{
 				"provider": "p",
@@ -200,21 +200,21 @@ func TestAgentModelStore_Concurrency(t *testing.T) {
 		go func(id int) {
 			defer wg.Done()
 			modelID := id % numModels
-			name := fmt.Sprintf("model-%d", modelID)
+			name := fmt.Sprintf("model-%d", modelID) // Use string
 			cfg := map[string]interface{}{"provider": "p", "model": "m"}
 
 			// Mix of register, update, get, list, delete
 			switch id % 4 {
 			case 0: // Register
-				_ = admin.Register(types.AgentModelName(name), cfg)
+				_ = admin.Register(name, cfg)
 			case 1: // Update
 				updates := map[string]interface{}{"notes": fmt.Sprintf("goroutine %d", id)}
-				_ = admin.Update(types.AgentModelName(name), updates)
+				_ = admin.Update(name, updates)
 			case 2: // Get
-				_, _ = reader.Get(types.AgentModelName(name))
+				_, _ = reader.Get(name)
 			case 3: // List & Delete
 				_ = reader.List()
-				_ = admin.Delete(types.AgentModelName(name))
+				_ = admin.Delete(name)
 			}
 		}(i)
 	}

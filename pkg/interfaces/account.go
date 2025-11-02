@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 1
-// Purpose: Defines the interfaces for the Account store.
+// File version: 2
+// Purpose: Added RegisterFromAccount(any) to support type-safe host injection without import cycles.
 // filename: pkg/interfaces/account.go
-// nlines: 19
+// nlines: 21
 // risk_rating: LOW
 
 package interfaces
@@ -20,6 +20,9 @@ type AccountReader interface {
 type AccountAdmin interface {
 	// Register adds a new account from a configuration map.
 	Register(name string, cfg map[string]any) error
+	// RegisterFromAccount adds a new account from a concrete struct.
+	// This is for host injection and accepts 'any' to avoid import cycles.
+	RegisterFromAccount(acc any) error
 	// Delete removes an account.
 	Delete(name string) bool
 }

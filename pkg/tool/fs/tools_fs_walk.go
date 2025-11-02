@@ -1,4 +1,8 @@
+// NeuroScript Version: 0.5.2
+// File version: 1
+// Purpose: Changed fileInfos slice type from []map[string]interface{} to []interface{} to fix lang.Wrap error.
 // filename: pkg/tool/fs/tools_fs_walk.go
+// nlines: 91
 package fs
 
 import (
@@ -45,7 +49,7 @@ func toolWalkDir(interpreter tool.Runtime, args []interface{}) (interface{}, err
 		return nil, lang.NewRuntimeError(lang.ErrorCodePathTypeMismatch, fmt.Sprintf("Walk: path '%s' is not a directory", relPath), lang.ErrPathNotDirectory)
 	}
 
-	var fileInfos []map[string]interface{}
+	var fileInfos []interface{} // <--- MODIFIED
 
 	walkErr := filepath.WalkDir(absBasePath, func(currentPath string, d fs.DirEntry, err error) error {
 		if err != nil {

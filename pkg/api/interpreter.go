@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 63
-// Purpose: Creates the ToolRegistry with the public wrapper, not the internal interpreter. FIX: Removed debug fmt.Println statements that were polluting stdout.
+// File version: 64
+// Purpose: Refactored to use the injected ProviderRegistry instead of its own RegisterProvider method.
 // filename: pkg/api/interpreter.go
-// nlines: 126
+// nlines: 125
 
 package api
 
@@ -14,9 +14,9 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/provider/google"
+
+	// "github.com/aprice2704/neuroscript/pkg/provider/google" // Removed
 	"github.com/aprice2704/neuroscript/pkg/tool"
-	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // Interpreter is a facade over the internal interpreter. It embeds the internal
@@ -39,22 +39,25 @@ func New(opts ...Option) *Interpreter {
 	// 2. Create the public API wrapper by embedding the internal one.
 	publicInterp := &Interpreter{Interpreter: internalInterp}
 
-	// THE FIX: STEP 2 - Set the back-reference from the internal interpreter to the public wrapper.
+	// 3. Set the back-reference from the internal interpreter to the public wrapper.
 	internalInterp.PublicAPI = publicInterp
 
-	// 3. Create the tool registry, passing the PUBLIC wrapper as the runtime.
+	// 4. Create the tool registry, passing the PUBLIC wrapper as the runtime.
 	// The registry will now pass this public wrapper to tools, which is
 	// correct for external tools and can be unwrapped for internal tools.
 	registry := tool.NewToolRegistry(publicInterp)
 
-	// 4. Inject the correctly-contextualized registry back into the internal interpreter.
+	// 5. Inject the correctly-contextualized registry back into the internal interpreter.
 	internalInterp.SetToolRegistry(registry)
 
-	// 5. Now, register standard tools on the new registry.
+	// 6. Now, register standard tools on the new registry.
 	internalInterp.RegisterStandardTools()
 
-	googleProvider := google.New()
-	internalInterp.RegisterProvider("google", googleProvider)
+	// 7. Provider registration is no longer hardcoded here.
+	// The host is responsible for creating a ProviderRegistry, populating it,
+	// and injecting it via the WithProviderRegistry option.
+	// googleProvider := google.New()
+	// internalInterp.RegisterProvider("google", googleProvider) // REMOVED
 
 	return publicInterp
 }
@@ -78,7 +81,8 @@ func (i *Interpreter) SetTurnContext(ctx context.Context) {
 // RegisterAgentModel overrides the embedded method to provide the correct public
 // API signature, accepting a map of native Go types.
 func (i *Interpreter) RegisterAgentModel(name string, config map[string]any) error {
-	return i.AgentModelsAdmin().Register(types.AgentModelName(name), config)
+	// This now correctly uses the string-based interface method
+	return i.AgentModelsAdmin().Register(name, config)
 }
 
 // GetVar retrieves a variable from the interpreter's current state.

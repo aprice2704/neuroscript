@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 38
-// Purpose: Adds debug output to print the memory address of the created clone.
+// File version: 39
+// Purpose: Ensures the root providerRegistry is correctly propagated to forks.
 // filename: pkg/interpreter/clone.go
-// nlines: 74
+// nlines: 75
 // risk_rating: HIGH
 
 package interpreter
@@ -31,6 +31,7 @@ func (i *Interpreter) fork() *Interpreter {
 		transientPrivateKey:  i.transientPrivateKey,
 		maxLoopIterations:    i.maxLoopIterations,
 		modelStore:           i.modelStore,
+		providerRegistry:     i.providerRegistry, // <-- ADDED (Task p1-clone)
 		ExecPolicy:           i.ExecPolicy,
 		accountStore:         i.accountStore,
 		capsuleStore:         i.capsuleStore,

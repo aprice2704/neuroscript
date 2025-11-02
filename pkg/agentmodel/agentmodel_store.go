@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 12
-// Purpose: Corrected mapstructure decoding logic for updates and backward compatibility.
+// File version: 13
+// Purpose: Aligned method signatures to string (from types.AgentModelName) and added RegisterFromModel(any) to match purified interface.
 // filename: pkg/agentmodel/agentmodel_store.go
-// nlines: 119
+// nlines: 153
 // risk_rating: HIGH
 
 package agentmodel
@@ -40,18 +40,18 @@ func NewAgentModelReader(s *AgentModelStore) interfaces.AgentModelReader {
 	return &agentModelReaderView{s: s}
 }
 
-func (v *agentModelReaderView) List() []types.AgentModelName {
+func (v *agentModelReaderView) List() []string {
 	v.s.mu.RLock()
 	defer v.s.mu.RUnlock()
-	out := make([]types.AgentModelName, 0, len(v.s.m))
+	out := make([]string, 0, len(v.s.m))
 	for _, model := range v.s.m {
-		out = append(out, model.Name)
+		out = append(out, string(model.Name)) // Convert types.AgentModelName to string
 	}
 	return out
 }
 
-func (v *agentModelReaderView) Get(name types.AgentModelName) (any, bool) {
-	key := strings.ToLower(string(name))
+func (v *agentModelReaderView) Get(name string) (any, bool) {
+	key := strings.ToLower(name)
 	v.s.mu.RLock()
 	defer v.s.mu.RUnlock()
 	model, ok := v.s.m[key]
@@ -69,17 +69,18 @@ func NewAgentModelAdmin(s *AgentModelStore, pol *policy.ExecPolicy) interfaces.A
 	return &agentModelAdminView{s: s, pol: pol}
 }
 
-func (v *agentModelAdminView) List() []types.AgentModelName { return NewAgentModelReader(v.s).List() }
+func (v *agentModelAdminView) List() []string { return NewAgentModelReader(v.s).List() }
 
-func (v *agentModelAdminView) Get(name types.AgentModelName) (any, bool) {
+func (v *agentModelAdminView) Get(name string) (any, bool) {
 	return NewAgentModelReader(v.s).Get(name)
 }
 
-func (v *agentModelAdminView) Register(name types.AgentModelName, cfg map[string]any) error {
+func (v *agentModelAdminView) Register(name string, cfg map[string]any) error {
 	if err := v.ensureConfigContext(); err != nil {
 		return err
 	}
-	key := strings.ToLower(string(name))
+	key := strings.ToLower(name)
+	modelName := types.AgentModelName(name) // Convert string to types.AgentModelName
 
 	v.s.mu.Lock()
 	defer v.s.mu.Unlock()
@@ -88,7 +89,7 @@ func (v *agentModelAdminView) Register(name types.AgentModelName, cfg map[string
 		return lang.ErrDuplicateKey
 	}
 
-	model, err := modelFromCfg(name, cfg, nil)
+	model, err := modelFromCfg(modelName, cfg, nil)
 	if err != nil {
 		return err
 	}
@@ -97,8 +98,17 @@ func (v *agentModelAdminView) Register(name types.AgentModelName, cfg map[string
 	return nil
 }
 
-// RegisterFromModel provides a type-safe way to register a pre-constructed AgentModel.
-func (v *agentModelAdminView) RegisterFromModel(model types.AgentModel) error {
+// RegisterFromModel (any) implements the interface.
+func (v *agentModelAdminView) RegisterFromModel(model any) error {
+	modelStruct, ok := model.(types.AgentModel)
+	if !ok {
+		return fmt.Errorf("invalid type for RegisterFromModel: expected types.AgentModel, got %T", model)
+	}
+	return v.registerFromModelInternal(modelStruct) // Call the type-safe internal method
+}
+
+// registerFromModelInternal provides a type-safe way for the host to register a pre-constructed AgentModel.
+func (v *agentModelAdminView) registerFromModelInternal(model types.AgentModel) error {
 	if err := v.ensureConfigContext(); err != nil {
 		return err
 	}
@@ -115,11 +125,12 @@ func (v *agentModelAdminView) RegisterFromModel(model types.AgentModel) error {
 	return nil
 }
 
-func (v *agentModelAdminView) Update(name types.AgentModelName, updates map[string]any) error {
+func (v *agentModelAdminView) Update(name string, updates map[string]any) error {
 	if err := v.ensureConfigContext(); err != nil {
 		return err
 	}
-	key := strings.ToLower(string(name))
+	key := strings.ToLower(name)
+	modelName := types.AgentModelName(name) // Convert string to types.AgentModelName
 
 	v.s.mu.Lock()
 	defer v.s.mu.Unlock()
@@ -129,7 +140,7 @@ func (v *agentModelAdminView) Update(name types.AgentModelName, updates map[stri
 		return lang.ErrNotFound
 	}
 
-	model, err := modelFromCfg(name, updates, &cur)
+	model, err := modelFromCfg(modelName, updates, &cur)
 	if err != nil {
 		return err
 	}
@@ -138,11 +149,11 @@ func (v *agentModelAdminView) Update(name types.AgentModelName, updates map[stri
 	return nil
 }
 
-func (v *agentModelAdminView) Delete(name types.AgentModelName) bool {
+func (v *agentModelAdminView) Delete(name string) bool {
 	if err := v.ensureConfigContext(); err != nil {
 		return false
 	}
-	key := strings.ToLower(string(name))
+	key := strings.ToLower(name)
 
 	v.s.mu.Lock()
 	defer v.s.mu.Unlock()

@@ -1,9 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 3
-// Purpose: Removes the obsolete 'tool.aeiou.magic' call from the mock provider.
-// filename: pkg/interpreter/interpreter_ask_prompt_wrapping_test.go
-// nlines: 98
-// risk_rating: LOW
+// File version: 4
+// Purpose: Fixed call to register provider using provider.NewAdmin.
+// filename: pkg/interpreter/ask_prompt_wrapping_test.go
+// nlines: 100
 
 package interpreter_test
 
@@ -74,7 +73,11 @@ func TestAskPromptWrapping(t *testing.T) {
 
 	h := NewTestHarness(t)
 	mockProv := &mockWrappingProvider{t: t, expectedPrompt: simplePrompt}
-	h.Interpreter.RegisterProvider("wrapping_checker", mockProv)
+	// --- FIX: Use provider.NewAdmin to register the provider ---
+	if err := provider.NewAdmin(h.ProviderRegistry, h.Interpreter.GetExecPolicy()).Register("wrapping_checker", mockProv); err != nil {
+		t.Fatalf("Failed to register mock provider: %v", err)
+	}
+	// --- End Fix ---
 
 	_ = h.Interpreter.RegisterAgentModel("test_agent", map[string]lang.Value{
 		"provider": lang.StringValue{Value: "wrapping_checker"},

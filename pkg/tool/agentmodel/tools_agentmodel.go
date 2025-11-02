@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.3
-// File version: 9
-// Purpose: Added debug output to toolGetAgentModel.
+// File version: 10
+// Purpose: Aligned all admin/reader calls to use plain 'string' for model names, fixing compiler errors.
 // filename: pkg/tool/agentmodel/tools_agentmodel.go
 // nlines: 171
 // risk_rating: HIGH
@@ -15,7 +15,6 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/tool"
-	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 type agentModelRuntime interface {
@@ -52,7 +51,8 @@ func toolRegisterAgentModel(rt tool.Runtime, args []interface{}) (interface{}, e
 	if !ok {
 		return nil, fmt.Errorf("argument 'config' must be a map[string]interface{}")
 	}
-	err = admin.Register(types.AgentModelName(name), config)
+	// FIX: Pass 'name' (string) directly, not types.AgentModelName(name)
+	err = admin.Register(name, config)
 	if err != nil {
 		if strings.Contains(err.Error(), "are required") {
 			return nil, fmt.Errorf("%w: %v", lang.ErrInvalidArgument, err)
@@ -75,7 +75,8 @@ func toolUpdateAgentModel(rt tool.Runtime, args []interface{}) (interface{}, err
 	if !ok {
 		return nil, fmt.Errorf("argument 'updates' must be a map[string]interface{}")
 	}
-	err = admin.Update(types.AgentModelName(name), updates)
+	// FIX: Pass 'name' (string) directly, not types.AgentModelName(name)
+	err = admin.Update(name, updates)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +92,8 @@ func toolDeleteAgentModel(rt tool.Runtime, args []interface{}) (interface{}, err
 	if !ok {
 		return nil, fmt.Errorf("argument 'name' must be a string")
 	}
-	return admin.Delete(types.AgentModelName(name)), nil
+	// FIX: Pass 'name' (string) directly, not types.AgentModelName(name)
+	return admin.Delete(name), nil
 }
 
 func toolListAgentModels(rt tool.Runtime, args []interface{}) (interface{}, error) {
@@ -99,13 +101,8 @@ func toolListAgentModels(rt tool.Runtime, args []interface{}) (interface{}, erro
 	if err != nil {
 		return nil, err
 	}
-	names := reader.List()
-	// Convert to []string for NeuroScript
-	stringNames := make([]string, len(names))
-	for i, n := range names {
-		stringNames[i] = string(n)
-	}
-	return stringNames, nil
+	// FIX: reader.List() now correctly returns []string, so no conversion is needed.
+	return reader.List(), nil
 }
 
 func toolGetAgentModel(rt tool.Runtime, args []interface{}) (interface{}, error) {
@@ -121,7 +118,8 @@ func toolGetAgentModel(rt tool.Runtime, args []interface{}) (interface{}, error)
 		return nil, fmt.Errorf("argument 'name' must be a string")
 	}
 	// fmt.Fprintf(os.Stderr, "DEBUG: toolGetAgentModel: Attempting to get model '%s'\n", name)
-	model, found := reader.Get(types.AgentModelName(name))
+	// FIX: Pass 'name' (string) directly, not types.AgentModelName(name)
+	model, found := reader.Get(name)
 	if !found {
 		// fmt.Fprintf(os.Stderr, "DEBUG: toolGetAgentModel: Model '%s' not found, returning nil map\n", name)
 		return lang.NewMapValue(nil), nil // Return nil if not found
@@ -152,7 +150,8 @@ func toolAgentModelExists(rt tool.Runtime, args []interface{}) (interface{}, err
 	if !ok {
 		return nil, fmt.Errorf("argument 'name' must be a string")
 	}
-	_, found := reader.Get(types.AgentModelName(name))
+	// FIX: Pass 'name' (string) directly, not types.AgentModelName(name)
+	_, found := reader.Get(name)
 	return found, nil
 }
 
@@ -172,7 +171,8 @@ func toolSelectAgentModel(rt tool.Runtime, args []interface{}) (interface{}, err
 
 	if name != "" {
 		// If a name is provided, check if it exists.
-		if _, found := reader.Get(types.AgentModelName(name)); !found {
+		// FIX: Pass 'name' (string) directly, not types.AgentModelName(name)
+		if _, found := reader.Get(name); !found {
 			return nil, lang.ErrNotFound
 		}
 		return name, nil
@@ -186,5 +186,6 @@ func toolSelectAgentModel(rt tool.Runtime, args []interface{}) (interface{}, err
 	sort.Slice(names, func(i, j int) bool {
 		return names[i] < names[j]
 	})
-	return string(names[0]), nil
+	// FIX: list() now returns []string, so just return the element.
+	return names[0], nil
 }

@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 2
-// Purpose: Tests for the AgentModelStore, covering create, read, update, delete, and policy enforcement.
+// File version: 3
+// Purpose: Updated admin/reader calls to use plain 'string' for model names instead of 'types.AgentModelName'.
 // filename: pkg/agentmodel/agentmodel_store_test.go
 // nlines: 198
 // risk_rating: MEDIUM
@@ -26,7 +26,7 @@ func TestAgentModelStore_Register(t *testing.T) {
 		name    string
 		store   *AgentModelStore
 		admin   interfaces.AgentModelAdmin
-		model   types.AgentModelName
+		model   string // Changed from types.AgentModelName
 		cfg     map[string]any
 		wantErr error
 	}{
@@ -91,7 +91,7 @@ func TestAgentModelStore_Update(t *testing.T) {
 		name    string
 		store   *AgentModelStore
 		admin   interfaces.AgentModelAdmin
-		model   types.AgentModelName
+		model   string // Changed from types.AgentModelName
 		updates map[string]any
 		wantErr error
 	}{
@@ -150,7 +150,7 @@ func TestAgentModelStore_Delete(t *testing.T) {
 		name      string
 		store     *AgentModelStore
 		admin     interfaces.AgentModelAdmin
-		model     types.AgentModelName
+		model     string // Changed from types.AgentModelName
 		wantFound bool
 	}{
 		{
@@ -201,7 +201,7 @@ func TestAgentModelStore_Get_List(t *testing.T) {
 	reader := NewAgentModelReader(store)
 
 	// Test Get
-	got, ok := reader.Get("gpt-4")
+	got, ok := reader.Get("gpt-4") // Use string
 	if !ok || !reflect.DeepEqual(got, models["gpt-4"]) {
 		t.Errorf("Get('gpt-4') = %v, %v, want %v, true", got, ok, models["gpt-4"])
 	}

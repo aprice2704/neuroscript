@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 3
-// Purpose: Updated test configurations to use snake_case keys.
+// File version: 5
+// Purpose: Confirmed test suite passes with the new RegisterFromAccount(any) interface method.
 // filename: pkg/account/store_test.go
-// nlines: 191
+// nlines: 247
 // risk_rating: LOW
 
 package account_test
@@ -26,6 +26,16 @@ func newValidConfig() map[string]interface{} {
 		"org_id":     "org-abc",
 		"project_id": "proj-xyz",
 		"notes":      "A test account",
+	}
+}
+
+func newValidAccount(name string) account.Account {
+	return account.Account{
+		Name:     name,
+		Kind:     "llm",
+		Provider: "test-provider",
+		APIKey:   "key-12345",
+		OrgID:    "org-abc",
 	}
 }
 
@@ -148,6 +158,82 @@ func TestAdminView_Register(t *testing.T) {
 
 			if !errors.Is(err, tc.wantErrIs) {
 				t.Errorf("Expected error wrapping [%v], but got: %v", tc.wantErrIs, err)
+			}
+		})
+	}
+}
+
+func TestAdminView_RegisterFromAccount(t *testing.T) {
+	configPolicy := &policy.ExecPolicy{Context: policy.ContextConfig}
+	invalidContextPolicy := &policy.ExecPolicy{Context: "invalid-context"}
+
+	testCases := []struct {
+		name      string
+		adminPol  *policy.ExecPolicy
+		setupFunc func(t *testing.T, s *account.Store)
+		acc       account.Account
+		wantErrIs error
+	}{
+		{
+			name:      "Success",
+			adminPol:  configPolicy,
+			acc:       newValidAccount("my-host-account"),
+			wantErrIs: nil,
+		},
+		{
+			name:     "Fail - Duplicate Key",
+			adminPol: configPolicy,
+			setupFunc: func(t *testing.T, s *account.Store) {
+				admin := account.NewAdmin(s, configPolicy)
+				// Pass the struct, which is received as 'any' by the implementation
+				if err := admin.RegisterFromAccount(newValidAccount("my-host-account")); err != nil {
+					t.Fatalf("Setup failed: %v", err)
+				}
+			},
+			acc:       newValidAccount("MY-HOST-ACCOUNT"), // case-insensitive
+			wantErrIs: lang.ErrDuplicateKey,
+		},
+		{
+			name:      "Fail - Empty Name",
+			adminPol:  configPolicy,
+			acc:       newValidAccount(""),
+			wantErrIs: account.ErrInvalidConfiguration,
+		},
+		{
+			name:      "Fail - Wrong Policy Context",
+			adminPol:  invalidContextPolicy,
+			acc:       newValidAccount("another-account"),
+			wantErrIs: policy.ErrTrust,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			s := account.NewStore()
+			admin := account.NewAdmin(s, tc.adminPol)
+
+			if tc.setupFunc != nil {
+				tc.setupFunc(t, s)
+			}
+
+			// Pass the struct (tc.acc), which will be treated as 'any'
+			// by the method, matching the interface.
+			err := admin.RegisterFromAccount(tc.acc)
+
+			if !errors.Is(err, tc.wantErrIs) {
+				t.Errorf("Expected error wrapping [%v], but got: %v", tc.wantErrIs, err)
+			}
+
+			if err == nil {
+				// Verify it was added correctly
+				reader := account.NewReader(s)
+				got, found := reader.Get(tc.acc.Name)
+				if !found {
+					t.Errorf("Account was not found after successful registration")
+				}
+				if !reflect.DeepEqual(got, tc.acc) {
+					t.Errorf("Registered account mismatch.\nGot:    %+v\nWanted: %+v", got, tc.acc)
+				}
 			}
 		})
 	}

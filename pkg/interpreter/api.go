@@ -1,7 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 15
-// Purpose: Adds the exported TurnContextProvider interface to allow tools to access turn-specific context. Adds KnownEventHandlers method.
+// File version: 18
+// Purpose: Corrects GetProvider to use the provider.NewReader interface.
 // filename: pkg/interpreter/api.go
+// nlines: 201
+// risk_rating: HIGH
 
 package interpreter
 
@@ -54,22 +56,26 @@ func (i *Interpreter) PromptUser(prompt string) (string, error) {
 	return strings.TrimSpace(response), nil
 }
 
-// RegisterProvider allows the host application to register a concrete AIProvider implementation.
-func (i *Interpreter) RegisterProvider(name string, p provider.AIProvider) {
-	i.rootInterpreter().state.providersMu.Lock()
-	defer i.rootInterpreter().state.providersMu.Unlock()
-	if i.rootInterpreter().state.providers == nil {
-		i.rootInterpreter().state.providers = make(map[string]provider.AIProvider)
-	}
-	i.rootInterpreter().state.providers[name] = p
-}
-
-// GetProvider retrieves a registered AIProvider by name.
+// GetProvider retrieves a registered AIProvider by name from the root registry.
+// --- UPDATED (Task g8p3) ---
 func (i *Interpreter) GetProvider(name string) (provider.AIProvider, bool) {
-	i.rootInterpreter().state.providersMu.RLock()
-	defer i.rootInterpreter().state.providersMu.RUnlock()
-	p, found := i.rootInterpreter().state.providers[name]
-	return p, found
+	if i.rootInterpreter().providerRegistry == nil {
+		i.Logger().Error("GetProvider called, but providerRegistry is nil", "interpreter_id", i.id)
+		return nil, false
+	}
+	// --- FIX: Get the reader view from the registry first ---
+	reader := provider.NewReader(i.rootInterpreter().providerRegistry)
+	raw, found := reader.Get(name) // Call Get() on the reader
+	if !found {
+		return nil, false
+	}
+	// Assert the type
+	p, ok := raw.(provider.AIProvider)
+	if !ok {
+		i.Logger().Error("Provider found in registry but has wrong type", "name", name, "type", fmt.Sprintf("%T", raw))
+		return nil, false
+	}
+	return p, true
 }
 
 // NTools returns the number of registered tools.
@@ -138,8 +144,8 @@ func (i *Interpreter) SetTurnContext(ctx context.Context) {
 
 // GetToolSpec satisfies the eval.Runtime interface by fetching the full tool
 // spec and converting it to the minimal eval.ToolSpec.
-func (i *Interpreter) GetToolSpec(toolName types.FullName) (eval.ToolSpec, bool) {
-	t, ok := i.tools.GetTool(toolName)
+func (i_1 *Interpreter) GetToolSpec(toolName types.FullName) (eval.ToolSpec, bool) {
+	t, ok := i_1.tools.GetTool(toolName)
 	if !ok {
 		return eval.ToolSpec{}, false
 	}

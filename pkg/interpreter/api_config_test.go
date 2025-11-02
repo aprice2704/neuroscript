@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 8
-// Purpose: Added test to verify the creation of a default execution policy.
+// File version: 9
+// Purpose: Fixed compile error by passing a 'string' (not types.AgentModelName) to AgentModels().Get().
 // filename: pkg/interpreter/api_config_test.go
 // nlines: 182
 // risk_rating: LOW
@@ -18,7 +18,6 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/policy"
-	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 func TestInterpreter_ConfigurationOptions(t *testing.T) {
@@ -187,7 +186,8 @@ func TestInterpreter_ConfigurationOptions(t *testing.T) {
 			t.Error("WithAccountStore failed: account registered via interpreter not found.")
 		}
 
-		_, agentExists := interp.AgentModels().Get(types.AgentModelName("test_agent"))
+		// FIX: Use string "test_agent"
+		_, agentExists := interp.AgentModels().Get("test_agent")
 		if !agentExists {
 			t.Error("WithAgentModelStore failed: agent model registered via interpreter not found.")
 		}

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 6
-// Purpose: Adds mapstructure tags to the AgentModel struct for automated config parsing.
+// File version: 7
+// Purpose: Adds the 'Params' map to store provider-specific configuration blocks.
 // filename: pkg/types/agentmodel.go
-// nlines: 81
+// nlines: 85
 // risk_rating: MEDIUM
 
 package types
@@ -50,6 +50,10 @@ type AgentModel struct {
 	Generation GenerationConfig `json:"generation,omitempty" mapstructure:",squash"`
 	Tools      ToolConfig       `json:"tools,omitempty" mapstructure:",squash"`
 	Safety     SafetyConfig     `json:"safety,omitempty" mapstructure:",squash"`
+
+	// Params holds provider-specific configuration, like "generic_http".
+	// This is the FIX that addresses the "model.Params undefined" error.
+	Params map[string]any `json:"params,omitempty" mapstructure:"params"`
 
 	// --- Deprecated Fields (for backward compatibility) ---
 	Temperature       float64 `json:"temperature,omitempty" mapstructure:"temperature"`

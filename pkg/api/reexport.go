@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 61
-// Purpose: Centralizes all public API re-exports. Removes the ambiguous WithActor option and adds TurnContextProvider. Corrects ToolGroup re-export.
+// File version: 66
+// Purpose: Corrected ExecContext re-export to policy.ExecContext.
 // filename: pkg/api/reexport.go
-// nlines: 144
+// nlines: 146
 // risk_rating: LOW
 package api
 
@@ -45,24 +45,28 @@ type (
 	}
 
 	// Policy & Capability Types
-	ExecPolicy  = policy.ExecPolicy
+	ExecPolicy = policy.ExecPolicy
+	// FIX: Corrected policy.Context to policy.ExecContext
 	ExecContext = policy.ExecContext
 	Capability  = capability.Capability
 	GrantSet    = capability.GrantSet
 
 	// AI & State Store Types
-	AIProvider           = provider.AIProvider
-	CapsuleRegistry      = capsule.Registry
-	AdminCapsuleRegistry = capsule.Registry
-	Capsule              = capsule.Capsule
-	AgentModel           = types.AgentModel
-	Account              = account.Account
-	AgentModelReader     = interfaces.AgentModelReader
-	AgentModelAdmin      = interfaces.AgentModelAdmin
-	AccountReader        = interfaces.AccountReader
-	AccountAdmin         = interfaces.AccountAdmin
-	AccountStore         = account.Store
-	AgentModelStore      = agentmodel.AgentModelStore
+	AIProvider             = provider.AIProvider
+	ProviderRegistry       = provider.Registry                 // NEW
+	ProviderRegistryReader = interfaces.ProviderRegistryReader // NEW
+	ProviderRegistryAdmin  = interfaces.ProviderRegistryAdmin  // NEW
+	CapsuleRegistry        = capsule.Registry
+	AdminCapsuleRegistry   = capsule.Registry
+	Capsule                = capsule.Capsule
+	AgentModel             = types.AgentModel
+	Account                = account.Account
+	AgentModelReader       = interfaces.AgentModelReader
+	AgentModelAdmin        = interfaces.AgentModelAdmin
+	AccountReader          = interfaces.AccountReader
+	AccountAdmin           = interfaces.AccountAdmin
+	AccountStore           = account.Store
+	AgentModelStore        = agentmodel.AgentModelStore
 
 	// Tooling Types
 	ToolImplementation = tool.ToolImplementation
@@ -124,15 +128,16 @@ var (
 	// Configuration
 	NewHostContextBuilder = interpreter.NewHostContextBuilder
 	// WithActor is intentionally removed. Identity must be set via WithHostContext.
-	WithGlobals              = interpreter.WithGlobals
+	WithGlobals              = interpreter.WithGlobals // RESTORED
 	WithExecPolicy           = interpreter.WithExecPolicy
 	WithSandboxDir           = interpreter.WithSandboxDir
 	WithoutStandardTools     = interpreter.WithoutStandardTools
 	WithAccountStore         = interpreter.WithAccountStore
 	WithAgentModelStore      = interpreter.WithAgentModelStore
+	WithProviderRegistry     = interpreter.WithProviderRegistry // NEW
 	WithCapsuleRegistry      = interpreter.WithCapsuleRegistry
 	WithCapsuleAdminRegistry = interpreter.WithCapsuleAdminRegistry
-	WithAITranscriptWriter   = interpreter.WithAITranscriptWriter
+	WithAITranscriptWriter   = interpreter.WithAITranscriptWriter // RESTORED
 
 	// Capability Constructors
 	NewCapability   = capability.New
@@ -144,6 +149,7 @@ var (
 	NewPolicyBuilder        = policy.NewBuilder
 	NewAccountStore         = account.NewStore
 	NewAgentModelStore      = agentmodel.NewAgentModelStore
-	NewAdminCapsuleRegistry = capsule.NewRegistry // Used for admin purposes
+	NewProviderRegistry     = provider.NewRegistry // NEW
+	NewAdminCapsuleRegistry = capsule.NewRegistry  // Used for admin purposes
 	MakeToolFullName        = types.MakeFullName
 )

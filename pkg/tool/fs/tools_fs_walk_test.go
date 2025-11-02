@@ -1,4 +1,8 @@
+// NeuroScript Version: 0.5.2
+// File version: 1
+// Purpose: Updated checkFunc to assert for []interface{} instead of []map[string]interface{} to match tool's new return type.
 // filename: pkg/tool/fs/tools_fs_walk_test.go
+// nlines: 55
 package fs_test
 
 import (
@@ -33,9 +37,10 @@ func TestToolWalk(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Unexpected error: %v", err)
 				}
-				resList, ok := result.([]map[string]interface{})
+				// --- MODIFIED ---
+				resList, ok := result.([]interface{})
 				if !ok {
-					t.Fatalf("Expected result to be a slice of maps, got %T", result)
+					t.Fatalf("Expected result to be a slice of interface{}, got %T", result)
 				}
 				// Expect 4 entries: file1.txt, dir1, dir1/file2.txt, dir2
 				if len(resList) != 4 {

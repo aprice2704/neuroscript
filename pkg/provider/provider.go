@@ -1,48 +1,34 @@
-// NeuroScript Version: 0.6.0
-// File version: 1
-// Purpose: Defines the interfaces and data structures for AI model providers.
+// NeuroScript Version: 0.8.0
+// File version: 3
+// Purpose: Added type aliases for types.AIRequest/AIResponse to fix compiler errors during refactor.
 // filename: pkg/provider/provider.go
-// nlines: 37
+// nlines: 26
 // risk_rating: HIGH
 
 package provider
 
 import (
 	"context"
-	"time"
+
+	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
-// AIRequest encapsulates all parameters for a request to an AI model.
-// It's constructed by the interpreter from the 'ask' statement's arguments
-// and the registered AgentModel's configuration.
-type AIRequest struct {
-	AgentModelName string
-	ProviderName   string
-	ModelName      string
-	BaseURL        string
-	APIKey         string
-	Prompt         string
-	Temperature    float64
-	Stream         bool
-	Timeout        time.Duration
-	// Add other common provider options here (e.g., JSON mode, schema) [cite: 5]
-}
+// --- Type Aliases for Refactoring ---
+// These aliases are used to fix compiler errors in other packages
+// that were importing from provider.AIRequest directly.
+// New code should use types.AIRequest and types.AIResponse.
 
-// AIResponse encapsulates the response from an AI model provider. [cite: 5]
-type AIResponse struct {
-	TextContent  string
-	InputTokens  int
-	OutputTokens int
-	Cost         float64
-	// Add other response fields here (e.g., raw response, finish reason)
-}
+type AIRequest = types.AIRequest
+type AIResponse = types.AIResponse
+
+// --- End Type Aliases ---
 
 // AIProvider is the interface for different AI model providers (e.g., OpenAI, Ollama).
 // The host application is responsible for registering concrete implementations with the
-// interpreter at startup. [cite: 6]
+// interpreter at startup.
 type AIProvider interface {
-	// Chat sends a non-streaming request to the provider. [cite: 5]
-	Chat(ctx context.Context, req AIRequest) (*AIResponse, error)
+	// Chat sends a non-streaming request to the provider.
+	Chat(ctx context.Context, req types.AIRequest) (*types.AIResponse, error)
 	// ChatStream sends a streaming request to the provider. (Future implementation)
-	// ChatStream(ctx context.Context, req AIRequest) (<-chan StreamChunk, error) [cite: 5]
+	// ChatStream(ctx context.Context, req types.AIRequest) (<-chan StreamChunk, error)
 }

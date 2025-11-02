@@ -1,9 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 5
-// Purpose: Removed the local ExecPolicy override to rely on the fully-privileged default from the TestHarness.
+// File version: 6
+// Purpose: Fixed call to register provider using provider.NewAdmin.
 // filename: pkg/interpreter/helpers_test.go
-// nlines: 32
-// risk_rating: LOW
+// nlines: 68
 
 package interpreter_test
 
@@ -50,7 +49,11 @@ func setupAskTest(t *testing.T) (*TestHarness, *mockAskProviderV3) {
 	// The local policy override has been removed.
 
 	mockProv := &mockAskProviderV3{}
-	h.Interpreter.RegisterProvider("mock_ask_provider", mockProv)
+	// --- FIX: Use provider.NewAdmin to register the provider ---
+	if err := provider.NewAdmin(h.ProviderRegistry, h.Interpreter.GetExecPolicy()).Register("mock_ask_provider", mockProv); err != nil {
+		t.Fatalf("Failed to register mock provider: %v", err)
+	}
+	// --- End Fix ---
 
 	agentConfig := map[string]any{
 		"provider": "mock_ask_provider",

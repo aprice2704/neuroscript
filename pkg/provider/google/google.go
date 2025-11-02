@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.0
-// File version: 10
-// Purpose: Fixed a URL construction bug by removing the extra slash before the model name, which was causing a 404 error due to a duplicated 'models/' path segment.
+// File version: 11
+// Purpose: Updated to import pkg/types and use types.AIRequest/types.AIResponse, fixing the interface implementation.
 // filename: pkg/provider/google/google.go
 // nlines: 174
 // risk_rating: MEDIUM
@@ -17,7 +17,7 @@ import (
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
-	"github.com/aprice2704/neuroscript/pkg/provider"
+	"github.com/aprice2704/neuroscript/pkg/types" // IMPORT FIX
 )
 
 const apiBaseURL = "https://generativelanguage.googleapis.com/v1/"
@@ -101,7 +101,8 @@ func (p *Provider) ListModels(apiKey string) ([]string, error) {
 
 // Chat sends a request to a Google AI model. It requires the prompt to be
 // a valid AEIOU envelope and will fail if it cannot be parsed.
-func (p *Provider) Chat(ctx context.Context, req provider.AIRequest) (*provider.AIResponse, error) {
+// SIGNATURE FIX: Changed provider.AIRequest -> types.AIRequest
+func (p *Provider) Chat(ctx context.Context, req types.AIRequest) (*types.AIResponse, error) {
 	if req.APIKey == "" {
 		return nil, fmt.Errorf("Google provider requires an API key")
 	}
@@ -165,7 +166,8 @@ func (p *Provider) Chat(ctx context.Context, req provider.AIRequest) (*provider.
 	}
 	textContent := geminiResp.Candidates[0].Content.Parts[0].Text
 
-	return &provider.AIResponse{
+	// SIGNATURE FIX: Changed provider.AIResponse -> types.AIResponse
+	return &types.AIResponse{
 		TextContent:  textContent,
 		InputTokens:  geminiResp.UsageMetadata.PromptTokenCount,
 		OutputTokens: geminiResp.UsageMetadata.CandidatesTokenCount,

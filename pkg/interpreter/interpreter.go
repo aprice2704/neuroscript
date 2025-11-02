@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 88
-// Purpose: Corrects test failures by calling RegisterStandardTools from the internal constructor, ensuring test interpreters have a populated tool registry.
+// File version: 89
+// Purpose: Integrates the root-level ProviderRegistry, completing step 1 of the refactor plan.
 // filename: pkg/interpreter/interpreter.go
-// nlines: 252
+// nlines: 260
 // risk_rating: HIGH
 
 package interpreter
@@ -22,6 +22,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/parser"
 	"github.com/aprice2704/neuroscript/pkg/policy"
+	"github.com/aprice2704/neuroscript/pkg/provider" // <-- Added import
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/google/uuid"
 )
@@ -50,6 +51,7 @@ type Interpreter struct {
 	objectCacheMu        sync.Mutex
 	skipStdTools         bool
 	modelStore           *agentmodel.AgentModelStore
+	providerRegistry     *provider.Registry // <-- ADDED (Task c1k4)
 	ExecPolicy           *policy.ExecPolicy
 	root                 *Interpreter
 	turnCtx              context.Context
@@ -120,6 +122,11 @@ func (i *Interpreter) SetAgentModelStore(store *agentmodel.AgentModelStore) {
 	i.rootInterpreter().modelStore = store
 }
 
+// SetProviderRegistry replaces the interpreter's default provider registry. // <-- ADDED (Task s9p7)
+func (i *Interpreter) SetProviderRegistry(registry *provider.Registry) {
+	i.rootInterpreter().providerRegistry = registry
+}
+
 func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	i := &Interpreter{
 		id:                fmt.Sprintf("interp-%s", uuid.NewString()[:8]),
@@ -139,6 +146,7 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	i.root = i // A root's root is itself.
 	i.modelStore = agentmodel.NewAgentModelStore()
 	i.accountStore = account.NewStore()
+	i.providerRegistry = provider.NewRegistry() // <-- ADDED
 
 	for _, opt := range opts {
 		opt(i)

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 13
-// Purpose: Fixes a syntax error in the mock provider's 'ACTIONS' block.
+// File version: 16
+// Purpose: Corrected call to provider.NewAdmin to include the ExecPolicy.
 // filename: pkg/interpreter/ask_emitter_test.go
-// nlines: 112
+// nlines: 115
 // risk_rating: LOW
 
 package interpreter_test
@@ -16,7 +16,6 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/provider"
-	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // mockEmitter is a test double that records calls to the Emitter interface.
@@ -77,18 +76,23 @@ func TestInterpreter_Ask_EmitterIntegration(t *testing.T) {
 	h.HostContext.Emitter = emitter
 
 	// THE FIX: Use our new simple mock provider instead of the obsolete test.New().
-	provider := &simplePingProvider{}
+	providerInstance := &simplePingProvider{} // Renamed from 'provider' to avoid shadowing
 	providerName := "test-provider"
 
-	interp.RegisterProvider(providerName, provider)
+	// --- FIX: Register provider via the harness's registry ---
+	if err := provider.NewAdmin(h.ProviderRegistry, h.Interpreter.GetExecPolicy()).Register(providerName, providerInstance); err != nil {
+		t.Fatalf("Failed to register mock provider: %v", err)
+	}
+	// --- End Fix ---
 	t.Logf("[DEBUG] Turn 2: Harness configured with emitter and provider.")
 
-	agentModelName := types.AgentModelName("test-agent")
+	agentModelName := "test-agent" // FIX: Use string
 	modelConfig := map[string]lang.Value{
 		"provider":            lang.StringValue{Value: providerName},
 		"model":               lang.StringValue{Value: "test-model"},
 		"tool_loop_permitted": lang.BoolValue{Value: true},
 	}
+	// FIX: Pass string 'agentModelName'
 	if err := interp.RegisterAgentModel(agentModelName, modelConfig); err != nil {
 		t.Fatalf("Failed to register agent model: %v", err)
 	}

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 4
-// Purpose: Updated config parser to use snake_case keys as per the new standard.
+// File version: 6
+// Purpose: Updated RegisterFromAccount to accept 'any' and perform type assertion, matching the purified interface.
 // filename: pkg/account/store.go
-// nlines: 135
+// nlines: 161
 // risk_rating: HIGH
 
 package account
@@ -86,6 +86,34 @@ func (v *adminView) Register(name string, cfg map[string]any) error {
 	}
 
 	v.s.m[key] = acc
+	return nil
+}
+
+// RegisterFromAccount implements the interface method, accepting 'any'
+// to break the import cycle.
+func (v *adminView) RegisterFromAccount(acc any) error {
+	if err := v.ensureConfigContext(); err != nil {
+		return err
+	}
+
+	accStruct, ok := acc.(Account)
+	if !ok {
+		return fmt.Errorf("invalid type for RegisterFromAccount: expected account.Account, got %T", acc)
+	}
+
+	key := strings.ToLower(accStruct.Name)
+	if key == "" {
+		return fmt.Errorf("account name cannot be empty: %w", ErrInvalidConfiguration)
+	}
+
+	v.s.mu.Lock()
+	defer v.s.mu.Unlock()
+
+	if _, exists := v.s.m[key]; exists {
+		return lang.ErrDuplicateKey
+	}
+
+	v.s.m[key] = accStruct
 	return nil
 }
 

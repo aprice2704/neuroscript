@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 21
-// Purpose: Updates mock provider to use the '<<<LOOP:DONE>>>' signal and verifies it stops the loop.
+// File version: 23
+// Purpose: Corrected calls to provider.NewAdmin to include the ExecPolicy.
 // filename: pkg/interpreter/ask_loop_test.go
-// nlines: 169
+// nlines: 172
 // risk_rating: LOW
 
 package interpreter_test
@@ -75,7 +75,11 @@ func (m *mockStuckProvider) Chat(ctx context.Context, req provider.AIRequest) (*
 func TestAutoLoop_Success(t *testing.T) {
 	h := NewTestHarness(t)
 	t.Logf("[DEBUG] Turn 1: Starting TestAutoLoop_Success.")
-	h.Interpreter.RegisterProvider("mock_looper", &mockLoopingProvider{t: t})
+	// --- FIX: Register provider via the harness's registry ---
+	if err := provider.NewAdmin(h.ProviderRegistry, h.Interpreter.GetExecPolicy()).Register("mock_looper", &mockLoopingProvider{t: t}); err != nil {
+		t.Fatalf("Failed to register mock provider: %v", err)
+	}
+	// --- End Fix ---
 
 	modelConfig := map[string]lang.Value{
 		"provider":            lang.StringValue{Value: "mock_looper"},
@@ -124,7 +128,11 @@ func TestAutoLoop_Success(t *testing.T) {
 func TestAutoLoop_MaxTurnsExceeded(t *testing.T) {
 	h := NewTestHarness(t)
 	t.Logf("[DEBUG] Turn 1: Starting TestAutoLoop_MaxTurnsExceeded.")
-	h.Interpreter.RegisterProvider("mock_looper", &mockLoopingProvider{t: t})
+	// --- FIX: Register provider via the harness's registry ---
+	if err := provider.NewAdmin(h.ProviderRegistry, h.Interpreter.GetExecPolicy()).Register("mock_looper", &mockLoopingProvider{t: t}); err != nil {
+		t.Fatalf("Failed to register mock provider: %v", err)
+	}
+	// --- End Fix ---
 
 	modelConfig := map[string]lang.Value{
 		"provider":            lang.StringValue{Value: "mock_looper"},
@@ -174,7 +182,11 @@ func TestAutoLoop_ProgressGuard(t *testing.T) {
 	h := NewTestHarness(t)
 	t.Logf("[DEBUG] Turn 1: Starting TestAutoLoop_ProgressGuard.")
 	mockProv := &mockStuckProvider{t: t}
-	h.Interpreter.RegisterProvider("mock_stuck_provider", mockProv)
+	// --- FIX: Register provider via the harness's registry ---
+	if err := provider.NewAdmin(h.ProviderRegistry, h.Interpreter.GetExecPolicy()).Register("mock_stuck_provider", mockProv); err != nil {
+		t.Fatalf("Failed to register mock provider: %v", err)
+	}
+	// --- End Fix ---
 
 	modelConfig := map[string]lang.Value{
 		"provider":            lang.StringValue{Value: "mock_stuck_provider"},

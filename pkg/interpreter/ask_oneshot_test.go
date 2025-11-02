@@ -1,9 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 12
-// Purpose: Refactored to remove obsolete loop permission tests. 'max_turns' now controls loops.
+// File version: 13
+// Purpose: Fixed call to register provider using provider.NewAdmin.
 // filename: pkg/interpreter/ask_oneshot_test.go
-// nlines: 66
-// risk_rating: LOW
+// nlines: 68
 
 package interpreter_test
 
@@ -47,7 +46,11 @@ func TestAskLoopPermission(t *testing.T) {
 	t.Run("Success: Agent in one-shot mode", func(t *testing.T) {
 		h := NewTestHarness(t)
 		t.Logf("[DEBUG] Turn 1: Starting 'Success: Agent in one-shot mode'.")
-		h.Interpreter.RegisterProvider("mock_permission_provider", &mockPermissionProvider{t: t})
+		// --- FIX: Use provider.NewAdmin to register the provider ---
+		if err := provider.NewAdmin(h.ProviderRegistry, h.Interpreter.GetExecPolicy()).Register("mock_permission_provider", &mockPermissionProvider{t: t}); err != nil {
+			t.Fatalf("Failed to register mock provider: %v", err)
+		}
+		// --- End Fix ---
 		_ = h.Interpreter.RegisterAgentModel("one_shot_agent", agentConfig)
 
 		script := `command

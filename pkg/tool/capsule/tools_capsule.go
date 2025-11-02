@@ -9,7 +9,6 @@ package capsule
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/capsule"
@@ -112,7 +111,7 @@ func getLatestCapsuleFunc(rt tool.Runtime, args []interface{}) (interface{}, err
 }
 
 func addCapsuleFunc(rt tool.Runtime, args []interface{}) (interface{}, error) {
-	fmt.Fprintf(os.Stderr, "\n[CAPSULE DEBUG] --- tool.capsule.Add called ---\n")
+	//	fmt.Fprintf(os.Stderr, "\n[CAPSULE DEBUG] --- tool.capsule.Add called ---\n")
 	reg, err := getCapsuleRegistryForAdmin(rt)
 	if err != nil {
 		return nil, err

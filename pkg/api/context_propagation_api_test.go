@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 8
-// Purpose: Removes obsolete EndToEnd and NestedCall context propagation tests per user request.
+// File version: 9
+// Purpose: Fixed provider registration to use provider.NewAdmin pattern.
 // filename: pkg/api/context_propagation_api_test.go
-// nlines: 201
+// nlines: 207
 // risk_rating: LOW
 
 package api_test
@@ -120,19 +120,32 @@ func setupPropagationTestAPI(t *testing.T, actor api.Actor, policy *api.ExecPoli
 		t.Fatalf("Failed to build HostContext: %v", err)
 	}
 
-	opts := []api.Option{api.WithHostContext(hc)}
+	// --- FIX: Create and inject provider registry ---
+	reg := provider.NewRegistry()
+	opts := []api.Option{
+		api.WithHostContext(hc),
+		api.WithProviderRegistry(reg), // Inject the registry
+	}
 	if policy != nil {
 		opts = append(opts, api.WithExecPolicy(policy))
 	}
 
 	interp := api.New(opts...)
+	// --- End Fix ---
 
 	if _, err := interp.ToolRegistry().RegisterTool(buildProbeToolAPI()); err != nil {
 		t.Fatalf("Failed to register probe tool: %v", err)
 	}
 
 	mockProv := &mockContextProviderAPI{t: t}
-	interp.RegisterProvider("probe_provider_api", mockProv)
+	// --- FIX: Use provider.NewAdmin to register the provider ---
+	// This assumes api.Interpreter has GetExecPolicy() and it returns
+	// a type compatible with provider.NewAdmin (e.g., *policy.ExecPolicy).
+	currentPolicy := interp.GetExecPolicy()
+	if err := provider.NewAdmin(reg, currentPolicy).Register("probe_provider_api", mockProv); err != nil {
+		t.Fatalf("Failed to register mock provider: %v", err)
+	}
+	// --- End Fix ---
 
 	// User confirmed this syntax error was fixed.
 	setupScript := `

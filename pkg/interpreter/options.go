@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 15
-// Purpose: Adds WithActor option to allow injecting identity into the interpreter's HostContext.
+// File version: 16
+// Purpose: Adds WithProviderRegistry option to support host-managed provider injection.
 // filename: pkg/interpreter/options.go
-// nlines: 109
+// nlines: 118
 // risk_rating: MEDIUM
 
 package interpreter
@@ -16,6 +16,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/parser"
 	"github.com/aprice2704/neuroscript/pkg/policy"
+	"github.com/aprice2704/neuroscript/pkg/provider" // FIX: Added provider import
 )
 
 // InterpreterOption defines a function signature for configuring an Interpreter.
@@ -124,5 +125,12 @@ func WithAccountStore(store *account.Store) InterpreterOption {
 func WithAgentModelStore(store *agentmodel.AgentModelStore) InterpreterOption {
 	return func(i *Interpreter) {
 		i.SetAgentModelStore(store)
+	}
+}
+
+// WithProviderRegistry provides a host-managed ProviderRegistry to the interpreter.
+func WithProviderRegistry(registry *provider.Registry) InterpreterOption {
+	return func(i *Interpreter) {
+		i.SetProviderRegistry(registry)
 	}
 }

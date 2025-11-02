@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 25
-// Purpose: Replaces undefined 'lang.ErrorCodeFormat' with 'lang.ErrorCodeSyntax' to fix compiler error.
+// File version: 26
+// Purpose: Wraps error from conn.Converse to provide a more specific error message.
 // filename: pkg/interpreter/steps_ask_hostloop.go
-// nlines: 188
+// nlines: 194
 // risk_rating: HIGH
 
 package interpreter
@@ -76,8 +76,12 @@ func (i *Interpreter) runAskHostLoop(pos *types.Position, agentModel *types.Agen
 		// The conn.Converse method handles interaction with the underlying provider.Chat
 		aiResp, err := conn.Converse(turnCtxForLLM, turnEnvelope)
 		if err != nil {
-			// Converse wraps provider errors; return the wrapped error directly.
-			// No need for lang.NewRuntimeError here, Converse should return one if appropriate.
+			// --- FIX: Wrap the error to ensure it's a RuntimeError ---
+			// This prevents the generic "internal error during ask"
+			if _, ok := err.(*lang.RuntimeError); !ok {
+				return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "AI provider conversation failed", err).WithPosition(pos)
+			}
+			// --- End Fix ---
 			return nil, err // Return error from Converse (could be provider error, context canceled, etc.)
 		}
 

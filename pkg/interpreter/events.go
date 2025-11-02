@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 44
-// Purpose: Added defer/recover to catch panics within event handlers and report them via EventHandlerErrorCallback.
+// File version: 45
+// Purpose: Fix bug where 'return' was disallowed in event handlers by correctly setting isInHandler to false.
 // filename: pkg/interpreter/events.go
 // nlines: 115
 // risk_rating: MEDIUM
@@ -114,7 +114,10 @@ func (i *Interpreter) EmitEvent(eventName string, source string, payload lang.Va
 			}
 
 			// Execute the handler steps
-			_, _, _, execErr = handlerInterpreter.executeSteps(h.Body, true, nil) //
+			// --- FIX: Set isInHandler to false. It should only be true
+			// --- when executing the *body* of an on_error block,
+			// --- not the entire event handler.
+			_, _, _, execErr = handlerInterpreter.executeSteps(h.Body, false, nil) //
 
 		}(handler) // Pass handler into the closure
 		// --- End Fix ---

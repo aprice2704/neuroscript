@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 37
-// Purpose: Updated the model name to the fully-qualified 'models/gemini-2.5-flash' and reverted the unnecessary lowercase tool name changes now that the provider and policygate are fixed.
+// File version: 38
+// Purpose: Fixed to register the live 'google' provider in the setup harness.
 // filename: pkg/livetest/askloop_test.go
-// nlines: 241
+// nlines: 254
 // risk_rating: HIGH
 
 package livetest_test
@@ -15,6 +15,8 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/api"
+	"github.com/aprice2704/neuroscript/pkg/provider"        // FIX: Import provider
+	"github.com/aprice2704/neuroscript/pkg/provider/google" // FIX: Import google provider
 )
 
 //go:embed test_scripts/agentic.txt
@@ -74,9 +76,20 @@ func setupLiveTest(t *testing.T, sandboxDir string) *api.Interpreter {
 	}
 
 	transcriptWriter := &aiTranscriptLogger{t: t}
+
+	// --- FIX: Create registry and register the 'google' provider ---
+	reg := provider.NewRegistry()
+	// Use a privileged policy for this setup registration
+	setupPolicy := api.NewPolicyBuilder(api.ContextConfig).Build()
+	if err := provider.NewAdmin(reg, setupPolicy).Register("google", google.New()); err != nil {
+		t.Fatalf("Failed to register live 'google' provider: %v", err)
+	}
+	// --- End Fix ---
+
 	extraOpts := []api.Option{
 		api.WithAITranscriptWriter(transcriptWriter),
 		api.WithSandboxDir(sandboxDir),
+		api.WithProviderRegistry(reg), // FIX: Inject the registry
 	}
 
 	interp := api.NewConfigInterpreter(allowedTools, requiredGrants, extraOpts...)

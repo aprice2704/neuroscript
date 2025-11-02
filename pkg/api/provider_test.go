@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 15
-// Purpose: Refactors test to remove dependency on 'tool.aeiou.magic', aligning with new design.
+// File version: 16
+// Purpose: Refactored test to use the new ProviderRegistry pattern, removing direct RegisterProvider calls.
 // filename: pkg/api/provider_test.go
-// nlines: 106
+// nlines: 108
 // risk_rating: LOW
 
 package api_test
@@ -14,7 +14,6 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/api"
-	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/provider"
 )
@@ -49,7 +48,6 @@ func main(returns string) means
 endfunc
 `
 	// Create an interpreter with a trusted 'config' context to allow registration.
-	// FIX: The policy no longer needs to allow tool.aeiou.magic.
 	configPolicy := &policy.ExecPolicy{
 		Context: policy.ContextConfig,
 		Allow:   []string{}, // No 'magic' tool needed
@@ -57,19 +55,26 @@ endfunc
 
 	// FIX: A HostContext is now mandatory for creating an interpreter.
 	hc := newTestHostContext(nil)
+
+	// FIX: Create and populate the new ProviderRegistry
+	providerRegistry := api.NewProviderRegistry()
+	providerAdmin := provider.NewAdmin(providerRegistry, configPolicy)
+	if err := providerAdmin.Register(providerName, &mockSimpleProvider{}); err != nil {
+		t.Fatalf("Failed to register provider in registry: %v", err)
+	}
+
 	interp := api.New(
 		api.WithHostContext(hc),
-		interpreter.WithExecPolicy(configPolicy),
+		api.WithExecPolicy(configPolicy),
+		api.WithProviderRegistry(providerRegistry), // Inject the registry
 	)
-
-	// Register our new mock provider.
-	interp.RegisterProvider(providerName, &mockSimpleProvider{})
 
 	// Register an AgentModel configured to use our test provider.
 	agentConfig := map[string]any{
 		"provider": providerName,
 		"model":    "default",
 	}
+	// Use the string-based method
 	if err := interp.RegisterAgentModel("test_agent", agentConfig); err != nil {
 		t.Fatalf("Failed to register agent model: %v", err)
 	}

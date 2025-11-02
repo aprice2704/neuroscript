@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.4.0
-// File version: 2
-// Purpose: Corrected toolMkdir to be idempotent, returning success if the directory already exists.
+// File version: 3
+// Purpose: Changed fileInfos slice type from []map[string]interface{} to []interface{} to fix lang.Wrap error.
 // nlines: 156 // Approximate
 // risk_rating: MEDIUM
 // filename: pkg/tool/fs/tools_fs_dirs.go
@@ -63,7 +63,7 @@ func toolListDirectory(interpreter tool.Runtime, args []interface{}) (interface{
 		return nil, lang.NewRuntimeError(lang.ErrorCodePathTypeMismatch, fmt.Sprintf("path '%s' is not a directory", relPath), lang.ErrPathNotDirectory)
 	}
 
-	var fileInfos = make([]map[string]interface{}, 0)
+	var fileInfos = make([]interface{}, 0) // <--- MODIFIED
 	if recursive {
 		walkErr := filepath.WalkDir(absBasePath, func(currentPath string, d fs.DirEntry, err error) error {
 			if err != nil || currentPath == absBasePath {

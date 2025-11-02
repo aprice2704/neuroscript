@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 55
-// Purpose: No code changes needed; test passes with the corrected model name in the associated 'oneshot.txt' script file.
+// File version: 56
+// Purpose: Fixed to register the live 'google' provider in the setup harness.
 // filename: pkg/livetest/oneshot_test.go
-// nlines: 194
+// nlines: 207
 // risk_rating: HIGH
 package livetest_test
 
@@ -17,6 +17,8 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/api"
 	"github.com/aprice2704/neuroscript/pkg/logging"
+	"github.com/aprice2704/neuroscript/pkg/provider"        // FIX: Import provider
+	"github.com/aprice2704/neuroscript/pkg/provider/google" // FIX: Import google provider
 )
 
 //go:embed test_scripts/oneshot.txt
@@ -74,9 +76,19 @@ func setupLiveInterpreter(t *testing.T, stdout *bytes.Buffer) *api.Interpreter {
 		t.Fatalf("Failed to build host context: %v", err)
 	}
 
+	// --- FIX: Create registry and register the 'google' provider ---
+	reg := provider.NewRegistry()
+	// Use a privileged policy for this setup registration
+	setupPolicy := api.NewPolicyBuilder(api.ContextConfig).Build()
+	if err := provider.NewAdmin(reg, setupPolicy).Register("google", google.New()); err != nil {
+		t.Fatalf("Failed to register live 'google' provider: %v", err)
+	}
+	// --- End Fix ---
+
 	extraOpts := []api.Option{
 		api.WithAITranscriptWriter(transcriptWriter),
 		api.WithHostContext(hostCtx),
+		api.WithProviderRegistry(reg), // FIX: Inject the registry
 	}
 
 	return api.NewConfigInterpreter(allowedTools, requiredGrants, extraOpts...)

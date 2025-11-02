@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 6.0.3
-// Purpose: Fixed a test-only import cycle issue by changing Mockpolicy.Registry to type any and using a type assertion.
+// File version: 6.0.4
+// Purpose: Aligned mock implementations with interface changes (string instead of types.AgentModelName).
 // filename: pkg/tool/internal/tools_helpers.go
-// nlines: 255
+// nlines: 257
 // risk_rating: MEDIUM
 
 package internal
@@ -248,21 +248,26 @@ type mockModelReader struct {
 	rt *MockRuntime
 }
 
-func (v *mockModelReader) List() []types.AgentModelName {
+// FIX: Signature changed to return []string
+func (v *mockModelReader) List() []string {
 	v.rt.mu.RLock()
 	defer v.rt.mu.RUnlock()
-	out := make([]types.AgentModelName, 0, len(v.rt.Models))
+	// FIX: Return []string
+	out := make([]string, 0, len(v.rt.Models))
 	for name := range v.rt.Models {
-		out = append(out, name)
+		// FIX: Convert name to string
+		out = append(out, string(name))
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
 	return out
 }
 
-func (v *mockModelReader) Get(name types.AgentModelName) (any, bool) {
+// FIX: Signature changed to accept string
+func (v *mockModelReader) Get(name string) (any, bool) {
 	v.rt.mu.RLock()
 	defer v.rt.mu.RUnlock()
-	model, ok := v.rt.Models[name]
+	// FIX: Convert string name back to types.AgentModelName for map lookup
+	model, ok := v.rt.Models[types.AgentModelName(name)]
 	return model, ok
 }
 
@@ -270,50 +275,70 @@ type mockModelAdmin struct {
 	rt *MockRuntime
 }
 
-func (v *mockModelAdmin) List() []types.AgentModelName {
+// FIX: Signature changed to return []string
+func (v *mockModelAdmin) List() []string {
 	return v.rt.AgentModels().List()
 }
 
-func (v *mockModelAdmin) Get(name types.AgentModelName) (any, bool) {
+// FIX: Signature changed to accept string
+func (v *mockModelAdmin) Get(name string) (any, bool) {
 	return v.rt.AgentModels().Get(name)
 }
 
-func (v *mockModelAdmin) Register(name types.AgentModelName, cfg map[string]any) error {
+// FIX: Signature changed to accept string
+func (v *mockModelAdmin) Register(name string, cfg map[string]any) error {
 	v.rt.mu.Lock()
 	defer v.rt.mu.Unlock()
-	if _, exists := v.rt.Models[name]; exists {
+	// FIX: Convert string name to types.AgentModelName for map operations
+	key := types.AgentModelName(name)
+	if _, exists := v.rt.Models[key]; exists {
 		return lang.ErrDuplicateKey
 	}
-	model := types.AgentModel{Name: name}
+	model := types.AgentModel{Name: key}
 	if p, ok := cfg["provider"].(string); ok {
 		model.Provider = p
 	}
 	if m, ok := cfg["model"].(string); ok {
 		model.Model = m
 	}
-	v.rt.Models[name] = model
+	v.rt.Models[key] = model
 	return nil
 }
 
-func (v *mockModelAdmin) Update(name types.AgentModelName, updates map[string]any) error {
+// FIX: Added missing RegisterFromModel to satisfy the interface
+func (v *mockModelAdmin) RegisterFromModel(model any) error {
+	modelStruct, ok := model.(types.AgentModel)
+	if !ok {
+		return fmt.Errorf("mockModelAdmin: invalid type for RegisterFromModel, expected types.AgentModel")
+	}
+	return v.Register(string(modelStruct.Name), nil) // Simple mock
+}
+
+// FIX: Signature changed to accept string
+func (v *mockModelAdmin) Update(name string, updates map[string]any) error {
 	v.rt.mu.Lock()
 	defer v.rt.mu.Unlock()
-	model, exists := v.rt.Models[name]
+	// FIX: Convert string name to types.AgentModelName for map operations
+	key := types.AgentModelName(name)
+	model, exists := v.rt.Models[key]
 	if !exists {
 		return lang.ErrNotFound
 	}
 	if p, ok := updates["provider"].(string); ok {
 		model.Provider = p
 	}
-	v.rt.Models[name] = model
+	v.rt.Models[key] = model
 	return nil
 }
 
-func (v *mockModelAdmin) Delete(name types.AgentModelName) bool {
+// FIX: Signature changed to accept string
+func (v *mockModelAdmin) Delete(name string) bool {
 	v.rt.mu.Lock()
 	defer v.rt.mu.Unlock()
-	if _, exists := v.rt.Models[name]; exists {
-		delete(v.rt.Models, name)
+	// FIX: Convert string name to types.AgentModelName for map operations
+	key := types.AgentModelName(name)
+	if _, exists := v.rt.Models[key]; exists {
+		delete(v.rt.Models, key)
 		return true
 	}
 	return false
