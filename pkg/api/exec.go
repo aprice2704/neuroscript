@@ -1,13 +1,14 @@
 // NeuroScript Version: 0.8.0
-// File version: 30
-// Purpose: Corrects CheckScriptTools to use the registry's canonicalizing GetTool lookup and report full tool names.
+// File version: 32
+// Purpose: Corrects ExecuteSandboxedAST to use the new interpreter.ForkSandboxed() method.
 // filename: pkg/api/exec.go
-// nlines: 139
+// nlines: 198
 // risk_rating: HIGH
 
 package api
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -48,10 +49,7 @@ func CheckScriptTools(tree *Tree, interp Runtime) error {
 
 	var missingTools []string
 	for rawToolName := range requiredTools {
-		// The registry's GetTool function handles canonicalization (e.g., adding "tool." if missing).
-		// We pass the raw name (e.g., "test.dummy") from the visitor.
 		if _, found := registry.GetTool(types.FullName(rawToolName)); !found {
-			// For the error message, show the user the fully qualified name they'd expect.
 			missingTools = append(missingTools, "tool."+rawToolName)
 		}
 	}
@@ -163,4 +161,77 @@ func RunProcedure(ctx context.Context, interp *Interpreter, name string, args ..
 		}
 	}
 	return interp.Run(name, wrappedArgs...)
+}
+
+// ExecuteSandboxedAST runs a pre-parsed AST in a sandboxed fork
+// of the provided interpreter. It captures and returns all
+// 'emit' and 'whisper' I/O from the execution.
+// This is the core callback for the AEIOU v2+ host loop.
+func ExecuteSandboxedAST(
+	interp *Interpreter,
+	tree *interfaces.Tree,
+	turnCtx context.Context,
+) (
+	emits []string,
+	whispers map[string]lang.Value,
+	execErr error,
+) {
+	if interp == nil {
+		execErr = fmt.Errorf("ExecuteSandboxedAST: interpreter cannot be nil")
+		return
+	}
+	if tree == nil || tree.Root == nil {
+		execErr = fmt.Errorf("ExecuteSandboxedAST: tree cannot be nil")
+		return
+	}
+	program, ok := tree.Root.(*ast.Program)
+	if !ok {
+		execErr = fmt.Errorf("ExecuteSandboxedAST: tree root is not a runnable *ast.Program, but %T", tree.Root)
+		return
+	}
+
+	// 1. Get the internal "root" interpreter.
+	rootInterp, ok := interp.Unwrap().(*interpreter.Interpreter)
+	if !ok {
+		execErr = fmt.Errorf("ExecuteSandboxedAST: could not unwrap internal interpreter")
+		return
+	}
+
+	// 2. Create a sandboxed fork using the new exported method.
+	// This fixes the 'undefined: fork' and 'undefined: ForkOptions' errors.
+	execInterp, err := rootInterp.ForkSandboxed()
+	if err != nil {
+		execErr = fmt.Errorf("ExecuteSandboxedAST: failed to fork interpreter: %w", err)
+		return
+	}
+
+	// 3. Set the ephemeral turn context.
+	execInterp.SetTurnContext(turnCtx)
+
+	// 4. Set up I/O capture for emits and whispers.
+	emits = []string{}
+	whispers = make(map[string]lang.Value)
+	var emitBuf bytes.Buffer
+
+	// Get a mutable copy of the fork's host context.
+	turnHostContext := *execInterp.HostContext()
+	turnHostContext.EmitFunc = func(v lang.Value) {
+		fmt.Fprintln(&emitBuf, lang.Unwrap(v))
+	}
+	turnHostContext.WhisperFunc = func(handle, data lang.Value) {
+		whispers[handle.String()] = data
+	}
+	execInterp.SetHostContext(&turnHostContext)
+
+	// 5. Execute the AST's 'command' blocks.
+	_, execErr = execInterp.Execute(program)
+
+	// 6. Process captured emits.
+	rawEmits := strings.TrimSpace(emitBuf.String())
+	if rawEmits != "" {
+		emits = strings.Split(rawEmits, "\n")
+	}
+
+	// 7. Return captured data and any execution error.
+	return emits, whispers, execErr
 }

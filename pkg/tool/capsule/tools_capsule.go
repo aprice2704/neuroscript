@@ -1,17 +1,19 @@
-// NeuroScript Version: 0.7.2
-// File version: 1
-// Purpose: Consolidates capsule tool definitions and implementations into a single file to resolve scoping issues.
+// NeuroScript Version: 0.8.0
+// File version: 3
+// Purpose: Wraps the 'any' result from CapsuleProvider with lang.Wrap().
 // filename: pkg/tool/capsule/tools.go
-// nlines: 190
+// nlines: 247
 // risk_rating: HIGH
 package capsule
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/capsule"
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/metadata"
 	"github.com/aprice2704/neuroscript/pkg/tool"
@@ -20,15 +22,23 @@ import (
 // --- Tool Functions ---
 
 // capsuleRuntime defines the interface we expect from the runtime
-// for capsule store read operations.
+// for capsule store read operations (the fallback).
 type capsuleRuntime interface {
 	CapsuleStore() *capsule.Store
 }
 
-// capsuleAdminRuntime defines the interface for write operations,
+// capsuleAdminRuntime defines the interface for write operations (the fallback),
 // allowing access to a mutable registry.
 type capsuleAdminRuntime interface {
 	CapsuleRegistryForAdmin() *capsule.Registry
+}
+
+// capsuleProviderRuntime defines the interface we expect from the runtime
+// if it has a host-provided capsule provider.
+type capsuleProviderRuntime interface {
+	tool.Runtime // Embed base runtime
+	CapsuleProvider() interfaces.CapsuleProvider
+	GetTurnContext() context.Context
 }
 
 func getCapsuleStore(rt tool.Runtime) (*capsule.Store, error) {
@@ -56,6 +66,19 @@ func getCapsuleRegistryForAdmin(rt tool.Runtime) (*capsule.Registry, error) {
 }
 
 func listCapsulesFunc(rt tool.Runtime, args []interface{}) (interface{}, error) {
+	// 1. Check for host-provided capsule service
+	if providerRuntime, ok := rt.(capsuleProviderRuntime); ok {
+		if provider := providerRuntime.CapsuleProvider(); provider != nil {
+			nativeResult, err := provider.List(providerRuntime.GetTurnContext())
+			if err != nil {
+				return nil, err
+			}
+			// Wrap the primitive 'any' result into a lang.Value
+			return lang.Wrap(nativeResult)
+		}
+	}
+
+	// 2. Fallback to internal registry logic
 	store, err := getCapsuleStore(rt)
 	if err != nil {
 		return nil, err
@@ -69,13 +92,27 @@ func listCapsulesFunc(rt tool.Runtime, args []interface{}) (interface{}, error) 
 }
 
 func readCapsuleFunc(rt tool.Runtime, args []interface{}) (interface{}, error) {
-	store, err := getCapsuleStore(rt)
-	if err != nil {
-		return nil, err
-	}
 	id, ok := args[0].(string)
 	if !ok {
 		return nil, lang.ErrInvalidArgument
+	}
+
+	// 1. Check for host-provided capsule service
+	if providerRuntime, ok := rt.(capsuleProviderRuntime); ok {
+		if provider := providerRuntime.CapsuleProvider(); provider != nil {
+			nativeResult, err := provider.Read(providerRuntime.GetTurnContext(), id)
+			if err != nil {
+				return nil, err
+			}
+			// Wrap the primitive 'any' result into a lang.Value
+			return lang.Wrap(nativeResult)
+		}
+	}
+
+	// 2. Fallback to internal registry logic
+	store, err := getCapsuleStore(rt)
+	if err != nil {
+		return nil, err
 	}
 
 	parts := strings.Split(id, "@")
@@ -93,13 +130,27 @@ func readCapsuleFunc(rt tool.Runtime, args []interface{}) (interface{}, error) {
 }
 
 func getLatestCapsuleFunc(rt tool.Runtime, args []interface{}) (interface{}, error) {
-	store, err := getCapsuleStore(rt)
-	if err != nil {
-		return nil, err
-	}
 	name, ok := args[0].(string)
 	if !ok {
 		return nil, lang.ErrInvalidArgument
+	}
+
+	// 1. Check for host-provided capsule service
+	if providerRuntime, ok := rt.(capsuleProviderRuntime); ok {
+		if provider := providerRuntime.CapsuleProvider(); provider != nil {
+			nativeResult, err := provider.GetLatest(providerRuntime.GetTurnContext(), name)
+			if err != nil {
+				return nil, err
+			}
+			// Wrap the primitive 'any' result into a lang.Value
+			return lang.Wrap(nativeResult)
+		}
+	}
+
+	// 2. Fallback to internal registry logic
+	store, err := getCapsuleStore(rt)
+	if err != nil {
+		return nil, err
 	}
 
 	c, found := store.GetLatest(name)
@@ -111,14 +162,28 @@ func getLatestCapsuleFunc(rt tool.Runtime, args []interface{}) (interface{}, err
 }
 
 func addCapsuleFunc(rt tool.Runtime, args []interface{}) (interface{}, error) {
-	//	fmt.Fprintf(os.Stderr, "\n[CAPSULE DEBUG] --- tool.capsule.Add called ---\n")
-	reg, err := getCapsuleRegistryForAdmin(rt)
-	if err != nil {
-		return nil, err
-	}
 	capsuleContent, ok := args[0].(string)
 	if !ok {
 		return nil, lang.ErrInvalidArgument
+	}
+
+	// 1. Check for host-provided capsule service
+	if providerRuntime, ok := rt.(capsuleProviderRuntime); ok {
+		if provider := providerRuntime.CapsuleProvider(); provider != nil {
+			nativeResult, err := provider.Add(providerRuntime.GetTurnContext(), capsuleContent)
+			if err != nil {
+				return nil, err
+			}
+			// Wrap the primitive 'any' result into a lang.Value
+			return lang.Wrap(nativeResult)
+		}
+	}
+
+	// 2. Fallback to internal registry logic
+	//	fmt.Fprintf(os.Stderr, "\n[CAPSULE DEBUG] --- tool.capsule.Add called (fallback) ---\n")
+	reg, err := getCapsuleRegistryForAdmin(rt)
+	if err != nil {
+		return nil, err
 	}
 
 	meta, contentBody, _, err := metadata.ParseWithAutoDetect(strings.NewReader(capsuleContent))

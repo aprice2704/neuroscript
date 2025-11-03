@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 16
-// Purpose: Refactored test to use the new ProviderRegistry pattern, removing direct RegisterProvider calls.
+// File version: 22
+// Purpose: Removes incorrect 'Allow("model:admin:*")' from policy builder.
 // filename: pkg/api/provider_test.go
-// nlines: 108
+// nlines: 109
 // risk_rating: LOW
 
 package api_test
@@ -14,7 +14,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/api"
-	"github.com/aprice2704/neuroscript/pkg/policy"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/provider"
 )
 
@@ -48,10 +48,13 @@ func main(returns string) means
 endfunc
 `
 	// Create an interpreter with a trusted 'config' context to allow registration.
-	configPolicy := &policy.ExecPolicy{
-		Context: policy.ContextConfig,
-		Allow:   []string{}, // No 'magic' tool needed
-	}
+	// FIX: Add grant AND allow the 'tool.agentmodel.register' tool.
+	grant := api.MustParse("model:admin:*")
+	configPolicy := api.NewPolicyBuilder(api.ContextConfig).
+		GrantCap(grant).
+		Allow("tool.agentmodel.register").
+		// REMOVED: Allow("model:admin:*") <-- This was incorrect.
+		Build()
 
 	// FIX: A HostContext is now mandatory for creating an interpreter.
 	hc := newTestHostContext(nil)
@@ -70,9 +73,9 @@ endfunc
 	)
 
 	// Register an AgentModel configured to use our test provider.
-	agentConfig := map[string]any{
-		"provider": providerName,
-		"model":    "default",
+	agentConfig := map[string]lang.Value{
+		"provider": lang.StringValue{Value: providerName},
+		"model":    lang.StringValue{Value: "default"},
 	}
 	// Use the string-based method
 	if err := interp.RegisterAgentModel("test_agent", agentConfig); err != nil {

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 89
-// Purpose: Integrates the root-level ProviderRegistry, completing step 1 of the refactor plan.
+// File version: 93
+// Purpose: Adds the missing SetPublicAPI method to link the internal interpreter to its public wrapper.
 // filename: pkg/interpreter/interpreter.go
-// nlines: 260
+// nlines: 317
 // risk_rating: HIGH
 
 package interpreter
@@ -22,7 +22,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/parser"
 	"github.com/aprice2704/neuroscript/pkg/policy"
-	"github.com/aprice2704/neuroscript/pkg/provider" // <-- Added import
+	"github.com/aprice2704/neuroscript/pkg/provider"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/google/uuid"
 )
@@ -51,7 +51,7 @@ type Interpreter struct {
 	objectCacheMu        sync.Mutex
 	skipStdTools         bool
 	modelStore           *agentmodel.AgentModelStore
-	providerRegistry     *provider.Registry // <-- ADDED (Task c1k4)
+	providerRegistry     *provider.Registry
 	ExecPolicy           *policy.ExecPolicy
 	root                 *Interpreter
 	turnCtx              context.Context
@@ -59,6 +59,7 @@ type Interpreter struct {
 	accountStore         *account.Store
 	capsuleStore         *capsule.Store
 	adminCapsuleRegistry *capsule.Registry
+	capsuleProvider      interfaces.CapsuleProvider // ADDED
 	parser               *parser.ParserAPI
 	astBuilder           *parser.ASTBuilder
 
@@ -85,14 +86,18 @@ func (i *Interpreter) ASTBuilder() *parser.ASTBuilder {
 
 // SetToolRegistry allows the public API wrapper to replace the tool registry.
 func (i *Interpreter) SetToolRegistry(r tool.ToolRegistry) {
-	// fmt.Printf("[DEBUG] SetToolRegistry: Interpreter %s registry is being OVERWRITTEN by public API wrapper.\n", i.id)
 	i.tools = r
 }
 
-// RegisterStandardTools registers the built-in toolsets. This is called by the
-// public api.New wrapper after the tool registry has been correctly initialized.
+// SetPublicAPI allows the public API wrapper to set a pointer to itself.
+// This is used by internal components (like the 'ask' hook) to ensure
+// they pass the public, wrapped interpreter to external services.
+func (i *Interpreter) SetPublicAPI(publicAPI tool.Runtime) {
+	i.PublicAPI = publicAPI
+}
+
+// RegisterStandardTools registers the built-in toolsets.
 func (i *Interpreter) RegisterStandardTools() {
-	// fmt.Printf("[DEBUG] RegisterStandardTools called for interpreter %s. Registry is nil: %v\n", i.id, i.tools == nil)
 	if i.tools == nil {
 		i.Logger().Warn("RegisterStandardTools called with a nil tool registry. Skipping.")
 		return
@@ -122,9 +127,14 @@ func (i *Interpreter) SetAgentModelStore(store *agentmodel.AgentModelStore) {
 	i.rootInterpreter().modelStore = store
 }
 
-// SetProviderRegistry replaces the interpreter's default provider registry. // <-- ADDED (Task s9p7)
+// SetProviderRegistry replaces the interpreter's default provider registry.
 func (i *Interpreter) SetProviderRegistry(registry *provider.Registry) {
 	i.rootInterpreter().providerRegistry = registry
+}
+
+// SetCapsuleProvider replaces the interpreter's default capsule logic with a host-provided one.
+func (i *Interpreter) SetCapsuleProvider(provider interfaces.CapsuleProvider) {
+	i.rootInterpreter().capsuleProvider = provider
 }
 
 func NewInterpreter(opts ...InterpreterOption) *Interpreter {
@@ -141,12 +151,11 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	}
 
 	i.tools = tool.NewToolRegistry(i)
-	// fmt.Printf("[DEBUG] NewInterpreter (internal): Interpreter %s created with a default, NON-IDENTITY-AWARE tool registry.\n", i.id)
 
 	i.root = i // A root's root is itself.
 	i.modelStore = agentmodel.NewAgentModelStore()
 	i.accountStore = account.NewStore()
-	i.providerRegistry = provider.NewRegistry() // <-- ADDED
+	i.providerRegistry = provider.NewRegistry()
 
 	for _, opt := range opts {
 		opt(i)
@@ -175,10 +184,7 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	}
 	i.bufferManager.Create(DefaultSelfHandle)
 
-	// THE FIX: Register standard tools for test interpreters.
-	// This ensures tests calling NewInterpreter directly get a populated registry.
 	i.RegisterStandardTools()
-	// fmt.Printf("[DEBUG] NewInterpreter (internal): Standard tools registered for interpreter %s.\n", i.id)
 
 	i.SetInitialVariable("self", lang.StringValue{Value: DefaultSelfHandle})
 	return i
@@ -187,6 +193,11 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 // CapsuleStore returns the interpreter's layered capsule store.
 func (i *Interpreter) CapsuleStore() *capsule.Store {
 	return i.capsuleStore
+}
+
+// CapsuleProvider returns the host-provided capsule service, if one was injected.
+func (i *Interpreter) CapsuleProvider() interfaces.CapsuleProvider {
+	return i.rootInterpreter().capsuleProvider
 }
 
 // RunProcedure is the public entry point for running a procedure.
@@ -289,4 +300,27 @@ func (i *Interpreter) Actor() (interfaces.Actor, bool) {
 		return nil, false
 	}
 	return i.hostContext.Actor, true
+}
+
+// ForkSandboxed creates a new, sandboxed interpreter for executing
+// an 'ask' loop action, as required by api.ExecuteSandboxedAST.
+// It calls the unexported fork().
+func (i *Interpreter) ForkSandboxed() (*Interpreter, error) {
+	// This must be called on the root interpreter.
+	root := i.rootInterpreter()
+
+	// FIX: Call the internal fork() with no arguments, as per clone.go.
+	clone := root.fork()
+
+	// FIX: Return the clone and a nil error to match the API signature
+	// and fix the 'not enough return values' error.
+	return clone, nil
+}
+
+// SetHostContext allows replacing the interpreter's HostContext.
+// This is used by sandboxing APIs like ExecuteSandboxedAST to
+// inject an I/O-capturing context onto a fork.
+// This FIXES the 'SetHostContext undefined' error.
+func (i *Interpreter) SetHostContext(hc *HostContext) {
+	i.hostContext = hc
 }

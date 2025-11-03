@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 66
-// Purpose: Corrected ExecContext re-export to policy.ExecContext.
+// File version: 68
+// Purpose: Re-exports CapsuleStore interface.
 // filename: pkg/api/reexport.go
-// nlines: 146
+// nlines: 151
 // risk_rating: LOW
 package api
 
@@ -53,12 +53,14 @@ type (
 
 	// AI & State Store Types
 	AIProvider             = provider.AIProvider
-	ProviderRegistry       = provider.Registry                 // NEW
-	ProviderRegistryReader = interfaces.ProviderRegistryReader // NEW
-	ProviderRegistryAdmin  = interfaces.ProviderRegistryAdmin  // NEW
+	ProviderRegistry       = provider.Registry
+	ProviderRegistryReader = interfaces.ProviderRegistryReader
+	ProviderRegistryAdmin  = interfaces.ProviderRegistryAdmin
 	CapsuleRegistry        = capsule.Registry
 	AdminCapsuleRegistry   = capsule.Registry
 	Capsule                = capsule.Capsule
+	CapsuleProvider        = interfaces.CapsuleProvider // ADDED
+	CapsuleStore           = capsule.Store              // ADDED
 	AgentModel             = types.AgentModel
 	Account                = account.Account
 	AgentModelReader       = interfaces.AgentModelReader
@@ -128,16 +130,17 @@ var (
 	// Configuration
 	NewHostContextBuilder = interpreter.NewHostContextBuilder
 	// WithActor is intentionally removed. Identity must be set via WithHostContext.
-	WithGlobals              = interpreter.WithGlobals // RESTORED
+	WithGlobals              = interpreter.WithGlobals
 	WithExecPolicy           = interpreter.WithExecPolicy
 	WithSandboxDir           = interpreter.WithSandboxDir
 	WithoutStandardTools     = interpreter.WithoutStandardTools
 	WithAccountStore         = interpreter.WithAccountStore
 	WithAgentModelStore      = interpreter.WithAgentModelStore
-	WithProviderRegistry     = interpreter.WithProviderRegistry // NEW
+	WithProviderRegistry     = interpreter.WithProviderRegistry
 	WithCapsuleRegistry      = interpreter.WithCapsuleRegistry
 	WithCapsuleAdminRegistry = interpreter.WithCapsuleAdminRegistry
-	WithAITranscriptWriter   = interpreter.WithAITranscriptWriter // RESTORED
+	WithCapsuleProvider      = interpreter.WithCapsuleProvider // ADDED
+	WithAITranscriptWriter   = interpreter.WithAITranscriptWriter
 
 	// Capability Constructors
 	NewCapability   = capability.New
@@ -149,7 +152,7 @@ var (
 	NewPolicyBuilder        = policy.NewBuilder
 	NewAccountStore         = account.NewStore
 	NewAgentModelStore      = agentmodel.NewAgentModelStore
-	NewProviderRegistry     = provider.NewRegistry // NEW
-	NewAdminCapsuleRegistry = capsule.NewRegistry  // Used for admin purposes
+	NewProviderRegistry     = provider.NewRegistry
+	NewAdminCapsuleRegistry = capsule.NewRegistry // Used for admin purposes
 	MakeToolFullName        = types.MakeFullName
 )

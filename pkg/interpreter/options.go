@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 16
-// Purpose: Adds WithProviderRegistry option to support host-managed provider injection.
+// File version: 17
+// Purpose: Adds WithCapsuleProvider option to support host-managed capsule service.
 // filename: pkg/interpreter/options.go
-// nlines: 118
+// nlines: 124
 // risk_rating: MEDIUM
 
 package interpreter
@@ -16,7 +16,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/parser"
 	"github.com/aprice2704/neuroscript/pkg/policy"
-	"github.com/aprice2704/neuroscript/pkg/provider" // FIX: Added provider import
+	"github.com/aprice2704/neuroscript/pkg/provider"
 )
 
 // InterpreterOption defines a function signature for configuring an Interpreter.
@@ -132,5 +132,13 @@ func WithAgentModelStore(store *agentmodel.AgentModelStore) InterpreterOption {
 func WithProviderRegistry(registry *provider.Registry) InterpreterOption {
 	return func(i *Interpreter) {
 		i.SetProviderRegistry(registry)
+	}
+}
+
+// WithCapsuleProvider provides a host-managed CapsuleProvider to the interpreter,
+// overriding all internal capsule logic.
+func WithCapsuleProvider(provider interfaces.CapsuleProvider) InterpreterOption {
+	return func(i *Interpreter) {
+		i.SetCapsuleProvider(provider)
 	}
 }

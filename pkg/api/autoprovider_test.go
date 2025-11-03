@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 21
-// Purpose: Refactored test to use the new ProviderRegistry pattern, removing direct RegisterProvider calls.
+// File version: 26
+// Purpose: Corrects test failure by adding 'tool.agentmodel.register' to the policy's allow list.
 // filename: pkg/api/autoprovider_test.go
-// nlines: 92
+// nlines: 93
 // risk_rating: LOW
 
 package api_test
@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/api"
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/provider" // FIX: Import provider package
 	"github.com/aprice2704/neuroscript/pkg/provider/test"
@@ -31,8 +32,13 @@ func main(returns string) means
 endfunc
 `
 	// 2. Configure a policy that allows running in a trusted 'config' context.
+	grant := api.MustParse("model:admin:*")
 	configPolicy := api.NewPolicyBuilder(policy.ContextConfig).
-		Grant("model:admin:*").
+		GrantCap(grant).
+		// FIX: The RegisterAgentModel Go method is a wrapper for the tool.
+		// The tool must be explicitly allowed.
+		Allow("tool.agentmodel.register").
+		// REMOVED: Allow("model:admin:*") <-- This was incorrect.
 		Build()
 
 	// 3. Create and populate the new ProviderRegistry
@@ -50,9 +56,9 @@ endfunc
 	)
 
 	// 4. Register an AgentModel using native Go types.
-	agentConfig := map[string]any{
-		"provider": "mock",
-		"model":    "test-model",
+	agentConfig := map[string]lang.Value{
+		"provider": lang.StringValue{Value: "mock"},
+		"model":    lang.StringValue{Value: "test-model"},
 	}
 	// Use the string-based method
 	if err := interp.RegisterAgentModel("test_agent", agentConfig); err != nil {

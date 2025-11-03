@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 3
-// Purpose: Implements a fluent builder for the canonical HostContext. Adds WithActor.
+// File version: 4
+// Purpose: Implements a fluent builder for the canonical HostContext. Adds WithActor and WithServiceRegistry.
 // filename: pkg/interpreter/hostcontext_builder.go
-// nlines: 87
+// nlines: 94
 // risk_rating: LOW
 
 package interpreter
@@ -78,6 +78,13 @@ func (b *HostContextBuilder) WithEventHandlerErrorCallback(f func(eventName, sou
 // WithEmitter sets the event emitter for publishing internal events (like LLM calls).
 func (b *HostContextBuilder) WithEmitter(e interfaces.Emitter) *HostContextBuilder {
 	b.hc.Emitter = e
+	return b
+}
+
+// WithServiceRegistry sets the host-provided service registry (e.g., FDM services).
+// Required for the 'ask' hook.
+func (b *HostContextBuilder) WithServiceRegistry(reg any) *HostContextBuilder {
+	b.hc.ServiceRegistry = reg
 	return b
 }
 

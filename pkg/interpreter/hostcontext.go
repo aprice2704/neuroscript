@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 4
-// Purpose: Defines the canonical HostContext struct. Adds the Actor field to carry identity.
+// File version: 5
+// Purpose: Defines the canonical HostContext struct. Adds Actor and ServiceRegistry.
 // filename: pkg/interpreter/hostcontext.go
-// nlines: 28
+// nlines: 30
 // risk_rating: LOW
 
 package interpreter
@@ -30,4 +30,8 @@ type HostContext struct {
 	EmitFunc                  func(lang.Value)
 	WhisperFunc               func(handle, data lang.Value)
 	EventHandlerErrorCallback func(eventName, source string, err *lang.RuntimeError)
+
+	// ServiceRegistry holds host-provided services (e.g., FDM's AeiouService).
+	// Required for the 'ask' hook.
+	ServiceRegistry any
 }

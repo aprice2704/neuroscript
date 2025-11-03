@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.2
-// File version: 5
-// Purpose: Tightens the capsule name validation regex to allow only letters, numbers, underscores, and hyphens.
+// File version: 6
+// Purpose: Adds the 'Description' field to the struct to store the mandatory metadata.
 // filename: pkg/capsule/registry.go
-// nlines: 226
+// nlines: 227
 // risk_rating: HIGH
 
 package capsule
@@ -23,14 +23,15 @@ import (
 
 // Capsule is a simple container for ship-with-interpreter docs/specs.
 type Capsule struct {
-	ID       string // Fully qualified id: <name>@<version>, e.g., "capsule/aeiou@2"
-	Name     string // Stable logical name, e.g. "capsule/aeiou"
-	Version  string // semantic or integer version, e.g. "2"
-	MIME     string // e.g. "text/markdown; charset=utf-8"
-	Content  string // markdown payload
-	SHA256   string // hex sha256 of Content
-	Size     int    // bytes
-	Priority int    // optional ordering hint for List()
+	ID          string // Fully qualified id: <name>@<version>, e.g., "capsule/aeiou@2"
+	Name        string // Stable logical name, e.g. "capsule/aeiou"
+	Version     string // semantic or integer version, e.g. "2"
+	Description string // ADDED: The one-line description from metadata.
+	MIME        string // e.g. "text/markdown; charset=utf-8"
+	Content     string // markdown payload
+	SHA256      string // hex sha256 of Content
+	Size        int    // bytes
+	Priority    int    // optional ordering hint for List()
 }
 
 var (

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 16
-// Purpose: Defines the public configuration options. Hardens WithHostContext. Removed WithProviderRegistry (which must be defined in the internal pkg).
+// File version: 18
+// Purpose: Defines public options. Copies ServiceRegistry from public HostContext to internal HostContext.
 // filename: pkg/api/options.go
-// nlines: 70
+// nlines: 75
 // risk_rating: HIGH
 
 package api
@@ -18,12 +18,10 @@ import (
 // This is the primary and mandatory option for creating a new interpreter.
 func WithHostContext(hc *HostContext) Option {
 	// This function acts as a bridge, converting the public, opaque api.HostContext
+	// (which is an alias for interpreter.HostContext)
 	// into the internal interpreter.HostContext that the core logic requires.
 	return func(i *interpreter.Interpreter) {
 		// FIX: Enforce mandatory HostContext fields.
-		// This aligns with Rule 9 (Fail Fast) and the panic-on-config-error
-		// pattern established in config.go, as this Option func cannot
-		// return an error.
 		if hc.Logger == nil {
 			panic("api.WithHostContext: provided HostContext must have a non-nil Logger")
 		}
@@ -38,19 +36,22 @@ func WithHostContext(hc *HostContext) Option {
 		}
 
 		internalHC := &interpreter.HostContext{
-			Logger:       hc.Logger, // Now guaranteed non-nil
+			Logger:       hc.Logger,
 			Emitter:      hc.Emitter,
 			AITranscript: hc.AITranscript,
-			Stdout:       hc.Stdout, // Now guaranteed non-nil
-			Stdin:        hc.Stdin,  // Now guaranteed non-nil
-			Stderr:       hc.Stderr, // Now guaranteed non-nil
+			Stdout:       hc.Stdout,
+			Stdin:        hc.Stdin,
+			Stderr:       hc.Stderr,
 			Actor:        hc.Actor,
+			// ADDED: Copy the ServiceRegistry, as required by the AEIOU v2 spec
+			// This now works because the public 'hc' type (aliased from
+			// interpreter.HostContext) has this field.
+			ServiceRegistry: hc.ServiceRegistry,
 			EmitFunc: func(v lang.Value) {
 				if hc.EmitFunc != nil {
 					hc.EmitFunc(v)
 					return
 				}
-				// Stdout is guaranteed non-nil by the check above.
 				unwrapped := lang.Unwrap(v)
 				fmt.Fprintln(hc.Stdout, unwrapped)
 			},
@@ -66,6 +67,7 @@ func WithHostContext(hc *HostContext) Option {
 			},
 		}
 		// Use the internal WithHostContext option to apply the constructed context.
+		// This assumes 'interpreter.WithHostContext' is an unexported option.
 		interpreter.WithHostContext(internalHC)(i)
 	}
 }

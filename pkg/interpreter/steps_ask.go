@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 77
-// Purpose: Fixed compile error by passing a 'string' (not types.AgentModelName) to AgentModels().Get().
+// File version: 79
+// Purpose: Refactored to handle 'any' return value from the AEIOU service hook, fixing import cycle.
 // filename: pkg/interpreter/steps_ask.go
-// nlines: 139
+// nlines: 172
 // risk_rating: HIGH
 
 package interpreter
@@ -15,14 +15,14 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/eval"
+	"github.com/aprice2704/neuroscript/pkg/interfaces" // Added for hook
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/llmconn" // Restored dependency
-
-	// "github.com/aprice2704/neuroscript/pkg/provider" // No longer directly needed here
+	"github.com/aprice2704/neuroscript/pkg/llmconn"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
 // executeAsk handles the "ask" statement.
+// It now implements the AEIOU v2+ hook.
 func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
 	if step.AskStmt == nil {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "ask step is missing its AskStmt node", nil).WithPosition(step.GetPos())
@@ -42,8 +42,69 @@ func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
 	}
 	initialPrompt, _ := lang.ToString(promptVal)
 
+	var finalResult lang.Value
+
+	// 2. --- AEIOU v2+ Service Hook ---
+	// Check if an external orchestrator is registered.
+	if i.hostContext != nil && i.hostContext.ServiceRegistry != nil {
+		// Attempt to find and use the service.
+		if reg, ok := i.hostContext.ServiceRegistry.(map[string]any); ok {
+			if service, found := reg[interfaces.AeiouServiceKey]; found {
+				if orchestrator, ok := service.(interfaces.AeiouOrchestrator); ok {
+					// --- HOOK: Delegate to external service ---
+					// We pass i.PublicAPI, which is the *api.Interpreter wrapper.
+					var rawResult any
+					rawResult, err = orchestrator.RunAskLoop(i.PublicAPI, agentName, initialPrompt)
+					if err != nil {
+						return nil, lang.WrapErrorWithPosition(err, node.GetPos(), "external AEIOU service loop failed")
+					}
+
+					// FIX: Type-assert the 'any' return value to 'lang.Value'
+					finalResult, ok = rawResult.(lang.Value)
+					if !ok {
+						if rawResult == nil {
+							finalResult = lang.NilValue{} // nil is a valid result
+						} else {
+							// The service returned a type that is not a lang.Value. This is a contract violation.
+							return nil, lang.NewRuntimeError(lang.ErrorCodeInternal,
+								fmt.Sprintf("external AEIOU service returned invalid type: got %T, want lang.Value", rawResult),
+								nil).WithPosition(node.GetPos())
+						}
+					}
+				} else {
+					i.Logger().Warn("Found AeiouService, but it does not implement interfaces.AeiouOrchestrator", "type", fmt.Sprintf("%T", service))
+					finalResult, err = i.executeLegacyAsk(node, agentName, initialPrompt)
+				}
+			} else {
+				// Registry present, but no service. Fallback.
+				finalResult, err = i.executeLegacyAsk(node, agentName, initialPrompt)
+			}
+		} else {
+			i.Logger().Warn("ServiceRegistry is not a map[string]any. Falling back to legacy 'ask'.", "type", fmt.Sprintf("%T", i.hostContext.ServiceRegistry))
+			finalResult, err = i.executeLegacyAsk(node, agentName, initialPrompt)
+		}
+	} else {
+		// --- FALLBACK: No ServiceRegistry. Run legacy internal loop. ---
+		finalResult, err = i.executeLegacyAsk(node, agentName, initialPrompt)
+	}
+	// --- End Hook Logic ---
+
+	if err != nil {
+		return nil, err // Return error from hook or legacy path
+	}
+
+	// 6. Set Final Result (identical for both paths)
+	if node.IntoTarget != nil {
+		if err := i.setSingleLValue(node.IntoTarget, finalResult); err != nil {
+			return nil, err // Propagate LValue setting errors
+		}
+	}
+	return finalResult, nil
+}
+
+// executeLegacyAsk contains the original v1 'ask' logic.
+func (i *Interpreter) executeLegacyAsk(node *ast.AskStmt, agentName, initialPrompt string) (lang.Value, error) {
 	// 2. Retrieve AgentModel and Provider
-	// FIX: Use string 'agentName' directly
 	agentModelObj, found := i.AgentModels().Get(agentName)
 	if !found {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound, fmt.Sprintf("AgentModel '%s' is not registered", agentName), nil).WithPosition(node.AgentModelExpr.GetPos())
@@ -74,7 +135,7 @@ func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
 		agentModel.APIKey = acc.APIKey // Inject the API key into the model copy
 	}
 
-	// 3. Initialize LLM Connection (FIXED)
+	// 3. Initialize LLM Connection
 	conn, err := llmconn.New(&agentModel, prov, i.hostContext.Emitter)
 	if err != nil {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "failed to create LLM connection", err).WithPosition(node.GetPos())
@@ -101,22 +162,13 @@ func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
 		Actions:  "command endcommand", // Start with empty actions
 	}
 
-	// 5. Delegate to the Host Loop - Pass the llmconn.Connector
+	// 5. Delegate to the Host Loop
 	finalResult, err := i.runAskHostLoop(node.GetPos(), &agentModel, conn, initialEnvelope)
 	if err != nil {
-		// --- FIX: Wrap the error to ensure it's a RuntimeError ---
 		if _, ok := err.(*lang.RuntimeError); !ok {
 			return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "ask host loop failed", err).WithPosition(node.GetPos())
 		}
-		// --- End Fix ---
 		return nil, err
-	}
-
-	// 6. Set Final Result
-	if node.IntoTarget != nil {
-		if err := i.setSingleLValue(node.IntoTarget, finalResult); err != nil {
-			return nil, err // Propagate LValue setting errors
-		}
 	}
 	return finalResult, nil
 }

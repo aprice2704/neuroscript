@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 64
-// Purpose: Refactored to use the injected ProviderRegistry instead of its own RegisterProvider method.
+// File version: 67
+// Purpose: Fixes AEIOU hook by calling SetPublicAPI on the embedded internal interpreter.
 // filename: pkg/api/interpreter.go
-// nlines: 125
+// nlines: 133
 
 package api
 
@@ -36,71 +36,46 @@ func New(opts ...Option) *Interpreter {
 	// 1. Create the internal interpreter.
 	internalInterp := interpreter.NewInterpreter(opts...)
 
-	// 2. Create the public API wrapper by embedding the internal one.
-	publicInterp := &Interpreter{Interpreter: internalInterp}
+	// 2. Create the public API wrapper by embedding the internal instance.
+	i := &Interpreter{
+		Interpreter: internalInterp,
+	}
 
-	// 3. Set the back-reference from the internal interpreter to the public wrapper.
-	internalInterp.PublicAPI = publicInterp
+	// 3. FIX: Set the public API pointer on the internal interpreter.
+	//    This allows internal components (like the 'ask' hook) to call
+	//    back with the correct public, wrapped *api.Interpreter instance.
+	i.Interpreter.SetPublicAPI(i) // <-- This was i.SetPublicAPI(i)
 
-	// 4. Create the tool registry, passing the PUBLIC wrapper as the runtime.
-	// The registry will now pass this public wrapper to tools, which is
-	// correct for external tools and can be unwrapped for internal tools.
-	registry := tool.NewToolRegistry(publicInterp)
+	// 4. Replace the internal interpreter's tool registry with one that
+	//    is aware of the public API facade. This ensures that when tools
+	//    are called, they receive the public *api.Interpreter as their
+	//    tool.Runtime, not the internal *interpreter.Interpreter.
+	//    This is crucial for tools that need to access API-level methods
+	//    like Actor().
+	publicToolRegistry := tool.NewToolRegistry(i)
+	internalInterp.SetToolRegistry(publicToolRegistry)
 
-	// 5. Inject the correctly-contextualized registry back into the internal interpreter.
-	internalInterp.SetToolRegistry(registry)
-
-	// 6. Now, register standard tools on the new registry.
+	// 5. Re-register tools now that the public-aware registry is in place.
+	//    This is necessary because NewInterpreter already registered them
+	//    against the old, internal-only registry.
 	internalInterp.RegisterStandardTools()
 
-	// 7. Provider registration is no longer hardcoded here.
-	// The host is responsible for creating a ProviderRegistry, populating it,
-	// and injecting it via the WithProviderRegistry option.
-	// googleProvider := google.New()
-	// internalInterp.RegisterProvider("google", googleProvider) // REMOVED
-
-	return publicInterp
+	return i
 }
 
-// Actor returns the actor identity associated with the interpreter's HostContext.
-// This makes the public Interpreter identity-aware.
+// Actor returns the actor associated with the interpreter's HostContext.
+// This method is part of the interfaces.ActorProvider interface,
+// which the public *api.Interpreter satisfies.
 func (i *Interpreter) Actor() (interfaces.Actor, bool) {
-	if i.HostContext() == nil || i.HostContext().Actor == nil {
-		return nil, false
-	}
-	actor := i.HostContext().Actor
-	return actor, true
+	return i.Interpreter.Actor()
 }
 
-// SetTurnContext allows the host to set the ephemeral context for a single execution.
-// This is the public wrapper for the now-exported internal method.
-func (i *Interpreter) SetTurnContext(ctx context.Context) {
-	i.Interpreter.SetTurnContext(ctx)
+// GetTurnContext satisfies the TurnContextProvider interface.
+func (i *Interpreter) GetTurnContext() context.Context {
+	return i.Interpreter.GetTurnContext()
 }
 
-// RegisterAgentModel overrides the embedded method to provide the correct public
-// API signature, accepting a map of native Go types.
-func (i *Interpreter) RegisterAgentModel(name string, config map[string]any) error {
-	// This now correctly uses the string-based interface method
-	return i.AgentModelsAdmin().Register(name, config)
-}
-
-// GetVar retrieves a variable from the interpreter's current state.
-// This overrides the embedded GetVariable to provide the public API's signature.
-func (i *Interpreter) GetVariable(name string) (Value, bool) {
-	val, exists := i.Interpreter.GetVariable(name)
-	return val, exists
-}
-
-// Run calls a specific, named procedure from the loaded program.
-// This overrides the embedded Run to provide the public API's signature.
-func (i *Interpreter) Run(procName string, args ...lang.Value) (Value, error) {
-	result, err := i.Interpreter.Run(procName, args...)
-	return result, err
-}
-
-// Execute runs any unnamed 'command' blocks found in the loaded program.
-// This overrides the embedded Execute to provide the public API's signature.
+// Execute is a wrapper for the internal Execute to provide the public API's signature.
 func (i *Interpreter) Execute(program *interfaces.Tree) (Value, error) {
 	return i.Interpreter.Execute(program.Root.(*Program))
 }
@@ -135,6 +110,11 @@ func (i *Interpreter) KnownProcedures() map[string]*ast.Procedure {
 // This provides a stable public API for introscessing the interpreter's state.
 func (i *Interpreter) KnownEventHandlers() map[string][]*ast.OnEventDecl {
 	return i.Interpreter.KnownEventHandlers()
+}
+
+// CapsuleProvider returns the host-provided capsule service, if one was injected.
+func (i *Interpreter) CapsuleProvider() interfaces.CapsuleProvider {
+	return i.Interpreter.CapsuleProvider()
 }
 
 func (i *Interpreter) ToolRegistry() tool.ToolRegistry {
