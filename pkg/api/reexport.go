@@ -162,3 +162,5 @@ type AIRequest = types.AIRequest
 
 // AIResponse is a re-export of types.AIResponse for the public API.
 type AIResponse = types.AIResponse
+
+type ProgressTracker = aeiou.ProgressTracker
