@@ -156,3 +156,9 @@ var (
 	NewAdminCapsuleRegistry = capsule.NewRegistry // Used for admin purposes
 	MakeToolFullName        = types.MakeFullName
 )
+
+// AIRequest is a re-export of types.AIRequest for the public API.
+type AIRequest = types.AIRequest
+
+// AIResponse is a re-export of types.AIResponse for the public API.
+type AIResponse = types.AIResponse
