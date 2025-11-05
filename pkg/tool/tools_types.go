@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 24
-// Purpose: Adds IsInternal flag to ToolImplementation and a local Wrapper interface.
+// File version: 25
+// Purpose: Expands ArgType constants to include more specific map/slice variations.
 // filename: pkg/tool/tool_types.go
-// nlines: 164
+// nlines: 170
 // risk_rating: HIGH
 
 package tool
@@ -47,20 +47,31 @@ type Wrapper interface {
 type ArgType string
 
 const (
-	ArgTypeAny         ArgType = "any"
-	ArgTypeString      ArgType = "string"
-	ArgTypeInt         ArgType = "int"
-	ArgTypeFloat       ArgType = "float"
-	ArgTypeBool        ArgType = "bool"
-	ArgTypeMap         ArgType = "map"
-	ArgTypeSlice       ArgType = "slice"
+	// Primitives
+	ArgTypeAny    ArgType = "any"
+	ArgTypeString ArgType = "string"
+	ArgTypeInt    ArgType = "int"
+	ArgTypeFloat  ArgType = "float"
+	ArgTypeBool   ArgType = "bool"
+	ArgTypeNil    ArgType = "nil"
+
+	// Generic Collections
+	ArgTypeMap   ArgType = "map"   // Corresponds to map[string]interface{}
+	ArgTypeSlice ArgType = "slice" // Corresponds to []interface{}
+
+	// Specific Slices
 	ArgTypeSliceString ArgType = "slice_string"
 	ArgTypeSliceInt    ArgType = "slice_int"
 	ArgTypeSliceFloat  ArgType = "slice_float"
 	ArgTypeSliceBool   ArgType = "slice_bool"
 	ArgTypeSliceMap    ArgType = "slice_map"
-	ArgTypeSliceAny    ArgType = "slice_any"
-	ArgTypeNil         ArgType = "nil"
+	ArgTypeSliceAny    ArgType = "slice_any" // Alias for "slice"
+
+	// Specific Maps (NEW)
+	ArgTypeMapStringString ArgType = "map_string_string"
+	ArgTypeMapStringInt    ArgType = "map_string_int"
+	ArgTypeMapStringAny    ArgType = "map_string_any" // Alias for "map"
+	ArgTypeMapAnyAny       ArgType = "map_any_any"
 )
 
 // ToolFunc is the signature for the Go function that implements a tool.

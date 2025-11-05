@@ -53,15 +53,15 @@ func runLocalExpressionTest(t *testing.T, tc localEvalTestCase) {
 		mock := &mockRuntime{vars: tc.InitialVars}
 		// DEBUG
 		fmt.Printf("--- RUNNING TEST: %s ---\n", tc.Name)
-		fmt.Printf("DEBUG: Initial variables: %v\n", tc.InitialVars)
-		fmt.Printf("DEBUG: INPUT NODE: %#v\n", tc.InputNode)
+		//fmt\.Printf\("DEBUG: Initial variables: %v\n", tc.InitialVars)
+		//fmt\.Printf\("DEBUG: INPUT NODE: %#v\n", tc.InputNode)
 
 		result, err := Expression(mock, tc.InputNode)
 
 		// DEBUG
-		fmt.Printf("DEBUG: RESULT: %#v (%T)\n", result, result)
-		fmt.Printf("DEBUG: ERROR: %v\n", err)
-		fmt.Printf("DEBUG: EXPECTED: %#v (%T)\n", tc.Expected, tc.Expected)
+		//fmt\.Printf\("DEBUG: RESULT: %#v (%T)\n", result, result)
+		//fmt\.Printf\("DEBUG: ERROR: %v\n", err)
+		//fmt\.Printf\("DEBUG: EXPECTED: %#v (%T)\n", tc.Expected, tc.Expected)
 		fmt.Printf("--- END TEST: %s ---\n\n", tc.Name)
 
 		if (err != nil) != tc.WantErr {
