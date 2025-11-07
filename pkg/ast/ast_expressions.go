@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 5
-// Purpose: Added TestString() methods to all expression nodes to provide unambiguous, fully-parenthesized output for precedence testing.
+// File version: 6
+// Purpose: Implements Expression interface for CallTarget to fix formatter bug.
 // filename: pkg/ast/ast_expressions.go
 // nlines: 200+
 // risk_rating: MEDIUM
@@ -26,6 +26,10 @@ func (ct *CallTarget) String() string {
 	}
 	return ct.Name
 }
+
+// FIX: Add methods to implement ast.Expression
+func (ct *CallTarget) expressionNode()    {}
+func (ct *CallTarget) TestString() string { return ct.String() }
 
 // CallableExprNode represents a function or tool call expression.
 type CallableExprNode struct {

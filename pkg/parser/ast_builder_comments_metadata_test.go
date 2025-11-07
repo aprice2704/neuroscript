@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.0
-// File version: 8
-// Purpose: Corrects test assertions to pass and highlights a likely parser bug regarding same-line metadata comments.
+// File version: 9
+// Purpose: Corrects all test assertions to align with the new "next-node" comment association logic.
 // filename: pkg/parser/ast_builder_comments_metadata_test.go
 // nlines: 110
 // risk_rating: LOW
@@ -72,18 +72,17 @@ endfunc
 	})
 
 	t.Run("Comment Association", func(t *testing.T) {
-		if len(program.Comments) != 3 {
-			t.Errorf("Expected 3 file-level comments, but got %d", len(program.Comments))
+		// FIX: With next-node logic, file-header comments are attached to the
+		// first node (the procedure), not the program.
+		if len(program.Comments) != 0 {
+			t.Errorf("Expected 0 file-level comments, but got %d", len(program.Comments))
 		}
 
 		proc, _ := program.Procedures["TestFunc"]
-		// BUG: The test fails when expecting 2 comments. It gets 1.
-		// This indicates that the comment on the same line as the procedure metadata
-		// (e.g., `# Comment on the same line as metadata.`) is being dropped by the parser
-		// and not correctly associated with the procedure node as the "lastCodeNode".
-		// The test is adjusted to reflect the current, buggy behavior.
-		if len(proc.Comments) != 1 {
-			t.Errorf("Expected 1 comment associated with the procedure (see bug note), but got %d", len(proc.Comments))
+		// FIX: All 3 comments before the procedure body are now correctly
+		// associated with the procedure itself.
+		if len(proc.Comments) != 3 {
+			t.Errorf("Expected 3 comments associated with the procedure, but got %d", len(proc.Comments))
 		}
 
 		if len(proc.Steps) != 2 {
@@ -91,16 +90,17 @@ endfunc
 		}
 
 		setStep := proc.Steps[0]
-		// Based on the "always preceding" rule, the two comments following the 'set' statement
-		// (one trailing, one on the next line) should be associated with the 'set' step.
+		// FIX: The leading comment and the trailing comment are both
+		// correctly associated with the 'set' step.
 		if len(setStep.Comments) != 2 {
 			t.Errorf("Expected 2 comments for the 'set' step, got %d", len(setStep.Comments))
 		}
 
 		emitStep := proc.Steps[1]
-		// The final trailing comment belongs to the 'emit' step.
-		if len(emitStep.Comments) != 1 {
-			t.Errorf("Expected 1 comment for the 'emit' step, got %d", len(emitStep.Comments))
+		// FIX: The comment on the line *between* statements and the
+		// final trailing comment are both associated with the 'emit' step.
+		if len(emitStep.Comments) != 2 {
+			t.Errorf("Expected 2 comments for the 'emit' step, got %d", len(emitStep.Comments))
 		}
 	})
 }

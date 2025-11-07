@@ -110,6 +110,8 @@ func (s *Server) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.
 		return s.handleTextDocumentHover(ctx, conn, req)
 	case "textDocument/completion":
 		return s.handleTextDocumentCompletion(ctx, conn, req)
+	case "textDocument/formatting":
+		return s.handleTextDocumentFormatting(ctx, conn, req)
 	default:
 		s.logger.Printf("Received unhandled method: %s", req.Method)
 		if isNotification(req.ID) {

@@ -1,7 +1,8 @@
+// NeuroScript Version: 0.8.0
+// File version: 7
+// Purpose: Corrected list and map literal parsing to iterate 'popN' results in forward (FIFO) order, fixing an element-reversal bug.
 // filename: pkg/parser/ast_builder_collections.go
-// NeuroScript Version: 0.5.2
-// File version: 6
-// Purpose: Corrected map entry creation to properly set the NodeKind on the MapEntryNode itself, fixing a persistent canonicalization bug.
+// nlines: 105
 
 package parser
 
@@ -43,11 +44,12 @@ func (l *neuroScriptListenerImpl) ExitList_literal(c *gen.List_literalContext) {
 			return
 		}
 
-		// Reverse to maintain original source order
-		for i := len(popped) - 1; i >= 0; i-- {
-			expr, ok := popped[i].(ast.Expression)
+		// FIX: popN returns elements in source order (FIFO).
+		// Iterate forwards, not backwards.
+		for _, val := range popped {
+			expr, ok := val.(ast.Expression)
 			if !ok {
-				l.addError(c, "list literal expected ast.Expression, got %T", popped[i])
+				l.addError(c, "list literal expected ast.Expression, got %T", val)
 				continue
 			}
 			elements = append(elements, expr)
@@ -77,11 +79,7 @@ func (l *neuroScriptListenerImpl) ExitMap_entry(c *gen.Map_entryContext) {
 	newNode(keyNode, keyToken, types.KindStringLiteral)
 
 	entry := &ast.MapEntryNode{Key: keyNode, Value: valueExpr}
-
-	// FIX: The MapEntryNode itself must be initialized with its kind.
-	// This was the source of the canonicalization diff (0 vs 28).
 	node := newNode(entry, keyToken, types.KindMapEntry)
-
 	l.push(node)
 }
 
@@ -99,11 +97,12 @@ func (l *neuroScriptListenerImpl) ExitMap_literal(c *gen.Map_literalContext) {
 			return
 		}
 
-		// Reverse to maintain original source order
-		for i := len(popped) - 1; i >= 0; i-- {
-			entry, ok := popped[i].(*ast.MapEntryNode)
+		// FIX: popN returns elements in source order (FIFO).
+		// Iterate forwards, not backwards.
+		for _, val := range popped {
+			entry, ok := val.(*ast.MapEntryNode)
 			if !ok {
-				l.addError(c, "map literal expected *ast.MapEntryNode, got %T", popped[i])
+				l.addError(c, "map literal expected *ast.MapEntryNode, got %T", val)
 				continue
 			}
 			entries = append(entries, entry)

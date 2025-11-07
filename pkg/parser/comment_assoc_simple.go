@@ -1,7 +1,8 @@
 // filename: pkg/parser/comment_assoc_simple.go
-// NeuroScript Version: 0.6.0
-// File version: 113
-// Purpose: A simple, deterministic implementation of the "last-code" comment attachment rule.
+// NeuroScript Version: 0.8.0
+// File version: 115
+// Purpose: A new, robust comment attachment algorithm that assigns floating comments to the *next* node they precede.
+// nlines: 115
 
 package parser
 
@@ -11,22 +12,38 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/ast"
 )
 
-// AttachCommentsSimple attaches every stand‑alone comment to the *preceding*
-// code node, starting with the Program node at line 1.
+// AttachCommentsSimple attaches comments to the AST nodes they are
+// associated with, based on source position.
+//
+// Logic:
+//  1. Standalone comments (on their own lines) are "floating" and attach
+//     to the *next* code node that appears.
+//  2. Trailing comments (on the same line as code) attach to the
+//     *current* code node.
+//  3. File-header comments (before any code) attach to the Program.
 func AttachCommentsSimple(program *ast.Program, ts antlr.TokenStream) {
-	// 1.  Build start‑line → node map for quick lookup.
-	start := map[int]ast.Node{}
+	allTokens := ts.(*antlr.CommonTokenStream).GetAllTokens()
+
+	var floatingComments []*ast.Comment
+	var lastCodeLine int = -1
+	var lastNode ast.Node = program // Start with the program node
+
+	// 1. Build a map of line -> node for all code nodes
+	startLineToNode := map[int]ast.Node{}
 	var walk func(ast.Node)
 	walk = func(n ast.Node) {
 		if n == nil {
 			return
 		}
+		// We only map "code" nodes
 		switch v := n.(type) {
 		case *ast.Program, *ast.Procedure, *ast.Step, *ast.CommandNode, *ast.OnEventDecl:
-			if pos := getNodePos(v); pos != nil && pos.Line > 0 && start[pos.Line] == nil {
-				start[pos.Line] = n
+			if pos := getNodePos(v); pos != nil && pos.Line > 0 {
+				startLineToNode[pos.Line] = n
 			}
 		}
+
+		// Recurse
 		switch v := n.(type) {
 		case *ast.Program:
 			for _, p := range v.Procedures {
@@ -42,9 +59,15 @@ func AttachCommentsSimple(program *ast.Program, ts antlr.TokenStream) {
 			for i := range v.Steps {
 				walk(&v.Steps[i])
 			}
+			for _, eh := range v.ErrorHandlers {
+				walk(eh)
+			}
 		case *ast.CommandNode:
 			for i := range v.Body {
 				walk(&v.Body[i])
+			}
+			for _, eh := range v.ErrorHandlers {
+				walk(eh)
 			}
 		case *ast.OnEventDecl:
 			for i := range v.Body {
@@ -60,26 +83,44 @@ func AttachCommentsSimple(program *ast.Program, ts antlr.TokenStream) {
 		}
 	}
 	walk(program)
-	if start[1] == nil {
-		start[1] = program
-	}
+	startLineToNode[1] = program // Ensure line 1 always maps to Program
 
-	// 2.  Iterate over the token stream in source order.
-	lastCodeNode := ast.Node(program)
-	allTokens := ts.(*antlr.CommonTokenStream).GetAllTokens()
-
+	// 2. Iterate the token stream and assign comments
 	for _, tok := range allTokens {
-		// Update lastCodeNode if a new node starts on this token's line
+		tokenLine := tok.GetLine()
+
+		// Is this a code token?
 		if tok.GetChannel() == antlr.TokenDefaultChannel {
-			if node, ok := start[tok.GetLine()]; ok {
-				lastCodeNode = node
+			lastCodeLine = tokenLine
+			// Is this the *start* of a new node?
+			if node, ok := startLineToNode[tokenLine]; ok {
+				// Assign all pending floating comments to this new node
+				if len(floatingComments) > 0 {
+					assignCommentsToNode(node, floatingComments)
+					floatingComments = nil // Clear the buffer
+				}
+				lastNode = node
 			}
 		}
-		// If it's a comment, attach it to the last seen code node.
+
+		// Is this a comment token?
 		if tok.GetTokenType() == gen.NeuroScriptLexerLINE_COMMENT {
-			c := &ast.Comment{Text: tok.GetText()}
-			newNode(c, tok, 0)
-			assignCommentsToNode(lastCodeNode, []*ast.Comment{c})
+			comment := &ast.Comment{Text: tok.GetText()}
+			newNode(comment, tok, 0)
+
+			if tokenLine == lastCodeLine {
+				// This is a trailing comment. Attach to the current node.
+				assignCommentsToNode(lastNode, []*ast.Comment{comment})
+			} else {
+				// This is a floating comment. Add to buffer for the *next* node.
+				floatingComments = append(floatingComments, comment)
+			}
 		}
+	}
+
+	// Any remaining floating comments at the end of the file
+	// attach to the last node seen (which is often the Program).
+	if len(floatingComments) > 0 {
+		assignCommentsToNode(lastNode, floatingComments)
 	}
 }

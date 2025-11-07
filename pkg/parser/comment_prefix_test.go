@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 4
-// Purpose: Adds source code logging to the comment prefix tests.
+// File version: 5
+// Purpose: Corrects assertions to align with "next-node" comment association.
 // filename: pkg/parser/comment_prefix_test.go
-// nlines: 85
+// nlines: 87
 // risk_rating: LOW
 
 package parser
@@ -77,25 +77,31 @@ endfunc
 				t.Fatalf("Build failed unexpectedly: %v", err)
 			}
 
-			totalComments := len(program.Comments)
-			if mainProc, ok := program.Procedures["main"]; ok {
-				totalComments += len(mainProc.Comments)
-				if len(mainProc.Steps) > 0 {
-					totalComments += len(mainProc.Steps[0].Comments)
-				}
+			// --- FIX: Updated logic for "next-node" association ---
+			totalComments := len(program.Comments) // Should be 0
+			mainProc, ok := program.Procedures["main"]
+			if !ok {
+				t.Fatalf("Failed to find 'main' procedure")
 			}
+
+			totalComments += len(mainProc.Comments) // Should be 2 ("Line 1", "Line 2")
+			if len(mainProc.Steps) > 0 {
+				totalComments += len(mainProc.Steps[0].Comments) // Should be 1 ("In function")
+			}
+			// --- End Fix ---
 
 			if totalComments != tc.expectedCommentCount {
 				t.Errorf("Expected %d total comments, but got %d", tc.expectedCommentCount, totalComments)
 			}
 
-			if len(program.Comments) > 0 {
-				firstCommentText := strings.TrimSpace(program.Comments[0].Text)
+			// --- FIX: Check mainProc.Comments instead of program.Comments ---
+			if len(mainProc.Comments) > 0 {
+				firstCommentText := strings.TrimSpace(mainProc.Comments[0].Text)
 				if firstCommentText != tc.expectedFirstComment {
 					t.Errorf("Expected first comment to be '%s', but got '%s'", tc.expectedFirstComment, firstCommentText)
 				}
 			} else if tc.expectedCommentCount > 0 {
-				t.Errorf("Expected program comments, but found none.")
+				t.Errorf("Expected procedure comments, but found none.")
 			}
 		})
 	}

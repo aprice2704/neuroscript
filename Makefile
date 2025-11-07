@@ -1,8 +1,8 @@
 # NeuroScript Version: 0.3.0
-# File version: 17
-# Purpose: Build system configuration for the NeuroScript project. FEAT: Standardized build-time variable injection for both nslsp and ng.
+# File version: 18
+# Purpose: Build system configuration for the NeuroScript project. Adds 'nsfmt' binary to the install target.
 # filename: Makefile
-# nlines: 145
+# nlines: 151
 # risk_rating: LOW
 
 # Directories
@@ -38,6 +38,7 @@ LDFLAGS := -ldflags="-X 'main.version=$(G4_VERSION)' -X 'main.commit=$(GIT_COMMI
 ALL_PKG_GO_FILES   := $(shell find $(PKG_DIR) -name '*.go')
 NSLSP_GO_FILES     := $(shell find $(CMDS_DIR)/nslsp -name '*.go')
 NSRUN_GO_FILES     := $(shell find $(CMDS_DIR)/ng -name '*.go')
+NSFMT_GO_FILES     := $(shell find $(CMDS_DIR)/nsfmt -name '*.go')
 
 # ------------------------------------------------------------------------------
 # ANTLR variables
@@ -62,7 +63,7 @@ build: install build-vscode
 # ------------------------------------------------------------------------------
 # Install Go binaries to the standard Go bin path
 .PHONY: install
-install: $(BIN_INSTALL_DIR)/nslsp $(BIN_INSTALL_DIR)/ng
+install: $(BIN_INSTALL_DIR)/nslsp $(BIN_INSTALL_DIR)/ng $(BIN_INSTALL_DIR)/nsfmt
 
 $(BIN_INSTALL_DIR)/nslsp: $(NSLSP_GO_FILES) $(ALL_PKG_GO_FILES) $(ANTLR_STAMP_FILE)
 	@echo "--> Installing nslsp Go binary to $(BIN_INSTALL_DIR)..."
@@ -75,6 +76,10 @@ $(BIN_INSTALL_DIR)/ng: $(NSRUN_GO_FILES) $(ALL_PKG_GO_FILES) $(ANTLR_STAMP_FILE)
 	@echo "    NOTE: The new ng tool does not yet support flags for doc generation."
 	@# TODO: Re-enable when ng supports the required flags.
 	@# @$(BIN_INSTALL_DIR)/ng -trusted-config ./library/list_tools.ns.txt > alltools.md
+
+$(BIN_INSTALL_DIR)/nsfmt: $(NSFMT_GO_FILES) $(ALL_PKG_GO_FILES) $(ANTLR_STAMP_FILE)
+	@echo "--> Installing nsfmt Go binary to $(BIN_INSTALL_DIR)..."
+	$(GO) install $(LDFLAGS) ./cmd/nsfmt
 
 # ------------------------------------------------------------------------------
 # Generate ANTLR parser (only if grammar changes)
@@ -114,7 +119,6 @@ build-vscode: $(BIN_INSTALL_DIR)/nslsp $(ANTLR_STAMP_FILE)
 	@echo "    Running npm install and packaging..."
 	@cd $(VSCODE_EXT_DIR) && npm install --silent --no-fund --no-audit && npm run package
 	@echo "    VSCode extension created."
-
 # ------------------------------------------------------------------------------
 # Vim plugin installation
 .PHONY: install-vim
@@ -124,7 +128,6 @@ install-vim: $(BIN_INSTALL_DIR)/nslsp
 	@cp $(BIN_INSTALL_DIR)/nslsp $(VIM_PLUGIN_DIR)/bin/
 	@echo "    nslsp copied to $(VIM_PLUGIN_DIR)/bin/"
 	@echo "    NOTE: Add the plugin directory to your Vim runtimepath and configure your LSP client."
-
 # ------------------------------------------------------------------------------
 # Clean generated artifacts
 .PHONY: clean
@@ -164,7 +167,7 @@ help:
 	@echo "Targets:"
 	@echo "  all               - Build all artifacts (default)."
 	@echo "  build             - Build Go binaries and VSCode extension."
-	@echo "  install           - Build and install the nslsp and ng Go binaries."
+	@echo "  install           - Build and install the nslsp, ng, and nsfmt Go binaries."
 	@echo "  build-vscode      - Build the VSCode .vsix extension."
 	@echo "  install-vim       - Install the nslsp binary for Vim."
 	@echo "  generate-antlr    - Regenerate parser from grammar."
