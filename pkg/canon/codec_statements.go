@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.7.2
-// File version: 5
-// Purpose: Adds full Metadata and Comment support to OnEventDecl codec and ensures non-nil collections on all decoded nodes.
+// File version: 6
+// Purpose: Adds wrapper functions to expose Ask/Prompt/Whisper statement codecs to the registry.
 // filename: pkg/canon/codec_statements.go
 // nlines: 200+
 // risk_rating: MEDIUM
@@ -403,3 +403,28 @@ func decodeSecretRef(r *canonReader) (ast.Node, error) {
 	}
 	return node, nil
 }
+
+// --- START: Wrapper functions for registry ---
+
+func encodeAskStmt_wrapper(v *canonVisitor, n ast.Node) error {
+	return encodeAskStmt(v, n.(*ast.AskStmt))
+}
+func decodeAskStmt_wrapper(r *canonReader) (ast.Node, error) {
+	return decodeAskStmt(r)
+}
+
+func encodePromptUserStmt_wrapper(v *canonVisitor, n ast.Node) error {
+	return encodePromptUserStmt(v, n.(*ast.PromptUserStmt))
+}
+func decodePromptUserStmt_wrapper(r *canonReader) (ast.Node, error) {
+	return decodePromptUserStmt(r)
+}
+
+func encodeWhisperStmt_wrapper(v *canonVisitor, n ast.Node) error {
+	return encodeWhisperStmt(v, n.(*ast.WhisperStmt))
+}
+func decodeWhisperStmt_wrapper(r *canonReader) (ast.Node, error) {
+	return decodeWhisperStmt(r)
+}
+
+// --- END: Wrapper functions for registry ---

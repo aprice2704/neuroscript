@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.3
-// File version: 16
-// Purpose: FIX: Corrects compiler error by instantiating the correct ASTBuilder. Also normalizes WhisperStmt.
+// File version: 17
+// Purpose: FIX: Normalizes nil param defaults to lang.NilValue to match codec roundtrip behavior.
 // filename: pkg/canon/comprehensive_e2e_test.go
-// nlines: 120+
+// nlines: 138
 // risk_rating: HIGH
 
 package canon
@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/lang" // <<< ADDED
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/parser"
 	"github.com/aprice2704/neuroscript/pkg/types"
@@ -70,6 +71,14 @@ func normalizeAST(p *ast.Program) {
 	}
 
 	for _, proc := range p.Procedures {
+		// --- FIX: Normalize nil defaults to lang.NilValue ---
+		for _, param := range proc.OptionalParams {
+			if param.Default == nil {
+				param.Default = lang.NilValue{}
+			}
+		}
+		// --- END FIX ---
+
 		walkSteps(proc.Steps)
 		for _, handler := range proc.ErrorHandlers {
 			walkSteps(handler.Body)

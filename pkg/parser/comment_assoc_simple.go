@@ -1,6 +1,6 @@
 // filename: pkg/parser/comment_assoc_simple.go
 // NeuroScript Version: 0.8.0
-// File version: 115
+// File version: 116
 // Purpose: A new, robust comment attachment algorithm that assigns floating comments to the *next* node they precede.
 // nlines: 115
 
@@ -10,6 +10,7 @@ import (
 	"github.com/antlr4-go/antlr/v4"
 	gen "github.com/aprice2704/neuroscript/pkg/antlr/generated"
 	"github.com/aprice2704/neuroscript/pkg/ast"
+	"github.com/aprice2704/neuroscript/pkg/types" // Import types package
 )
 
 // AttachCommentsSimple attaches comments to the AST nodes they are
@@ -106,7 +107,9 @@ func AttachCommentsSimple(program *ast.Program, ts antlr.TokenStream) {
 		// Is this a comment token?
 		if tok.GetTokenType() == gen.NeuroScriptLexerLINE_COMMENT {
 			comment := &ast.Comment{Text: tok.GetText()}
-			newNode(comment, tok, 0)
+			// FIX: The NodeKind was being set to 0 (KindUnknown).
+			// It must be set to the correct type for the canon package.
+			newNode(comment, tok, types.KindComment)
 
 			if tokenLine == lastCodeLine {
 				// This is a trailing comment. Attach to the current node.

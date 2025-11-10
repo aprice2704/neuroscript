@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 25
-// Purpose: Removed temporary debug Fprintf statements after fixing the event handler panic.
+// File version: 26
+// Purpose: Corrected a bug where converting a VariableNode to an LValueNode copied the wrong NodeKind.
 // filename: pkg/parser/ast_builder_nslistener.go
 // nlines: 165
-// risk_rating: LOW
+// risk_rating: MEDIUM
 
 package parser
 
@@ -179,8 +179,10 @@ func (l *neuroScriptListenerImpl) ExitLvalue_list(ctx *gen.Lvalue_listContext) {
 			lval = &ast.LValueNode{
 				Identifier: node.Name,
 				Accessors:  []*ast.AccessorNode{},
-				BaseNode:   node.BaseNode,
+				BaseNode:   node.BaseNode, // Copy StartPos/StopPos
 			}
+			// FIX: The copied BaseNode has KindVariable; it must be corrected.
+			lval.BaseNode.NodeKind = types.KindLValue
 		default:
 			l.addError(ctx, "internal error: value for lvalue is not an ast.LValueNode or ast.VariableNode, got %T", v)
 			l.push([]*ast.LValueNode{})

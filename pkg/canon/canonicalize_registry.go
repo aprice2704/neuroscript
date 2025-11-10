@@ -1,9 +1,8 @@
 // NeuroScript Version: 0.6.3
-// File version: 2
-// Purpose: Implements the new registry-based AST canonicalization process.
+// File version: 3
+// Purpose: Implements the new registry-based AST canonicalization process. Adds CanonicaliseNode for minimal node persistence.
 // filename: pkg/canon/canonicalize_registry.go
-// nlines: 60
-// risk_rating: MEDIUM
+// nlines: 83
 
 package canon
 
@@ -17,7 +16,7 @@ import (
 )
 
 // CanonicaliseWithRegistry produces a deterministic binary representation of an AST
-// using the new registry-based codec system.
+// using the new registry-based codec system. It expects tree.Root to be an *ast.Program.
 func CanonicaliseWithRegistry(tree *ast.Tree) ([]byte, [32]byte, error) {
 	if tree == nil || tree.Root == nil {
 		return nil, [32]byte{}, fmt.Errorf("cannot canonicalize a nil tree or a tree with a nil root")
@@ -36,6 +35,36 @@ func CanonicaliseWithRegistry(tree *ast.Tree) ([]byte, [32]byte, error) {
 	visitor.write(magicNumber)
 
 	err := visitor.visitor(tree.Root)
+	if err != nil {
+		return nil, [32]byte{}, err
+	}
+
+	var sum [32]byte
+	hasher.Sum(sum[:0])
+	return buf.Bytes(), sum, nil
+}
+
+// CanonicaliseNode produces a deterministic binary representation of a single
+// AST node (e.g., *ast.Procedure, *ast.StringLiteralNode) for persistence.
+// This is the correct method for storing minimal AST fragments.
+func CanonicaliseNode(node ast.Node) ([]byte, [32]byte, error) {
+	if node == nil {
+		return nil, [32]byte{}, fmt.Errorf("cannot canonicalize a nil node")
+	}
+
+	var buf bytes.Buffer
+	hasher, _ := blake2b.New256(nil)
+	visitor := &canonVisitor{
+		w:      &buf,
+		hasher: hasher,
+	}
+	visitor.visitor = visitor.visitWithRegistry
+
+	// Write the magic number header first.
+	visitor.write(magicNumber)
+
+	// Visit the node directly, rather than tree.Root
+	err := visitor.visitor(node)
 	if err != nil {
 		return nil, [32]byte{}, err
 	}

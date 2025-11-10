@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.8.0
-// File version: 30
-// Purpose: Corrected ExitPromptuser_stmt to properly populate the step.PromptUserStmt field, fixing the root cause of the interpreter test failure.
+// File version: 31
+// Purpose: Corrected a bug where converting an LValueNode to a VariableNode in a return statement copied the wrong NodeKind.
 // filename: pkg/parser/ast_builder_statements.go
 // nlines: 250+
 // risk_rating: HIGH
@@ -102,9 +102,11 @@ func (l *neuroScriptListenerImpl) ExitReturn_statement(c *gen.Return_statementCo
 				if !isExpr {
 					if lval, isLval := val.(*ast.LValueNode); isLval && len(lval.Accessors) == 0 {
 						expr = &ast.VariableNode{
-							BaseNode: lval.BaseNode,
+							BaseNode: lval.BaseNode, // Copy StartPos/StopPos
 							Name:     lval.Identifier,
 						}
+						// FIX: The copied BaseNode has KindLValue; it must be corrected.
+						expr.(*ast.VariableNode).BaseNode.NodeKind = types.KindVariable
 						isExpr = true
 					}
 				}

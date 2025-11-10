@@ -1,6 +1,6 @@
 // NeuroScript Version: 0.6.3
-// File version: 5
-// Purpose: Corrected undefined KindAccountName to KindSecretRef.
+// File version: 8
+// Purpose: Registers codecs for Ask/Prompt/WhisperStmt and Comment. Fixes compiler errors from bad copy-paste.
 // filename: pkg/canon/codec_registry.go
 // nlines: 70
 // risk_rating: LOW
@@ -29,6 +29,7 @@ func init() {
 		types.KindProcedureDecl: {EncodeFunc: encodeProcedure, DecodeFunc: decodeProcedure},
 		types.KindOnEventDecl:   {EncodeFunc: encodeOnEventDecl, DecodeFunc: decodeOnEventDecl},
 		types.KindSecretRef:     {EncodeFunc: encodeSecretRef, DecodeFunc: decodeSecretRef},
+		types.KindComment:       {EncodeFunc: encodeComment, DecodeFunc: decodeComment}, // <<< ADDED
 		// KindMetadataLine is handled within other nodes, not as a standalone.
 
 		// Statements
@@ -63,8 +64,10 @@ func init() {
 		types.KindEval:   {EncodeFunc: encodeEval, DecodeFunc: decodeEval},
 		types.KindTypeOf: {EncodeFunc: encodeTypeOf, DecodeFunc: decodeTypeOf},
 
-		// Ask/Prompt statements are not yet implemented in the new codec system.
-		// types.KindAskStmt:        {EncodeFunc: encodeAskStmt, DecodeFunc: decodeAskStmt},
-		// types.KindPromptUserStmt: {EncodeFunc: encodePromptUserStmt, DecodeFunc: decodePromptUserStmt},
+		// --- FIX: Register codecs for statement Kinds ---
+		types.KindAskStmt:        {EncodeFunc: encodeAskStmt_wrapper, DecodeFunc: decodeAskStmt_wrapper},
+		types.KindPromptUserStmt: {EncodeFunc: encodePromptUserStmt_wrapper, DecodeFunc: decodePromptUserStmt_wrapper},
+		types.KindWhisperStmt:    {EncodeFunc: encodeWhisperStmt_wrapper, DecodeFunc: decodeWhisperStmt_wrapper},
+		// --- END FIX ---
 	}
 }

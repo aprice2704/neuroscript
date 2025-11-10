@@ -1,9 +1,8 @@
 // NeuroScript Version: 0.6.3
-// File version: 5
-// Purpose: Implements the new registry-based AST decoding process, now with simplified and robust sentinel error handling.
+// File version: 6
+// Purpose: Implements the new registry-based AST decoding process. Adds DecodeNode for minimal node persistence.
 // filename: pkg/canon/decode_registry.go
-// nlines: 65
-// risk_rating: MEDIUM
+// nlines: 83
 
 package canon
 
@@ -18,7 +17,8 @@ import (
 )
 
 // DecodeWithRegistry reconstructs an AST Tree from its binary representation
-// using the new registry-based codec system.
+// using the new registry-based codec system. It requires the root node
+// to be an *ast.Program.
 func DecodeWithRegistry(blob []byte) (*ast.Tree, error) {
 	if blob == nil || !bytes.HasPrefix(blob, magicNumber) {
 		return nil, ErrInvalidMagic
@@ -41,6 +41,28 @@ func DecodeWithRegistry(blob []byte) (*ast.Tree, error) {
 	restoreCallTargetKinds(prog)
 
 	return &ast.Tree{Root: prog}, nil
+}
+
+// DecodeNode reconstructs a single AST node from its binary representation.
+// This is the correct method for reading minimal AST fragments (e.g.,
+// a persisted *ast.Procedure or *ast.StringLiteralNode).
+func DecodeNode(blob []byte) (ast.Node, error) {
+	if blob == nil || !bytes.HasPrefix(blob, magicNumber) {
+		return nil, ErrInvalidMagic
+	}
+
+	reader := &canonReader{r: bytes.NewReader(blob[len(magicNumber):])}
+	reader.visitor = reader.readNodeWithRegistry
+
+	node, err := reader.visitor()
+	if err != nil {
+		return nil, err
+	}
+
+	// Note: We skip the restoreCallTargetKinds pass here, as we do not
+	// have the context of the full program. This is correct, as the
+	// node is being loaded for data, not direct execution.
+	return node, nil
 }
 
 // readNodeWithRegistry is the new dispatcher that uses the CodecRegistry.

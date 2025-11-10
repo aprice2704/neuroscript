@@ -1,7 +1,7 @@
 // filename: pkg/parser/ast_nodekind_test.go
-// NeuroScript Version: 0.6.3
-// File version: 10
-// Purpose: Rewrote the AST walker to be exhaustive, using full reflection to traverse all fields, slices, and maps to guarantee all nodes are visited.
+// NeuroScript Version: 0.8.0
+// File version: 12
+// Purpose: STRENGTHENED assertions to catch both KindUnknown(0) and invalid out-of-range Kinds by using types.KindMarker.
 // nlines: 115
 // risk_rating: MEDIUM
 
@@ -73,10 +73,17 @@ func TestAllNodesHaveValidKind(t *testing.T) {
 						baseNodeField := v.FieldByName("BaseNode")
 						if baseNodeField.IsValid() {
 							if bn, ok := baseNodeField.Addr().Interface().(*ast.BaseNode); ok {
-								t.Logf("Visiting Node: Type=%-25T, Kind=%-20d, Pos=%s", node, bn.NodeKind, bn.StartPos)
-								if bn.NodeKind == types.KindUnknown {
-									t.Errorf("Found AST node with uninitialized NodeKind (0).\n- Node Type: %T\n- Start Pos: %s", node, bn.StartPos)
+								t.Logf("Visiting Node: Type=%-25T, Kind=%-20s(%d), Pos=%s", node, bn.NodeKind, bn.NodeKind, bn.StartPos)
+
+								// --- STRENGTHENED ASSERTIONS ---
+								// Use the sentinels from pkg/types/kind.go
+								if bn.NodeKind <= types.KindUnknown {
+									t.Errorf("Found AST node with uninitialized or Unknown NodeKind (<= 0).\n- Node Type: %T\n- Kind: %d\n- Start Pos: %s", node, bn.NodeKind, bn.StartPos)
 								}
+								if bn.NodeKind >= types.KindMarker {
+									t.Errorf("Found AST node with invalid out-of-range NodeKind. This is the Kind(57) bug!\n- Node Type: %T\n- Invalid Kind: %d (>= KindMarker %d)\n- Start Pos: %s", node, bn.NodeKind, types.KindMarker, bn.StartPos)
+								}
+								// --- END ASSERTIONS ---
 							}
 						}
 					}

@@ -1,9 +1,8 @@
 // NeuroScript Version: 0.7.2
-// File version: 3
-// Purpose: Ensures Metadata is initialized to a non-nil, empty map during decoding.
+// File version: 4
+// Purpose: Implements Comment serialization/deserialization.
 // filename: pkg/canon/codec_program.go
-// nlines: 80
-// risk_rating: LOW
+// nlines: 100+
 
 package canon
 
@@ -56,6 +55,16 @@ func encodeProgram(v *canonVisitor, n ast.Node) error {
 			return err
 		}
 	}
+
+	// --- FIX: Encode Comments ---
+	v.writeVarint(int64(len(node.Comments)))
+	for _, comment := range node.Comments {
+		if err := v.visitor(comment); err != nil {
+			return err
+		}
+	}
+	// --- END FIX ---
+
 	return nil
 }
 
@@ -124,6 +133,23 @@ func decodeProgram(r *canonReader) (ast.Node, error) {
 		}
 		prog.Commands[i] = node.(*ast.CommandNode)
 	}
+
+	// --- FIX: Decode Comments ---
+	commentCount, err := r.readVarint()
+	if err != nil {
+		return nil, err
+	}
+	if commentCount > 0 {
+		prog.Comments = make([]*ast.Comment, commentCount)
+		for i := 0; i < int(commentCount); i++ {
+			node, err := r.visitor()
+			if err != nil {
+				return nil, err
+			}
+			prog.Comments[i] = node.(*ast.Comment)
+		}
+	}
+	// --- END FIX ---
 
 	return prog, nil
 }
