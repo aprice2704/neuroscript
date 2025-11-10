@@ -6,14 +6,14 @@
 
 ---
 
-## 1. The Core Lifecycle: Create, Configure, Load, Run
+## 1. The Core Lifecycle: Create, Parse, Load, Run
 
-Interacting with the interpreter follows a clear, four-step lifecycle. The API is designed to configure all external dependencies upfront, load script logic, and then execute it.
+Interacting with the interpreter follows a clear, four-step lifecycle. The API is designed to configure all external dependencies upfront, parse scripts into an AST, load the AST's definitions, and then execute code.
 
-1.  **Instantiation & Configuration:** Create an `Interpreter` instance using `New()` and configure its connection to the outside world via a `HostContext` and other options.
-2.  **Loading Code:** Load script definitions (procedures and event handlers) from an AST into the interpreter using `Load()`. This populates the interpreter's library of callable code.
-3.  **Appending Code (Optional):** Merge additional script definitions into the interpreter's state using `AppendScript()`. This is useful for loading libraries or modules without overwriting the main script.
-4.  **Execution:** Run code, either by invoking a specific procedure with `RunProcedure()` or by executing a script containing top-level `command` blocks with `ExecWithInterpreter()`.
+1.  **Instantiation & Configuration:** Create an `Interpreter` instance using `api.New()` and configure its connection to the outside world via a `HostContext` and other options.
+2.  **Parsing Code:** Parse a `.ns` script from bytes into an `AST` using `api.Parse()`.
+3.  **Loading Code:** Load script definitions (procedures and event handlers) from the parsed AST into the interpreter using `api.ExecWithInterpreter()` or `api.LoadFromUnit()`.
+4.  **Execution:** Run code by invoking a specific procedure with `api.RunProcedure()` or by having `api.ExecWithInterpreter()` run top-level `command` blocks.
 
 ---
 
@@ -36,6 +36,8 @@ Options are functions that modify the interpreter's configuration during creatio
 - **`WithAITranscriptWriter(w io.Writer) Option`**: Provides a writer to which the full transcript of conversations with AI providers will be written, for logging or debugging.
 - **`WithoutStandardTools() Option`**: Prevents the automatic registration of the standard tool library, useful for creating highly restricted or specialized runtimes.
 - **`WithCapsuleRegistry(...)` / `WithCapsuleAdminRegistry(...)`**: Configures registries for managing packaged scripts ("capsules").
+- **`WithProviderRegistry(...)`**: Injects a registry of AI providers.
+- **`WithAccountStore(...)` / `WithAgentModelStore(...)`**: Injects shared, persistent stores for state.
 
 ### The `HostContext` Struct
 
@@ -52,17 +54,17 @@ type HostContext struct {
    Stdin                     io.Reader
    Stderr                    io.Writer
 
-   // Optional writer for AI conversation logs.
-   AITranscript              io.Writer
-
-   // Callback for the 'emit' statement.
-   EmitFunc                  func(api.Value)
+   // The ServiceRegistry is the injection point for host
+   // services, most notably the SymbolProvider.
+   ServiceRegistry           any // (e.g., map[string]any)
 
    // ... and other callbacks and host-provided APIs.
 }
 ```
 
 **Key Takeaway:** A minimal, functioning interpreter requires calling `New` with at least `WithHostContext`, where the context has `Logger`, `Stdout`, `Stdin`, and `Stderr` populated.
+
+**Host-Level Services:** The `ServiceRegistry` field is the generic mechanism for injecting host services. Its primary use is to provide host-defined global symbols (functions, constants) by injecting an implementation of `api.SymbolProvider` (see Section 5.1).
 
 ### Example: Full Setup
 
@@ -106,12 +108,14 @@ func main() {
 	// 3. Parse and load a script containing definitions.
 	libScript := `func greet(needs name) means return "Hello, " + name endfunc`
 	tree, err := api.Parse([]byte(libScript), api.ParseSkipComments)
-   if err != nil {
-       panic(err)
-   }
-	if err := interp.Load(tree); err != nil {
-       panic(err)
-   }
+	if err != nil {
+		panic(err)
+	}
+	// Load definitions by executing the tree. This loads funcs/events.
+	// Since this script has no 'command' blocks, nothing else is run.
+	if _, err := api.ExecWithInterpreter(context.Background(), interp, tree); err != nil {
+		panic(err)
+	}
 
 	// 4. Run a procedure from the loaded library.
 	result, err := api.RunProcedure(context.Background(), interp, "greet", "World")
@@ -119,7 +123,7 @@ func main() {
 		panic(err)
 	}
 
-   unwrapped, _ := api.Unwrap(result)
+	unwrapped, _ := api.Unwrap(result)
 	fmt.Println("Result from Run:", unwrapped) // "Hello, World"
 }
 ```
@@ -131,9 +135,9 @@ func main() {
 The interpreter uses a "root vs. fork" model to ensure sandboxing and prevent unintended side effects.
 
 - **Root Interpreter:** The instance you create with `New()`. It holds all persistent state, including loaded procedures, global variables, agent models, and accounts.
-- **Forked Interpreter (Child):** Whenever a procedure is called (via `Run`) or an event handler is triggered, the interpreter creates a lightweight, temporary *fork*.
+- **Forked Interpreter (Child):** Whenever a procedure is called (via `RunProcedure`) or an event handler is triggered, the interpreter creates a lightweight, temporary *fork*.
 
-A **fork** inherits read-only access to everything from the root (procedures, globals, etc.) but has its own separate, isolated memory for local variables. **Crucially, a fork cannot modify the state of its parent.** This means a function can't change a global variable, and local variables set inside a function disappear after it returns. This is the core of NeuroScript's safety model.
+A **fork** inherits read-only access to everything from the root (procedures, globals, **host-provided symbols**, etc.) but has its own separate, isolated memory for local variables. **Crucially, a fork cannot modify the state of its parent.** This means a function can't change a global variable, and local variables set inside a function disappear after it returns. This is the core of NeuroScript's safety model.
 
 ---
 
@@ -143,21 +147,25 @@ Once configured, you can load your definitions and execute scripts. It is critic
 
 **Rule:** A single script or file should contain *either* definitions *or* command blocks, but **never both**.
 
-### `Load(tree *interfaces.Tree) error`
+### `ExecWithInterpreter(ctx context.Context, interp *Interpreter, tree *Tree) (Value, error)`
 
-This method loads definitions (`func` and `on event` blocks) from a parsed AST into the interpreter. **This is a destructive action**: it completely replaces any procedures and event handlers that were previously loaded. It does not execute any code.
+This static helper function is the primary method for both loading definitions and executing imperative code. It performs two actions in order:
+1.  **Loads Definitions:** It walks the AST and loads all `func` and `on event` blocks into the interpreter's state.
+2.  **Runs Commands:** It executes any top-level `command` blocks found in the script.
 
-### `AppendScript(tree *interfaces.Tree) error`
+If you pass a tree that *only* contains `func` definitions (like a library), this function acts as the "load" step.
 
-This method merges new definitions from an AST into the *existing* state of the interpreter. It will add new procedures and event handlers but will return an error if you try to define a procedure that already exists. This is ideal for loading modular libraries of functions. It does not execute any code.
+> **Symbol Conflict Rule:** The load will **fail** if the script attempts to define a `func` or `on event` with the same name as a symbol already provided by the host's `SymbolProvider`. This "No Override" rule ensures host-level functions are deterministic and secure.
+
+### `LoadFromUnit(interp *Interpreter, unit *LoadedUnit) error`
+
+This static helper function is used for securely-loaded scripts. It loads definitions from a `LoadedUnit` (the output of `api.Load()`), but it does *not* execute `command` blocks. This is the recommended path for loading verified code.
+
+> **Symbol Conflict Rule:** This function is also subject to the "No Override" rule described above.
 
 ### `RunProcedure(ctx context.Context, interp *Interpreter, name string, args ...any) (Value, error)`
 
-This is the primary method for executing a specific piece of loaded code. It invokes a named procedure (a `func` block) and passes the provided Go-native arguments to it. It returns the value from the procedure's `return` statement.
-
-### `ExecWithInterpreter(ctx context.Context, interp *Interpreter, tree *Tree) (Value, error)`
-
-This method is used to execute a script consisting of top-level `command` blocks. `command` blocks contain imperative code that runs immediately. They are sandboxed and cannot modify the state of the parent interpreter. This is the entry point for running the "main" logic of a script file.
+This static helper function is the primary method for executing a specific piece of loaded code. It invokes a named procedure (a `func` block) and passes the provided Go-native arguments to it. It returns the value from the procedure's `return` statement.
 
 ### `ExecScript(...)`
 
@@ -169,7 +177,61 @@ While available, this is primarily a helper for testing and simple use cases. It
 
 The API also provides access to the interpreter's various registries and state stores. These are often used for setup, or for tools that need to interact with the interpreter's core.
 
-### Custom Tool Example
+### 5.1 Host-Provided Symbols (SymbolProvider)
+
+For providing foundational, host-defined functions and constants (the "Read Path" described in `ns_globals.md`), the host application must implement and inject a `SymbolProvider`.
+
+1.  **Implement the Interface:** Create a Go struct that implements the `api.SymbolProvider` interface (which is an alias for `interfaces.SymbolProvider`).
+2.  **Inject via ServiceRegistry:** Place an instance of your provider into a map using `api.SymbolProviderKey` as the key.
+3.  **Build HostContext:** Pass this map to `NewHostContextBuilder().WithServiceRegistry(...)`.
+
+```go
+// In your Go application setup:
+
+// 1. Define your provider
+type MySymbolProvider struct {
+    // ... (e.g., a database connection)
+}
+
+// Implement the interface
+func (p *MySymbolProvider) GetProcedure(name string) (any, bool) {
+    if name == "my_host_func" {
+        // Return a parsed *ast.Procedure node
+        // (This is typically done in a "Config Context" boot process)
+        return myParsedProc, true
+    }
+    return nil, false
+}
+func (p *MySymbolPlayer) GetGlobalConstant(name string) (any, bool) {
+    if name == "MY_HOST_CONST" {
+        return lang.StringValue{Value: "hello from host"}, true
+    }
+    return nil, false
+}
+// ... (implement other List* and Get* methods)
+
+// 2. Create the provider and registry map
+myProvider := &MySymbolProvider{}
+serviceReg := map[string]any{
+    api.SymbolProviderKey: myProvider,
+}
+
+// 3. Build HostContext and create interpreter
+hostCtx, _ := api.NewHostContextBuilder().
+    WithLogger(myLogger).
+    WithStdout(os.Stdout).
+    WithStdin(os.Stdin).
+    WithStderr(os.Stderr).
+    WithServiceRegistry(serviceReg). // Inject the provider
+    Build()
+
+interp := api.New(api.WithHostContext(hostCtx))
+
+// Now, any script run in 'interp' can call 'my_host_func()'
+// and access 'MY_HOST_CONST' as if they were built-in.
+```
+
+### 5.2 Custom Tool Example
 
 You can register your own Go functions as tools that scripts can call.
 
@@ -188,7 +250,8 @@ myTool := api.ToolImplementation{
 	},
 }
 
-// Create interpreter with api.WithTool(myTool)
+// Register the tool on the interpreter's registry
+interp.ToolRegistry().RegisterTool(myTool)
 
 // Now, in a NeuroScript file:
 /*
@@ -198,186 +261,41 @@ endcommand
 */
 ```
 
-### AI & Provider Management
+### 5.3 AI & Provider Management
 
-- **`RegisterProvider(name string, p AIProvider)`**: Allows the host application to register a concrete AI provider (e.g., a connection to OpenAI, Anthropic, etc.) under a specific name that scripts can reference.
-- **`RegisterAgentModel(name string, config map[string]any) error`**: Provides administrative (`Register`, `Update`, `Delete`) access to the store of "AgentModels," which are configurations that bundle a provider, model name, and other settings.
+The host application registers AI providers by injecting a populated registry *at creation time*.
 
-### Account Management
+- **`WithProviderRegistry(registry *provider.Registry) Option`**: Injects a pre-populated `ProviderRegistry` into the interpreter.
+
+```go
+// In Go setup code:
+myRegistry := api.NewProviderRegistry()
+
+// You must get an admin handle to the registry to mutate it.
+// This typically requires a trusted policy.
+providerAdmin := provider.NewAdmin(myRegistry, myConfigPolicy) 
+providerAdmin.Register("my-provider", myProviderImpl)
+
+// At interpreter creation:
+interp := api.New(
+    api.WithHostContext(hostCtx),
+    api.WithProviderRegistry(myRegistry),
+)
+```
+
+- **`RegisterAgentModel(name string, config map[string]any) error`**: This method (available via embedding) provides administrative access to the store of "AgentModels," which are configurations that bundle a provider, model name, and other settings.
+
+### 5.4 Account Management
 
 - **`WithAccountStore(store *account.Store)`**: Allows the host to replace the default in-memory account store with a persistent one at creation time.
 
-### Variable Management
+### 5.5 Variable Management
 
 - **`WithGlobals(globals map[string]interface{})`**: Sets a map of variables in the interpreter's **global scope** at creation time. This is the primary way to inject data into a script from the host.
 
-# NeuroScript Host Guide: Managing Context & Identity
+### 5.6 Host-Level Orchestration
 
-**Revision:** 2025-Oct-15
+For advanced integrations, such as implementing a custom 'ask' loop (like FDM's AEIOU hook), the API provides low-level functions:
 
-**Audience:** Developers integrating the NeuroScript interpreter into host applications.
-
----
-
-## 1. Guiding Principle: The Host is the Source of Truth
-
-The NeuroScript interpreter is designed as a guest within a host application. The host application is therefore the definitive source for all contextual information. The API provides two distinct channels for the host to provide this context:
-
-1.  **The `HostContext`:** For **stable, long-lived** identity and resources that persist for the entire session.
-
-2.  **The `context.Context`:** For **ephemeral, request-scoped** data that applies only to a single operation.
-
-Properly managing these two channels is essential for security, logging, and enabling advanced tool behavior.
-
----
-
-## 2. The `HostContext`: Session-Wide Identity & Resources
-
-The `HostContext` is the "umbilical cord" connecting the interpreter to its environment. It is configured **once** during the interpreter's instantiation and is considered immutable thereafter.
-
-* **Purpose:** To provide foundational I/O, services, and the primary identity of the user or system running the script.
-
-* **Configuration:** You must create it using the `api.NewHostContextBuilder()` and pass it to the interpreter via the `api.WithHostContext()` option.
-
-* **Key Fields:**
-
-    * `Logger`, `Stdout`, `Stdin`, `Stderr`: Mandatory I/O and logging channels.
-
-    * `Actor`: An object representing the **long-term identity** (e.g., a user's DID) that is available to all scripts and tools throughout the session.
-
-This context should be used for information that does not change from one command to the next.
-
-#### Example: Instantiation
-
-```go
-
-// In your host application's setup
-
-// 1. Define the long-term identity.
-
-myActor := &MyUser{DID: "did:example:user-1234"}
-
-// 2. Build the HostContext.
-
-hostCtx, _ := api.NewHostContextBuilder().
-
-    WithLogger(myLogger).
-
-    WithStdout(os.Stdout).
-
-    // ... other I/O ...
-
-    WithActor(myActor). // Set the session-wide identity
-
-    Build()
-
-// 3. Create the interpreter, injecting the context.
-
-interp := api.New(api.WithHostContext(hostCtx))
-
-```
-
----
-
-## 3. The `context.Context`: Per-Operation Data
-
-For information that changes with each execution, such as a transaction ID or the specific agent invoking a tool, the standard Go `context.Context` is used. This context is passed as the first argument to every execution function (`RunProcedure`, `ExecWithInterpreter`, etc.).
-
-* **Purpose:** To provide ephemeral, request-scoped data that is only relevant for the duration of a single, specific script execution.
-
-* **Configuration:** The host application creates and populates this context immediately before calling an interpreter execution method.
-
-* **Best Practice:** The host should define its own custom context key types to avoid collisions.
-
-The interpreter ensures this context is propagated through all internal forks and made available to tools.
-
----
-
-## 4. Complete Example: Tying It All Together
-
-This example demonstrates how a host provides both types of context and how a tool accesses them.
-
-#### Host Application Code
-
-```go
-
-package main
-
-import (
-
-    "context"
-
-    "[github.com/aprice2704/neuroscript/pkg/api](https://github.com/aprice2704/neuroscript/pkg/api)"
-
-    // ... other imports
-
-)
-
-// 1. Define a custom key for your request-scoped data.
-
-type contextKey string
-
-const transactionIDKey = contextKey("transactionID")
-
-func main() {
-
-    // 2. Set up the long-lived HostContext (as before).
-
-    interp := setupInterpreter() // Assumes a function that returns a configured interpreter
-
-    // 3. For a specific operation, create and populate a context.Context.
-
-    transactionID := "txn-abc-987"
-
-    ctx := context.WithValue(context.Background(), transactionIDKey, transactionID)
-
-    // 4. Pass the context into the execution call.
-
-    // The interpreter will now have access to both the HostContext's Actor
-
-    // and this new context.Context with the transaction ID.
-
-    api.RunProcedure(ctx, interp, "processTransaction")
-
-}
-
-```
-
-#### NeuroScript Tool Code
-
-A tool running inside the `processTransaction` procedure can then access both contexts via the `Runtime` interface it receives.
-
-```go
-
-// A tool's Go implementation
-
-var MyTool = api.ToolImplementation{
-
-    Spec: api.ToolSpec{ Name: "log_context", Group: "host" },
-
-    Func: func(rt api.Runtime, args []any) (any, error) {
-
-        // Access the long-lived Actor from the HostContext
-
-        actorProvider, _ := rt.(interfaces.ActorProvider)
-
-        actor, _ := actorProvider.Actor()
-
-        rt.GetLogger().Info("Executing on behalf of Actor", "did", actor.DID())
-
-        // Access the ephemeral data from the context.Context
-
-        ctxProvider, _ := rt.(api.TurnContextProvider)
-
-        turnCtx := ctxProvider.GetTurnContext()
-
-        txID, _ := turnCtx.Value(transactionIDKey).(string)
-
-        rt.GetLogger().Info("Processing transaction", "id", txID)
-
-        return nil, nil
-
-    },
-
-}
-
+- **`api.CheckScriptTools(tree *Tree, interp Runtime) error`**: Verifies that all tools required by an AST are registered in the interpreter.
+- **`api.ExecuteSandboxedAST(...)`**: Runs a parsed AST in a secure, sandboxed fork of an interpreter and captures all `emit` and `whisper` output.

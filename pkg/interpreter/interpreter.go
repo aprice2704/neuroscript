@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 93
-// Purpose: Adds the missing SetPublicAPI method to link the internal interpreter to its public wrapper.
+// File version: 95
+// Purpose: Core Interpreter struct and New/Set methods. Split from original file.
 // filename: pkg/interpreter/interpreter.go
-// nlines: 317
+// nlines: 219
 // risk_rating: HIGH
 
 package interpreter
@@ -15,7 +15,8 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/account"
 	"github.com/aprice2704/neuroscript/pkg/agentmodel"
-	"github.com/aprice2704/neuroscript/pkg/ast"
+
+	// "github.com/aprice2704/neuroscript/pkg/ast" // No longer needed here
 	"github.com/aprice2704/neuroscript/pkg/capability"
 	"github.com/aprice2704/neuroscript/pkg/capsule"
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
@@ -96,27 +97,6 @@ func (i *Interpreter) SetPublicAPI(publicAPI tool.Runtime) {
 	i.PublicAPI = publicAPI
 }
 
-// RegisterStandardTools registers the built-in toolsets.
-func (i *Interpreter) RegisterStandardTools() {
-	if i.tools == nil {
-		i.Logger().Warn("RegisterStandardTools called with a nil tool registry. Skipping.")
-		return
-	}
-	if !i.skipStdTools {
-		if err := tool.RegisterGlobalToolsets(i.tools); err != nil {
-			panic(fmt.Sprintf("FATAL: Failed to register global toolsets: %v", err))
-		}
-	}
-	if err := registerDebugTools(i.tools); err != nil {
-		panic(fmt.Sprintf("FATAL: Failed to register debug tools: %v", err))
-	}
-	_, transientPrivateKey, err := ed25519.GenerateKey(nil)
-	if err != nil {
-		panic(fmt.Sprintf("FATAL: Failed to generate transient private key for AEIOU tool: %v", err))
-	}
-	i.transientPrivateKey = transientPrivateKey
-}
-
 // SetAccountStore replaces the interpreter's default account store with a host-provided one.
 func (i *Interpreter) SetAccountStore(store *account.Store) {
 	i.rootInterpreter().accountStore = store
@@ -140,7 +120,7 @@ func (i *Interpreter) SetCapsuleProvider(provider interfaces.CapsuleProvider) {
 func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	i := &Interpreter{
 		id:                fmt.Sprintf("interp-%s", uuid.NewString()[:8]),
-		state:             newInterpreterState(),
+		state:             newInterpreterState(), // This now initializes globalConstants
 		eventManager:      newEventManager(),
 		maxLoopIterations: 1000,
 		bufferManager:     NewBufferManager(),
@@ -149,6 +129,7 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 		capsuleStore:      capsule.NewStore(capsule.DefaultRegistry()),
 		cloneRegistry:     make([]*Interpreter, 0),
 	}
+	// Note: globalConstants map is initialized inside newInterpreterState() in state.go
 
 	i.tools = tool.NewToolRegistry(i)
 
@@ -184,7 +165,7 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	}
 	i.bufferManager.Create(DefaultSelfHandle)
 
-	i.RegisterStandardTools()
+	i.RegisterStandardTools() // This is now in interpreter_tools.go
 
 	i.SetInitialVariable("self", lang.StringValue{Value: DefaultSelfHandle})
 	return i
@@ -215,35 +196,6 @@ func (i *Interpreter) SetInitialVariable(name string, value any) error {
 		return fmt.Errorf("failed to wrap initial variable '%s': %w", name, err)
 	}
 	i.state.setGlobalVariable(name, wrappedValue)
-	return nil
-}
-
-func (i *Interpreter) Load(tree *interfaces.Tree) error {
-	if tree == nil || tree.Root == nil {
-		i.Logger().Warn("Load called with a nil program AST.")
-		i.state.knownProcedures = make(map[string]*ast.Procedure)
-		i.eventManager.eventHandlers = make(map[string][]*ast.OnEventDecl)
-		i.state.commands = []*ast.CommandNode{}
-		return nil
-	}
-	program, ok := tree.Root.(*ast.Program)
-	if !ok {
-		return fmt.Errorf("interpreter.Load: expected root node of type *ast.Program, but got %T", tree.Root)
-	}
-	i.state.knownProcedures = make(map[string]*ast.Procedure)
-	i.eventManager.eventHandlers = make(map[string][]*ast.OnEventDecl)
-	i.state.commands = []*ast.CommandNode{}
-	for name, proc := range program.Procedures {
-		i.state.knownProcedures[name] = proc
-	}
-	for _, eventDecl := range program.Events {
-		if err := i.eventManager.register(eventDecl, i); err != nil {
-			return fmt.Errorf("failed to register event handler: %w", err)
-		}
-	}
-	if program.Commands != nil {
-		i.state.commands = program.Commands
-	}
 	return nil
 }
 

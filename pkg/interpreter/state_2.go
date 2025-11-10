@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 9
-// Purpose: Removes the obsolete, state-based provider map, completing the registry refactor.
+// File version: 10
+// Purpose: Adds globalConstants map to interpreterState, fixing compile errors.
 // filename: pkg/interpreter/state_2.go
-// nlines: 66
+// nlines: 71
 // risk_rating: MEDIUM
 
 package interpreter
@@ -27,6 +27,7 @@ type interpreterState struct {
 	sandboxDir        string
 	vectorIndex       map[string][]float32
 	globalVarNames    map[string]bool
+	globalConstants   map[string]lang.Value // ADDED: For tool-defined global constants
 
 	// --- Provider State (Root Only) ---
 	// REMOVED: providers map and providersMu
@@ -46,6 +47,7 @@ func newInterpreterState() *interpreterState {
 		commands:        []*ast.CommandNode{},
 		stackFrames:     []string{},
 		globalVarNames:  make(map[string]bool),
+		globalConstants: make(map[string]lang.Value), // ADDED: Initialize the map
 		// REMOVED: providers map initialization
 	}
 }

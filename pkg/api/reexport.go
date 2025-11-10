@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 68
-// Purpose: Re-exports CapsuleStore interface.
+// File version: 69
+// Purpose: Re-exports SymbolProvider and SymbolProviderKey for host implementation.
 // filename: pkg/api/reexport.go
-// nlines: 151
+// nlines: 156
 // risk_rating: LOW
 package api
 
@@ -45,11 +45,15 @@ type (
 	}
 
 	// Policy & Capability Types
-	ExecPolicy = policy.ExecPolicy
-	// FIX: Corrected policy.Context to policy.ExecContext
+	ExecPolicy  = policy.ExecPolicy
 	ExecContext = policy.ExecContext
 	Capability  = capability.Capability
 	GrantSet    = capability.GrantSet
+
+	// --- ADDED FOR SYMBOL PROVIDER ---
+	// SymbolProvider is the interface hosts implement to inject global symbols.
+	SymbolProvider = interfaces.SymbolProvider
+	// ---------------------------------
 
 	// AI & State Store Types
 	AIProvider             = provider.AIProvider
@@ -59,8 +63,8 @@ type (
 	CapsuleRegistry        = capsule.Registry
 	AdminCapsuleRegistry   = capsule.Registry
 	Capsule                = capsule.Capsule
-	CapsuleProvider        = interfaces.CapsuleProvider // ADDED
-	CapsuleStore           = capsule.Store              // ADDED
+	CapsuleProvider        = interfaces.CapsuleProvider
+	CapsuleStore           = capsule.Store
 	AgentModel             = types.AgentModel
 	Account                = account.Account
 	AgentModelReader       = interfaces.AgentModelReader
@@ -104,6 +108,11 @@ const (
 	ContextNormal ExecContext = policy.ContextNormal
 	ContextTest   ExecContext = policy.ContextTest
 
+	// --- ADDED FOR SYMBOL PROVIDER ---
+	// SymbolProviderKey is the map key used to inject the provider.
+	SymbolProviderKey = interfaces.SymbolProviderKey
+	// ---------------------------------
+
 	// Capability Resources
 	ResFS      = capability.ResFS
 	ResNet     = capability.ResNet
@@ -139,7 +148,7 @@ var (
 	WithProviderRegistry     = interpreter.WithProviderRegistry
 	WithCapsuleRegistry      = interpreter.WithCapsuleRegistry
 	WithCapsuleAdminRegistry = interpreter.WithCapsuleAdminRegistry
-	WithCapsuleProvider      = interpreter.WithCapsuleProvider // ADDED
+	WithCapsuleProvider      = interpreter.WithCapsuleProvider
 	WithAITranscriptWriter   = interpreter.WithAITranscriptWriter
 
 	// Capability Constructors

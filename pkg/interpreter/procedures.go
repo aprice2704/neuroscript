@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 51.0.0
-// Purpose: Updated to use the new fork() method for creating sandboxed procedure environments.
+// File version: 52.0.0
+// Purpose: Fixes bug where runProcedure only checked local procs, not the symbol provider.
 // filename: pkg/interpreter/procedures.go
-// nlines: 50
+// nlines: 66
 // risk_rating: HIGH
 
 package interpreter
@@ -10,6 +10,7 @@ package interpreter
 import (
 	"fmt"
 
+	"github.com/aprice2704/neuroscript/pkg/ast" // Added import
 	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
@@ -18,7 +19,29 @@ const maxCallDepth = 500 // Prevents stack overflow
 // runProcedure executes a defined procedure with the given arguments.
 // This is the internal implementation.
 func (i *Interpreter) runProcedure(procName string, args ...lang.Value) (lang.Value, error) {
-	proc, exists := i.KnownProcedures()[procName]
+	// FIX: Implement provider-aware procedure lookup, just like GetVariable.
+	// 1. Check local procedures
+	proc, exists := i.state.knownProcedures[procName]
+
+	// 2. If not found, check symbol provider
+	if !exists {
+		// Use the helper method from interpreter_load.go
+		if provider := i.symbolProvider(); provider != nil {
+			procAny, existsProvider := provider.GetProcedure(procName)
+			if existsProvider {
+				if p, ok := procAny.(*ast.Procedure); ok {
+					proc = p
+					exists = true
+				} else if procAny != nil {
+					// This would be a bad state, log it.
+					i.Logger().Error("Symbol provider returned non-procedure for GetProcedure",
+						"name", procName, "type", fmt.Sprintf("%T", procAny))
+				}
+			}
+		}
+	}
+	// --- End of FIX ---
+
 	if !exists {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeProcNotFound, fmt.Sprintf("procedure '%s' not found", procName), lang.ErrProcedureNotFound)
 	}

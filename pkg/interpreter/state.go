@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 12
-// Purpose: Enforces read-only access to global variables from non-root scopes.
+// File version: 15
+// Purpose: Updates GetVariable to search constants and provider in correct order.
 // filename: pkg/interpreter/state.go
-// nlines: 85
+// nlines: 104
 // risk_rating: HIGH
 
 package interpreter
@@ -49,24 +49,55 @@ func (i *Interpreter) SetVariable(name string, value lang.Value) error {
 }
 
 // GetVariable is the internal method for retrieving a variable as a lang.Value.
-// It correctly looks up from local scope first, then to the root's globals.
+// It searches in order: local variables, root global variables, root global constants,
+// and finally the symbol provider's constants.
 func (i *Interpreter) GetVariable(name string) (lang.Value, bool) {
+	// 1. Check local scope
 	i.state.variablesMu.RLock()
 	val, exists := i.state.variables[name]
 	i.state.variablesMu.RUnlock()
-
 	if exists {
 		return val, true
 	}
 
-	// If not in local scope, check the root's globals.
 	root := i.rootInterpreter()
-	if i != root {
+	if i == root {
+		// We are the root, so we just need to check our own constants
 		root.state.variablesMu.RLock()
 		defer root.state.variablesMu.RUnlock()
+		// (Global vars already checked above in local scope)
+
+		// 3. Check root's global constants
+		val, exists = root.state.globalConstants[name] // This line is now valid
+		if exists {
+			return val, true
+		}
+	} else {
+		// We are in a fork, check root's globals and constants
+		root.state.variablesMu.RLock()
+		defer root.state.variablesMu.RUnlock()
+
+		// 2. Check root's global variables
 		if _, isGlobal := root.state.globalVarNames[name]; isGlobal {
 			val, exists = root.state.variables[name]
-			return val, exists
+			if exists {
+				return val, true
+			}
+		}
+		// 3. Check root's global constants
+		val, exists = root.state.globalConstants[name] // This line is now valid
+		if exists {
+			return val, true
+		}
+	}
+
+	// 4. Check Symbol Provider's constants (only root has provider)
+	if provider := root.symbolProvider(); provider != nil {
+		valAny, exists := provider.GetGlobalConstant(name)
+		if exists {
+			if val, ok := valAny.(lang.Value); ok {
+				return val, true
+			}
 		}
 	}
 
