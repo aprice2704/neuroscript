@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 7
-// Purpose: Implements all LSP request handler methods. ADDED textDocument/formatting handler.
+// File version: 8
+// Purpose: Implements all LSP request handler methods. ADDED textDocument/formatting handler. FIX: Moved workspace symbol scan from didOpen to initialize and removed the incorrect directory scanning logic.
 // filename: pkg/nslsp/handlers.go
-// nlines: 200
+// nlines: 204
 
 package nslsp
 
@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/nsfmt" // Import the formatter
@@ -40,6 +39,19 @@ func (s *Server) handleInitialize(ctx context.Context, conn *jsonrpc2.Conn, req 
 
 	s.loadConfig(params.RootURI)
 	s.startFileWatcher(ctx, params.RootURI)
+
+	// *** THE FIX IS HERE ***
+	// This is the correct and only place to trigger the initial workspace scan.
+	if workspacePath, err := uriToPath(params.RootURI); err == nil && workspacePath != "" {
+		s.logger.Printf("Triggering initial workspace symbol scan for: %s", workspacePath)
+		// We can run this in the background. The manager is (or should be)
+		// thread-safe, and subsequent diagnostics will pick up symbols as
+		// they become available.
+		go s.symbolManager.ScanDirectory(workspacePath)
+	} else if params.RootURI != "" {
+		s.logger.Printf("WARN: Could not convert rootURI '%s' to path for symbol scan: %v", params.RootURI, err)
+	}
+	// *** END FIX ***
 
 	s.logger.Println("'initialize' request handled successfully.")
 	return lsp.InitializeResult{
@@ -82,13 +94,10 @@ func (s *Server) handleTextDocumentDidOpen(ctx context.Context, conn *jsonrpc2.C
 	s.logger.Printf("Document opened: %s", params.TextDocument.URI)
 	s.documentManager.Set(params.TextDocument.URI, params.TextDocument.Text)
 
-	filePath, err := uriToPath(params.TextDocument.URI)
-	if err != nil {
-		s.logger.Printf("Could not convert URI to path for symbol scanning: %v", err)
-	} else {
-		dirPath := filepath.Dir(filePath)
-		s.symbolManager.ScanDirectory(dirPath)
-	}
+	// *** THE FIX IS HERE ***
+	// The incorrect, directory-based scanning logic has been removed.
+	// The scan is now correctly triggered once in 'initialize'.
+	// *** END FIX ***
 
 	go PublishDiagnostics(ctx, s.conn, s.logger, s, params.TextDocument.URI, params.TextDocument.Text)
 	return nil, nil

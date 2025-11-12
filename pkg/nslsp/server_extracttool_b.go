@@ -1,9 +1,8 @@
-// NeuroScript Version: 0.3.1
-// File version: 52
-// Purpose: Made tool name lookup case-insensitive. FIX: Plumbed a real logger through all hover-related functions. FIX: Corrected typo (o -> 0).
+// NeuroScript Version: 0.7.0
+// File version: 55
+// Purpose: FEAT: Added extractKeywordAtPosition helper for hover on func, if, ask, etc.
 // filename: pkg/nslsp/server_extracttool_b.go
-// nlines: 153
-// risk_rating: HIGH
+// nlines: 268
 
 package nslsp
 
@@ -164,4 +163,102 @@ func (s *Server) extractToolNameAtPosition(content string, position lsp.Position
 	default:
 		return ""
 	}
+}
+
+// extractBuiltInNameAtPosition finds a built-in function name at the cursor.
+func (s *Server) extractBuiltInNameAtPosition(content string, position lsp.Position, sourceName string) string {
+	debugHover := os.Getenv("NSLSP_DEBUG_HOVER") != "" || os.Getenv("DEBUG_LSP_HOVER_TEST") != ""
+	var log loggerFunc = noOpLogger
+	if debugHover {
+		log = func(format string, args ...interface{}) {
+			s.logger.Printf("[HOVER_TRACE_BUILTIN] "+format, args...)
+		}
+	}
+
+	if s.coreParserAPI == nil {
+		s.logger.Printf("ERROR_LSP_HOVER: coreParserAPI is nil in server.")
+		return ""
+	}
+
+	treeFromParser, _ := s.coreParserAPI.ParseForLSP(sourceName, content)
+	if treeFromParser == nil {
+		log("extractBuiltInNameAtPosition: Parser returned a nil tree.")
+		return ""
+	}
+	parseTreeRoot, ok := treeFromParser.(antlr.ParseTree)
+	if !ok {
+		return ""
+	}
+
+	foundTokenNode := findInitialNodeManually(parseTreeRoot, position.Line, position.Character, log)
+	if foundTokenNode == nil {
+		log("extractBuiltInNameAtPosition: No token found at position.")
+		return ""
+	}
+
+	tokenType := foundTokenNode.GetSymbol().GetTokenType()
+	tokenText := foundTokenNode.GetText()
+	log("extractBuiltInNameAtPosition: Found token '%s' of type %s.", tokenText, gen.NeuroScriptParserStaticData.SymbolicNames[tokenType])
+
+	// *** THE FIX IS HERE ***
+	// Check the token type against the keywords, not IDENTIFIER.
+	switch tokenType {
+	case gen.NeuroScriptLexerKW_SIN,
+		gen.NeuroScriptLexerKW_COS,
+		gen.NeuroScriptLexerKW_TAN,
+		gen.NeuroScriptLexerKW_ASIN,
+		gen.NeuroScriptLexerKW_ACOS,
+		gen.NeuroScriptLexerKW_ATAN,
+		gen.NeuroScriptLexerKW_LN,
+		gen.NeuroScriptLexerKW_LOG,
+		gen.NeuroScriptLexerKW_LEN,
+		gen.NeuroScriptLexerKW_TYPEOF,
+		gen.NeuroScriptLexerKW_EVAL:
+		// The token text (e.g., "sin") is a valid key for our BuiltInFunctions map.
+		if _, isBuiltIn := BuiltInFunctions[tokenText]; isBuiltIn {
+			log("extractBuiltInNameAtPosition: Token '%s' is a built-in function.", tokenText)
+			return tokenText
+		}
+	}
+
+	return ""
+}
+
+// extractKeywordAtPosition finds a structural keyword at the cursor.
+func (s *Server) extractKeywordAtPosition(content string, position lsp.Position, sourceName string) int {
+	debugHover := os.Getenv("NSLSP_DEBUG_HOVER") != "" || os.Getenv("DEBUG_LSP_HOVER_TEST") != ""
+	var log loggerFunc = noOpLogger
+	if debugHover {
+		log = func(format string, args ...interface{}) {
+			s.logger.Printf("[HOVER_TRACE_KEYWORD] "+format, args...)
+		}
+	}
+
+	if s.coreParserAPI == nil {
+		return 0
+	}
+
+	treeFromParser, _ := s.coreParserAPI.ParseForLSP(sourceName, content)
+	if treeFromParser == nil {
+		return 0
+	}
+	parseTreeRoot, ok := treeFromParser.(antlr.ParseTree)
+	if !ok {
+		return 0
+	}
+
+	foundTokenNode := findInitialNodeManually(parseTreeRoot, position.Line, position.Character, log)
+	if foundTokenNode == nil {
+		return 0
+	}
+
+	tokenType := foundTokenNode.GetSymbol().GetTokenType()
+
+	// Check if this tokenType is one of the keywords we have documentation for.
+	if _, isDocKeyword := KeywordDocs[tokenType]; isDocKeyword {
+		log("extractKeywordAtPosition: Token '%s' is a documented keyword.", foundTokenNode.GetText())
+		return tokenType
+	}
+
+	return 0 // 0 is not a valid token type, so it signals "not found".
 }

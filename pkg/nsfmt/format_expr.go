@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 11
-// Purpose: BUGFIX: Corrects UnaryOpNode formatting to add a space after 'not' and pass prefixLen correctly.
+// File version: 12
+// Purpose: BUGFIX: Corrects UnaryOpNode formatting to add a space after 'not', 'some', and 'no'.
 // filename: pkg/nsfmt/format_expr.go
-// nlines: 209
+// nlines: 210
 
 package nsfmt
 
@@ -56,11 +56,12 @@ func (f *formatter) formatExpression(expr ast.Expression, prefixLen int) string 
 		var operatorLen int
 		var operatorStr string
 
-		// Add space only for 'not'
-		if n.Operator == "not" {
-			operatorStr = "not "
+		// Add space for word-based operators
+		switch n.Operator {
+		case "not", "some", "no":
+			operatorStr = n.Operator + " "
 			operatorLen = len(operatorStr)
-		} else {
+		default:
 			operatorStr = n.Operator
 			operatorLen = len(operatorStr)
 		}

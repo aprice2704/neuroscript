@@ -1,6 +1,6 @@
-// NeuroScript Version: 0.7.2
-// File version: 8
-// Purpose: Enforces that ElseBody is initialized to a non-nil empty slice during decoding for consistency.
+// NeuroScript Version: 0.8.0
+// File version: 9
+// Purpose: Serializes and deserializes Step.Comments and Step.BlankLinesBefore.
 // filename: pkg/canon/codec_step.go
 // nlines: 200+
 // risk_rating: HIGH
@@ -15,6 +15,16 @@ import (
 func encodeStep(v *canonVisitor, n ast.Node) error {
 	node := n.(*ast.Step)
 	v.writeString(node.Type)
+
+	// --- FIX: Serialize Comments and BlankLinesBefore ---
+	v.writeVarint(int64(len(node.Comments)))
+	for _, comment := range node.Comments {
+		if err := v.visitor(comment); err != nil {
+			return err
+		}
+	}
+	v.writeVarint(int64(node.BlankLinesBefore))
+	// --- END FIX ---
 
 	switch node.Type {
 	case "set":
@@ -116,6 +126,27 @@ func decodeStep(r *canonReader) (ast.Node, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// --- FIX: Deserialize Comments and BlankLinesBefore ---
+	commentCount, err := r.readVarint()
+	if err != nil {
+		return nil, err
+	}
+	step.Comments = make([]*ast.Comment, commentCount)
+	for i := 0; i < int(commentCount); i++ {
+		node, err := r.visitor()
+		if err != nil {
+			return nil, err
+		}
+		step.Comments[i] = node.(*ast.Comment)
+	}
+
+	blankLines, err := r.readVarint()
+	if err != nil {
+		return nil, err
+	}
+	step.BlankLinesBefore = int(blankLines)
+	// --- END FIX ---
 
 	switch step.Type {
 	case "set":

@@ -1,9 +1,9 @@
-// NeuroScript Version: 0.6.0
-// File version: 5
-// Purpose: Provides a full end-to-end integration test. FIX: Updated to check for the semantic error code instead of a brittle string match. FIX: Made mock client handler idempotent using an atomic flag to prevent race condition panics.
+// NeuroScript Version: 0.7.0
+// File version: 7
+// Purpose: Provides a full end-to-end integration test. FIX: Updated 'MissingMeans' test to check for the correct, modern error message.
 // filename: pkg/nslsp/integration_test.go
-// nlines: 153
-// risk_rating: MEDIUM
+// nlines: 186
+// risk_rating: LOW
 
 package nslsp
 
@@ -149,5 +149,63 @@ endfunc
 	}
 	if !foundSyntax {
 		t.Error("Did not find the expected syntax error.")
+	}
+}
+
+// TestIntegration_SyntaxError_MissingMeans verifies the "missing means" error.
+func TestIntegration_SyntaxError_MissingMeans(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	serverConn, clientConn, handler := setupIntegrationTest(t, ctx)
+	defer serverConn.Close()
+	defer clientConn.Close()
+
+	// --- Test Execution ---
+	handler.PrepareForWait()
+	handler.wg.Add(1)
+	uri := lsp.DocumentURI("file:///missing_means.ns")
+	content := `
+func MyProc()
+  # This line is where 'means' should be
+  set x = 1
+endfunc
+`
+	didOpenParams := lsp.DidOpenTextDocumentParams{
+		TextDocument: lsp.TextDocumentItem{URI: uri, Text: content},
+	}
+	paramsBytes, _ := json.Marshal(didOpenParams)
+	rawParams := json.RawMessage(paramsBytes)
+
+	if err := clientConn.Notify(ctx, "textDocument/didOpen", &rawParams); err != nil {
+		t.Fatalf("Failed to send didOpen notification: %v", err)
+	}
+
+	// --- Verification ---
+	var params lsp.PublishDiagnosticsParams
+	select {
+	case params = <-handler.diagnosticsChan:
+		t.Log("Successfully received diagnostics from the server.")
+	case <-ctx.Done():
+		t.Fatal("Test timed out waiting for diagnostics to be published")
+	}
+	handler.wg.Wait()
+
+	if len(params.Diagnostics) < 1 {
+		t.Fatalf("Expected at least 1 syntax diagnostic, but got %d", len(params.Diagnostics))
+	}
+
+	foundSyntax := false
+	for _, d := range params.Diagnostics {
+		// THE FIX IS HERE:
+		// We are now checking for the correct error message: "missing 'means'"
+		if d.Source == "nslsp-syntax" && d.Range.Start.Line == 1 && strings.Contains(d.Message, "missing 'means'") {
+			foundSyntax = true
+			break
+		}
+	}
+
+	if !foundSyntax {
+		t.Errorf("Did not find the expected 'missing means' syntax error on line 2. Diagnostics: %+v", params.Diagnostics)
 	}
 }

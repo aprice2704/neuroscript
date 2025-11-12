@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.3.1
-// File version: 10
-// Purpose: Updated tests to use the server.interpreter.ToolRegistry() method.
+// NeuroScript Version: 0.7.0
+// File version: 12
+// Purpose: FEAT: Added hover tests for structural keywords (func, if, ask).
 // filename: pkg/nslsp/server_extracttool_test.go
-// nlines: 245
+// nlines: 279
 // risk_rating: LOW
 
 package nslsp
@@ -71,7 +71,7 @@ endfunc
 		{"On second '.' in tool.FS.List", neuroscriptCodeSnippet, 1, 19, "tool.FS.List", "test.ns"},
 		{"On 'List' in tool.FS.List", neuroscriptCodeSnippet, 1, 20, "tool.FS.List", "test.ns"},
 		{"On 'AnotherTool'", neuroscriptCodeSnippet, 2, 12, "", "test.ns"},
-		{"On 'sin' (built-in)", neuroscriptCodeSnippet, 3, 12, "", "test.ns"},
+		{"On 'sin' (built-in)", neuroscriptCodeSnippet, 3, 12, "", "test.ns"}, // extractToolNameAtPosition *only* finds tools
 		{"On 'tool' in tool.Meta.ListTools", neuroscriptCodeSnippet, 4, 15, "tool.Meta.ListTools", "test.ns"},
 		{"On 'Meta' in tool.Meta.ListTools", neuroscriptCodeSnippet, 4, 20, "tool.Meta.ListTools", "test.ns"},
 		{"On 'ListTools' in tool.Meta.ListTools", neuroscriptCodeSnippet, 4, 25, "tool.Meta.ListTools", "test.ns"},
@@ -82,7 +82,7 @@ endfunc
 		{"On 'Read' in tool.FS.Read", neuroscriptCodeSnippet, 8, 20, "tool.FS.Read", "test.ns"},
 		{"On 'List' in tool.FS.List (no parens)", neuroscriptCodeSnippet, 9, 20, "tool.FS.List", "test.ns"},
 		{"On variable 'x'", neuroscriptCodeSnippet, 1, 6, "", "test.ns"},
-		{"On keyword 'set'", neuroscriptCodeSnippet, 1, 2, "", "test.ns"},
+		{"On keyword 'set'", neuroscriptCodeSnippet, 1, 2, "", "test.ns"}, // extractToolNameAtPosition *only* finds tools
 		{"On string literal char '/'", neuroscriptCodeSnippet, 1, 28, "", "test.ns"},
 		{"Inside string literal", neuroscriptCodeSnippet, 1, 30, "", "test.ns"},
 		{"On '(' in tool.FS.List()", neuroscriptCodeSnippet, 1, 25, "", "test.ns"},
@@ -181,6 +181,12 @@ func MyProcedure() means
   set y = tool.Meta.ListTools()
   set z = tool.FS.NonExistentTool()
   set w = MyFunc()
+  set l = len("hello")
+  set s = sin(1.2)
+  if l > 0
+    ask "model", "prompt"
+    whisper "handle", "value"
+  endif
 endfunc
 `)
 	serverInstance.documentManager.Set(uri, content)
@@ -200,16 +206,24 @@ endfunc
 		char              int
 		expectHover       bool
 		minContentLength  int
-		expectedToolName  string // This is the full name used for logging/debugging
 		expectedSubstring string // This is what we check for in the hover content
 	}{
-		{"Hover on 'List' in tool.FS.List", 1, 20, true, 20, "tool.FS.List", "tool.FS.List"},
-		{"Hover on 'tool' in tool.FS.List", 1, 12, true, 20, "tool.FS.List", "tool.FS.List"},
-		{"Hover on 'ListTools' in tool.Meta.ListTools", 2, 25, true, 20, "tool.Meta.ListTools", "tool.Meta.ListTools"},
-		{"Hover on 'FS' in tool.FS.NonExistentTool", 3, 17, false, 0, "", ""},
-		{"Hover on 'NonExistentTool'", 3, 20, false, 0, "", ""},
-		{"Hover on 'MyFunc'", 4, 12, false, 0, "", ""},
-		{"Hover on keyword 'set'", 1, 2, false, 0, "", ""},
+		{"Hover on 'List' in tool.FS.List", 1, 20, true, 20, "tool.FS.List"},
+		{"Hover on 'tool' in tool.FS.List", 1, 12, true, 20, "tool.FS.List"},
+		{"Hover on 'ListTools' in tool.Meta.ListTools", 2, 25, true, 20, "tool.Meta.ListTools"},
+		{"Hover on 'FS' in tool.FS.NonExistentTool", 3, 17, false, 0, ""},
+		{"Hover on 'NonExistentTool'", 3, 20, false, 0, ""},
+		{"Hover on 'MyFunc'", 4, 12, false, 0, ""},
+		{"Hover on built-in 'len'", 5, 12, true, 20, "(built-in) len(value: any)"},
+		{"Hover on built-in 'sin'", 6, 12, true, 20, "(built-in) sin(value: number)"},
+		{"Hover in 'sin' parens", 6, 16, false, 0, ""},
+		// New Keyword Tests
+		{"Hover on keyword 'func'", 0, 0, true, 20, "(keyword) func <name>"},
+		{"Hover on keyword 'set'", 1, 2, true, 20, "(keyword) set <variable>"},
+		{"Hover on keyword 'if'", 7, 2, true, 20, "(keyword) if <condition>"},
+		{"Hover on keyword 'ask'", 8, 4, true, 20, "(keyword) ask <model_expr>"},
+		{"Hover on keyword 'whisper'", 9, 4, true, 20, "(keyword) whisper <handle_expr>"},
+		{"Hover on keyword 'endif'", 10, 2, false, 0, ""}, // We didn't add 'endif' to the map
 	}
 
 	serverInputReader, clientWritesToServerPipe := io.Pipe()
@@ -273,7 +287,7 @@ endfunc
 					t.Errorf("FAIL: Expected hover, but got error: %v", err)
 				} else {
 					if debugHoverTest {
-						t.Logf("INFO: Correctly got error for non-hover case: %v (tool: %s)", err, tc.expectedToolName)
+						t.Logf("INFO: Correctly got error for non-hover case: %v (tool: %s)", err, tc.expectedSubstring)
 					}
 				}
 				return
@@ -281,7 +295,7 @@ endfunc
 
 			if !tc.expectHover {
 				if result != nil {
-					t.Errorf("FAIL: Expected no hover (nil result), but got: %+v (tool: %s)", result, tc.expectedToolName)
+					t.Errorf("FAIL: Expected no hover (nil result), but got: %+v (tool: %s)", result, tc.expectedSubstring)
 				} else {
 					if debugHoverTest {
 						t.Logf("PASS: Correctly got no hover (nil result) for: %s", tc.name)
@@ -291,30 +305,30 @@ endfunc
 			}
 
 			if result == nil {
-				t.Errorf("FAIL: Expected hover result, but got nil (tool: %s)", tc.expectedToolName)
+				t.Errorf("FAIL: Expected hover result, but got nil (tool: %s)", tc.expectedSubstring)
 				return
 			}
 
 			hoverResult, ok := result.(*lsp.Hover)
 			if !ok {
-				t.Errorf("FAIL: Expected result to be *lsp.Hover, but got %T (tool: %s)", result, tc.expectedToolName)
+				t.Errorf("FAIL: Expected result to be *lsp.Hover, but got %T (tool: %s)", result, tc.expectedSubstring)
 				return
 			}
 
 			if len(hoverResult.Contents) == 0 {
-				t.Errorf("FAIL: Expected hover contents, but got empty array (tool: %s)", tc.expectedToolName)
+				t.Errorf("FAIL: Expected hover contents, but got empty array (tool: %s)", tc.expectedSubstring)
 				return
 			}
 
 			actualContent := hoverResult.Contents[0].Value
 			if len(actualContent) < tc.minContentLength {
 				t.Errorf("FAIL: Hover content for '%s' too short. Expected min %d, got %d. Content: '%s'",
-					tc.expectedToolName, tc.minContentLength, len(actualContent), actualContent)
+					tc.expectedSubstring, tc.minContentLength, len(actualContent), actualContent)
 			}
 
 			if tc.expectedSubstring != "" && !strings.Contains(actualContent, tc.expectedSubstring) {
 				t.Errorf("FAIL: Hover content for '%s' did not contain expected substring '%s'. Actual: '%s'",
-					tc.expectedToolName, tc.expectedSubstring, actualContent)
+					tc.expectedSubstring, tc.expectedSubstring, actualContent)
 			}
 		})
 	}

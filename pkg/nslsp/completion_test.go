@@ -1,8 +1,8 @@
-// NeuroScript Version: 0.6.0
-// File version: 11
-// Purpose: Provides end-to-end tests for completion. FIX: Updated tests to use server.interpreter.ToolRegistry() method.
+// NeuroScript Version: 0.7.0
+// File version: 13
+// Purpose: Provides end-to-end tests for completion. FEAT: Added test for built-in function and snippet completion.
 // filename: pkg/nslsp/completion_test.go
-// nlines: 190
+// nlines: 247
 // risk_rating: MEDIUM
 
 package nslsp
@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/aprice2704/neuroscript/pkg/tool"
-	//	_ "github.com/aprice2704/neuroscript/pkg/toolbundles/all"
+	//	_ "github.com.com/aprice2704/neuroscript/pkg/toolbundles/all"
 	lsp "github.com/sourcegraph/go-lsp"
 	"github.com/sourcegraph/jsonrpc2"
 )
@@ -192,5 +192,74 @@ func TestHandleTextDocumentCompletion_ExternalTools(t *testing.T) {
 	expectedDetail := "(handle: string) -> string"
 	if item.Detail != expectedDetail {
 		t.Errorf("Expected completion detail to be '%s', got '%s'", expectedDetail, item.Detail)
+	}
+}
+
+// TestHandleTextDocumentCompletion_General combines built-in and snippet tests.
+func TestHandleTextDocumentCompletion_General(t *testing.T) {
+	server, uri, cancel := setupCompletionTest(t)
+	defer cancel()
+
+	content := "func M() means\n  f\nendfunc" // User is typing 'func' or 'for'
+	server.documentManager.Set(uri, content)
+
+	params := lsp.CompletionParams{
+		TextDocumentPositionParams: lsp.TextDocumentPositionParams{
+			TextDocument: lsp.TextDocumentIdentifier{URI: uri},
+			Position:     lsp.Position{Line: 1, Character: 3}, // After 'f'
+		},
+	}
+	rawParams, _ := json.Marshal(params)
+	req := &jsonrpc2.Request{Method: "textDocument/completion", Params: (*json.RawMessage)(&rawParams)}
+
+	result, err := server.handleTextDocumentCompletion(context.Background(), nil, req)
+	if err != nil {
+		t.Fatalf("handleTextDocumentCompletion returned an error: %v", err)
+	}
+
+	completionList, ok := result.(*lsp.CompletionList)
+	if !ok || completionList == nil {
+		t.Fatalf("Expected a valid *lsp.CompletionList, but got a different result type")
+	}
+
+	// Check that built-ins and snippets are present
+	foundLen := false
+	foundSin := false
+	foundFuncSnippet := false
+	foundForSnippet := false
+	foundAskSnippet := false
+
+	for _, item := range completionList.Items {
+		if item.Label == "len" && item.Kind == lsp.CIKFunction {
+			foundLen = true
+		}
+		if item.Label == "sin" && item.Kind == lsp.CIKFunction {
+			foundSin = true
+		}
+		if item.Label == "func" && item.Kind == lsp.CIKSnippet {
+			foundFuncSnippet = true
+		}
+		if item.Label == "for" && item.Kind == lsp.CIKSnippet {
+			foundForSnippet = true
+		}
+		if item.Label == "ask" && item.Kind == lsp.CIKSnippet {
+			foundAskSnippet = true
+		}
+	}
+
+	if !foundLen {
+		t.Error("Expected to find 'len' (built-in) in general completions")
+	}
+	if !foundSin {
+		t.Error("Expected to find 'sin' (built-in) in general completions")
+	}
+	if !foundFuncSnippet {
+		t.Error("Expected to find 'func' (snippet) in general completions")
+	}
+	if !foundForSnippet {
+		t.Error("Expected to find 'for' (snippet) in general completions")
+	}
+	if !foundAskSnippet {
+		t.Error("Expected to find 'ask' (snippet) in general completions")
 	}
 }

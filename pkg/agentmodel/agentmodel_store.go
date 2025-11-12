@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 13
-// Purpose: Aligned method signatures to string (from types.AgentModelName) and added RegisterFromModel(any) to match purified interface.
+// File version: 14
+// Purpose: Adds a public, thread-safe Exists(string) bool method to AgentModelStore.
 // filename: pkg/agentmodel/agentmodel_store.go
-// nlines: 153
+// nlines: 159
 // risk_rating: HIGH
 
 package agentmodel
@@ -29,6 +29,20 @@ type AgentModelStore struct {
 func NewAgentModelStore() *AgentModelStore {
 	return &AgentModelStore{m: make(map[string]types.AgentModel)}
 }
+
+// --- ADDED: Public Exists method ---
+
+// Exists checks if an agent model with the given name is registered.
+// This is thread-safe and can be called by other Go services.
+func (s *AgentModelStore) Exists(name string) bool {
+	key := strings.ToLower(name)
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	_, ok := s.m[key]
+	return ok
+}
+
+// --- END ADDED ---
 
 // ---------- reader view ----------
 

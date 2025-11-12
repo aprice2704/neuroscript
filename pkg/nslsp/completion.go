@@ -1,9 +1,8 @@
-// NeuroScript Version: 0.6.0
-// File version: 8
-// Purpose: Implements textDocument/completion. FIX: Correctly isolates the active tool expression for completion, fixing bugs with multiple tool calls on one line. FIX: Use interpreter from server struct. FIX: Format documentation as markdown for better client-side rendering.
+// NeuroScript Version: 0.7.0
+// File version: 10
+// Purpose: Implements textDocument/completion. FEAT: Merges built-in function completions and snippet completions.
 // filename: pkg/nslsp/completion.go
-// nlines: 188
-// risk_rating: HIGH
+// nlines: 206
 
 package nslsp
 
@@ -41,31 +40,35 @@ func (s *Server) handleTextDocumentCompletion(ctx context.Context, conn *jsonrpc
 	// Get the text on the line from the beginning to the cursor.
 	linePrefix := line[:params.Position.Character]
 
-	// THE FIX IS HERE: Isolate the specific `tool.` expression the user is typing.
-	// `LastIndex` is correct because `linePrefix` only contains text *before* the cursor.
-	// This correctly finds the tool expression the cursor is in, even with multiple tool calls on the line.
+	// --- Tool Completion Logic ---
+	// Isolate the specific `tool.` expression the user is typing.
 	lastToolIndex := strings.LastIndex(linePrefix, "tool.")
-	if lastToolIndex == -1 {
-		return nil, nil // Not a tool completion.
+	if lastToolIndex != -1 {
+		// User is typing a tool, so *only* return tool completions.
+		toolPrefix := strings.TrimSpace(linePrefix[lastToolIndex:])
+		parts := strings.Split(toolPrefix, ".")
+
+		// Case 1: User typed `tool.` and expects a list of groups.
+		if len(parts) == 2 && parts[0] == "tool" && parts[1] == "" {
+			return s.getToolGroupCompletions(), nil
+		}
+
+		// Case 2: User typed `tool.group.` and expects a list of tool names.
+		if len(parts) >= 3 && parts[0] == "tool" && parts[len(parts)-1] == "" {
+			return s.getToolNameCompletions(toolPrefix), nil
+		}
+		// If they are in the middle of typing a tool name, don't show other suggestions.
+		return nil, nil
 	}
 
-	toolPrefix := strings.TrimSpace(linePrefix[lastToolIndex:])
-	parts := strings.Split(toolPrefix, ".")
+	// --- General Completion Logic ---
+	// If we are not in a tool expression, return snippets and built-in functions.
+	snippets := s.getSnippetCompletions()
+	builtIns := s.getBuiltInCompletions()
 
-	// Case 1: User typed `tool.` and expects a list of groups.
-	// The prefix is exactly "tool." and splits into ["tool", ""].
-	if len(parts) == 2 && parts[0] == "tool" && parts[1] == "" {
-		return s.getToolGroupCompletions(), nil
-	}
-
-	// Case 2: User typed `tool.group.` and expects a list of tool names.
-	// The prefix ends with a dot, e.g., "tool.fs.", splitting to ["tool", "fs", ""].
-	if len(parts) >= 3 && parts[0] == "tool" && parts[len(parts)-1] == "" {
-		return s.getToolNameCompletions(toolPrefix), nil
-	}
-
-	// Other cases (like completing a partial name) are not handled by the tests for now.
-	return nil, nil
+	// Merge the two lists
+	snippets.Items = append(snippets.Items, builtIns.Items...)
+	return snippets, nil
 }
 
 func (s *Server) getToolGroupCompletions() *lsp.CompletionList {

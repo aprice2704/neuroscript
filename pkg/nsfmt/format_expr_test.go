@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 4
-// Purpose: Adds regression test for 'not' operator formatting.
+// File version: 5
+// Purpose: Adds regression test for 'not', 'some', and 'no' operator formatting.
 // filename: pkg/nsfmt/format_expr_test.go
-// nlines: 140
+// nlines: 161
 
 package nsfmt
 
@@ -125,6 +125,36 @@ func main() means
         emit "was false"
     endif
     set x = -1
+endfunc`
+	assertFormat(t, input, expected)
+}
+
+func TestFormat_UnaryWordOperators(t *testing.T) {
+	// This tests the 'not', 'some', and 'no' operator bug
+	input := `
+func main() means
+    if not my_func(true)
+        emit "was false"
+    endif
+    if some script_capsule and some charter_capsule
+        emit "both present"
+    endif
+    if no (a or b)
+        emit "neither"
+    endif
+endfunc
+`
+	expected := `
+func main() means
+    if not my_func(true)
+        emit "was false"
+    endif
+    if some script_capsule and some charter_capsule
+        emit "both present"
+    endif
+    if no (a or b)
+        emit "neither"
+    endif
 endfunc`
 	assertFormat(t, input, expected)
 }

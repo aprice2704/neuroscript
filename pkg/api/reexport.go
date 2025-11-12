@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 69
+// File version: 72
 // Purpose: Re-exports SymbolProvider and SymbolProviderKey for host implementation.
 // filename: pkg/api/reexport.go
-// nlines: 156
+// nlines: 162
 // risk_rating: LOW
 package api
 
@@ -16,6 +16,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/logging" // ADDED: For logger constructors
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/provider"
 	"github.com/aprice2704/neuroscript/pkg/tool"
@@ -150,6 +151,11 @@ var (
 	WithCapsuleAdminRegistry = interpreter.WithCapsuleAdminRegistry
 	WithCapsuleProvider      = interpreter.WithCapsuleProvider
 	WithAITranscriptWriter   = interpreter.WithAITranscriptWriter
+
+	// --- FIXED TO FIX LOGGER DEPENDENCY ---
+	NewNoOpLogger = logging.NewNoOpLogger
+	NewTestLogger = logging.NewTestLogger // ADDED
+	// ----------------------------------------
 
 	// Capability Constructors
 	NewCapability   = capability.New

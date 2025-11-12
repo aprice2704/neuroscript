@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 6
-// Purpose: Defines standardized error codes for LSP diagnostics. FIX: Added DiagCodeProcNotFound. FIX: Added DiagCodeOptionalArgMissing.
+// File version: 7
+// Purpose: Defines standardized error codes for LSP diagnostics. FIX: Added DiagCodeUninitializedVar.
 // filename: pkg/nslsp/errors.go
-// nlines: 20
+// nlines: 22
 // risk_rating: LOW
 
 package nslsp
@@ -19,4 +19,6 @@ const (
 	DiagCodeProcNotFound DiagnosticCode = "ProcNotFound"
 	// DiagCodeOptionalArgMissing indicates that a tool is called with a valid number of arguments, but is missing one or more optional ones.
 	DiagCodeOptionalArgMissing DiagnosticCode = "OptionalArgMissing"
+	// DiagCodeUninitializedVar indicates that a variable is read before it has been assigned a value.
+	DiagCodeUninitializedVar DiagnosticCode = "UninitializedVar"
 )

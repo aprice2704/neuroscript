@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.7.0
-// File version: 1
-// Purpose: Provides the textDocument/hover LSP handler and all related formatting logic, separated from the main handlers file.
+// File version: 3
+// Purpose: FEAT: Added hover support for structural keywords (func, if, ask, etc.).
 // filename: pkg/nslsp/hover.go
-// nlines: 125
+// nlines: 144
 // risk_rating: MEDIUM
 
 package nslsp
@@ -29,28 +29,46 @@ func (s *Server) handleTextDocumentHover(ctx context.Context, conn *jsonrpc2.Con
 	if !found {
 		return nil, nil
 	}
+	uriStr := string(params.TextDocument.URI)
 
-	toolName := s.extractToolNameAtPosition(content, params.Position, string(params.TextDocument.URI))
-	if toolName == "" {
-		return nil, nil
-	}
-	lookupName := types.FullName(strings.ToLower(toolName))
+	// --- Step 1: Check for a tool name (e.g., tool.FS.Read) ---
+	toolName := s.extractToolNameAtPosition(content, params.Position, uriStr)
+	if toolName != "" {
+		lookupName := types.FullName(strings.ToLower(toolName))
 
-	var impl tool.ToolImplementation
-	var foundTool bool
-	if s.interpreter.ToolRegistry() != nil {
-		impl, foundTool = s.interpreter.ToolRegistry().GetTool(lookupName)
-	}
-	if !foundTool && s.externalTools != nil {
-		impl, foundTool = s.externalTools.GetTool(lookupName)
+		var impl tool.ToolImplementation
+		var foundTool bool
+		if s.interpreter.ToolRegistry() != nil {
+			impl, foundTool = s.interpreter.ToolRegistry().GetTool(lookupName)
+		}
+		if !foundTool && s.externalTools != nil {
+			impl, foundTool = s.externalTools.GetTool(lookupName)
+		}
+
+		if foundTool {
+			return s.formatToolHover(toolName, impl), nil
+		}
 	}
 
-	if !foundTool {
-		return nil, nil
+	// --- Step 2: Check for a built-in function name (e.g., sin) ---
+	builtInName := s.extractBuiltInNameAtPosition(content, params.Position, uriStr)
+	if builtInName != "" {
+		return s.getBuiltInHover(builtInName), nil
 	}
+
+	// --- Step 3: Check for a structural keyword (e.g., func) ---
+	keywordTokenType := s.extractKeywordAtPosition(content, params.Position, uriStr)
+	if keywordTokenType != 0 {
+		return s.getKeywordHover(keywordTokenType), nil
+	}
+
+	// --- Step 4: Nothing found ---
+	return nil, nil
+}
+
+// formatToolHover builds the hover response for a NeuroScript tool.
+func (s *Server) formatToolHover(toolName string, impl tool.ToolImplementation) *lsp.Hover {
 	spec := impl.Spec
-
-	// Build the hover content using Markdown for better presentation.
 	var hoverContent strings.Builder
 	signature := buildSignatureString(toolName, spec)
 	hoverContent.WriteString(fmt.Sprintf("```neuroscript\n%s\n```\n", signature))
@@ -77,8 +95,6 @@ func (s *Server) handleTextDocumentHover(ctx context.Context, conn *jsonrpc2.Con
 	}
 	hoverContent.WriteString("\n")
 
-	// THE FIX IS HERE: The sourcegraph/go-lsp library uses a slice of MarkedString.
-	// We create one entry with our fully formatted Markdown content.
 	return &lsp.Hover{
 		Contents: []lsp.MarkedString{
 			{
@@ -86,7 +102,7 @@ func (s *Server) handleTextDocumentHover(ctx context.Context, conn *jsonrpc2.Con
 				Value:    hoverContent.String(),
 			},
 		},
-	}, nil
+	}
 }
 
 // buildSignatureString creates a compact signature for a tool.
