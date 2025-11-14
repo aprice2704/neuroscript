@@ -1,8 +1,9 @@
 // NeuroScript Version: 0.7.0
-// File version: 6
-// Purpose: Updated RegisterFromAccount to accept 'any' and perform type assertion, matching the purified interface.
+// File version: 7
+// Purpose: Updated adminView to embed readerView, satisfying the updated AccountAdmin interface.
+// Latest change: Embed *readerView in adminView and update NewAdmin.
 // filename: pkg/account/store.go
-// nlines: 161
+// nlines: 164
 // risk_rating: HIGH
 
 package account
@@ -59,12 +60,16 @@ func (v *readerView) Get(name string) (any, bool) {
 // ---------- admin view (policy-gated) ----------
 
 type adminView struct {
-	s   *Store
-	pol *policy.ExecPolicy
+	*readerView // FIX: Embed readerView to satisfy AccountReader part of the interface
+	pol         *policy.ExecPolicy
 }
 
 func NewAdmin(s *Store, pol *policy.ExecPolicy) interfaces.AccountAdmin {
-	return &adminView{s: s, pol: pol}
+	// FIX: Construct the embedded readerView
+	return &adminView{
+		readerView: &readerView{s: s},
+		pol:        pol,
+	}
 }
 
 func (v *adminView) Register(name string, cfg map[string]any) error {
@@ -73,6 +78,7 @@ func (v *adminView) Register(name string, cfg map[string]any) error {
 	}
 	key := strings.ToLower(name)
 
+	// v.s is promoted from the embedded readerView
 	v.s.mu.Lock()
 	defer v.s.mu.Unlock()
 
@@ -106,6 +112,7 @@ func (v *adminView) RegisterFromAccount(acc any) error {
 		return fmt.Errorf("account name cannot be empty: %w", ErrInvalidConfiguration)
 	}
 
+	// v.s is promoted from the embedded readerView
 	v.s.mu.Lock()
 	defer v.s.mu.Unlock()
 
@@ -123,6 +130,7 @@ func (v *adminView) Delete(name string) bool {
 	}
 	key := strings.ToLower(name)
 
+	// v.s is promoted from the embedded readerView
 	v.s.mu.Lock()
 	defer v.s.mu.Unlock()
 	if _, ok := v.s.m[key]; !ok {

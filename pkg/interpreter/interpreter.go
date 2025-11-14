@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 95
+// File version: 96
 // Purpose: Core Interpreter struct and New/Set methods. Split from original file.
+// Latest change: Update accessors (Accounts, AgentModels) to use facade interfaces.
 // filename: pkg/interpreter/interpreter.go
-// nlines: 219
-// risk_rating: HIGH
+// nlines: 231
 
 package interpreter
 
@@ -63,6 +63,9 @@ type Interpreter struct {
 	capsuleProvider      interfaces.CapsuleProvider // ADDED
 	parser               *parser.ParserAPI
 	astBuilder           *parser.ASTBuilder
+
+	accountAdmin    interfaces.AccountAdmin
+	agentModelAdmin interfaces.AgentModelAdmin
 
 	cloneRegistry   []*Interpreter
 	cloneRegistryMu sync.Mutex
@@ -220,21 +223,49 @@ func (i *Interpreter) rootInterpreter() *Interpreter {
 	return root
 }
 
+// --- UPDATED ACCESSORS ---
+
 func (i *Interpreter) Accounts() interfaces.AccountReader {
-	return account.NewReader(i.rootInterpreter().accountStore)
+	root := i.rootInterpreter()
+	if root.accountAdmin != nil {
+		// The facade (AccountAdmin) satisfies the AccountReader interface
+		return root.accountAdmin
+	}
+	// Fallback to the concrete store
+	return account.NewReader(root.accountStore)
 }
 
 func (i *Interpreter) AccountsAdmin() interfaces.AccountAdmin {
-	return account.NewAdmin(i.rootInterpreter().accountStore, i.ExecPolicy)
+	root := i.rootInterpreter()
+	if root.accountAdmin != nil {
+		// Use the facade
+		return root.accountAdmin
+	}
+	// Fallback to the concrete store
+	return account.NewAdmin(root.accountStore, i.ExecPolicy)
 }
 
 func (i *Interpreter) AgentModels() interfaces.AgentModelReader {
-	return agentmodel.NewAgentModelReader(i.rootInterpreter().modelStore)
+	root := i.rootInterpreter()
+	if root.agentModelAdmin != nil {
+		// The facade (AgentModelAdmin) satisfies the AgentModelReader interface
+		return root.agentModelAdmin
+	}
+	// Fallback to the concrete store
+	return agentmodel.NewAgentModelReader(root.modelStore)
 }
 
 func (i *Interpreter) AgentModelsAdmin() interfaces.AgentModelAdmin {
-	return agentmodel.NewAgentModelAdmin(i.rootInterpreter().modelStore, i.ExecPolicy)
+	root := i.rootInterpreter()
+	if root.agentModelAdmin != nil {
+		// Use the facade
+		return root.agentModelAdmin
+	}
+	// Fallback to the concrete store
+	return agentmodel.NewAgentModelAdmin(root.modelStore, i.ExecPolicy)
 }
+
+// --- END UPDATED ACCESSORS ---
 
 func (i *Interpreter) CapsuleRegistryForAdmin() *capsule.Registry {
 	return i.rootInterpreter().adminCapsuleRegistry

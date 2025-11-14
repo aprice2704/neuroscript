@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 17
-// Purpose: Adds WithCapsuleProvider option to support host-managed capsule service.
+// File version: 18
+// Purpose: Adds WithAccountAdmin and WithAgentModelAdmin for facade injection.
+// Latest change: Corrected facade injection options to use interfaces.AccountAdmin.
 // filename: pkg/interpreter/options.go
-// nlines: 124
-// risk_rating: MEDIUM
+// nlines: 136
 
 package interpreter
 
@@ -140,5 +140,23 @@ func WithProviderRegistry(registry *provider.Registry) InterpreterOption {
 func WithCapsuleProvider(provider interfaces.CapsuleProvider) InterpreterOption {
 	return func(i *Interpreter) {
 		i.SetCapsuleProvider(provider)
+	}
+}
+
+// --- CORRECTED FACADE OPTIONS ---
+
+// WithAccountAdmin injects a host-provided implementation of the account store
+// that satisfies the interfaces.AccountAdmin interface.
+func WithAccountAdmin(admin interfaces.AccountAdmin) InterpreterOption {
+	return func(i *Interpreter) {
+		i.accountAdmin = admin
+	}
+}
+
+// WithAgentModelAdmin injects a host-provided implementation of the model store
+// that satisfies the interfaces.AgentModelAdmin interface.
+func WithAgentModelAdmin(admin interfaces.AgentModelAdmin) InterpreterOption {
+	return func(i *Interpreter) {
+		i.agentModelAdmin = admin
 	}
 }

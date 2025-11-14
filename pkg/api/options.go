@@ -71,7 +71,3 @@ func WithHostContext(hc *HostContext) Option {
 		interpreter.WithHostContext(internalHC)(i)
 	}
 }
-
-// FIX: Removed WithProviderRegistry. It must be defined in the internal
-// 'interpreter' package and re-exported via api/reexport.go,
-// just like WithAccountStore and WithAgentModelStore.

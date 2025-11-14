@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 72
-// Purpose: Re-exports SymbolProvider and SymbolProviderKey for host implementation.
+// File version: 74
+// Purpose: Re-exports all types for the facade, correcting store interfaces AND concrete store names.
+// Latest change: Added ...Concrete types and constructors to resolve naming conflicts.
 // filename: pkg/api/reexport.go
-// nlines: 162
-// risk_rating: LOW
+// nlines: 180
 package api
 
 import (
@@ -13,10 +13,10 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/capability"
 	"github.com/aprice2704/neuroscript/pkg/capsule"
-	"github.com/aprice2704/neuroscript/pkg/interfaces"
+	"github.com/aprice2704/neuroscript/pkg/interfaces" // <--- MUST BE IMPORTED
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/logging" // ADDED: For logger constructors
+	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/provider"
 	"github.com/aprice2704/neuroscript/pkg/tool"
@@ -51,10 +51,8 @@ type (
 	Capability  = capability.Capability
 	GrantSet    = capability.GrantSet
 
-	// --- ADDED FOR SYMBOL PROVIDER ---
-	// SymbolProvider is the interface hosts implement to inject global symbols.
+	// SymbolProvider
 	SymbolProvider = interfaces.SymbolProvider
-	// ---------------------------------
 
 	// AI & State Store Types
 	AIProvider             = provider.AIProvider
@@ -68,12 +66,23 @@ type (
 	CapsuleStore           = capsule.Store
 	AgentModel             = types.AgentModel
 	Account                = account.Account
-	AgentModelReader       = interfaces.AgentModelReader
-	AgentModelAdmin        = interfaces.AgentModelAdmin
-	AccountReader          = interfaces.AccountReader
-	AccountAdmin           = interfaces.AccountAdmin
-	AccountStore           = account.Store
-	AgentModelStore        = agentmodel.AgentModelStore
+
+	// --- CONCRETE STORES (for old behavior) ---
+	// Renamed to avoid collision with admin interfaces
+	AccountStoreConcrete    = account.Store
+	AgentModelStoreConcrete = agentmodel.AgentModelStore
+	// ------------------------------------------
+
+	// --- CORRECTED FACADE INTERFACES ---
+	// Admin interfaces for facade injection
+	// We re-export them with the simpler names for public API use.
+	AccountStore    = interfaces.AccountAdmin
+	AgentModelStore = interfaces.AgentModelAdmin
+	// -----------------------------------
+
+	// --- AEIOU HOOK INTERFACE ---
+	AeiouOrchestrator = interfaces.AeiouOrchestrator //
+	// ----------------------------
 
 	// Tooling Types
 	ToolImplementation = tool.ToolImplementation
@@ -109,10 +118,12 @@ const (
 	ContextNormal ExecContext = policy.ContextNormal
 	ContextTest   ExecContext = policy.ContextTest
 
-	// --- ADDED FOR SYMBOL PROVIDER ---
-	// SymbolProviderKey is the map key used to inject the provider.
+	// SymbolProvider
 	SymbolProviderKey = interfaces.SymbolProviderKey
-	// ---------------------------------
+
+	// --- AEIOU HOOK KEY ---
+	AeiouServiceKey = interfaces.AeiouServiceKey //
+	// ----------------------
 
 	// Capability Resources
 	ResFS      = capability.ResFS
@@ -139,23 +150,20 @@ const (
 var (
 	// Configuration
 	NewHostContextBuilder = interpreter.NewHostContextBuilder
-	// WithActor is intentionally removed. Identity must be set via WithHostContext.
-	WithGlobals              = interpreter.WithGlobals
-	WithExecPolicy           = interpreter.WithExecPolicy
-	WithSandboxDir           = interpreter.WithSandboxDir
-	WithoutStandardTools     = interpreter.WithoutStandardTools
-	WithAccountStore         = interpreter.WithAccountStore
-	WithAgentModelStore      = interpreter.WithAgentModelStore
-	WithProviderRegistry     = interpreter.WithProviderRegistry
+	WithGlobals           = interpreter.WithGlobals
+	WithExecPolicy        = interpreter.WithExecPolicy
+	WithSandboxDir        = interpreter.WithSandboxDir
+	WithoutStandardTools  = interpreter.WithoutStandardTools
+	// --- FIXED TYPO ---
+	WithAITranscriptWriter = interpreter.WithAITranscriptWriter //
+	// ------------------
 	WithCapsuleRegistry      = interpreter.WithCapsuleRegistry
 	WithCapsuleAdminRegistry = interpreter.WithCapsuleAdminRegistry
 	WithCapsuleProvider      = interpreter.WithCapsuleProvider
-	WithAITranscriptWriter   = interpreter.WithAITranscriptWriter
 
-	// --- FIXED TO FIX LOGGER DEPENDENCY ---
+	// Loggers
 	NewNoOpLogger = logging.NewNoOpLogger
-	NewTestLogger = logging.NewTestLogger // ADDED
-	// ----------------------------------------
+	NewTestLogger = logging.NewTestLogger
 
 	// Capability Constructors
 	NewCapability   = capability.New
@@ -164,12 +172,27 @@ var (
 	NewWithVerbs    = capability.NewWithVerbs
 
 	// Other Constructors
-	NewPolicyBuilder        = policy.NewBuilder
-	NewAccountStore         = account.NewStore
-	NewAgentModelStore      = agentmodel.NewAgentModelStore
-	NewProviderRegistry     = provider.NewRegistry
-	NewAdminCapsuleRegistry = capsule.NewRegistry // Used for admin purposes
-	MakeToolFullName        = types.MakeFullName
+	NewPolicyBuilder          = policy.NewBuilder
+	NewProviderRegistry       = provider.NewRegistry
+	NewProviderRegistryReader = provider.NewReader
+	NewProviderAdmin          = provider.NewAdmin
+	NewAdminCapsuleRegistry   = capsule.NewRegistry
+	MakeToolFullName          = types.MakeFullName
+
+	// --- STORE CONSTRUCTORS & OPTIONS ---
+	// Concrete store constructors
+	NewAccountStore    = account.NewStore
+	NewAgentModelStore = agentmodel.NewAgentModelStore
+
+	// Concrete store options (renamed)
+	WithAccountStoreConcrete    = interpreter.WithAccountStore
+	WithAgentModelStoreConcrete = interpreter.WithAgentModelStore
+	WithProviderRegistry        = interpreter.WithProviderRegistry
+
+	// New facade interface options
+	WithAccountStore    = interpreter.WithAccountAdmin    // Renamed from WithAccountAdmin
+	WithAgentModelStore = interpreter.WithAgentModelAdmin // Renamed from WithAgentModelAdmin
+	// ----------------------------------
 )
 
 // AIRequest is a re-export of types.AIRequest for the public API.

@@ -1,8 +1,9 @@
 // NeuroScript Version: 0.7.0
-// File version: 2
-// Purpose: Added RegisterFromAccount(any) to support type-safe host injection without import cycles.
+// File version: 3
+// Purpose: Corrects AccountAdmin to embed AccountReader.
+// Latest change: AccountAdmin now embeds AccountReader.
 // filename: pkg/interfaces/account.go
-// nlines: 21
+// nlines: 22
 // risk_rating: LOW
 
 package interfaces
@@ -18,6 +19,8 @@ type AccountReader interface {
 
 // AccountAdmin provides administrative (write) access to the account store.
 type AccountAdmin interface {
+	AccountReader // <-- FIX: Embed the reader interface
+
 	// Register adds a new account from a configuration map.
 	Register(name string, cfg map[string]any) error
 	// RegisterFromAccount adds a new account from a concrete struct.

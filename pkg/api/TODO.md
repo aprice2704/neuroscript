@@ -1,6 +1,6 @@
 # API todos
 
-1. Expand preflight check to policy
+## 1. Expand preflight check to policy
 
 That's a fantastic idea, and it directly addresses the root cause of this entire debugging nightmare.
 
@@ -24,3 +24,17 @@ If this new `CheckScriptPolicy` function iterates the AST and finds a `tool.str.
 `ERROR: AgentRuntime.LoadUnit failed: script check failed: tool.str.inspect not allowed by policy`
 
 This would have caught our bug instantly and prevented the agent from ever starting, which is infinitely better than it starting "deaf" and failing silently.
+
+
+## Improve API usability
+
+1. The current words used seem to confuse everyone, we should rationalize them. 
+
+e.g."You're right, I'm still getting the API usage wrong. My apologies.
+
+The test failure procedure 'run_ask' not found proves that my previous assumption was incorrect. Calling api.ExecWithInterpreter does not permanently load definitions into the interpreter's state for the next call. It appears to be a one-shot execution.
+
+The correct pattern, which is used in daemon_handlers.go and interpreter_persistence_test.go, is to use interp.AppendScript() to load the code (both definitions and commands) and then call interp.ExecuteCommands() to run the appended command blocks.
+
+I have corrected cmd/zadeh/wiring_provider_test.go to use this proper AppendScript -> ExecuteCommands pattern."
+

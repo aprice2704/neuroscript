@@ -1,6 +1,7 @@
 // NeuroScript Version: 0.7.3
-// File version: 4
-// Purpose: Corrects the test script to use ExecWithInterpreter for loading definitions, ensuring consistent state initialization.
+// File version: 5
+// Purpose: Corrects constructors and options to use ...Concrete store types.
+// Latest change: Use NewAccountStore and WithAccountStoreConcrete.
 // filename: pkg/api/interpreter_shared_stores_test.go
 // nlines: 127
 // risk_rating: HIGH
@@ -20,6 +21,7 @@ func TestInterpreter_SharedStores(t *testing.T) {
 	// --- Phase 1: Host-Level Store Creation ---
 
 	// The host application (e.g., FDM) creates the stores once.
+	// FIX: Use the now correctly re-exported constructors.
 	sharedAccountStore := api.NewAccountStore()
 	sharedAgentModelStore := api.NewAgentModelStore()
 
@@ -45,9 +47,10 @@ endcommand
 `
 	// Configure a trusted interpreter to run the writer script.
 	// It is given write access to the shared stores.
+	// FIX: Use the ...Concrete options for concrete stores.
 	writerOpts := []api.Option{
-		api.WithAccountStore(sharedAccountStore),
-		api.WithAgentModelStore(sharedAgentModelStore),
+		api.WithAccountStoreConcrete(sharedAccountStore),
+		api.WithAgentModelStoreConcrete(sharedAgentModelStore),
 	}
 	writerAllowedTools := []string{"tool.account.register", "tool.agentmodel.register"}
 	writerGrants := []api.Capability{
@@ -80,9 +83,10 @@ endfunc
 `
 	// Configure a new, unprivileged interpreter.
 	// It is given access to the SAME shared stores.
+	// FIX: Use the ...Concrete options for concrete stores.
 	readerOpts := []api.Option{
-		api.WithAccountStore(sharedAccountStore),
-		api.WithAgentModelStore(sharedAgentModelStore),
+		api.WithAccountStoreConcrete(sharedAccountStore),
+		api.WithAgentModelStoreConcrete(sharedAgentModelStore),
 	}
 	readerAllowedTools := []string{"tool.agentmodel.exists", "tool.account.exists"}
 	readerGrants := []api.Capability{
