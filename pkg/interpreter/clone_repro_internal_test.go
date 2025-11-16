@@ -1,6 +1,7 @@
 // NeuroScript Version: 0.8.0
-// File version: 5
+// File version: 6
 // Purpose: Correctly constructs a privileged ExecPolicy using the builder to fix 'missing required grants' error.
+// Latest change: Re-wrote test to check for capsuleStore propagation, not adminCapsuleRegistry.
 // filename: pkg/interpreter/clone_repro_internal_test.go
 // nlines: 104
 // risk_rating: HIGH
@@ -20,9 +21,10 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/tool"
 )
 
-var adminRegistryProbeTool = tool.ToolImplementation{
+// --- THE FIX: This tool now probes for the single, unified CapsuleStore ---
+var capsuleStoreProbeTool = tool.ToolImplementation{
 	Spec: tool.ToolSpec{
-		Name:  "probeAdminRegistry",
+		Name:  "probeCapsuleStore",
 		Group: "test",
 	},
 	Func: func(rt tool.Runtime, args []any) (any, error) {
@@ -31,21 +33,22 @@ var adminRegistryProbeTool = tool.ToolImplementation{
 			return nil, errors.New("TEST ERROR: Could not assert tool.Runtime to *interpreter.Interpreter")
 		}
 
-		if interp.CapsuleRegistryForAdmin() == nil {
-			return nil, errors.New("BUG REPRODUCED: adminCapsuleRegistry is nil in the cloned interpreter")
+		if interp.CapsuleStore() == nil {
+			return nil, errors.New("BUG REPRODUCED: capsuleStore is nil in the cloned interpreter")
 		}
 		return true, nil
 	},
 }
 
-func TestInterpreter_CloneLosesAdminRegistry(t *testing.T) {
-	t.Logf("[DEBUG] Turn 1: Starting TestInterpreter_CloneLosesAdminRegistry.")
+func TestInterpreter_ClonePropagatesCapsuleStore(t *testing.T) {
+	t.Logf("[DEBUG] Turn 1: Starting TestInterpreter_ClonePropagatesCapsuleStore.")
 	script := `
 func check_clone() means
-    must tool.test.probeAdminRegistry()
+    must tool.test.probeCapsuleStore()
 endfunc
 `
-	liveAdminRegistry := capsule.NewRegistry()
+	// --- THE FIX: Create a store to inject ---
+	customStore := capsule.NewStore(capsule.NewRegistry()) // A custom, non-default store
 
 	h := NewTestHarness(t)
 
@@ -61,12 +64,13 @@ endfunc
 	interp := interpreter.NewInterpreter(
 		interpreter.WithHostContext(h.HostContext),
 		interpreter.WithExecPolicy(privilegedPolicy),
-		interpreter.WithCapsuleAdminRegistry(liveAdminRegistry),
+		// --- THE FIX: Inject the single, unified store ---
+		interpreter.WithCapsuleStore(customStore),
 	)
 
-	t.Logf("[DEBUG] Turn 2: Harness and custom interpreter created; admin registry set via options.")
+	t.Logf("[DEBUG] Turn 2: Harness and custom interpreter created; capsule store set via options.")
 
-	if _, err := interp.ToolRegistry().RegisterTool(adminRegistryProbeTool); err != nil {
+	if _, err := interp.ToolRegistry().RegisterTool(capsuleStoreProbeTool); err != nil {
 		t.Fatalf("Failed to register probe tool: %v", err)
 	}
 	t.Logf("[DEBUG] Turn 3: Probe tool registered.")
@@ -90,8 +94,9 @@ endfunc
 	if err != nil {
 		var rtErr *lang.RuntimeError
 		if errors.As(err, &rtErr) {
-			if strings.Contains(rtErr.Unwrap().Error(), "BUG REPRODUCED: adminCapsuleRegistry is nil") {
-				t.Errorf("FAILURE CONFIRMED: The clone() method did not propagate the adminCapsuleRegistry. Error: %v", err)
+			// --- THE FIX: Check for the new error message ---
+			if strings.Contains(rtErr.Unwrap().Error(), "BUG REPRODUCED: capsuleStore is nil") {
+				t.Errorf("FAILURE CONFIRMED: The clone() method did not propagate the capsuleStore. Error: %v", err)
 				return
 			}
 		}

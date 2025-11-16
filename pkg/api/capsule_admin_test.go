@@ -1,8 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 8
+// File version: 10
 // Purpose: Corrects a panic by providing a mandatory HostContext when creating the runtime interpreter.
+// Latest change: Imported capsule package directly to fix undefined symbol errors.
 // filename: pkg/api/capsule_admin_test.go
-// nlines: 91
+// nlines: 94
 // risk_rating: MEDIUM
 
 package api_test
@@ -13,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/api"
+	"github.com/aprice2704/neuroscript/pkg/capsule" // <-- THE FIX: Added import
 )
 
 // TestAdminCapsuleRegistry_PersistencePattern verifies the full, two-phase lifecycle
@@ -20,10 +22,12 @@ import (
 func TestAdminCapsuleRegistry_PersistencePattern(t *testing.T) {
 	// --- Phase 1: Trusted Configuration ---
 
-	// 1. The host application (e.g., FDM) creates and owns the admin registry.
-	liveAdminRegistry := api.NewAdminCapsuleRegistry()
-	if liveAdminRegistry == nil {
-		t.Fatal("NewAdminCapsuleRegistry() returned nil")
+	// 1. The host application (e.g., FDM) creates and owns the single, unified store.
+	// This store has a writable layer (index 0) and the built-in layer (index 1).
+	// --- THE FIX: Use 'capsule.' prefix for funcs not exported by api ---
+	liveStore := api.NewCapsuleStore(capsule.NewRegistry(), capsule.BuiltInRegistry())
+	if liveStore == nil {
+		t.Fatal("NewCapsuleStore() returned nil")
 	}
 
 	// 2. Define the trusted script that will add a new capsule.
@@ -44,14 +48,14 @@ endcommand
 		api.NewCapability(api.ResCapsule, api.VerbWrite, "*"),
 	}
 
-	// 4. Create a special config interpreter, injecting the LIVE admin registry.
+	// 4. Create a special config interpreter, injecting the LIVE store.
 	configInterp := api.NewConfigInterpreter(
 		allowedTools,
 		requiredGrants,
-		api.WithCapsuleAdminRegistry(liveAdminRegistry), // <-- Give it write access
+		api.WithCapsuleStore(liveStore), // <-- Use the unified store
 	)
 
-	// 5. Run the script to populate the liveAdminRegistry.
+	// 5. Run the script to populate the liveStore.
 	tree, err := api.Parse([]byte(configScript), api.ParseSkipComments)
 	if err != nil {
 		t.Fatalf("Phase 1: api.Parse() failed: %v", err)
@@ -77,8 +81,8 @@ endfunc
 
 	runtimeInterp := api.New(
 		api.WithHostContext(newTestHostContext(nil)), // <-- FIX: Add mandatory HostContext.
-		// 3. Add the populated registry as a new, read-only layer.
-		api.WithCapsuleRegistry(liveAdminRegistry),
+		// 3. Add the populated store as a new, read-only layer.
+		api.WithCapsuleStore(liveStore), // <-- Use the unified store
 		api.WithExecPolicy(runtimePolicy),
 	)
 

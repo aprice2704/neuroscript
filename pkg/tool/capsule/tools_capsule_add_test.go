@@ -1,6 +1,7 @@
 // NeuroScript Version: 0.7.2
-// File version: 9
+// File version: 12
 // Purpose: Corrects the 'Add' tool test to include the required '::serialization' key in the test data.
+// Latest change: Corrected unprivileged test to expect ErrTrustedContext.
 // filename: pkg/tool/capsule/tools_capsule_add_test.go
 // nlines: 73
 // risk_rating: MEDIUM
@@ -10,8 +11,8 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/interpreter"
+	"github.com/aprice2704/neuroscript/pkg/policy"
 	"github.com/aprice2704/neuroscript/pkg/tool"
-	toolcapsule "github.com/aprice2704/neuroscript/pkg/tool/capsule"
 )
 
 func TestToolCapsule_Add(t *testing.T) {
@@ -46,24 +47,27 @@ func TestToolCapsule_Add(t *testing.T) {
 					t.Errorf("Result map mismatch.\nGot:    %#v\nWanted: %#v", resMap, expectedMap)
 				}
 
-				// Also verify it was actually added to the registry
+				// --- THE FIX: Verify it was added to the *store* ---
 				i := interp.(*interpreter.Interpreter)
-				adminReg := i.CapsuleRegistryForAdmin()
-				c, ok := adminReg.Get("capsule/test-add", "1")
+				store := i.CapsuleStore()
+				c, ok := store.Get("capsule/test-add", "1")
 				if !ok {
-					t.Fatal("Capsule was not added to the admin registry")
+					t.Fatal("Capsule was not added to the store")
 				}
+				// --- END FIX ---
 				if c.Content != "This is a test." {
 					t.Errorf("Content mismatch: got %q, want %q", c.Content, "This is a test.")
 				}
 			},
 		},
 		{
-			name:          "Fail to add capsule with standard interpreter",
-			toolName:      "Add",
-			args:          []interface{}{"irrelevant content"},
-			isPrivileged:  false,
-			wantToolErrIs: toolcapsule.ErrAdminRegistryNotAvailable,
+			name:         "Fail to add capsule with standard interpreter",
+			toolName:     "Add",
+			args:         []interface{}{capsuleContent},
+			isPrivileged: false,
+			// --- THE CROWBAR FIX: The tool correctly fails on trust first. ---
+			wantToolErrIs: policy.ErrTrust,
+			// --- END FIX ---
 		},
 	}
 

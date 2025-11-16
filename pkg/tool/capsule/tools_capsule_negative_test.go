@@ -1,6 +1,7 @@
 // NeuroScript Version: 0.7.2
-// File version: 7
+// File version: 9
 // Purpose: Updates the negative test for the 'Add' tool to correctly test for missing id/version, not missing serialization.
+// Latest change: Updated expected error string to include 'description'.
 // filename: pkg/tool/capsule/tools_capsule_negative_test.go
 // nlines: 120
 // risk_rating: MEDIUM
@@ -101,7 +102,7 @@ func TestToolCapsule_NegativeCases(t *testing.T) {
 
 	t.Run("Add fails with missing required metadata", func(t *testing.T) {
 		// This content now includes serialization, so the parse will succeed,
-		// but the subsequent check for 'id' and 'version' will fail.
+		// but the subsequent check for 'id', 'version', and 'description' will fail.
 		badContent := `This content is missing the required id and version.
 ::serialization: md`
 		testCase := capsuleTestCase{
@@ -114,9 +115,14 @@ func TestToolCapsule_NegativeCases(t *testing.T) {
 				if !errors.Is(err, toolcapsule.ErrInvalidCapsuleData) {
 					t.Fatalf("Expected error wrapping [%v], but got: %v", toolcapsule.ErrInvalidCapsuleData, err)
 				}
-				if !strings.Contains(err.Error(), "missing required metadata keys: [id version]") {
-					t.Errorf("Expected error to mention missing keys, but it did not. Got: %v", err)
+				// --- THE FIX: Update the expected error string ---
+				// The tool now correctly checks for description, but this test
+				// content provides serialization, so it's not in the error.
+				expectedErr := "missing required metadata keys: [id version description]"
+				if !strings.Contains(err.Error(), expectedErr) {
+					t.Errorf("Expected error to mention missing keys [%s], but it did not. Got: %v", expectedErr, err)
 				}
+				// --- END FIX ---
 			},
 		}
 		testCapsuleToolHelper(t, testCase)

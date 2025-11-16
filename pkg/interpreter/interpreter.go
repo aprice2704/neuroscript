@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 96
+// File version: 100
 // Purpose: Core Interpreter struct and New/Set methods. Split from original file.
-// Latest change: Update accessors (Accounts, AgentModels) to use facade interfaces.
+// Latest change: Removed adminCapsuleRegistry. Unified on a single writable capsuleStore.
 // filename: pkg/interpreter/interpreter.go
-// nlines: 231
+// nlines: 241
 
 package interpreter
 
@@ -36,33 +36,33 @@ const DefaultSelfHandle = "default_self_buffer"
 
 // Interpreter holds the state for a NeuroScript runtime environment.
 type Interpreter struct {
-	id                   string
-	hostContext          *HostContext
-	state                *interpreterState
-	tools                tool.ToolRegistry
-	eventManager         *EventManager
-	aiWorker             interfaces.LLMClient // The root LLM client.
-	shouldExit           bool
-	exitCode             int
-	returnValue          lang.Value
-	lastCallResult       lang.Value
-	maxLoopIterations    int
-	bufferManager        *BufferManager
-	objectCache          map[string]interface{}
-	objectCacheMu        sync.Mutex
-	skipStdTools         bool
-	modelStore           *agentmodel.AgentModelStore
-	providerRegistry     *provider.Registry
-	ExecPolicy           *policy.ExecPolicy
-	root                 *Interpreter
-	turnCtx              context.Context
-	transientPrivateKey  ed25519.PrivateKey
-	accountStore         *account.Store
-	capsuleStore         *capsule.Store
-	adminCapsuleRegistry *capsule.Registry
-	capsuleProvider      interfaces.CapsuleProvider // ADDED
-	parser               *parser.ParserAPI
-	astBuilder           *parser.ASTBuilder
+	id                  string
+	hostContext         *HostContext
+	state               *interpreterState
+	tools               tool.ToolRegistry
+	eventManager        *EventManager
+	aiWorker            interfaces.LLMClient // The root LLM client.
+	shouldExit          bool
+	exitCode            int
+	returnValue         lang.Value
+	lastCallResult      lang.Value
+	maxLoopIterations   int
+	bufferManager       *BufferManager
+	objectCache         map[string]interface{}
+	objectCacheMu       sync.Mutex
+	skipStdTools        bool
+	modelStore          *agentmodel.AgentModelStore
+	providerRegistry    *provider.Registry
+	ExecPolicy          *policy.ExecPolicy
+	root                *Interpreter
+	turnCtx             context.Context
+	transientPrivateKey ed25519.PrivateKey
+	accountStore        *account.Store
+	capsuleStore        *capsule.Store // This is now the ONE store for read/write.
+	// adminCapsuleRegistry *capsule.Registry // REMOVED. This is now handled by capsuleStore.
+	// capsuleProvider      interfaces.CapsuleProvider // COMMENTED OUT: This mechanism is confusing and conflicts with the store.
+	parser     *parser.ParserAPI
+	astBuilder *parser.ASTBuilder
 
 	accountAdmin    interfaces.AccountAdmin
 	agentModelAdmin interfaces.AgentModelAdmin
@@ -116,9 +116,15 @@ func (i *Interpreter) SetProviderRegistry(registry *provider.Registry) {
 }
 
 // SetCapsuleProvider replaces the interpreter's default capsule logic with a host-provided one.
-func (i *Interpreter) SetCapsuleProvider(provider interfaces.CapsuleProvider) {
-	i.rootInterpreter().capsuleProvider = provider
-}
+// func (i *Interpreter) SetCapsuleProvider(provider interfaces.CapsuleProvider) {
+// 	// COMMENTED OUT: This mechanism is confusing and conflicts with the store.
+// 	// Use WithCapsuleStore() at initialization.
+// 	// i.rootInterpreter().capsuleProvider = provider
+// }
+
+// --- Options (moved to options.go) ---
+// type InterpreterOption func(*Interpreter)
+// ...
 
 func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	i := &Interpreter{
@@ -129,8 +135,13 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 		bufferManager:     NewBufferManager(),
 		objectCache:       make(map[string]interface{}),
 		turnCtx:           context.Background(),
-		capsuleStore:      capsule.NewStore(capsule.DefaultRegistry()),
-		cloneRegistry:     make([]*Interpreter, 0),
+		// ---
+		// Set the default store.
+		// We create a new empty registry at index 0 to be the writable layer,
+		// and add the BuiltInRegistry at index 1 as the read-only base.
+		capsuleStore: capsule.NewStore(capsule.NewRegistry(), capsule.BuiltInRegistry()),
+		// ---
+		cloneRegistry: make([]*Interpreter, 0),
 	}
 	// Note: globalConstants map is initialized inside newInterpreterState() in state.go
 
@@ -141,9 +152,12 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	i.accountStore = account.NewStore()
 	i.providerRegistry = provider.NewRegistry()
 
+	// ---
+	// Apply all options, which may overwrite defaults (like capsuleStore).
 	for _, opt := range opts {
 		opt(i)
 	}
+	// ---
 
 	if i.hostContext == nil {
 		panic("FATAL: NewInterpreter called without WithHostContext. A HostContext is mandatory.")
@@ -174,15 +188,18 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	return i
 }
 
-// CapsuleStore returns the interpreter's layered capsule store.
+// CapsuleStore returns the interpreter's single, unified capsule store.
+// This store is now used for BOTH reading and writing.
 func (i *Interpreter) CapsuleStore() *capsule.Store {
 	return i.capsuleStore
 }
 
 // CapsuleProvider returns the host-provided capsule service, if one was injected.
-func (i *Interpreter) CapsuleProvider() interfaces.CapsuleProvider {
-	return i.rootInterpreter().capsuleProvider
-}
+// func (i *Interpreter) CapsuleProvider() interfaces.CapsuleProvider {
+// 	// COMMENTED OUT: This mechanism is confusing and conflicts with the store.
+// 	// return i.rootInterpreter().capsuleProvider
+// 	return nil
+// }
 
 // RunProcedure is the public entry point for running a procedure.
 func (i *Interpreter) RunProcedure(procName string, args ...lang.Value) (lang.Value, error) {
@@ -267,9 +284,10 @@ func (i *Interpreter) AgentModelsAdmin() interfaces.AgentModelAdmin {
 
 // --- END UPDATED ACCESSORS ---
 
-func (i *Interpreter) CapsuleRegistryForAdmin() *capsule.Registry {
-	return i.rootInterpreter().adminCapsuleRegistry
-}
+// CapsuleRegistryForAdmin -- REMOVED.
+// func (i *Interpreter) CapsuleRegistryForAdmin() *capsule.Registry {
+// 	return i.rootInterpreter().adminCapsuleRegistry
+// }
 
 // GetExecPolicy satisfies the policygate.Runtime interface.
 func (i *Interpreter) GetExecPolicy() *policy.ExecPolicy {

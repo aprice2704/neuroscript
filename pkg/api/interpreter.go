@@ -1,6 +1,7 @@
 // NeuroScript Version: 0.8.0
-// File version: 72
+// File version: 73
 // Purpose: Removes redundant init() and public stub functions.
+// Latest change: Commented out CapsuleProvider facade method to align with internal interpreter.
 // filename: pkg/api/interpreter.go
 // nlines: 281
 
@@ -89,9 +90,11 @@ func ParseLoopControl(output string) (*LoopController, error) {
 }
 
 // CapsuleProvider returns the host-provided capsule service, if one was injected.
-func (i *Interpreter) CapsuleProvider() interfaces.CapsuleProvider {
-	return i.Interpreter.CapsuleProvider()
-}
+// func (i *Interpreter) CapsuleProvider() interfaces.CapsuleProvider {
+// 	// COMMENTED OUT: This was part of the old mechanism.
+// 	// return i.Interpreter.CapsuleProvider()
+// 	return nil
+// }
 
 func (i *Interpreter) ToolRegistry() tool.ToolRegistry {
 	return i.Interpreter.ToolRegistry()

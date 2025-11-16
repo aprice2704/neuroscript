@@ -1,8 +1,9 @@
-// NeuroScript Version: 0.8.0
-// File version: 79
+// NeuroScript Major Version: 1
+// File version: 86
 // Purpose: Refactored to handle 'any' return value from the AEIOU service hook, fixing import cycle.
+// Latest change: Added WARN log to dump ALL keys from the ServiceRegistry map.
 // filename: pkg/interpreter/steps_ask.go
-// nlines: 172
+// nlines: 219
 // risk_rating: HIGH
 
 package interpreter
@@ -10,6 +11,7 @@ package interpreter
 import (
 	"encoding/json"
 	"fmt"
+	"strings" // <<< ADDED FOR LOGGING
 
 	"github.com/aprice2704/neuroscript/pkg/account"
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
@@ -21,9 +23,16 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
+// --- REMOVED fdmServiceRegistry interface ---
+// --- REMOVED correctAeiouServiceKey const ---
+
 // executeAsk handles the "ask" statement.
 // It now implements the AEIOU v2+ hook.
 func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
+	// --- INSTRUMENTATION ---
+	i.Logger().Warn("--- [steps_ask] executeAsk: ENTERED ---", "interp_id", i.id)
+	// ---
+
 	if step.AskStmt == nil {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "ask step is missing its AskStmt node", nil).WithPosition(step.GetPos())
 	}
@@ -47,47 +56,105 @@ func (i *Interpreter) executeAsk(step ast.Step) (lang.Value, error) {
 	// 2. --- AEIOU v2+ Service Hook ---
 	// Check if an external orchestrator is registered.
 	if i.hostContext != nil && i.hostContext.ServiceRegistry != nil {
-		// Attempt to find and use the service.
-		if reg, ok := i.hostContext.ServiceRegistry.(map[string]any); ok {
-			if service, found := reg[interfaces.AeiouServiceKey]; found {
-				if orchestrator, ok := service.(interfaces.AeiouOrchestrator); ok {
-					// --- HOOK: Delegate to external service ---
-					// We pass i.PublicAPI, which is the *api.Interpreter wrapper.
-					var rawResult any
-					rawResult, err = orchestrator.RunAskLoop(i.PublicAPI, agentName, initialPrompt)
-					if err != nil {
-						return nil, lang.WrapErrorWithPosition(err, node.GetPos(), "external AEIOU service loop failed")
-					}
+		// --- INSTRUMENTATION ---
+		i.Logger().Warn("[steps_ask] executeAsk: Found non-nil ServiceRegistry. Attempting hook.")
+		// ---
 
-					// FIX: Type-assert the 'any' return value to 'lang.Value'
-					finalResult, ok = rawResult.(lang.Value)
-					if !ok {
-						if rawResult == nil {
-							finalResult = lang.NilValue{} // nil is a valid result
-						} else {
-							// The service returned a type that is not a lang.Value. This is a contract violation.
-							return nil, lang.NewRuntimeError(lang.ErrorCodeInternal,
-								fmt.Sprintf("external AEIOU service returned invalid type: got %T, want lang.Value", rawResult),
-								nil).WithPosition(node.GetPos())
-						}
-					}
-				} else {
-					i.Logger().Warn("Found AeiouService, but it does not implement interfaces.AeiouOrchestrator", "type", fmt.Sprintf("%T", service))
-					finalResult, err = i.executeLegacyAsk(node, agentName, initialPrompt)
-				}
-			} else {
-				// Registry present, but no service. Fallback.
-				finalResult, err = i.executeLegacyAsk(node, agentName, initialPrompt)
-			}
-		} else {
-			i.Logger().Warn("ServiceRegistry is not a map[string]any. Falling back to legacy 'ask'.", "type", fmt.Sprintf("%T", i.hostContext.ServiceRegistry))
-			finalResult, err = i.executeLegacyAsk(node, agentName, initialPrompt)
+		// 1. Attempt to cast the 'any' registry to the type we now *know* it is.
+		reg, ok := i.hostContext.ServiceRegistry.(map[string]any)
+		if !ok {
+			// This should not be hit (based on last log), but remains as a safeguard.
+			// --- INSTRUMENTATION ---
+			i.Logger().Warn("[steps_ask] executeAsk: ServiceRegistry is non-nil but NOT map[string]any. PANICKING.")
+			// ---
+			panic(fmt.Sprintf(
+				"FATAL: HostContext.ServiceRegistry is non-nil but failed type assertion to map[string]any. Got %T",
+				i.hostContext.ServiceRegistry,
+			))
 		}
+
+		// --- THE FIX: Log all keys found in the map ---
+		var foundKeys []string
+		for k := range reg {
+			foundKeys = append(foundKeys, k)
+		}
+		i.Logger().Warn(
+			"[steps_ask] executeAsk: ServiceRegistry map cast OK. Dumping keys...",
+			"keys_found", strings.Join(foundKeys, ", "),
+		)
+		// --- END FIX ---
+
+		// 2. Registry cast succeeded. Now get the service.
+		// --- Use the correct constant from the interfaces package ---
+		service, found := reg[interfaces.AeiouServiceKey]
+		if !found {
+			// This is a critical wiring error. Panic.
+			// --- INSTRUMENTATION ---
+			i.Logger().Warn("[steps_ask] executeAsk: Service key NOT FOUND in map. PANICKING.", "key_sought", interfaces.AeiouServiceKey)
+			// ---
+			panic(fmt.Sprintf(
+				"FATAL: FDM Registry (map[string]any) is wired, but service key '%s' was not found.",
+				interfaces.AeiouServiceKey,
+			))
+		}
+
+		// --- INSTRUMENTATION ---
+		i.Logger().Warn("[steps_ask] executeAsk: Service key FOUND. Casting to AeiouOrchestrator...", "key", interfaces.AeiouServiceKey, "type_found", fmt.Sprintf("%T", service))
+		// ---
+
+		// 3. Service key was found. Now cast the service.
+		orchestrator, ok := service.(interfaces.AeiouOrchestrator)
+		if !ok {
+			// This is the final critical wiring error. Panic.
+			// --- INSTRUMENTATION ---
+			i.Logger().Warn("[steps_ask] executeAsk: Service object is NOT AeiouOrchestrator. PANICKING.", "type_found", fmt.Sprintf("%T", service))
+			// ---
+			panic(fmt.Sprintf(
+				"FATAL: Service for key '%s' was found but does not implement interfaces.AeiouOrchestrator. Got %T",
+				interfaces.AeiouServiceKey,
+				service,
+			))
+		}
+
+		// --- INSTRUMENTATION ---
+		i.Logger().Warn("[steps_ask] executeAsk: HOOK SUCCESS. Calling external service RunAskLoop...", "agent", agentName)
+		// ---
+
+		// --- HOOK: All checks passed. Delegate to external service. ---
+		var rawResult any
+		rawResult, err = orchestrator.RunAskLoop(i.PublicAPI, agentName, initialPrompt)
+		if err != nil {
+			// --- INSTRUMENTATION ---
+			i.Logger().Warn("[steps_ask] executeAsk: External service RunAskLoop FAILED.", "error", err)
+			// ---
+			return nil, lang.WrapErrorWithPosition(err, node.GetPos(), "external AEIOU service loop failed")
+		}
+
+		// --- INSTRUMENTATION ---
+		i.Logger().Warn("[steps_ask] executeAsk: External service RunAskLoop SUCCEEDED. Processing result.", "result_type", fmt.Sprintf("%T", rawResult))
+		// ---
+
+		// 4. Process the 'any' result from the service.
+		finalResult, ok = rawResult.(lang.Value)
+		if !ok {
+			if rawResult == nil {
+				finalResult = lang.NilValue{} // nil is a valid result
+			} else {
+				// The service returned a type that is not a lang.Value. This is a contract violation.
+				return nil, lang.NewRuntimeError(lang.ErrorCodeInternal,
+					fmt.Sprintf("external AEIOU service returned invalid type: got %T, want lang.Value", rawResult),
+					nil).WithPosition(node.GetPos())
+			}
+		}
+		// --- End Hook Logic ---
+
 	} else {
 		// --- FALLBACK: No ServiceRegistry. Run legacy internal loop. ---
+		// --- INSTRUMENTATION ---
+		i.Logger().Warn("[steps_ask] executeAsk: No HostContext.ServiceRegistry found. FALLING BACK to legacy 'ask'. (This is normal if not in FDM.)")
+		// ---
 		finalResult, err = i.executeLegacyAsk(node, agentName, initialPrompt)
 	}
-	// --- End Hook Logic ---
 
 	if err != nil {
 		return nil, err // Return error from hook or legacy path

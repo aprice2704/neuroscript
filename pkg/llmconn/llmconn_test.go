@@ -134,7 +134,7 @@ func TestLLMConn_Converse_RequestPopulation(t *testing.T) {
 	inputEnv := &aeiou.Envelope{UserData: "test prompt", Actions: "command endcommand"}
 
 	// Dynamically load capsules to make the test robust against content changes.
-	reg := capsule.DefaultRegistry()
+	reg := capsule.DefaultStore()
 	agenticCap, ok := reg.GetLatest("capsule/bootstrap_agentic")
 	if !ok {
 		t.Fatal("Failed to load agentic bootstrap capsule for test")

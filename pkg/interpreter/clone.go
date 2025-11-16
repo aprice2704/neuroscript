@@ -1,8 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 39
+// File version: 40
 // Purpose: Ensures the root providerRegistry is correctly propagated to forks.
+// Latest change: Removed adminCapsuleRegistry field from clone struct literal.
 // filename: pkg/interpreter/clone.go
-// nlines: 75
+// nlines: 74
 // risk_rating: HIGH
 
 package interpreter
@@ -24,21 +25,21 @@ func (i *Interpreter) fork() *Interpreter {
 		id:   fmt.Sprintf("interp-%s", uuid.NewString()[:8]),
 		root: root, // Explicitly set the root
 		// Copy/share all other fields from parent 'i'
-		hostContext:          i.hostContext,
-		eventManager:         i.eventManager,
-		bufferManager:        i.bufferManager,
-		objectCache:          i.objectCache,
-		transientPrivateKey:  i.transientPrivateKey,
-		maxLoopIterations:    i.maxLoopIterations,
-		modelStore:           i.modelStore,
-		providerRegistry:     i.providerRegistry, // <-- ADDED (Task p1-clone)
-		ExecPolicy:           i.ExecPolicy,
-		accountStore:         i.accountStore,
-		capsuleStore:         i.capsuleStore,
-		adminCapsuleRegistry: i.adminCapsuleRegistry,
-		parser:               i.parser,
-		astBuilder:           i.astBuilder,
-		aiWorker:             i.aiWorker,
+		hostContext:         i.hostContext,
+		eventManager:        i.eventManager,
+		bufferManager:       i.bufferManager,
+		objectCache:         i.objectCache,
+		transientPrivateKey: i.transientPrivateKey,
+		maxLoopIterations:   i.maxLoopIterations,
+		modelStore:          i.modelStore,
+		providerRegistry:    i.providerRegistry, // <-- ADDED (Task p1-clone)
+		ExecPolicy:          i.ExecPolicy,
+		accountStore:        i.accountStore,
+		capsuleStore:        i.capsuleStore,
+		// adminCapsuleRegistry: i.adminCapsuleRegistry, // REMOVED.
+		parser:     i.parser,
+		astBuilder: i.astBuilder,
+		aiWorker:   i.aiWorker,
 		// THE FIX: STEP 3a - Ensure the clone inherits the back-reference.
 		PublicAPI: i.PublicAPI,
 	}

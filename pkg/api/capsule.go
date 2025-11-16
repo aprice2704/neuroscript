@@ -1,6 +1,7 @@
 // NeuroScript Version: 0.8.0
-// File version: 3
+// File version: 4
 // Purpose: Populates the 'Description' field in the parsed capsule struct.
+// Latest change: Renamed DefaultCapsuleRegistry to DefaultCapsuleStore to match usage.
 // filename: pkg/api/capsule.go
 // nlines: 67
 // risk_rating: MEDIUM
@@ -27,11 +28,11 @@ func NewCapsuleStore(initial ...*CapsuleRegistry) *CapsuleStore {
 	return capsule.NewStore(initial...)
 }
 
-// DefaultCapsuleRegistry returns the singleton registry that contains
+// DefaultCapsuleStore returns the singleton registry that contains
 // all built-in capsules that are embedded in the NeuroScript binary.
 // This registry is populated by an init() function in the capsule package.
-func DefaultCapsuleRegistry() *CapsuleRegistry {
-	return capsule.DefaultRegistry()
+func DefaultCapsuleStore() *CapsuleStore { // <-- RENAMED
+	return capsule.DefaultStore()
 }
 
 // ParseCapsule parses a raw byte slice of capsule content, validates its

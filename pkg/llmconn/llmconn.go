@@ -1,6 +1,7 @@
 // NeuroScript Version: 0.7.2
-// File version: 15
+// File version: 16
 // Purpose: Updates imports to use the neutral Emitter interface from the new ns_interfaces package.
+// Latest change: Replaced capsule.DefaultRegistry() with capsule.DefaultStore().
 // filename: pkg/llmconn/llmconn.go
 
 package llmconn
@@ -72,10 +73,12 @@ func (c *LLMConn) Converse(ctx context.Context, input *aeiou.Envelope) (*provide
 			capsuleName = "capsule/bootstrap_oneshot"
 		}
 
-		reg := capsule.DefaultRegistry()
+		// --- THE FIX ---
+		reg := capsule.DefaultStore()
+		// --- END FIX ---
 		cap, ok := reg.GetLatest(capsuleName)
 		if !ok {
-			return nil, fmt.Errorf("latest bootstrap capsule not found in default registry: %s", capsuleName)
+			return nil, fmt.Errorf("latest bootstrap capsule not found in default store: %s", capsuleName)
 		}
 		prompt = cap.Content + "\n\n" + prompt
 	}

@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.7.2
-// File version: 12
+// File version: 13
 // Purpose: Corrects the file reading logic to satisfy the io.ReadSeeker interface required by the metadata parser.
+// Latest change: Updated to use BuiltInRegistry() instead of DefaultRegistry() to resolve split-brain issue.
 // filename: pkg/capsule/loader.go
 // nlines: 75
-// risk_rating: HIGH
 package capsule
 
 import (
@@ -21,7 +21,9 @@ import (
 var contentFS embed.FS
 
 func init() {
-	reg := DefaultRegistry()
+	// THE FIX: Use the BuiltInRegistry, which is the one intended for loading.
+	// The DefaultStore (in registry.go) will then consume this.
+	reg := BuiltInRegistry()
 
 	err := fs.WalkDir(contentFS, "content", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -60,11 +62,13 @@ func init() {
 		priority, _ := extractor.GetIntOr("priority", 100)
 
 		reg.MustRegister(Capsule{
-			Name:     extractor.MustGet("id"),
-			Version:  extractor.MustGet("version"),
-			MIME:     extractor.GetOr("mime", "text/plain; charset=utf-8"),
-			Content:  string(bytes.TrimSpace(contentBody)),
-			Priority: priority,
+			Name:    extractor.MustGet("id"),
+			Version: extractor.MustGet("version"),
+			// This relies on the Description field being added to registry.go
+			Description: extractor.MustGet("description"),
+			MIME:        extractor.GetOr("mime", "text/plain; charset=utf-8"),
+			Content:     string(bytes.TrimSpace(contentBody)),
+			Priority:    priority,
 		})
 
 		return nil

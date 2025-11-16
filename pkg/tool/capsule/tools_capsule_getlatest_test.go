@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.7.2
-// File version: 3
+// File version: 5
 // Purpose: Corrects the GetLatest tool test to use integer versions, aligning with new registry validation.
+// Latest change: Added mandatory Description field to test capsules and checkFunc to fix panic.
 // filename: pkg/tool/capsule/tools_capsule_getlatest_test.go
-// nlines: 42
-// risk_rating: LOW
+// nlines: 56
 package capsule_test
 
 import (
@@ -17,9 +17,23 @@ import (
 func TestToolCapsule_GetLatest(t *testing.T) {
 	setup := func(t *testing.T, interp *interpreter.Interpreter) error {
 		customReg := capsule.NewRegistry()
-		customReg.MustRegister(capsule.Capsule{Name: "capsule/multi-ver", Version: "1"})
-		customReg.MustRegister(capsule.Capsule{Name: "capsule/multi-ver", Version: "3"})
-		customReg.MustRegister(capsule.Capsule{Name: "capsule/multi-ver", Version: "2"})
+		// --- THE FIX: Added Description field to all test capsules ---
+		customReg.MustRegister(capsule.Capsule{
+			Name:        "capsule/multi-ver",
+			Version:     "1",
+			Description: "Version 1",
+		})
+		customReg.MustRegister(capsule.Capsule{
+			Name:        "capsule/multi-ver",
+			Version:     "3",
+			Description: "Version 3",
+		})
+		customReg.MustRegister(capsule.Capsule{
+			Name:        "capsule/multi-ver",
+			Version:     "2",
+			Description: "Version 2",
+		})
+		// --- END FIX ---
 		interp.CapsuleStore().Add(customReg)
 		return nil
 	}
@@ -39,6 +53,11 @@ func TestToolCapsule_GetLatest(t *testing.T) {
 			if resMap["version"] != "3" {
 				t.Errorf("Expected latest version '3', got %v", resMap["version"])
 			}
+			// --- THE FIX: Check for description (now included by capsuleToMap) ---
+			if resMap["description"] != "Version 3" {
+				t.Errorf("Expected description 'Version 3', got %v", resMap["description"])
+			}
+			// --- END FIX ---
 		},
 	}
 	testCapsuleToolHelper(t, testCase)

@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 18
+// File version: 21
 // Purpose: Adds WithAccountAdmin and WithAgentModelAdmin for facade injection.
-// Latest change: Corrected facade injection options to use interfaces.AccountAdmin.
+// Latest change: Removed ALL capsule options except WithCapsuleStore.
 // filename: pkg/interpreter/options.go
-// nlines: 136
+// nlines: 106
 
 package interpreter
 
@@ -98,21 +98,22 @@ func WithExecPolicy(policy *policy.ExecPolicy) InterpreterOption {
 	}
 }
 
-// WithCapsuleRegistry adds a custom capsule registry for read-only access.
-func WithCapsuleRegistry(registry *capsule.Registry) InterpreterOption {
+// WithCapsuleStore provides a complete, layered capsule store to the interpreter.
+// This store will be used for ALL capsule operations (read, write, list).
+// The store's first registry (index 0) will be used for writes.
+func WithCapsuleStore(store *capsule.Store) InterpreterOption {
 	return func(i *Interpreter) {
-		if i.capsuleStore != nil {
-			i.capsuleStore.Add(registry)
-		}
+		i.capsuleStore = store
 	}
 }
 
-// WithCapsuleAdminRegistry provides a writable capsule registry.
-func WithCapsuleAdminRegistry(registry *capsule.Registry) InterpreterOption {
-	return func(i *Interpreter) {
-		i.adminCapsuleRegistry = registry
-	}
-}
+// WithCapsuleRegistry -- REMOVED.
+// func WithCapsuleRegistry(registry *capsule.Registry) InterpreterOption {
+// }
+
+// WithCapsuleAdminRegistry -- REMOVED.
+// func WithCapsuleAdminRegistry(registry *capsule.Registry) InterpreterOption {
+// }
 
 // WithAccountStore provides a host-managed AccountStore to the interpreter.
 func WithAccountStore(store *account.Store) InterpreterOption {
@@ -130,18 +131,14 @@ func WithAgentModelStore(store *agentmodel.AgentModelStore) InterpreterOption {
 
 // WithProviderRegistry provides a host-managed ProviderRegistry to the interpreter.
 func WithProviderRegistry(registry *provider.Registry) InterpreterOption {
-	return func(i *Interpreter) {
-		i.SetProviderRegistry(registry)
+	return func(iThis *Interpreter) {
+		iThis.SetProviderRegistry(registry)
 	}
 }
 
-// WithCapsuleProvider provides a host-managed CapsuleProvider to the interpreter,
-// overriding all internal capsule logic.
-func WithCapsuleProvider(provider interfaces.CapsuleProvider) InterpreterOption {
-	return func(i *Interpreter) {
-		i.SetCapsuleProvider(provider)
-	}
-}
+// WithCapsuleProvider -- REMOVED.
+// func WithCapsuleProvider(provider interfaces.CapsuleProvider) InterpreterOption {
+// }
 
 // --- CORRECTED FACADE OPTIONS ---
 

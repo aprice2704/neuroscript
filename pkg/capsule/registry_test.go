@@ -1,8 +1,9 @@
 // NeuroScript Version: 0.7.2
-// File version: 8
+// File version: 10
 // Purpose: Adds a test case to ensure capsule names with dots are now invalid.
+// Latest change: Added Description field to test capsules and MustRegister panic test to match new Register requirements.
 // filename: pkg/capsule/registry_test.go
-// nlines: 156
+// nlines: 178
 // risk_rating: MEDIUM
 package capsule_test
 
@@ -20,10 +21,11 @@ func TestRegistry_ComputesSHAWhenEmpty(t *testing.T) {
 	reg := capsule.NewRegistry()
 
 	if err := reg.Register(capsule.Capsule{
-		Name:    name,
-		Version: "1",
-		MIME:    "text/markdown; charset=utf-8",
-		Content: content,
+		Name:        name,
+		Version:     "1",
+		Description: "A test capsule", // Added
+		MIME:        "text/markdown; charset=utf-8",
+		Content:     content,
 	}); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
@@ -53,25 +55,32 @@ func TestRegistry_MustRegisterPanicsOnInvalidInput(t *testing.T) {
 		{
 			name: "Invalid uppercase name",
 			capsule: capsule.Capsule{
-				Name: "Capsule/BadUpper", Version: "1", Content: "x",
+				Name: "Capsule/BadUpper", Version: "1", Content: "x", Description: "x",
 			},
 		},
 		{
 			name: "Invalid name with @",
 			capsule: capsule.Capsule{
-				Name: "capsule/bad@name", Version: "1", Content: "x",
+				Name: "capsule/bad@name", Version: "1", Content: "x", Description: "x",
 			},
 		},
 		{
 			name: "Non-integer version",
 			capsule: capsule.Capsule{
-				Name: "capsule/good-name", Version: "1.2.3", Content: "x",
+				Name: "capsule/good-name", Version: "1.2.3", Content: "x", Description: "x",
 			},
 		},
 		{
 			name: "Empty version",
 			capsule: capsule.Capsule{
-				Name: "capsule/good-name", Version: "", Content: "x",
+				Name: "capsule/good-name", Version: "", Content: "x", Description: "x",
+			},
+		},
+		{
+			name: "Missing description", // Added
+			capsule: capsule.Capsule{
+				Name: "capsule/good-name", Version: "1", Content: "x",
+				// Description is missing
 			},
 		},
 	}
@@ -93,9 +102,9 @@ func TestStore_ListOrderingByPriorityThenID(t *testing.T) {
 	reg1 := capsule.NewRegistry()
 	reg2 := capsule.NewRegistry()
 
-	a := capsule.Capsule{Name: "capsule/sorta", Version: "1", Content: "A", Priority: 20}
-	b := capsule.Capsule{Name: "capsule/sortb", Version: "1", Content: "B", Priority: 20}
-	lo := capsule.Capsule{Name: "capsule/low", Version: "1", Content: "L", Priority: 10}
+	a := capsule.Capsule{Name: "capsule/sorta", Version: "1", Content: "A", Priority: 20, Description: "A"}
+	b := capsule.Capsule{Name: "capsule/sortb", Version: "1", Content: "B", Priority: 20, Description: "B"}
+	lo := capsule.Capsule{Name: "capsule/low", Version: "1", Content: "L", Priority: 10, Description: "L"}
 
 	reg1.MustRegister(a)
 	reg2.MustRegister(b)
@@ -126,11 +135,11 @@ func TestStore_GetLatest(t *testing.T) {
 
 	// Integers in reg1
 	name := "capsule/version-test"
-	reg1.MustRegister(capsule.Capsule{Name: name, Version: "1", Content: "v1"})
-	reg1.MustRegister(capsule.Capsule{Name: name, Version: "10", Content: "v10"})
-	reg1.MustRegister(capsule.Capsule{Name: name, Version: "2", Content: "v2"})
+	reg1.MustRegister(capsule.Capsule{Name: name, Version: "1", Content: "v1", Description: "v1"})
+	reg1.MustRegister(capsule.Capsule{Name: name, Version: "10", Content: "v10", Description: "v10"})
+	reg1.MustRegister(capsule.Capsule{Name: name, Version: "2", Content: "v2", Description: "v2"})
 	// Shadowed by reg1
-	reg2.MustRegister(capsule.Capsule{Name: name, Version: "99", Content: "v99"})
+	reg2.MustRegister(capsule.Capsule{Name: name, Version: "99", Content: "v99", Description: "v99"})
 
 	store := capsule.NewStore(reg1, reg2)
 
@@ -157,7 +166,7 @@ func TestValidateNameCases(t *testing.T) {
 	}{
 		{"capsule/aeiou", true},
 		{"capsule/foo-bar_9", true},
-		{"capsule/with.dot", false},  // dot not allowed
+		{"capsule/with.dot", false},  // --- THE FIX: This is now invalid ---
 		{"capsule/with@at", false},   // @ not allowed
 		{"Capsule/bad", false},       // uppercase not allowed
 		{"capsule/Bad", false},       // uppercase in name

@@ -1,8 +1,9 @@
-// NeuroScript Version: 0.8.0
-// File version: 26
+// NeuroScript Major Version: 1
+// File version: 28
 // Purpose: Wraps error from conn.Converse to provide a more specific error message.
+// Latest change: Added a high-visibility WARN log to detect fallback.
 // filename: pkg/interpreter/steps_ask_hostloop.go
-// nlines: 194
+// nlines: 197
 // risk_rating: HIGH
 
 package interpreter
@@ -33,6 +34,10 @@ const (
 // runAskHostLoop orchestrates the turn-by-turn execution of an AEIOU v3 conversation.
 // It now accepts the llmconn.Connector again.
 func (i *Interpreter) runAskHostLoop(pos *types.Position, agentModel *types.AgentModel, conn llmconn.Connector, initialEnvelope *aeiou.Envelope) (lang.Value, error) {
+	// --- DEBUG: ADDED HIGH-VISIBILITY LOG ---
+	i.Logger().Warn("--- FALLBACK: Running LEGACY ask host loop (steps_ask_hostloop.go) ---")
+	// --- END DEBUG ---
+
 	maxTurns := agentModel.MaxTurns
 	if maxTurns <= 0 {
 		maxTurns = 1 // Default to one-shot if not specified or invalid

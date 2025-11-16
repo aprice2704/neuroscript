@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.7.2
-// File version: 6
+// File version: 10
 // Purpose: Adds the 'Description' field to the struct to store the mandatory metadata.
+// Latest change: Made the *Store writable (Register/Delete) to unify the capsule API.
 // filename: pkg/capsule/registry.go
-// nlines: 227
-// risk_rating: HIGH
+// nlines: 283
 
 package capsule
 
@@ -36,7 +36,9 @@ type Capsule struct {
 
 var (
 	// nameRE validates the <name> part of a capsule id.
+	// --- THE FIX: Removed dot from allowed characters ---
 	nameRE = regexp.MustCompile(`^capsule/[a-z0-9_-]+$`)
+	// --- END FIX ---
 )
 
 // ValidateName returns nil if name is well-formed.
@@ -77,6 +79,10 @@ func (r *Registry) Register(c Capsule) error {
 	if _, err := strconv.Atoi(c.Version); err != nil {
 		return fmt.Errorf("capsule version must be an integer, but got %q", c.Version)
 	}
+	if c.Description == "" {
+		// This was added as a required field in the loader
+		return errors.New("capsule description cannot be empty")
+	}
 
 	if c.Content != "" && c.SHA256 == "" {
 		sum := sha256.Sum256([]byte(c.Content))
@@ -100,6 +106,20 @@ func (r *Registry) MustRegister(c Capsule) {
 	if err := r.Register(c); err != nil {
 		panic(err)
 	}
+}
+
+// Delete removes all versions of a capsule by its name.
+// This makes the registry behave like a map for sync purposes.
+func (r *Registry) Delete(name string) error {
+	if err := ValidateName(name); err != nil {
+		return fmt.Errorf("invalid name for capsule delete: %w", err)
+	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	delete(r.capsules, name)
+	return nil
 }
 
 // Get returns a specific version of a capsule by name from this registry.
@@ -230,22 +250,74 @@ func (s *Store) List() []Capsule {
 		if allCapsules[i].Priority != allCapsules[j].Priority {
 			return allCapsules[i].Priority < allCapsules[j].Priority
 		}
-		return allCapsules[i].ID < allCapsules[j].ID
+		return allCapsules[i].ID < allCapsules[i].ID
 	})
 	return allCapsules
 }
 
-// --- Default Registry ---
+// --- ADDED: Store Write Methods ---
+
+// writableRegistry returns the first registry (index 0), which is designated
+// as the writable layer for admin tools.
+func (s *Store) writableRegistry() (*Registry, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if len(s.registries) == 0 {
+		return nil, errors.New("cannot write: capsule store has no registries")
+	}
+	return s.registries[0], nil
+}
+
+// Register adds a capsule to the store's writable layer (index 0).
+func (s *Store) Register(c Capsule) error {
+	reg, err := s.writableRegistry()
+	if err != nil {
+		return err
+	}
+	return reg.Register(c)
+}
+
+// Delete removes a capsule from the store's writable layer (index 0).
+func (s *Store) Delete(name string) error {
+	reg, err := s.writableRegistry()
+	if err != nil {
+		return err
+	}
+	return reg.Delete(name)
+}
+
+// --- END: Store Write Methods ---
+
+// --- Default Singletons (FIXED) ---
 
 var (
-	defaultRegistry     *Registry
-	defaultRegistryOnce sync.Once
+	builtInRegistry      *Registry // The registry for embedded content
+	defaultStore         *Store    // The default store that contains the built-in registry
+	defaultSingletonOnce sync.Once
 )
 
-// DefaultRegistry returns the singleton registry for built-in capsules.
-func DefaultRegistry() *Registry {
-	defaultRegistryOnce.Do(func() {
-		defaultRegistry = NewRegistry()
+// initSingletons initializes the built-in registry and the default store.
+func initSingletons() {
+	defaultSingletonOnce.Do(func() {
+		builtInRegistry = NewRegistry()
+		// THE FIX: The default store now has an empty, writable registry
+		// at index 0, layered over the built-in one.
+		defaultStore = NewStore(NewRegistry(), builtInRegistry)
 	})
-	return defaultRegistry
+}
+
+// BuiltInRegistry returns the singleton registry for built-in capsules.
+// This is primarily used by the loader (e.g., in loader.go) to populate
+// the default set of capsules.
+func BuiltInRegistry() *Registry {
+	initSingletons()
+	return builtInRegistry
+}
+
+// DefaultStore returns the singleton, layered store.
+// It is initialized with the BuiltInRegistry as its first layer.
+// Application code should use this to get capsules or add new registries.
+func DefaultStore() *Store {
+	initSingletons()
+	return defaultStore
 }

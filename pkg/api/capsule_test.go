@@ -1,8 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 1
+// File version: 3
 // Purpose: Tests for the public API wrappers for capsule management.
+// Latest change: Replaced stale NewAdminCapsuleRegistry with NewCapsuleRegistry.
 // filename: pkg/api/capsule_test.go
-// nlines: 63
+// nlines: 70
 // risk_rating: LOW
 
 package api_test
@@ -13,20 +14,22 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/api"
 )
 
-// TestAPI_DefaultCapsuleRegistry verifies that the default registry can be
+// TestAPI_DefaultCapsuleStore verifies that the default store can be
 // accessed via the public API and that it contains the expected embedded capsules.
-func TestAPI_DefaultCapsuleRegistry(t *testing.T) {
-	reg := api.DefaultCapsuleRegistry()
-	if reg == nil {
-		t.Fatal("api.DefaultCapsuleRegistry() returned nil")
+func TestAPI_DefaultCapsuleStore(t *testing.T) {
+	// --- THE FIX: Use the new DefaultCapsuleStore ---
+	store := api.DefaultCapsuleStore()
+	if store == nil {
+		t.Fatal("api.DefaultCapsuleStore() returned nil")
 	}
+	// --- END FIX ---
 
 	// Check for a known-good capsule that is loaded from the
 	// embedded content/ directory.
 	const expectedName = "capsule/aeiou"
-	c, ok := reg.GetLatest(expectedName)
+	c, ok := store.GetLatest(expectedName)
 	if !ok {
-		t.Fatalf("Default registry failed to find capsule %q", expectedName)
+		t.Fatalf("Default store failed to find capsule %q", expectedName)
 	}
 
 	if c.Name != expectedName {
@@ -35,19 +38,28 @@ func TestAPI_DefaultCapsuleRegistry(t *testing.T) {
 	if c.Content == "" {
 		t.Error("Capsule content is empty")
 	}
+	// --- THE FIX: The loader guarantees a description ---
+	if c.Description == "" {
+		t.Error("Capsule description is empty, but loader should require it")
+	}
+	// --- END FIX ---
 }
 
 // TestAPI_NewCapsuleStore verifies that a layered store can be created
 // and queried via the public API.
 func TestAPI_NewCapsuleStore(t *testing.T) {
 	// 1. Create two separate registries (using the admin constructor)
-	reg1 := api.NewAdminCapsuleRegistry()
-	reg2 := api.NewAdminCapsuleRegistry()
+	// --- THE FIX: Use the correct, exported function ---
+	reg1 := api.NewCapsuleRegistry()
+	reg2 := api.NewCapsuleRegistry()
+	// --- END FIX ---
 
 	name := "capsule/store-test"
-	reg1.MustRegister(api.Capsule{Name: name, Version: "1", Content: "v1"})
-	reg1.MustRegister(api.Capsule{Name: name, Version: "10", Content: "v10"})
-	reg2.MustRegister(api.Capsule{Name: name, Version: "99", Content: "v99"})
+	// --- THE FIX: Added mandatory Description field ---
+	reg1.MustRegister(api.Capsule{Name: name, Version: "1", Content: "v1", Description: "v1"})
+	reg1.MustRegister(api.Capsule{Name: name, Version: "10", Content: "v10", Description: "v10"})
+	reg2.MustRegister(api.Capsule{Name: name, Version: "99", Content: "v99", Description: "v99"})
+	// --- END FIX ---
 
 	// 2. Create a store with reg1 having priority
 	store := api.NewCapsuleStore(reg1, reg2)

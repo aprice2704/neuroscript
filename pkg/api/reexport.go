@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 74
+// File version: 77
 // Purpose: Re-exports all types for the facade, correcting store interfaces AND concrete store names.
-// Latest change: Added ...Concrete types and constructors to resolve naming conflicts.
+// Latest change: Removed duplicate NewCapsuleStore (defined in capsule.go).
 // filename: pkg/api/reexport.go
-// nlines: 180
+// nlines: 176
 package api
 
 import (
@@ -60,12 +60,12 @@ type (
 	ProviderRegistryReader = interfaces.ProviderRegistryReader
 	ProviderRegistryAdmin  = interfaces.ProviderRegistryAdmin
 	CapsuleRegistry        = capsule.Registry
-	AdminCapsuleRegistry   = capsule.Registry
-	Capsule                = capsule.Capsule
-	CapsuleProvider        = interfaces.CapsuleProvider
-	CapsuleStore           = capsule.Store
-	AgentModel             = types.AgentModel
-	Account                = account.Account
+	// AdminCapsuleRegistry   = capsule.Registry // REMOVED: Stale
+	Capsule = capsule.Capsule
+	// CapsuleProvider        = interfaces.CapsuleProvider // REMOVED: Stale
+	CapsuleStore = capsule.Store
+	AgentModel   = types.AgentModel
+	Account      = account.Account
 
 	// --- CONCRETE STORES (for old behavior) ---
 	// Renamed to avoid collision with admin interfaces
@@ -157,9 +157,7 @@ var (
 	// --- FIXED TYPO ---
 	WithAITranscriptWriter = interpreter.WithAITranscriptWriter //
 	// ------------------
-	WithCapsuleRegistry      = interpreter.WithCapsuleRegistry
-	WithCapsuleAdminRegistry = interpreter.WithCapsuleAdminRegistry
-	WithCapsuleProvider      = interpreter.WithCapsuleProvider
+	WithCapsuleStore = interpreter.WithCapsuleStore
 
 	// Loggers
 	NewNoOpLogger = logging.NewNoOpLogger
@@ -176,8 +174,12 @@ var (
 	NewProviderRegistry       = provider.NewRegistry
 	NewProviderRegistryReader = provider.NewReader
 	NewProviderAdmin          = provider.NewAdmin
-	NewAdminCapsuleRegistry   = capsule.NewRegistry
-	MakeToolFullName          = types.MakeFullName
+	// --- THE FIX: Export correct store building blocks ---
+	NewCapsuleRegistry     = capsule.NewRegistry
+	BuiltInCapsuleRegistry = capsule.BuiltInRegistry
+	// NewCapsuleStore          = capsule.NewStore // REMOVED: Defined in capsule.go
+	// --- END FIX ---
+	MakeToolFullName = types.MakeFullName
 
 	// --- STORE CONSTRUCTORS & OPTIONS ---
 	// Concrete store constructors
@@ -190,15 +192,18 @@ var (
 	WithProviderRegistry        = interpreter.WithProviderRegistry
 
 	// New facade interface options
-	WithAccountStore    = interpreter.WithAccountAdmin    // Renamed from WithAccountAdmin
-	WithAgentModelStore = interpreter.WithAgentModelAdmin // Renamed from WithAgentModelAdmin
+	WithAccountStore    = interpreter.WithAccountAdmin
+	WithAgentModelStore = interpreter.WithAgentModelAdmin
 	// ----------------------------------
 )
 
 // AIRequest is a re-export of types.AIRequest for the public API.
 type AIRequest = types.AIRequest
 
-// AIResponse is a re-export of types.AIResponse for the public API.
+// AIResponse is a re-export of types.AIRequest for the public API.
 type AIResponse = types.AIResponse
 
 type ProgressTracker = aeiou.ProgressTracker
+
+// ActiveLoopInfo is the re-exported struct for 'ask' loop observability.
+type ActiveLoopInfo = interfaces.ActiveLoopInfo // This should be line 209
