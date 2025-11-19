@@ -1,9 +1,9 @@
 // NeuroScript Major Version: 1
-// File version: 10
-// Purpose: Defines the tool specifications for the 'meta' tool group, linking them to their implementations.
-// Latest change: Corrected compiler errors: changed Help to Description, fixed listTools ReturnType, and removed invalid validation block.
+// File version: 12
+// Purpose: Defines the tool specifications for the 'meta' tool group.
+// Latest change: Added optional 'filter' arg to listToolNames.
 // filename: pkg/tool/meta/tooldefs_meta.go
-// nlines: 69
+// nlines: 95
 
 package meta
 
@@ -17,11 +17,15 @@ var metaToolsToRegister = []tool.ToolImplementation{
 		Spec: tool.ToolSpec{
 			Name:        "listTools",
 			Group:       "meta",
-			Description: "Lists the full specifications of all registered tools.",
+			Description: "Lists the full specifications of all registered tools, optionally filtered by name.",
 			Category:    "Introspection",
-			ReturnType:  tool.ArgTypeSlice, // FIX: Changed back from ArrayOf(ObjectOf(...))
-			ReturnHelp:  "A list of tool specification objects.",
-			Example:     "listTools()",
+			Args: []tool.ArgSpec{
+				// Added optional filter
+				{Name: "filter", Type: tool.ArgTypeString, Required: false, Description: "A string to filter tool names. Only tools whose full name contains this text will be included."},
+			},
+			ReturnType: tool.ArgTypeSlice,
+			ReturnHelp: "A list of tool specification objects.",
+			Example:    `listTools("file")`,
 		},
 		Func: ListTools,
 	},
@@ -43,12 +47,14 @@ var metaToolsToRegister = []tool.ToolImplementation{
 		Spec: tool.ToolSpec{
 			Name:        "listToolNames",
 			Group:       "meta",
-			Description: "Provides a simple, newline-separated list of all available tool signatures.",
+			Description: "Provides a simple, newline-separated list of all available tool signatures, optionally filtered by name.",
 			Category:    "Introspection",
-			Args:        []tool.ArgSpec{},
-			ReturnType:  tool.ArgTypeString,
-			ReturnHelp:  "A single string, with each tool signature on its own line (e.g., 'tool.group.name(arg:type) -> type').",
-			Example:     "listToolNames()",
+			Args: []tool.ArgSpec{
+				{Name: "filter", Type: tool.ArgTypeString, Required: false, Description: "A string to filter tool names. Only tools whose full name contains this text will be included."},
+			},
+			ReturnType: tool.ArgTypeString,
+			ReturnHelp: "A single string, with each tool signature on its own line (e.g., 'tool.group.name(arg:type) -> type').",
+			Example:    `listToolNames("file")`,
 		},
 		Func: ListToolNames,
 	},
@@ -59,7 +65,6 @@ var metaToolsToRegister = []tool.ToolImplementation{
 			Description: "Provides formatted Markdown help text for tools, optionally filtered by name.",
 			Category:    "Introspection",
 			Args: []tool.ArgSpec{
-				// FIX: Changed 'Help' field to 'Description'
 				{Name: "filter", Type: tool.ArgTypeString, Required: false, Description: "A string to filter tool names. Only tools whose full name contains this text will be included."},
 			},
 			ReturnType: tool.ArgTypeString,
@@ -68,7 +73,34 @@ var metaToolsToRegister = []tool.ToolImplementation{
 		},
 		Func: ToolsHelp,
 	},
+	{
+		Spec: tool.ToolSpec{
+			Name:        "listGlobalConstants",
+			Group:       "meta",
+			Description: "Lists all global constants visible to the interpreter, optionally filtered by name.",
+			Category:    "Introspection",
+			Args: []tool.ArgSpec{
+				{Name: "filter", Type: tool.ArgTypeString, Required: false, Description: "A string to filter constant names. Case-insensitive."},
+			},
+			ReturnType: tool.ArgTypeMap, // Returns a map of Name -> Value
+			ReturnHelp: "A map containing the names and values of matching global constants.",
+			Example:    `listGlobalConstants("FDM_")`,
+		},
+		Func: ListGlobalConstants,
+	},
+	{
+		Spec: tool.ToolSpec{
+			Name:        "listFunctions",
+			Group:       "meta",
+			Description: "Lists the names of all functions visible to the interpreter, optionally filtered by name.",
+			Category:    "Introspection",
+			Args: []tool.ArgSpec{
+				{Name: "filter", Type: tool.ArgTypeString, Required: false, Description: "A string to filter function names. Case-insensitive."},
+			},
+			ReturnType: tool.ArgTypeSlice, // Returns a list of strings
+			ReturnHelp: "A list of matching function names.",
+			Example:    `listFunctions("my_")`,
+		},
+		Func: ListFunctions,
+	},
 }
-
-// FIX: Removed the invalid validation block that was causing compiler errors.
-// The project convention seen in strtools does not use this.

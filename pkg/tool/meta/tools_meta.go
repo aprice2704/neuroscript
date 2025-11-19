@@ -1,9 +1,9 @@
 // NeuroScript Major Version: 1
-// File version: 11
-// Purpose: Implements meta tools. Added ListToolNames and ToolsHelp functions.
-// Latest change: Removed fmt.Fprintf debug output from ToolsHelp after tests passed.
+// File version: 18
+// Purpose: Implements meta tools. Uses lang.UnwrapValue for better constant display.
+// Latest change: Updated ListToolNames to accept an optional filter argument.
 // filename: pkg/tool/meta/tools_meta.go
-// nlines: 194
+// nlines: 330
 
 package meta
 
@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -28,41 +29,45 @@ func RegisterTools(registrar tool.ToolRegistrar) error {
 	return nil
 }
 
-// ListTools is the implementation for the 'tool.meta.listTools' tool.
-// It returns a slice of maps to be compatible with lang.Wrap.
+// ListTools returns a list of tool specifications, optionally filtered.
 func ListTools(rt tool.Runtime, args []any) (any, error) {
-	// fmt.Fprintf(os.Stderr, "DEBUG: Entered ListTools implementation\n")
-	tools := rt.ToolRegistry().ListTools()
-	specs := make([]tool.ToolSpec, len(tools))
-	for i, t := range tools {
-		specs[i] = t.Spec
+	filter := ""
+	if len(args) > 0 && args[0] != nil {
+		var ok bool
+		filter, ok = args[0].(string)
+		if !ok {
+			return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("ListTools: filter argument must be a string, got %T", args[0]), lang.ErrArgumentMismatch)
+		}
+		filter = strings.ToLower(filter)
 	}
-	// fmt.Fprintf(os.Stderr, "DEBUG: ListTools: Found %d tools in registry\n", len(specs))
 
-	// Sort for deterministic output
+	tools := rt.ToolRegistry().ListTools()
+	specs := make([]tool.ToolSpec, 0, len(tools))
+
+	for _, t := range tools {
+		if filter == "" || strings.Contains(strings.ToLower(string(t.Spec.FullName)), filter) {
+			specs = append(specs, t.Spec)
+		}
+	}
+
 	sort.Slice(specs, func(i, j int) bool {
 		return strings.ToLower(string(specs[i].FullName)) < strings.ToLower(string(specs[j].FullName))
 	})
 
-	// Convert slice of structs to slice of maps via JSON
 	var specMaps []any
 	jsonData, err := json.Marshal(specs)
 	if err != nil {
-		// fmt.Fprintf(os.Stderr, "DEBUG: ListTools: Failed to marshal specs: %v\n", err)
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "failed to marshal tool specs to JSON for wrapping", err)
 	}
 	if err := json.Unmarshal(jsonData, &specMaps); err != nil {
-		// fmt.Fprintf(os.Stderr, "DEBUG: ListTools: Failed to unmarshal specs: %v\n", err)
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "failed to unmarshal tool spec JSON for wrapping", err)
 	}
 
-	// fmt.Fprintf(os.Stderr, "DEBUG: ListTools: Successfully converted specs to %d maps\n", len(specMaps))
 	return specMaps, nil
 }
 
 // GetToolSpecificationsJSON provides a JSON string of all available tool specifications.
 func GetToolSpecificationsJSON(rt tool.Runtime, args []interface{}) (interface{}, error) {
-	// fmt.Fprintf(os.Stderr, "DEBUG: Entered GetToolSpecificationsJSON implementation\n")
 	if len(args) != 0 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "GetToolSpecificationsJSON: expects no arguments", lang.ErrArgumentMismatch)
 	}
@@ -72,15 +77,13 @@ func GetToolSpecificationsJSON(rt tool.Runtime, args []interface{}) (interface{}
 		return nil, lang.NewRuntimeError(lang.ErrorCodeConfiguration, "GetToolSpecificationsJSON: ToolRegistry is not available", lang.ErrConfiguration)
 	}
 
-	specs, err := ListTools(rt, nil)
+	specMaps, err := ListTools(rt, nil)
 	if err != nil {
-		// fmt.Fprintf(os.Stderr, "DEBUG: GetToolSpecificationsJSON: Error calling ListTools: %v\n", err)
 		return nil, err
 	}
 
-	jsonData, err := json.MarshalIndent(specs, "", "  ")
+	jsonData, err := json.MarshalIndent(specMaps, "", "  ")
 	if err != nil {
-		// Use rt.GetLogger() if available, otherwise stderr
 		if rt.GetLogger() != nil {
 			rt.GetLogger().Errorf("GetToolSpecificationsJSON: Failed to marshal tool specs: %v", err)
 		} else {
@@ -89,23 +92,30 @@ func GetToolSpecificationsJSON(rt tool.Runtime, args []interface{}) (interface{}
 		return "", lang.NewRuntimeError(lang.ErrorCodeInternal, "failed to marshal tool specifications to JSON", err)
 	}
 
-	// fmt.Fprintf(os.Stderr, "DEBUG: GetToolSpecificationsJSON: Returning JSON string of %d bytes\n", len(jsonData))
 	return string(jsonData), nil
 }
 
 // ListToolNames provides a simple, newline-separated list of all available tool signatures.
 func ListToolNames(rt tool.Runtime, args []interface{}) (interface{}, error) {
-	if len(args) != 0 {
-		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "ListToolNames: expects no arguments", lang.ErrArgumentMismatch)
+	filter := ""
+	if len(args) > 0 && args[0] != nil {
+		var ok bool
+		filter, ok = args[0].(string)
+		if !ok {
+			return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("ListToolNames: filter argument must be a string, got %T", args[0]), lang.ErrArgumentMismatch)
+		}
+		filter = strings.ToLower(filter)
 	}
 
 	tools := rt.ToolRegistry().ListTools()
-	specs := make([]tool.ToolSpec, len(tools))
-	for i, t := range tools {
-		specs[i] = t.Spec
+	specs := make([]tool.ToolSpec, 0, len(tools))
+
+	for _, t := range tools {
+		if filter == "" || strings.Contains(strings.ToLower(string(t.Spec.FullName)), filter) {
+			specs = append(specs, t.Spec)
+		}
 	}
 
-	// Sort for deterministic output
 	sort.Slice(specs, func(i, j int) bool {
 		return strings.ToLower(string(specs[i].FullName)) < strings.ToLower(string(specs[j].FullName))
 	})
@@ -126,23 +136,22 @@ func ToolsHelp(rt tool.Runtime, args []interface{}) (interface{}, error) {
 	}
 
 	filter := ""
-	if len(args) == 1 {
-		if args[0] != nil {
-			var ok bool
-			filter, ok = args[0].(string)
-			if !ok {
-				return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("ToolsHelp: filter argument must be a string, got %T", args[0]), lang.ErrArgumentMismatch)
-			}
+	if len(args) == 1 && args[0] != nil {
+		var ok bool
+		filter, ok = args[0].(string)
+		if !ok {
+			return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("ToolsHelp: filter argument must be a string, got %T", args[0]), lang.ErrArgumentMismatch)
 		}
+		filter = strings.ToLower(filter)
 	}
 
 	tools := rt.ToolRegistry().ListTools()
-	specs := make([]tool.ToolSpec, len(tools))
-	for i, t := range tools {
-		specs[i] = t.Spec
+	specs := make([]tool.ToolSpec, 0, len(tools))
+
+	for _, t := range tools {
+		specs = append(specs, t.Spec)
 	}
 
-	// Sort for deterministic output
 	sort.Slice(specs, func(i, j int) bool {
 		return strings.ToLower(string(specs[i].FullName)) < strings.ToLower(string(specs[j].FullName))
 	})
@@ -150,7 +159,7 @@ func ToolsHelp(rt tool.Runtime, args []interface{}) (interface{}, error) {
 	var b strings.Builder
 	count := 0
 	for _, spec := range specs {
-		if filter == "" || strings.Contains(string(spec.FullName), filter) {
+		if filter == "" || strings.Contains(strings.ToLower(string(spec.FullName)), filter) {
 			if count > 0 {
 				b.WriteString("\n---\n\n")
 			}
@@ -166,7 +175,94 @@ func ToolsHelp(rt tool.Runtime, args []interface{}) (interface{}, error) {
 	return b.String(), nil
 }
 
-// formatSignature creates a human-readable signature string for a tool.
+// --- Introspection Tools ---
+
+// constProvider is a local interface matching api.Interpreter methods needed for constants.
+// This avoids importing pkg/api.
+type constProvider interface {
+	KnownGlobalConstants() map[string]lang.Value
+}
+
+// ListGlobalConstants returns a map of known global constants.
+func ListGlobalConstants(rt tool.Runtime, args []any) (any, error) {
+	filter := ""
+	if len(args) > 0 && args[0] != nil {
+		var ok bool
+		filter, ok = args[0].(string)
+		if !ok {
+			return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("ListGlobalConstants: filter argument must be a string, got %T", args[0]), lang.ErrArgumentMismatch)
+		}
+		filter = strings.ToLower(filter)
+	}
+
+	cp, ok := rt.(constProvider)
+	if !ok {
+		return map[string]any{}, nil
+	}
+
+	consts := cp.KnownGlobalConstants()
+	result := make(map[string]any)
+
+	for name, val := range consts {
+		if filter == "" || strings.Contains(strings.ToLower(name), filter) {
+			// FIX: Use lang.UnwrapValue to get native types (e.g., float64, string)
+			// instead of stringified representations.
+			result[name] = lang.UnwrapValue(val)
+		}
+	}
+
+	return result, nil
+}
+
+// ListFunctions returns a list of known function names.
+// Uses reflection to avoid importing pkg/ast or pkg/api.
+func ListFunctions(rt tool.Runtime, args []any) (any, error) {
+	filter := ""
+	if len(args) > 0 && args[0] != nil {
+		var ok bool
+		filter, ok = args[0].(string)
+		if !ok {
+			return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("ListFunctions: filter argument must be a string, got %T", args[0]), lang.ErrArgumentMismatch)
+		}
+		filter = strings.ToLower(filter)
+	}
+
+	// Use reflection to find "KnownProcedures" on the runtime object
+	val := reflect.ValueOf(rt)
+	method := val.MethodByName("KnownProcedures")
+
+	if !method.IsValid() {
+		return []string{}, nil
+	}
+
+	// Call the method (it takes no args)
+	res := method.Call(nil)
+	if len(res) == 0 {
+		return []string{}, nil
+	}
+
+	// Result [0] should be the map
+	mapVal := res[0]
+	if mapVal.Kind() != reflect.Map {
+		return []string{}, nil
+	}
+
+	keys := mapVal.MapKeys()
+	names := make([]string, 0, len(keys))
+
+	for _, k := range keys {
+		name := k.String()
+		if filter == "" || strings.Contains(strings.ToLower(name), filter) {
+			names = append(names, name)
+		}
+	}
+
+	sort.Strings(names)
+	return names, nil
+}
+
+// --- Helper Functions ---
+
 func formatSignature(spec tool.ToolSpec) string {
 	var argParts []string
 	for _, arg := range spec.Args {
@@ -176,7 +272,6 @@ func formatSignature(spec tool.ToolSpec) string {
 	return fmt.Sprintf("%s(%s) -> %s", spec.FullName, argString, spec.ReturnType)
 }
 
-// formatToolHelp creates a detailed Markdown-formatted help block for a single tool.
 func formatToolHelp(spec tool.ToolSpec) string {
 	var b strings.Builder
 
