@@ -1,9 +1,8 @@
-// NeuroScript Version: 0.7.0
-// File version: 10
-// Purpose: FIX: Disabled the workspace-aware symbol manager for this test by passing nil, as it's designed to validate grammar in isolation.
+// NeuroScript/FDM Major Version: 1
+// File version: 11
+// Purpose: FIX: Disabled the workspace-aware symbol manager for this test by passing nil. FIX: Filter out Information-level diagnostics (like missing optional args) which are not failures.
 // filename: pkg/nslsp/grammar_test.go
-// nlines: 83
-// risk_rating: LOW
+// nlines: 95
 
 package nslsp
 
@@ -15,6 +14,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/parser"
 	"github.com/aprice2704/neuroscript/pkg/testutil"
+	lsp "github.com/sourcegraph/go-lsp"
 )
 
 // TestGrammarFiles_NoError validates that a suite of known-good .ns files
@@ -64,10 +64,26 @@ func TestGrammarFiles_NoError(t *testing.T) {
 			// --- 2. Check for Semantic Errors ---
 			if tree != nil {
 				diagnostics := analyzer.Analyze(tree)
-				if len(diagnostics) > 0 {
-					t.Errorf("FAIL: Expected 0 semantic diagnostics, but got %d:", len(diagnostics))
-					for _, diag := range diagnostics {
-						t.Errorf("  - %s (Source: %s)", diag.Message, diag.Source)
+
+				// THE FIX IS HERE: Filter out Information diagnostics (like missing optional args)
+				var errorDiagnostics []lsp.Diagnostic
+				for _, d := range diagnostics {
+					if d.Severity == lsp.Error || d.Severity == lsp.Warning {
+						errorDiagnostics = append(errorDiagnostics, d)
+					}
+				}
+
+				if len(errorDiagnostics) > 0 {
+					t.Errorf("FAIL: Expected 0 semantic errors/warnings, but got %d:", len(errorDiagnostics))
+					for _, diag := range errorDiagnostics {
+						t.Errorf("  - %s (Severity: %d, Source: %s)", diag.Message, diag.Severity, diag.Source)
+					}
+				} else {
+					// Optional: Log info diagnostics just for visibility
+					for _, d := range diagnostics {
+						if d.Severity == lsp.Information {
+							t.Logf("INFO: Diagnostic ignored: %s", d.Message)
+						}
 					}
 				}
 			} else if len(syntaxErrors) == 0 {
