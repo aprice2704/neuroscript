@@ -1,6 +1,7 @@
 // NeuroScript Version: 0.8.0
-// File version: 3
+// File version: 4
 // Purpose: Provides public accessors for the internal interpreter's fields, including the tool registry.
+// Latest change: Updated Handles() to HandleRegistry() accessor.
 // filename: pkg/interpreter/accessors.go
 // nlines: 28
 // risk_rating: LOW
@@ -18,13 +19,10 @@ func (i *Interpreter) HostContext() *HostContext {
 	return i.hostContext
 }
 
-// Handles returns the interpreter's handle manager. Because the interpreter
-// now implements the handle management methods directly, it can return itself
-// to satisfy the interface.
-func (i *Interpreter) Handles() interfaces.HandleManager {
-	// The *Interpreter type now has RegisterHandle and GetHandleValue methods,
-	// so it satisfies the interfaces.HandleManager interface.
-	return i
+// HandleRegistry returns the interpreter's handle registry.
+// This method is required to satisfy the interfaces.Interpreter interface.
+func (i *Interpreter) HandleRegistry() interfaces.HandleRegistry {
+	return i.handleRegistry
 }
 
 // ToolRegistry returns the interpreter's tool registry.

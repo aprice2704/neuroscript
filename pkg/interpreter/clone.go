@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 40
-// Purpose: Ensures the root providerRegistry is correctly propagated to forks.
-// Latest change: Removed adminCapsuleRegistry field from clone struct literal.
+// File version: 41
+// Purpose: Ensures the root providerRegistry is correctly propagated to forks and copies new HandleRegistry.
+// Latest change: Removed objectCache field from clone struct literal and added handleRegistry.
 // filename: pkg/interpreter/clone.go
-// nlines: 74
+// nlines: 75
 // risk_rating: HIGH
 
 package interpreter
@@ -25,10 +25,11 @@ func (i *Interpreter) fork() *Interpreter {
 		id:   fmt.Sprintf("interp-%s", uuid.NewString()[:8]),
 		root: root, // Explicitly set the root
 		// Copy/share all other fields from parent 'i'
-		hostContext:         i.hostContext,
-		eventManager:        i.eventManager,
-		bufferManager:       i.bufferManager,
-		objectCache:         i.objectCache,
+		hostContext:   i.hostContext,
+		eventManager:  i.eventManager,
+		bufferManager: i.bufferManager,
+		// objectCache:         i.objectCache, // REMOVED: Replaced by HandleRegistry
+		handleRegistry:      i.handleRegistry, // ADDED: Share the HandleRegistry on fork.
 		transientPrivateKey: i.transientPrivateKey,
 		maxLoopIterations:   i.maxLoopIterations,
 		modelStore:          i.modelStore,

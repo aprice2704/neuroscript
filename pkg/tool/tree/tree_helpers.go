@@ -1,7 +1,9 @@
 // NeuroScript Version: 0.3.0
-// File version: 5
-// Purpose: Corrected compiler errors and removed direct import of 'interpreter' package to break import cycle. Now uses tool.Runtime interface.
+// File version: 6
+// Purpose: Corrected compiler errors and removed direct import of 'interpreter' package to break import cycle. Now uses tool.Runtime interface. Updated handle retrieval to use the new HandleRegistry API.
 // filename: pkg/tool/tree/tree_helpers.go
+// nlines: 104
+// risk_rating: LOW
 
 package tree
 
@@ -24,8 +26,8 @@ func getTreeFromHandle(rt tool.Runtime, handleID, toolName string) (*utils.Gener
 		)
 	}
 
-	// FIX: Use the runtime interface instead of casting to the interpreter implementation.
-	obj, err := rt.GetHandleValue(handleID, utils.GenericTreeHandleType)
+	// FIX: Use the new HandleRegistry API. The generic GetHandle only takes the ID.
+	obj, err := rt.HandleRegistry().GetHandle(handleID)
 	if err != nil {
 		if errors.Is(err, lang.ErrHandleNotFound) {
 			return nil, lang.NewRuntimeError(lang.ErrorCodeKeyNotFound,

@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 9
-// Purpose: Fixes compiler errors by adding a local mustWrap helper function to handle lang.Wrap.
+// File version: 10
+// Purpose: Fixes compiler errors by adding a local mustWrap helper function to handle lang.Wrap. Implemented HandleRegistry for testRuntime interface compliance.
 // filename: pkg/tool/tools_registry_capability_test.go
-// nlines: 227
+// nlines: 239
 // risk_rating: LOW
 
 package tool_test
@@ -47,12 +47,12 @@ func (t *testRuntime) CallTool(name types.FullName, args []any) (any, error) { r
 func (t *testRuntime) GetLogger() interfaces.Logger                          { return nil }
 func (t *testRuntime) SandboxDir() string                                    { return "" }
 func (t *testRuntime) LLM() interfaces.LLMClient                             { return nil }
-func (t *testRuntime) RegisterHandle(obj interface{}, typePrefix string) (string, error) {
-	return "", nil
-}
-func (t *testRuntime) GetHandleValue(handle string, expectedTypePrefix string) (interface{}, error) {
-	return nil, nil
-}
+
+// HandleRegistry is a new required method on the tool.Runtime interface.
+func (t *testRuntime) HandleRegistry() interfaces.HandleRegistry { return nil }
+
+// NOTE: Old handle methods (RegisterHandle, GetHandleValue) have been removed from the interface.
+
 func (t *testRuntime) AgentModels() interfaces.AgentModelReader { return nil }
 func (t *testRuntime) AgentModelsAdmin() interfaces.AgentModelAdmin {
 	return nil

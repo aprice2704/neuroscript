@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 77
-// Purpose: Re-exports all types for the facade, correcting store interfaces AND concrete store names.
-// Latest change: Removed duplicate NewCapsuleStore (defined in capsule.go).
+// File version: 79
+// Purpose: Re-exports all types for the facade, correcting store interfaces AND concrete store names. Removed HandleValue and HandleRegistry to resolve duplicate declaration errors with reexport_handles.go.
+// Latest change: Removed re-exports for HandleValue and HandleRegistry types.
 // filename: pkg/api/reexport.go
-// nlines: 176
+// nlines: 179
 package api
 
 import (
@@ -54,18 +54,20 @@ type (
 	// SymbolProvider
 	SymbolProvider = interfaces.SymbolProvider
 
+	// Handle Types (New in v1)
+	// HandleValue = interfaces.HandleValue // REMOVED: Duplicate declaration in reexport_handles.go
+	// HandleRegistry = interfaces.HandleRegistry // REMOVED: Duplicate declaration in reexport_handles.go
+
 	// AI & State Store Types
 	AIProvider             = provider.AIProvider
 	ProviderRegistry       = provider.Registry
 	ProviderRegistryReader = interfaces.ProviderRegistryReader
 	ProviderRegistryAdmin  = interfaces.ProviderRegistryAdmin
 	CapsuleRegistry        = capsule.Registry
-	// AdminCapsuleRegistry   = capsule.Registry // REMOVED: Stale
-	Capsule = capsule.Capsule
-	// CapsuleProvider        = interfaces.CapsuleProvider // REMOVED: Stale
-	CapsuleStore = capsule.Store
-	AgentModel   = types.AgentModel
-	Account      = account.Account
+	Capsule                = capsule.Capsule
+	CapsuleStore           = capsule.Store
+	AgentModel             = types.AgentModel
+	Account                = account.Account
 
 	// --- CONCRETE STORES (for old behavior) ---
 	// Renamed to avoid collision with admin interfaces
@@ -177,7 +179,6 @@ var (
 	// --- THE FIX: Export correct store building blocks ---
 	NewCapsuleRegistry     = capsule.NewRegistry
 	BuiltInCapsuleRegistry = capsule.BuiltInRegistry
-	// NewCapsuleStore          = capsule.NewStore // REMOVED: Defined in capsule.go
 	// --- END FIX ---
 	MakeToolFullName = types.MakeFullName
 
@@ -206,4 +207,4 @@ type AIResponse = types.AIResponse
 type ProgressTracker = aeiou.ProgressTracker
 
 // ActiveLoopInfo is the re-exported struct for 'ask' loop observability.
-type ActiveLoopInfo = interfaces.ActiveLoopInfo // This should be line 209
+type ActiveLoopInfo = interfaces.ActiveLoopInfo

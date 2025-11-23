@@ -1,8 +1,9 @@
-// NeuroScript Version: 0.8.0
-// File version: 10
-// Purpose: Removed RegisterProvider method to enforce use of a separate ProviderRegistry.
+// NeuroScript Version: 1
+// File version: 11
+// Purpose: The primary interface for the NeuroScript execution engine.
+// Latest change: Added HandleRegistry() method to expose the new Handle system.
 // filename: pkg/interfaces/interpreter.go
-// nlines: 44
+// nlines: 48
 // risk_rating: COSMIC
 
 package interfaces
@@ -29,6 +30,7 @@ type Interpreter interface {
 	SetAITranscript(w io.Writer)
 	GetLogger() Logger
 	// RegisterProvider(name string, p any) // This is now handled by ProviderRegistry
+	HandleRegistry() HandleRegistry // Added per specification
 }
 
 // Node represents a node in the AST.

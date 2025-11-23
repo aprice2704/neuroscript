@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.5
-// File version: 3
-// Purpose: Corrected JSON loading to deterministically create nodes and properly use the 'type' field from the JSON object.
+// File version: 4
+// Purpose: Corrected JSON loading to deterministically create nodes and properly use the 'type' field from the JSON object. Updated handle registration to use the new HandleRegistry API.
 // filename: pkg/tool/tree/tools_tree_load.go
-// nlines: 130
+// nlines: 168
 // risk_rating: HIGH
 
 package tree
@@ -150,13 +150,15 @@ func toolTreeLoadJSON(interp tool.Runtime, args []interface{}) (interface{}, err
 		)
 	}
 
-	handleID, handleErr := interp.RegisterHandle(tree, utils.GenericTreeHandleType)
+	// FIX: Use the new HandleRegistry API
+	handleValue, handleErr := interp.HandleRegistry().NewHandle(tree, utils.GenericTreeHandleType)
 	if handleErr != nil {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal,
 			fmt.Sprintf("%s: failed to register tree handle: %v", toolName, handleErr),
 			errors.Join(lang.ErrInternal, handleErr),
 		)
 	}
+	handleID := handleValue.HandleID()
 
 	interp.GetLogger().Debug(fmt.Sprintf("%s: Successfully parsed JSON into tree", toolName), "rootId", tree.RootID, "nodeCount", len(tree.NodeMap), "handle", handleID)
 	return handleID, nil

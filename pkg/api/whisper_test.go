@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 3
-// Purpose: Corrects type assertion in TestInterpreter_WhisperFunc from *lang.MapValue to lang.MapValue.
+// File version: 4
+// Purpose: Corrects type assertion in TestInterpreter_WhisperFunc from *lang.MapValue to lang.MapValue. Updates handle creation to use the new HandleRegistry API.
 // filename: pkg/api/whisper_test.go
-// nlines: 87
+// nlines: 92
 // risk_rating: MEDIUM
 
 package api_test
@@ -47,6 +47,8 @@ endcommand`
 		t.Fatalf("Failed to build host context: %v", err)
 	}
 
+	const testHandleKind = "test"
+
 	// A simple tool to create a handle for testing purposes
 	handleTool := api.ToolImplementation{
 		Spec: api.ToolSpec{
@@ -55,7 +57,17 @@ endcommand`
 			Args:  []api.ArgSpec{{Name: "value", Type: "any"}},
 		},
 		Func: func(rt api.Runtime, args []any) (any, error) {
-			return rt.RegisterHandle(args[0], "test")
+			// FIX: Use HandleRegistry().NewHandle(...)
+			handleValue, err := rt.HandleRegistry().NewHandle(args[0], testHandleKind)
+			if err != nil {
+				return nil, err
+			}
+			// FIX: Return the HandleValue, not just the ID string.
+			// The original code returned the ID string, which was wrapped as lang.StringValue
+			// and checked later. We must return the HandleValue itself to be wrapped as the
+			// new lang.HandleValue, but the test's next step uses it as a string.
+			// Reverting to the string return to preserve the original test logic check.
+			return handleValue.HandleID(), nil
 		},
 	}
 
@@ -82,12 +94,15 @@ endcommand`
 	}
 
 	// Verify handle
+	// The NS `set h = ...` wraps the string ID as a StringValue because `make_handle` returns a string.
 	handleStr, ok := capturedHandle.(lang.StringValue)
 	if !ok {
 		t.Fatalf("Expected handle to be a string, got %T", capturedHandle)
 	}
-	if !strings.HasPrefix(handleStr.Value, "test::") {
-		t.Errorf("Expected handle to have 'test::' prefix, got %s", handleStr.Value)
+	if !strings.HasPrefix(handleStr.Value, testHandleKind+"-") {
+		// Note: The previous handle implementation used "test::", the new mock uses "test-".
+		// We update the check to match the new mock helper's internal format "kind-id".
+		t.Errorf("Expected handle to have '%s-' prefix, got %s", testHandleKind, handleStr.Value)
 	}
 
 	// DEBUG: Log the type of the captured data

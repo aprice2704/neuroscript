@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.6.0
-// File version: 6.0.4
-// Purpose: Aligned mock implementations with interface changes (string instead of types.AgentModelName).
+// File version: 6.0.5
+// Purpose: Aligned mock implementations with interface changes (string instead of types.AgentModelName). Implemented HandleRegistry for tool.Runtime interface compliance.
 // filename: pkg/tool/internal/tools_helpers.go
-// nlines: 257
+// nlines: 297
 // risk_rating: MEDIUM
 
 package internal
@@ -110,13 +110,67 @@ func makeArgMap(kvPairs ...interface{}) (map[string]interface{}, error) {
 	return args, nil
 }
 
+// --- Mock Handle Value/Registry for Testing ---
+
+// mockHandleValue implements interfaces.HandleValue for testing only.
+type mockHandleValue struct {
+	id   string
+	kind string
+}
+
+func (m mockHandleValue) Type() interfaces.NeuroScriptType { return lang.TypeHandle }
+func (m mockHandleValue) String() string                   { return fmt.Sprintf("<handle %s#%s>", m.kind, m.id) }
+func (m mockHandleValue) IsTruthy() bool                   { return true }
+func (m mockHandleValue) HandleID() string                 { return m.id }
+func (m mockHandleValue) HandleKind() string               { return m.kind }
+
+// mockHandleRegistry implements interfaces.HandleRegistry, wrapping MockRuntime's internal handle map.
+type mockHandleRegistry struct {
+	rt *MockRuntime
+}
+
+func (m *mockHandleRegistry) NewHandle(payload any, kind string) (interfaces.HandleValue, error) {
+	m.rt.mu.Lock()
+	defer m.rt.mu.Unlock()
+
+	if kind == "" {
+		return nil, lang.ErrInvalidArgument // Mocking NewHandle requirement
+	}
+
+	m.rt.handleCounter++
+	// Note: We use the existing MockRuntime handle ID format for compatibility with old test logic
+	handleID := fmt.Sprintf("%s-%d", kind, m.rt.handleCounter)
+	m.rt.Handles[handleID] = payload
+	return mockHandleValue{id: handleID, kind: kind}, nil
+}
+
+func (m *mockHandleRegistry) GetHandle(id string) (any, error) {
+	m.rt.mu.RLock()
+	defer m.rt.mu.RUnlock()
+	val, ok := m.rt.Handles[id]
+	if !ok {
+		return nil, lang.ErrHandleNotFound
+	}
+	return val, nil
+}
+
+func (m *mockHandleRegistry) DeleteHandle(id string) error {
+	m.rt.mu.Lock()
+	defer m.rt.mu.Unlock()
+	if _, exists := m.rt.Handles[id]; !exists {
+		return lang.ErrHandleNotFound
+	}
+	delete(m.rt.Handles, id)
+	return nil
+}
+
 // --- Mock Runtime for Testing ---
 
 type MockRuntime struct {
 	mu             sync.RWMutex
 	Vars           map[string]interface{}
 	Output         *bytes.Buffer
-	Handles        map[string]interface{}
+	Handles        map[string]interface{} // Internal handle map
 	handleCounter  int
 	Models         map[types.AgentModelName]types.AgentModel
 	SandboxDirStr  string
@@ -197,27 +251,12 @@ func (m *MockRuntime) LLM() interfaces.LLMClient {
 	return m.LlmClient
 }
 
-func (m *MockRuntime) RegisterHandle(obj interface{}, typePrefix string) (string, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.handleCounter++
-	handle := fmt.Sprintf("%s-%d", typePrefix, m.handleCounter)
-	m.Handles[handle] = obj
-	return handle, nil
+// HandleRegistry returns the mock HandleRegistry that wraps the internal state.
+func (m *MockRuntime) HandleRegistry() interfaces.HandleRegistry {
+	return &mockHandleRegistry{rt: m}
 }
 
-func (m *MockRuntime) GetHandleValue(handle string, expectedTypePrefix string) (interface{}, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	if !strings.HasPrefix(handle, expectedTypePrefix+"-") {
-		return nil, fmt.Errorf("invalid handle prefix for %s: expected '%s'", handle, expectedTypePrefix)
-	}
-	val, ok := m.Handles[handle]
-	if !ok {
-		return nil, fmt.Errorf("handle not found: %s", handle)
-	}
-	return val, nil
-}
+// NOTE: The old RegisterHandle and GetHandleValue methods were removed to comply with the new tool.Runtime interface.
 
 func (m *MockRuntime) GetGrantSet() *capability.GrantSet {
 	if m.GrantSet != nil {

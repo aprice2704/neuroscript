@@ -1,8 +1,9 @@
 // NeuroScript Version: 0.5.2
-// File version: 14
-// Purpose: Adds nil-safety to (*MapValue).String() method.
+// File version: 15
+// Purpose: Adds nil-safety to (*MapValue).String() method. Added concrete HandleValue type.
+// Latest change: Added HandleValue struct and its methods.
 // filename: pkg/lang/values.go
-// nlines: 245
+// nlines: 279
 // risk_rating: HIGH
 
 package lang
@@ -12,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 )
 
 // Value is the interface that all NeuroScript runtime values must implement.
@@ -183,6 +186,36 @@ func (v ToolValue) String() string {
 	return "tool<unknown>"
 }
 func (v ToolValue) IsTruthy() bool { return v.Value != nil }
+
+// --- Handle Value ---
+
+// HandleValue is a concrete implementation of the interfaces.HandleValue and lang.Value.
+type HandleValue struct {
+	ID   string
+	Kind string
+}
+
+func NewHandleValue(id, kind string) interfaces.HandleValue {
+	return HandleValue{ID: id, Kind: kind}
+}
+
+// Type implements lang.Value
+func (v HandleValue) Type() NeuroScriptType { return TypeHandle }
+
+// String implements lang.Value. It provides an opaque, debug representation.
+// It MUST NOT expose the internal ID for security/opaqueness.
+func (v HandleValue) String() string {
+	return fmt.Sprintf("<handle %s>", v.Kind)
+}
+
+// IsTruthy implements lang.Value
+func (v HandleValue) IsTruthy() bool { return v.ID != "" }
+
+// HandleID implements interfaces.HandleValue
+func (v HandleValue) HandleID() string { return v.ID }
+
+// HandleKind implements interfaces.HandleValue
+func (v HandleValue) HandleKind() string { return v.Kind }
 
 // --- Constructors for Complex Types ---
 

@@ -1,9 +1,10 @@
 // NeuroScript Version: 0.8.0
-// File version: 100
-// Purpose: Core Interpreter struct and New/Set methods. Split from original file.
-// Latest change: Removed adminCapsuleRegistry. Unified on a single writable capsuleStore.
+// File version: 102
+// Purpose: Core Interpreter struct and New/Set methods. Integrated the new HandleRegistry.
+// Latest change: Removed duplicate HandleRegistry() method definition to fix compiler error.
 // filename: pkg/interpreter/interpreter.go
-// nlines: 241
+// nlines: 243
+// risk_rating: HIGH
 
 package interpreter
 
@@ -36,20 +37,22 @@ const DefaultSelfHandle = "default_self_buffer"
 
 // Interpreter holds the state for a NeuroScript runtime environment.
 type Interpreter struct {
-	id                  string
-	hostContext         *HostContext
-	state               *interpreterState
-	tools               tool.ToolRegistry
-	eventManager        *EventManager
-	aiWorker            interfaces.LLMClient // The root LLM client.
-	shouldExit          bool
-	exitCode            int
-	returnValue         lang.Value
-	lastCallResult      lang.Value
-	maxLoopIterations   int
-	bufferManager       *BufferManager
-	objectCache         map[string]interface{}
-	objectCacheMu       sync.Mutex
+	id                string
+	hostContext       *HostContext
+	state             *interpreterState
+	tools             tool.ToolRegistry
+	eventManager      *EventManager
+	aiWorker          interfaces.LLMClient // The root LLM client.
+	shouldExit        bool
+	exitCode          int
+	returnValue       lang.Value
+	lastCallResult    lang.Value
+	maxLoopIterations int
+	bufferManager     *BufferManager
+	// objectCache and objectCacheMu are OBSOLETE and replaced by handleRegistry
+	// objectCache         map[string]interface{}
+	// objectCacheMu       sync.Mutex
+	handleRegistry      interfaces.HandleRegistry // NEW: The system for opaque references
 	skipStdTools        bool
 	modelStore          *agentmodel.AgentModelStore
 	providerRegistry    *provider.Registry
@@ -133,8 +136,9 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 		eventManager:      newEventManager(),
 		maxLoopIterations: 1000,
 		bufferManager:     NewBufferManager(),
-		objectCache:       make(map[string]interface{}),
-		turnCtx:           context.Background(),
+		// objectCache:       make(map[string]interface{}), // REMOVED: Replaced by HandleRegistry
+		handleRegistry: NewHandleRegistry(), // ADDED: Initialize the new registry
+		turnCtx:        context.Background(),
 		// ---
 		// Set the default store.
 		// We create a new empty registry at index 0 to be the writable layer,
@@ -187,6 +191,12 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 	i.SetInitialVariable("self", lang.StringValue{Value: DefaultSelfHandle})
 	return i
 }
+
+// HandleRegistry satisfies the interfaces.Interpreter contract and exposes the new handle system.
+// REMOVED: This definition is duplicated in accessors.go and was causing a compiler error.
+// func (i *Interpreter) HandleRegistry() interfaces.HandleRegistry {
+// 	return i.handleRegistry
+// }
 
 // CapsuleStore returns the interpreter's single, unified capsule store.
 // This store is now used for BOTH reading and writing.

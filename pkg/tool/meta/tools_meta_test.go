@@ -1,9 +1,9 @@
 // NeuroScript Major Version: 1
-// File version: 16
-// Purpose: Adds tests for listGlobalConstants, listFunctions, and filtering logic.
-// Latest change: Added filtering test case for listToolNames.
+// File version: 17
+// Purpose: Adds tests for listGlobalConstants, listFunctions, and filtering logic. Implemented HandleRegistry for mockRuntime interface compliance.
+// Latest change: Implemented HandleRegistry on mockRuntime to satisfy tool.Runtime interface.
 // filename: pkg/tool/meta/tools_meta_test.go
-// nlines: 300
+// nlines: 304
 
 package meta_test
 
@@ -65,7 +65,7 @@ func (m *mockRuntime) KnownProcedures() map[string]any {
 	return m.procs
 }
 
-// --- Unused tool.Runtime methods ---
+// --- tool.Runtime methods ---
 func (m *mockRuntime) Println(args ...any)                                   { fmt.Fprintln(os.Stderr, args...) }
 func (m *mockRuntime) PromptUser(prompt string) (string, error)              { return "", nil }
 func (m *mockRuntime) GetVar(name string) (any, bool)                        { return nil, false }
@@ -74,12 +74,16 @@ func (m *mockRuntime) CallTool(name types.FullName, args []any) (any, error) { r
 func (m *mockRuntime) GetLogger() interfaces.Logger                          { return nil }
 func (m *mockRuntime) SandboxDir() string                                    { return "" }
 func (m *mockRuntime) LLM() interfaces.LLMClient                             { return nil }
-func (m *mockRuntime) RegisterHandle(obj interface{}, typePrefix string) (string, error) {
-	return "", nil
+
+// HandleRegistry returns a nil implementation for testing methods not using handles.
+func (m *mockRuntime) HandleRegistry() interfaces.HandleRegistry {
+	return nil // Handled by a dedicated mock if needed, or nil for methods not using it.
 }
-func (m *mockRuntime) GetHandleValue(handle, prefix string) (interface{}, error) { return nil, nil }
-func (m *mockRuntime) AgentModels() interfaces.AgentModelReader                  { return nil }
-func (m *mockRuntime) AgentModelsAdmin() interfaces.AgentModelAdmin              { return nil }
+
+// NOTE: Old handle methods (RegisterHandle, GetHandleValue) have been removed from the interface.
+
+func (m *mockRuntime) AgentModels() interfaces.AgentModelReader     { return nil }
+func (m *mockRuntime) AgentModelsAdmin() interfaces.AgentModelAdmin { return nil }
 
 func newTestRuntime(t *testing.T) *mockRuntime {
 	t.Helper()
