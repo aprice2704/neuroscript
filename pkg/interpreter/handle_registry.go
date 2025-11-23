@@ -1,7 +1,7 @@
 // NeuroScript Version: 0.8.0
-// File version: 1
+// File version: 2
 // Purpose: Concrete implementation of the interfaces.HandleRegistry.
-// Latest change: Implemented NewHandle, GetHandle, and DeleteHandle using opaque IDs.
+// Latest change: Fixed NewHandle to return wrapped lang.ErrInvalidArgument for empty kind, satisfying tests.
 // filename: pkg/interpreter/handle_registry.go
 // nlines: 83
 // risk_rating: LOW
@@ -9,7 +9,6 @@
 package interpreter
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 
@@ -41,7 +40,7 @@ func NewHandleRegistry() *HandleRegistry {
 // NewHandle implements interfaces.HandleRegistry.
 func (r *HandleRegistry) NewHandle(payload any, kind string) (interfaces.HandleValue, error) {
 	if kind == "" {
-		return nil, errors.New("handle kind cannot be empty")
+		return nil, fmt.Errorf("handle kind cannot be empty: %w", lang.ErrInvalidArgument)
 	}
 
 	r.mu.Lock()
