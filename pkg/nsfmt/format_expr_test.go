@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 5
-// Purpose: Adds regression test for 'not', 'some', and 'no' operator formatting.
+// File version: 8
+// Purpose: BUGFIX: Updates TestFormat_String_MultiLine to expect valid triple-backtick syntax for multi-line output.
 // filename: pkg/nsfmt/format_expr_test.go
-// nlines: 161
+// nlines: 187
 
 package nsfmt
 
@@ -17,14 +17,35 @@ func main() means
     set y = (1 + 2) * 3
     set z = "a" + "b"
     set w = a or b and c
+    set chaining = a + b + c
+    set grouping = a - (b - c)
 endfunc
 `
 	expected := `
 func main() means
-    set x = 1 + (2 * 3)
+    set x = 1 + 2 * 3
     set y = (1 + 2) * 3
     set z = "a" + "b"
-    set w = a or (b and c)
+    set w = a or b and c
+    set chaining = a + b + c
+    set grouping = a - (b - c)
+endfunc`
+	assertFormat(t, input, expected)
+}
+
+func TestFormat_String_MultiLine(t *testing.T) {
+	// The parser currently requires valid input (no raw newlines in strings).
+	// We verify that nsfmt converts the valid escaped input into
+	// TRIPLE BACKTICK strings for readability.
+	input := `
+func main() means
+    set prompt = "You are a helper.\nPlease assist."
+endfunc
+`
+	expected := `
+func main() means
+    set prompt = ` + "```" + `You are a helper.
+Please assist.` + "```" + `
 endfunc`
 	assertFormat(t, input, expected)
 }

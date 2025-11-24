@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 12
-// Purpose: BUGFIX: Corrects UnaryOpNode formatting to add a space after 'not', 'some', and 'no'.
+// File version: 15
+// Purpose: BUGFIX: Adds exception for pure-whitespace strings (like "\n") to remain double-quoted for readability in concatenations.
 // filename: pkg/nsfmt/format_expr.go
-// nlines: 210
+// nlines: 271
 
 package nsfmt
 
@@ -14,6 +14,25 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/ast"
 )
 
+// getPrecedence returns a numeric precedence for binary operators.
+// Higher numbers bind tighter.
+func getPrecedence(op string) int {
+	switch op {
+	case "*", "/", "%":
+		return 5
+	case "+", "-":
+		return 4
+	case "==", "!=", "<", "<=", ">", ">=":
+		return 3
+	case "and":
+		return 2
+	case "or":
+		return 1
+	default:
+		return 0
+	}
+}
+
 // formatExpression recursively formats an AST expression node into a string.
 // It now takes a prefixLen to determine if wrapping is needed.
 func (f *formatter) formatExpression(expr ast.Expression, prefixLen int) string {
@@ -23,13 +42,30 @@ func (f *formatter) formatExpression(expr ast.Expression, prefixLen int) string 
 
 	switch n := expr.(type) {
 	// Simple literals and identifiers
-	case *ast.StringLiteralNode,
-		*ast.NumberLiteralNode,
+	case *ast.NumberLiteralNode,
 		*ast.NilLiteralNode,
 		*ast.BooleanLiteralNode,
 		*ast.VariableNode,
 		*ast.LValueNode,
 		*ast.CallTarget:
+		return n.TestString()
+
+	case *ast.StringLiteralNode:
+		// Logic:
+		// 1. If the string contains newlines, we generally want Triple Backticks (```) for readability.
+		// 2. EXCEPTION: If the string is PURE WHITESPACE (e.g. "\n", "\n\n"), backticks are visually heavy.
+		//    Keep these as standard quoted strings (e.g. "\n").
+		// 3. EXCEPTION: If the content contains "```", we cannot use backticks.
+
+		hasNewline := strings.Contains(n.Value, "\n")
+		hasTripleBacktick := strings.Contains(n.Value, "```")
+		isPureWhitespace := len(strings.TrimSpace(n.Value)) == 0
+
+		if hasNewline && !hasTripleBacktick && !isPureWhitespace {
+			return fmt.Sprintf("```%s```", n.Value)
+		}
+
+		// Fallback to standard quoted string (escapes newlines if present)
 		return n.TestString()
 
 	// Collections: These are the complex multi-line cases
@@ -40,17 +76,32 @@ func (f *formatter) formatExpression(expr ast.Expression, prefixLen int) string 
 
 	// Recursive expression types
 	case *ast.BinaryOpNode:
-		// Sub-expressions don't get the prefix, as they can't wrap.
-		left := f.formatExpression(n.Left, 0)
-		if _, ok := n.Left.(*ast.BinaryOpNode); ok {
-			left = fmt.Sprintf("(%s)", left)
+		// Calculate precedence
+		currentPrec := getPrecedence(n.Operator)
+
+		// Format Left
+		leftStr := f.formatExpression(n.Left, 0)
+		if leftOp, ok := n.Left.(*ast.BinaryOpNode); ok {
+			leftPrec := getPrecedence(leftOp.Operator)
+			// Wrap if child has lower precedence
+			if leftPrec < currentPrec {
+				leftStr = fmt.Sprintf("(%s)", leftStr)
+			}
 		}
 
-		right := f.formatExpression(n.Right, 0)
-		if _, ok := n.Right.(*ast.BinaryOpNode); ok {
-			right = fmt.Sprintf("(%s)", right)
+		// Format Right
+		rightStr := f.formatExpression(n.Right, 0)
+		if rightOp, ok := n.Right.(*ast.BinaryOpNode); ok {
+			rightPrec := getPrecedence(rightOp.Operator)
+			// Wrap if child has lower precedence OR same precedence (for left-associativity)
+			// e.g. (a - b) - c -> left is same, no parens.
+			// a - (b - c) -> right is same, needs parens.
+			if rightPrec <= currentPrec {
+				rightStr = fmt.Sprintf("(%s)", rightStr)
+			}
 		}
-		return fmt.Sprintf("%s %s %s", left, n.Operator, right)
+
+		return fmt.Sprintf("%s %s %s", leftStr, n.Operator, rightStr)
 
 	case *ast.UnaryOpNode:
 		var operatorLen int
@@ -70,7 +121,10 @@ func (f *formatter) formatExpression(expr ast.Expression, prefixLen int) string 
 		operandPrefixLen := prefixLen + operatorLen
 		operand := f.formatExpression(n.Operand, operandPrefixLen)
 
-		if _, ok := n.Operand.(*ast.BinaryOpNode); ok {
+		if binOp, ok := n.Operand.(*ast.BinaryOpNode); ok {
+			// Always wrap binary ops inside unary ops to avoid ambiguity
+			// e.g. not (a and b)
+			_ = binOp
 			operand = fmt.Sprintf("(%s)", operand)
 		}
 

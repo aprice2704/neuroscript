@@ -17,4 +17,5 @@ import (
 	// AgentModel management toolset
 	_ "github.com/aprice2704/neuroscript/pkg/tool/account"
 	_ "github.com/aprice2704/neuroscript/pkg/tool/agentmodel"
+	_ "github.com/aprice2704/neuroscript/pkg/tool/handle"
 )

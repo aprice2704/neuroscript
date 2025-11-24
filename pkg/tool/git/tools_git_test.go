@@ -1,11 +1,11 @@
 // NeuroScript Version: 0.5.4
-// File version: 11
-// Purpose: Updated to use the centralized testutil.NewTestSandbox and testharness.NewTestHostContext helpers.
+// File version: 12
+// Purpose: Updated to package git_test to break import cycles with pkg/api.
 // filename: pkg/tool/git/tools_git_test.go
-// nlines: 250
+// nlines: 260
 // risk_rating: HIGH
 
-package git
+package git_test
 
 import (
 	"errors"
@@ -20,6 +20,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/testutil"
 	"github.com/aprice2704/neuroscript/pkg/tool"
+	"github.com/aprice2704/neuroscript/pkg/tool/git" // Import the package under test
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
@@ -37,16 +38,16 @@ type gitTestCase struct {
 func newGitTestInterpreter(t *testing.T) *interpreter.Interpreter {
 	t.Helper()
 	sandboxOpt := testutil.NewTestSandbox(t)
-	// FIX: Use the new testharness helper to create a valid HostContext.
+	// Use the testharness helper to create a valid HostContext.
 	hc := testharness.NewTestHostContext(logging.NewTestLogger(t))
 	interp := interpreter.NewInterpreter(interpreter.WithHostContext(hc), sandboxOpt)
 
-	// Register the git tools for this test suite
-	// for _, toolImpl := range gitToolsToRegister {
-	// 	if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
-	// 		t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
-	// 	}
-	// }
+	// Register the git tools for this test suite using the exported variable
+	for _, toolImpl := range git.GitToolsToRegister {
+		if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
+			t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
+		}
+	}
 	return interp
 }
 
@@ -86,7 +87,8 @@ func testGitToolHelper(t *testing.T, tc gitTestCase) {
 		tc.setupFunc(t, sandboxRoot)
 	}
 
-	fullName := types.MakeFullName(group, string(tc.toolName))
+	// Use explicit "git" group name since we are outside the package
+	fullName := types.MakeFullName("git", string(tc.toolName))
 	toolImpl, found := interp.ToolRegistry().GetTool(fullName)
 	if !found {
 		t.Fatalf("Tool '%s' not found in registry", fullName)
@@ -254,7 +256,7 @@ func TestToolGitCloneValidation(t *testing.T) {
 	interp := newGitTestInterpreter(t)
 	sandboxRoot := interp.SandboxDir()
 
-	cloneTool, found := interp.ToolRegistry().GetTool(types.MakeFullName(group, "Clone"))
+	cloneTool, found := interp.ToolRegistry().GetTool(types.MakeFullName("git", "Clone"))
 	if !found {
 		t.Fatal("Tool 'Git.Clone' not found in registry")
 	}

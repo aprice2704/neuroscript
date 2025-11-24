@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 26
+// File version: 27 // Bumped version
 // Purpose: Updated Runtime interface to use the new HandleRegistry accessor, removing obsolete handle methods.
-// Latest change: Removed obsolete RegisterHandle and GetHandleValue from Runtime, added HandleRegistry() from interfaces.
+// Latest change: Added ArgTypeHandle constant.
 // filename: pkg/tool/tool_types.go
-// nlines: 171
+// nlines: 174
 // risk_rating: HIGH
 
 package tool
@@ -27,9 +27,7 @@ type Runtime interface {
 	SandboxDir() string
 	ToolRegistry() ToolRegistry
 	LLM() interfaces.LLMClient
-	// RegisterHandle(obj interface{}, typePrefix string) (string, error) // REMOVED
-	// GetHandleValue(handle string, expectedTypePrefix string) (interface{}, error) // REMOVED
-	HandleRegistry() interfaces.HandleRegistry // ADDED: New accessor for opaque handles
+	HandleRegistry() interfaces.HandleRegistry
 
 	AgentModels() interfaces.AgentModelReader
 	AgentModelsAdmin() interfaces.AgentModelAdmin
@@ -56,6 +54,7 @@ const (
 	ArgTypeFloat  ArgType = "float"
 	ArgTypeBool   ArgType = "bool"
 	ArgTypeNil    ArgType = "nil"
+	ArgTypeHandle ArgType = "handle" // Added
 
 	// Generic Collections
 	ArgTypeMap   ArgType = "map"   // Corresponds to map[string]interface{}

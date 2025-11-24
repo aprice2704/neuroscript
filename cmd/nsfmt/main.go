@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 1
-// Purpose: Provides a standalone 'nsfmt' command-line tool.
+// File version: 2
+// Purpose: Adds support for -h/--help flag to display usage information.
 // filename: cmd/nsfmt/main.go
-// nlines: 70
+// nlines: 83
 
 package main
 
@@ -33,6 +33,14 @@ func run() error {
 	//   (A more complex version would process all, but this is a simple start).
 	args := os.Args[1:]
 
+	// Check for help flag
+	if len(args) > 0 {
+		if args[0] == "-h" || args[0] == "--help" {
+			printHelp()
+			return nil
+		}
+	}
+
 	if len(args) == 0 {
 		// Read from stdin
 		input, err = io.ReadAll(os.Stdin)
@@ -62,4 +70,18 @@ func run() error {
 	}
 
 	return nil
+}
+
+func printHelp() {
+	helpText := `Usage: nsfmt [flags] [path]
+
+nsfmt formats NeuroScript source code.
+
+Flags:
+  -h, --help    Show this help message
+
+If no path is provided, nsfmt reads from standard input.
+Output is written to standard output.
+`
+	fmt.Print(helpText)
 }

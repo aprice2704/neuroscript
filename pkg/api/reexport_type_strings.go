@@ -1,8 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 1
+// File version: 2 // Bumped version
 // Purpose: Re-exports tool.ArgType constants as plain strings for the public API.
+// Latest change: Added ArgTypeHandle.
 // filename: pkg/api/reexport_type_strings.go
-// nlines: 32
+// nlines: 33
 // risk_rating: LOW
 
 package api
@@ -22,6 +23,7 @@ const (
 	ArgTypeFloat  = tool.ArgTypeFloat
 	ArgTypeBool   = tool.ArgTypeBool
 	ArgTypeNil    = tool.ArgTypeNil
+	ArgTypeHandle = tool.ArgTypeHandle // Added
 
 	// Generic Collections
 	ArgTypeMap   = tool.ArgTypeMap
