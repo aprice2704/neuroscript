@@ -4,6 +4,6 @@
 
 2. built-in fns are not supported at all :(
 
-3. func something()
+3. func something() without 'means' does not cause error squiggle it should
 
-without 'means' does not cause error squiggle
+4. nsfmt should not return error on syntax errs, just do nothing

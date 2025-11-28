@@ -4,3 +4,4 @@
 
 - need to make all fn and variable lookups case insensitive -- restricted char set?
 
+- should add guard or filter to event handlers **eval in golang** to prevent excessive activations e.g. project: {"myproject", queue: "workq1","allcome"} etc.
