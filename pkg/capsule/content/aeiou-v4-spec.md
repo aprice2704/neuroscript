@@ -147,3 +147,12 @@ The control marker MUST be in the output for the loop to stop.
 ```
 
 # End of spec
+
+::schema: spec
+::serialization: md
+::id: capsule/aeiou
+::version: 4
+::fileVersion: 1
+::author: NeuroScript Docs Team
+::modified: 2025-11-27
+::description: Defines the AEIOU Envelope Protocol v4, a host-controlled protocol for AI agents.

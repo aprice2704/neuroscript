@@ -112,3 +112,12 @@ func RunTurn(ctx, sid string, turnIdx int, env Envelope) Decision {
 ```
 
 # End of spec
+
+::schema: spec
+::serialization: md
+::id: capsule/aeiou_askloop
+::version: 4
+::fileVersion: 1
+::author: NeuroScript Docs Team
+::modified: 2025-11-27
+::description: Defines the AEIOU Askloop Protocol v4, a host-controlled protocol for AI agents.
