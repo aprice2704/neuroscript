@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.8.0
-// File version: 32
-// Purpose: Corrects ExecuteSandboxedAST to use the new interpreter.ForkSandboxed() method.
-// filename: pkg/api/exec.go
-// nlines: 198
-// risk_rating: HIGH
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 34
+// :: description: Fixes LoadOrExecute to use AppendScript for commands, preserving interpreter state.
+// :: latestChange: LoadOrExecute now uses AppendScript+Execute for commands to prevent wiping definitions.
+// :: filename: pkg/api/exec.go
+// :: serialization: go
 
 package api
 
@@ -81,6 +82,8 @@ func ExecInNewInterpreter(ctx context.Context, src string, opts ...interpreter.I
 }
 
 // ExecWithInterpreter executes top-level 'command' blocks using a persistent interpreter.
+// NOTE: This function calls Load(), which replaces the interpreter's current program state.
+// For accumulating state (REPL/Session), use AppendScript instead.
 func ExecWithInterpreter(ctx context.Context, interp Runtime, tree *Tree) (Value, error) {
 	concreteInterp, ok := interp.(*Interpreter)
 	if !ok {
@@ -161,6 +164,61 @@ func RunProcedure(ctx context.Context, interp *Interpreter, name string, args ..
 		}
 	}
 	return interp.Run(name, wrappedArgs...)
+}
+
+// LoadOrExecute inspects the AST and routes execution based on the content:
+//   - Mixed Definitions & Commands -> Returns error (ErrMixedScript).
+//   - Definitions only -> Calls interp.AppendScript (Persistent load).
+//   - Commands only -> Calls interp.AppendScript + Execute (Transient execution over Persistent state).
+//   - Empty -> Returns nil, nil.
+func LoadOrExecute(ctx context.Context, interp *Interpreter, tree *Tree) (Value, error) {
+	if interp == nil {
+		return nil, fmt.Errorf("LoadOrExecute requires a non-nil interpreter")
+	}
+	if tree == nil || tree.Root == nil {
+		return nil, nil // Treat as empty
+	}
+	program, ok := tree.Root.(*ast.Program)
+	if !ok {
+		return nil, fmt.Errorf("internal error: tree root is not a runnable *ast.Program, but %T", tree.Root)
+	}
+
+	hasCmds := HasCommandBlock(program)
+	hasDefs := HasDefinitions(program)
+
+	// Rule: Mixed? -> Error ("Cannot mix").
+	if hasCmds && hasDefs {
+		return nil, fmt.Errorf("mixed script detected: scripts must contain either definitions OR commands, not both")
+	}
+
+	// Rule: Definitions? -> AppendScript (Persistent).
+	if hasDefs {
+		if err := interp.AppendScript(tree); err != nil {
+			return nil, fmt.Errorf("failed to append definitions: %w", err)
+		}
+		return nil, nil
+	}
+
+	// Rule: Commands? -> Append then Execute (Transient action, Persistent state).
+	if hasCmds {
+		// We must NOT use ExecWithInterpreter here because it calls Load(),
+		// which resets the interpreter's state (wiping previously loaded definitions).
+		// Instead, we Append the commands (to register them in the current session)
+		// and then Execute them specifically.
+
+		interp.SetTurnContext(ctx)
+
+		// 1. Append (to merge into current state without wiping)
+		if err := interp.AppendScript(tree); err != nil {
+			return nil, fmt.Errorf("failed to append command script: %w", err)
+		}
+
+		// 2. Execute just this tree
+		return interp.Execute(tree)
+	}
+
+	// Neither (e.g., empty or comments only)
+	return nil, nil
 }
 
 // ExecuteSandboxedAST runs a pre-parsed AST in a sandboxed fork

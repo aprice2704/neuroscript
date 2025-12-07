@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.6.0
-// File version: 1
-// Purpose: Provides helper functions for inspecting the NeuroScript AST.
-// filename: pkg/api/command_helpers.go
-// nlines: 21
-// risk_rating: LOW
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 2
+// :: description: Provides helper functions for inspecting the NeuroScript AST. Added HasDefinitions.
+// :: latestChange: Added HasDefinitions to inspect AST for procedures or events.
+// :: filename: pkg/api/command_helpers.go
+// :: serialization: go
 
 package api
 
@@ -17,4 +18,14 @@ func HasCommandBlock(prog *ast.Program) bool {
 		return false
 	}
 	return len(prog.Commands) > 0
+}
+
+// HasDefinitions checks if the given Program node contains procedure definitions
+// or event handlers.
+// This is useful for distinguishing "Library Scripts" from "Command Scripts".
+func HasDefinitions(prog *ast.Program) bool {
+	if prog == nil {
+		return false
+	}
+	return len(prog.Procedures) > 0 || len(prog.Events) > 0
 }

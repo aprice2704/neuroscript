@@ -1,8 +1,10 @@
-// NeuroScript Version: 0.8.0
-// File version: 6
-// Purpose: A query-based Go symbol scanner with glob/multi-query support.
-// filename: cmd/piranha/main.go
-// nlines: 204
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 7
+// :: description: A query-based Go symbol scanner with glob/multi-query support.
+// :: latestChange: Added -C flag for case-sensitive matching; made case-insensitive the default.
+// :: filename: piranha/main.go
+// :: serialization: go
 
 package main
 
@@ -52,19 +54,20 @@ exported symbols and unexported functions/methods,
 skipping paths matching glob patterns.
 
 USAGE:
-  piranha               (Dumps all symbol definitions to stdout)
-  piranha [q1] [q2]...  (Dumps definitions matching ANY query)
-  piranha -h|--help     (Shows this help message)
+  piranha [flags] [q1] [q2]...
+
+FLAGS:
+  -C                Enable case-sensitive matching (default is case-insensitive)
+  -h, --help        Show this help message
 
 QUERY SYNTAX:
   Queries use glob matching (e.g., "Load*", "*Unit", "api.*").
-  Matching is case-sensitive on Linux/macOS.
+  By default, matching is CASE-INSENSITIVE. Use -C to respect case.
 
 EXAMPLE (for Gemini):
-  To find 'LoadFromUnit' and 'ExecWithInterpreter', run this in
-  your shell and paste the output back to me:
-
-  piranha LoadFromUnit ExecWithInterpreter`
+  To find 'LoadFromUnit' and 'ExecWithInterpreter' (insensitive), run:
+  
+  piranha *loadfromunit* *execwithinterpreter*`
 
 // --- End Configuration ---
 
@@ -74,15 +77,21 @@ func main() {
 	log.SetFlags(0)
 
 	// --- Argument Parsing ---
-	queries := []string{}
+	var queries []string
+	caseSensitive := false
+
 	if len(os.Args) > 1 {
 		for _, arg := range os.Args[1:] {
 			if arg == "-h" || arg == "--help" {
 				fmt.Println(helpText)
 				os.Exit(0)
 			}
+			if arg == "-C" {
+				caseSensitive = true
+				continue
+			}
+			queries = append(queries, arg)
 		}
-		queries = os.Args[1:] // All args (that aren't help) are queries
 	}
 
 	// Set up CSV writer to stdout
@@ -137,7 +146,7 @@ func main() {
 		}
 
 		// --- Symbol Processing ---
-		if err := processFile(path, f, csvWriter, queries); err != nil {
+		if err := processFile(path, f, csvWriter, queries, caseSensitive); err != nil {
 			log.Printf("ERROR: Failed to process file %s: %v", path, err)
 		}
 		return nil
@@ -154,18 +163,28 @@ func main() {
 }
 
 // matchesQueries checks if a symbol matches ANY of the provided glob queries.
-func matchesQueries(queries []string, name, symbolName string) bool {
+func matchesQueries(queries []string, name, symbolName string, caseSensitive bool) bool {
 	if len(queries) == 0 {
 		return true // No queries means dump all
 	}
 
 	for _, query := range queries {
+		targetName := name
+		targetSymbol := symbolName
+		matchQuery := query
+
+		if !caseSensitive {
+			targetName = strings.ToLower(name)
+			targetSymbol = strings.ToLower(symbolName)
+			matchQuery = strings.ToLower(query)
+		}
+
 		// Check against the simple name
-		if matched, _ := filepath.Match(query, name); matched {
+		if matched, _ := filepath.Match(matchQuery, targetName); matched {
 			return true
 		}
 		// Check against the fully qualified (if exported) name
-		if matched, _ := filepath.Match(query, symbolName); matched {
+		if matched, _ := filepath.Match(matchQuery, targetSymbol); matched {
 			return true
 		}
 	}
@@ -173,7 +192,7 @@ func matchesQueries(queries []string, name, symbolName string) bool {
 }
 
 // processFile extracts symbols and writes them if they match the queries.
-func processFile(path string, f *ast.File, writer *csv.Writer, queries []string) error {
+func processFile(path string, f *ast.File, writer *csv.Writer, queries []string, caseSensitive bool) error {
 	pkgName := f.Name.Name
 
 	for _, decl := range f.Decls {
@@ -183,7 +202,7 @@ func processFile(path string, f *ast.File, writer *csv.Writer, queries []string)
 			name := d.Name.Name
 			symbolName := getSymbolName(pkgName, name)
 
-			if !matchesQueries(queries, name, symbolName) {
+			if !matchesQueries(queries, name, symbolName, caseSensitive) {
 				continue
 			}
 
@@ -222,7 +241,7 @@ func processFile(path string, f *ast.File, writer *csv.Writer, queries []string)
 					name := nameIdent.Name
 					symbolName := getSymbolName(pkgName, name)
 
-					if !matchesQueries(queries, name, symbolName) {
+					if !matchesQueries(queries, name, symbolName, caseSensitive) {
 						continue
 					}
 
