@@ -134,7 +134,7 @@ func NewInterpreter(opts ...InterpreterOption) *Interpreter {
 		id:                fmt.Sprintf("interp-%s", uuid.NewString()[:8]),
 		state:             newInterpreterState(), // This now initializes globalConstants
 		eventManager:      newEventManager(),
-		maxLoopIterations: 1000,
+		maxLoopIterations: 100000,
 		bufferManager:     NewBufferManager(),
 		// objectCache:       make(map[string]interface{}), // REMOVED: Replaced by HandleRegistry
 		handleRegistry: NewHandleRegistry(), // ADDED: Initialize the new registry
