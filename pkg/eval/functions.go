@@ -1,15 +1,15 @@
 // NeuroScript Version: 0.8.0
-// File version: 2
-// Purpose: Implements all built-in type-checking functions (is_int, is_float, is_error, etc.).
+// File version: 3
+// Purpose: Implements all built-in functions with nil-pointer safety for len().
 // filename: pkg/eval/functions.go
-// nlines: 216
+// nlines: 230
 // risk_rating: HIGH
 
 package eval
 
 import (
 	"fmt"
-	"math" // Added
+	"math"
 	"strings"
 	"unicode/utf8"
 
@@ -20,7 +20,6 @@ import (
 
 func isBuiltInFunction(name string) bool {
 	switch strings.ToLower(name) {
-	// Added all missing type checks
 	case "len", "typeof", "is_string", "is_number", "is_bool", "is_list", "is_map", "is_nil",
 		"is_int", "is_float", "is_error", "is_function", "is_tool", "is_event", "is_timedate", "is_fuzzy":
 		return true
@@ -50,15 +49,28 @@ func (e *evaluation) evaluateBuiltInFunction(funcName string, args []lang.Value,
 		case lang.ListValue:
 			length = len(v.Value)
 		case *lang.ListValue:
-			length = len(v.Value)
+			if v == nil {
+				length = 0
+			} else {
+				length = len(v.Value)
+			}
 		case lang.MapValue:
 			length = len(v.Value)
 		case *lang.MapValue:
-			length = len(v.Value)
+			if v == nil {
+				length = 0
+			} else {
+				length = len(v.Value)
+			}
 		case *lang.NilValue:
 			length = 0
 		default:
-			length = 1 // All other single values have a length of 1
+			// If it's a generic nil interface, it's 0
+			if arg == nil {
+				length = 0
+			} else {
+				length = 1 // All other single values have a length of 1
+			}
 		}
 		return lang.NumberValue{Value: float64(length)}, nil
 	case "typeof":
@@ -88,9 +100,11 @@ func (e *evaluation) evaluateBuiltInFunction(funcName string, args []lang.Value,
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
-		switch args[0].(type) {
-		case lang.ListValue, *lang.ListValue:
+		switch v := args[0].(type) {
+		case lang.ListValue:
 			return lang.BoolValue{Value: true}, nil
+		case *lang.ListValue:
+			return lang.BoolValue{Value: v != nil}, nil
 		default:
 			return lang.BoolValue{Value: false}, nil
 		}
@@ -98,9 +112,11 @@ func (e *evaluation) evaluateBuiltInFunction(funcName string, args []lang.Value,
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
-		switch args[0].(type) {
-		case lang.MapValue, *lang.MapValue:
+		switch v := args[0].(type) {
+		case lang.MapValue:
 			return lang.BoolValue{Value: true}, nil
+		case *lang.MapValue:
+			return lang.BoolValue{Value: v != nil}, nil
 		default:
 			return lang.BoolValue{Value: false}, nil
 		}
@@ -108,10 +124,15 @@ func (e *evaluation) evaluateBuiltInFunction(funcName string, args []lang.Value,
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
-		_, ok := args[0].(*lang.NilValue)
-		return lang.BoolValue{Value: ok}, nil
+		switch args[0].(type) {
+		case *lang.NilValue:
+			return lang.BoolValue{Value: true}, nil
+		default:
+			// Handle raw nil interface
+			return lang.BoolValue{Value: args[0] == nil}, nil
+		}
 
-		// --- NEWLY IMPLEMENTED FUNCTIONS ---
+	// --- NEWLY IMPLEMENTED FUNCTIONS ---
 
 	case "is_int":
 		if err := checkArgCount(1); err != nil {
