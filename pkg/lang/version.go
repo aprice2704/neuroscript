@@ -2,4 +2,4 @@
 package lang
 
 // GrammarVersion is extracted from the ANTLR g4 file.
-const GrammarVersion = "0.8.99"
+const GrammarVersion = ""

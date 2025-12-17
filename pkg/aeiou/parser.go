@@ -1,10 +1,10 @@
-// NeuroScript Version: 0.7.0
-// File version: 7
-// Purpose: Corrected a regression where whitespace around markers was not being handled, by re-introducing trimming before regex matching.
-// filename: aeiou/parser.go
-// nlines: 175
-// risk_rating: HIGH
-
+// :: product: FDM/NS
+// :: majorVersion: 0
+// :: fileVersion: 8
+// :: description: Updated parser regex to validate AEIOU V4 markers.
+// :: latestChange: Changed markerRegex to expect NSENV:V4.
+// :: filename: pkg/aeiou/parser.go
+// :: serialization: go
 package aeiou
 
 import (
@@ -22,9 +22,10 @@ const (
 	MaxEnvelopeSize = 1024 * 1024
 )
 
-var markerRegex = regexp.MustCompile(`^<<<NSENV:V3:(START|USERDATA|SCRATCHPAD|OUTPUT|ACTIONS|END)>>>$`)
+// Updated regex for V4
+var markerRegex = regexp.MustCompile(`^<<<NSENV:V4:(START|USERDATA|SCRATCHPAD|OUTPUT|ACTIONS|END)>>>$`)
 
-// Parse reads from an io.Reader, validates the AEIOU v3 envelope structure,
+// Parse reads from an io.Reader, validates the AEIOU v4 envelope structure,
 // and returns a populated Envelope struct and any non-fatal lints.
 func Parse(r io.Reader) (*Envelope, []Lint, error) {
 	scanner := bufio.NewScanner(r)

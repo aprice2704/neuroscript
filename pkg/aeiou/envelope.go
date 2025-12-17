@@ -1,10 +1,10 @@
-// NeuroScript Version: 0.7.0
-// File version: 5
-// Purpose: Adds a sentinel error for token minting failures.
-// filename: aeiou/envelope.go
-// nlines: 74
-// risk_rating: LOW
-
+// :: product: FDM/NS
+// :: majorVersion: 0
+// :: fileVersion: 6
+// :: description: Updated comments to reflect AEIOU V4.
+// :: latestChange: Updated comments from V3 to V4.
+// :: filename: pkg/aeiou/envelope.go
+// :: serialization: go
 package aeiou
 
 import (
@@ -12,9 +12,9 @@ import (
 	"strings"
 )
 
-// --- V3 Envelope Sentinel Errors ---
+// --- AEIOU Envelope Sentinel Errors ---
 var (
-	// ErrMarkerInvalid indicates a malformed or unrecognizable V3 marker.
+	// ErrMarkerInvalid indicates a malformed or unrecognizable envelope marker.
 	ErrMarkerInvalid = errors.New("invalid envelope marker")
 	// ErrSectionOrder indicates sections are not in the canonical order.
 	ErrSectionOrder = errors.New("envelope sections out of order")
@@ -30,7 +30,7 @@ var (
 	ErrUserDataSchema = errors.New("userdata does not conform to schema")
 )
 
-// --- V3 Token Sentinel Errors ---
+// --- V3 Token Sentinel Errors (Legacy support) ---
 var (
 	// ErrTokenInvalid indicates a malformed or unparseable token string.
 	ErrTokenInvalid = errors.New("token is malformed")
@@ -48,10 +48,10 @@ var (
 	ErrMintingFailed = errors.New("token minting failed for both primary and fallback signers")
 )
 
-// SectionType defines the valid sections in an AEIOU v3 envelope.
+// SectionType defines the valid sections in an AEIOU envelope.
 type SectionType string
 
-// V3 Section Types
+// AEIOU Section Types
 const (
 	SectionStart      SectionType = "START"
 	SectionEnd        SectionType = "END"
@@ -61,7 +61,7 @@ const (
 	SectionActions    SectionType = "ACTIONS"
 )
 
-// Envelope holds the parsed content of the AEIOU v3 sections.
+// Envelope holds the parsed content of the AEIOU sections.
 type Envelope struct {
 	// UserData is the host-provided JSON object for the program.
 	UserData string
@@ -74,7 +74,7 @@ type Envelope struct {
 }
 
 // Compose constructs the full envelope string from an Envelope struct,
-// ensuring the canonical V3 section order.
+// ensuring the canonical section order.
 func (e *Envelope) Compose() (string, error) {
 	if e.UserData == "" || e.Actions == "" {
 		return "", ErrSectionMissing

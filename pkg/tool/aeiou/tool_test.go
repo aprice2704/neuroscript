@@ -1,10 +1,10 @@
-// NeuroScript Version: 0.7.0
-// File version: 1
-// Purpose: Provides unit tests for the new `tool.aeiou.ComposeEnvelope` tool.
-// filename: pkg/tool/aeiou/tool_test.go
-// nlines: 97
-// risk_rating: LOW
-
+// :: product: FDM/NS
+// :: majorVersion: 0
+// :: fileVersion: 2
+// :: description: Updated expected strings to AEIOU V4 markers.
+// :: latestChange: Changed all NSENV:V3 expectations to NSENV:V4.
+// :: filename: pkg/tool/aeiou/tool_test.go
+// :: serialization: go
 package aeiou
 
 import (
@@ -27,12 +27,12 @@ func TestEnvelopeToolFunc(t *testing.T) {
 			name: "Success - Minimal envelope",
 			args: []any{`{"sub":"test"}`, `command emit 'ok' endcommand`, "", ""},
 			expectedStringContains: []string{
-				"<<<NSENV:V3:START>>>",
-				"<<<NSENV:V3:USERDATA>>>",
+				"<<<NSENV:V4:START>>>",
+				"<<<NSENV:V4:USERDATA>>>",
 				`{"sub":"test"}`,
-				"<<<NSENV:V3:ACTIONS>>>",
+				"<<<NSENV:V4:ACTIONS>>>",
 				`command emit 'ok' endcommand`,
-				"<<<NSENV:V3:END>>>",
+				"<<<NSENV:V4:END>>>",
 			},
 			expectErrIs: nil,
 		},
@@ -40,19 +40,19 @@ func TestEnvelopeToolFunc(t *testing.T) {
 			name: "Success - Full envelope",
 			args: []any{`{"sub":"test"}`, "actions", "scratch", "output"},
 			expectedStringContains: []string{
-				"<<<NSENV:V3:USERDATA>>>",
-				"<<<NSENV:V3:SCRATCHPAD>>>",
+				"<<<NSENV:V4:USERDATA>>>",
+				"<<<NSENV:V4:SCRATCHPAD>>>",
 				"scratch",
-				"<<<NSENV:V3:OUTPUT>>>",
+				"<<<NSENV:V4:OUTPUT>>>",
 				"output",
-				"<<<NSENV:V3:ACTIONS>>>",
+				"<<<NSENV:V4:ACTIONS>>>",
 				"actions",
 			},
 			expectedOrder: []string{ // Verify canonical order
-				"<<<NSENV:V3:USERDATA>>>",
-				"<<<NSENV:V3:SCRATCHPAD>>>",
-				"<<<NSENV:V3:OUTPUT>>>",
-				"<<<NSENV:V3:ACTIONS>>>",
+				"<<<NSENV:V4:USERDATA>>>",
+				"<<<NSENV:V4:SCRATCHPAD>>>",
+				"<<<NSENV:V4:OUTPUT>>>",
+				"<<<NSENV:V4:ACTIONS>>>",
 			},
 			expectErrIs: nil,
 		},
@@ -60,7 +60,7 @@ func TestEnvelopeToolFunc(t *testing.T) {
 			name: "Success - Empty actions gets default command block",
 			args: []any{`{"sub":"test"}`, "", "", ""},
 			expectedStringContains: []string{
-				"<<<NSENV:V3:ACTIONS>>>",
+				"<<<NSENV:V4:ACTIONS>>>",
 				"command\nendcommand",
 			},
 			expectErrIs: nil,

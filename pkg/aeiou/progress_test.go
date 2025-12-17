@@ -1,10 +1,10 @@
-// NeuroScript Version: 0.7.0
-// File version: 1
-// Purpose: Defines tests for the AEIOU v3 host-side progress guard.
-// filename: aeiou/progress_test.go
-// nlines: 60
-// risk_rating: LOW
-
+// :: product: FDM/NS
+// :: majorVersion: 0
+// :: fileVersion: 2
+// :: description: Updated tests to verify V4 <<<LOOP:DONE>>> marker stripping.
+// :: latestChange: Added test case for V4 marker.
+// :: filename: pkg/aeiou/progress_test.go
+// :: serialization: go
 package aeiou
 
 import (
@@ -13,7 +13,7 @@ import (
 )
 
 func TestComputeHostDigest(t *testing.T) {
-	// A sample control token to be stripped
+	// A sample V3 control token to be stripped
 	controlToken := fmt.Sprintf("%s:%s:%s.%s%s",
 		TokenMarkerPrefix,
 		KindLoop,
@@ -47,9 +47,23 @@ func TestComputeHostDigest(t *testing.T) {
 			wantDiffFrom: &struct{ out, scr string }{"line 1\nline 2", "note 1"},
 		},
 		{
-			name:       "Control tokens are stripped",
+			name:       "V3 Control tokens are stripped",
 			output:     fmt.Sprintf("line 1\n%s\nline 2", controlToken),
 			scratchpad: "note 1",
+			wantSameAs: &struct{ out, scr string }{"line 1\nline 2", "note 1"},
+		},
+		{
+			name:       "V4 Control markers are stripped",
+			output:     "line 1\n<<<LOOP:DONE>>>\nline 2",
+			scratchpad: "note 1",
+			wantSameAs: &struct{ out, scr string }{"line 1\nline 2", "note 1"},
+		},
+		{
+			name:       "V4 Control markers with payload are stripped (whole line)",
+			output:     "line 1\n<<<LOOP:DONE>>> Some result text\nline 2",
+			scratchpad: "note 1",
+			// Note: The digest logic strips the entire line starting with the marker.
+			// This means "Some result text" is also excluded from the digest.
 			wantSameAs: &struct{ out, scr string }{"line 1\nline 2", "note 1"},
 		},
 		{

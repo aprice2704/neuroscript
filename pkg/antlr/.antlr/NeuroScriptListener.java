@@ -1,4 +1,4 @@
-// Generated from /home/aprice/dev/neuroscript/pkg/parser/NeuroScript.g4 by ANTLR 4.13.1
+// Generated from /home/aprice/dev/neuroscript/pkg/antlr/NeuroScript.g4 by ANTLR 4.13.1
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
 /**
@@ -347,6 +347,16 @@ public interface NeuroScriptListener extends ParseTreeListener {
 	 */
 	void exitEmit_statement(NeuroScriptParser.Emit_statementContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link NeuroScriptParser#whisper_stmt}.
+	 * @param ctx the parse tree
+	 */
+	void enterWhisper_stmt(NeuroScriptParser.Whisper_stmtContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link NeuroScriptParser#whisper_stmt}.
+	 * @param ctx the parse tree
+	 */
+	void exitWhisper_stmt(NeuroScriptParser.Whisper_stmtContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link NeuroScriptParser#must_statement}.
 	 * @param ctx the parse tree
 	 */
@@ -386,6 +396,16 @@ public interface NeuroScriptListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitAsk_stmt(NeuroScriptParser.Ask_stmtContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link NeuroScriptParser#promptuser_stmt}.
+	 * @param ctx the parse tree
+	 */
+	void enterPromptuser_stmt(NeuroScriptParser.Promptuser_stmtContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link NeuroScriptParser#promptuser_stmt}.
+	 * @param ctx the parse tree
+	 */
+	void exitPromptuser_stmt(NeuroScriptParser.Promptuser_stmtContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link NeuroScriptParser#break_statement}.
 	 * @param ctx the parse tree

@@ -1,0 +1,14 @@
+:: description: Test capsule for checking .ns loading in multi-format tests.
+:: fileVersion: 1
+:: filename: pkg/capsule/content/ns_example.ns
+:: id: capsule/ns-example
+:: latestChange: Initial creation to fix failing test.
+:: majorVersion: 1
+:: priority: 50
+:: product: FDM/NS
+:: serialization: ns
+:: version: 1
+
+command
+    emit "hello from an .ns capsule"
+endcommand

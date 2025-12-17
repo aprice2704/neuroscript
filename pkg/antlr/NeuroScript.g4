@@ -1,11 +1,9 @@
-// Grammar: NeuroScript Version: 0.8.99
-// File version: 83
-// Purpose: Added the 'whisper' command.
-// filename: NeuroScript.g4
+// :: product: FDM/NS :: majorVersion: 0 :: fileVersion: 84 :: description: The ANTLR4 grammar for
+// NeuroScript. :: latestChange: Added support for scientific notation in NUMBER_LIT. :: filename:
+// NeuroScript.g4 :: serialization: antlr
 grammar NeuroScript;
 
-// --- LEXER RULES ---
-// (Lexer rules are unchanged)
+// --- LEXER RULES --- (Lexer rules are unchanged)
 LINE_ESCAPE_GLOBAL:
 	'\\' ('\r'? '\n' | '\r') -> channel(HIDDEN);
 
@@ -71,7 +69,8 @@ KW_TOOL: 'tool';
 KW_TRUE: 'true';
 KW_TYPEOF: 'typeof';
 KW_WHILE: 'while';
-KW_WHISPER: 'whisper'; // Added keyword
+KW_WHISPER: 'whisper';
+// Added keyword
 KW_WITH: 'with';
 
 // --- Other Tokens ---
@@ -93,7 +92,7 @@ fragment METADATA_CONTENT_ATOM:
 	| CONTINUED_LINE
 	| ~[\\\r\n];
 METADATA_LINE: [\t ]* '::' [ \t]+ (METADATA_CONTENT_ATOM)*;
-NUMBER_LIT: [0-9]+ ('.' [0-9]+)?;
+NUMBER_LIT: [0-9]+ ('.' [0-9]+)? ([eE] [+-]? [0-9]+)?;
 IDENTIFIER: [a-zA-Z_] [a-zA-Z0-9_]*;
 ASSIGN: '=';
 PLUS: '+';
@@ -134,7 +133,6 @@ fragment UNICODE_ESC:
 fragment HEX_ESC: 'x' HEX_DIGIT HEX_DIGIT;
 fragment OCTAL_ESC: [0-3]? [0-7] [0-7];
 fragment HEX_DIGIT: [0-9a-fA-F];
-
 // --- PARSER RULES ---
 
 program: file_header (library_script | command_script)? EOF;
@@ -143,7 +141,6 @@ file_header: (METADATA_LINE | NEWLINE)*;
 
 library_script: library_block+;
 command_script: command_block+;
-
 library_block: (procedure_definition | KW_ON event_handler) NEWLINE*;
 
 command_block:
@@ -186,7 +183,6 @@ signature_part:
 needs_clause: KW_NEEDS param_list;
 optional_clause: KW_OPTIONAL param_list;
 returns_clause: KW_RETURNS param_list;
-
 param_list: IDENTIFIER (COMMA IDENTIFIER)*;
 metadata_block: (METADATA_LINE NEWLINE)*;
 
@@ -195,7 +191,6 @@ non_empty_statement_list:
 
 statement_list: body_line*;
 body_line: statement NEWLINE | NEWLINE;
-
 statement: simple_statement | block_statement | on_stmt;
 
 // General statements for functions/handlers
@@ -214,8 +209,7 @@ simple_statement:
 	| break_statement
 	| continue_statement;
 
-// FIX: 'expression_statement' is removed.
-// Statements must be explicit keywords.
+// FIX: 'expression_statement' is removed. Statements must be explicit keywords.
 // expression_statement: expression;
 
 block_statement:
@@ -251,7 +245,6 @@ ask_stmt:
 promptuser_stmt: KW_PROMPTUSER expression KW_INTO lvalue;
 break_statement: KW_BREAK;
 continue_statement: KW_CONTINUE;
-
 if_statement:
 	KW_IF expression NEWLINE non_empty_statement_list (
 		KW_ELSE NEWLINE non_empty_statement_list
@@ -303,11 +296,9 @@ callable_expr: (
 		| KW_ATAN
 		| KW_LEN
 	) LPAREN expression_list_opt RPAREN;
-
 // FIX: Changed placeholder to use two RBRACE tokens instead of a custom token.
 placeholder:
 	PLACEHOLDER_START (IDENTIFIER | KW_LAST) RBRACE RBRACE;
-
 literal:
 	STRING_LIT
 	| TRIPLE_BACKTICK_STRING

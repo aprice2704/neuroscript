@@ -1,10 +1,10 @@
-// NeuroScript Version: 0.7.0
-// File version: 2
-// Purpose: Corrects test cases to align with the fixed Wrap function.
-// filename: aeiou/envelope_test.go
-// nlines: 32
-// risk_rating: LOW
-
+// :: product: FDM/NS
+// :: majorVersion: 0
+// :: fileVersion: 3
+// :: description: Updated envelope tests to assert V4 markers.
+// :: latestChange: Updated expectations to NSENV:V4.
+// :: filename: pkg/aeiou/envelope_test.go
+// :: serialization: go
 package aeiou
 
 import "testing"
@@ -18,17 +18,17 @@ func TestWrap(t *testing.T) {
 		{
 			name:        "Start Marker",
 			sectionType: SectionStart,
-			want:        "<<<NSENV:V3:START>>>",
+			want:        "<<<NSENV:V4:START>>>",
 		},
 		{
 			name:        "UserData Marker",
 			sectionType: SectionUserData,
-			want:        "<<<NSENV:V3:USERDATA>>>",
+			want:        "<<<NSENV:V4:USERDATA>>>",
 		},
 		{
 			name:        "End Marker",
 			sectionType: SectionEnd,
-			want:        "<<<NSENV:V3:END>>>",
+			want:        "<<<NSENV:V4:END>>>",
 		},
 	}
 

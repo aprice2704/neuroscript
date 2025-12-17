@@ -1,10 +1,10 @@
-// NeuroScript Version: 0.5.4
-// File version: 12
-// Purpose: Updated to package git_test to break import cycles with pkg/api.
-// filename: pkg/tool/git/tools_git_test.go
-// nlines: 260
-// risk_rating: HIGH
-
+// :: product: FDM/NS
+// :: majorVersion: 0
+// :: fileVersion: 13
+// :: description: Tests for the Git toolset. Removed manual registration to fix duplicate key errors.
+// :: latestChange: Removed manual registration loop in newGitTestInterpreter and switched to blank import.
+// :: filename: pkg/tool/git/tools_git_test.go
+// :: serialization: go
 package git_test
 
 import (
@@ -20,7 +20,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/testutil"
 	"github.com/aprice2704/neuroscript/pkg/tool"
-	"github.com/aprice2704/neuroscript/pkg/tool/git" // Import the package under test
+	_ "github.com/aprice2704/neuroscript/pkg/tool/git" // Import for side-effects (registration)
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
@@ -42,12 +42,11 @@ func newGitTestInterpreter(t *testing.T) *interpreter.Interpreter {
 	hc := testharness.NewTestHostContext(logging.NewTestLogger(t))
 	interp := interpreter.NewInterpreter(interpreter.WithHostContext(hc), sandboxOpt)
 
-	// Register the git tools for this test suite using the exported variable
-	for _, toolImpl := range git.GitToolsToRegister {
-		if _, err := interp.ToolRegistry().RegisterTool(toolImpl); err != nil {
-			t.Fatalf("Failed to register tool '%s': %v", toolImpl.Spec.Name, err)
-		}
-	}
+	// Manual registration loop removed:
+	// The git tools are registered via init() in the git package (imported above)
+	// and automatically loaded by NewInterpreter's default behavior.
+	// Re-registering them caused "duplicate key" errors.
+
 	return interp
 }
 

@@ -1,5 +1,11 @@
-// filename: pkg/antlr/comprehensive_grammar.ns
-// purpose: A single script exercising every feature in the NeuroScript.g4 grammar.
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 1
+// :: description: A single script exercising every feature in the NeuroScript.g4 grammar.
+// :: latestChange: Added scientific notation number literal test case.
+// :: filename: pkg/antlr/comprehensive_grammar.ns
+// :: serialization: neuroscript
+
 // used_by: pkg/canon/testdata/comprehensive_e2e_test.go
 // howto_update: You **must** update this whenever you add new features to ns
 // depends_on: NeuroScript.g4
@@ -17,6 +23,8 @@ func full_grammar_test(needs required_param optional opt_param returns ret_val) 
     set s = "hello"
     set r = ```raw string with {{placeholder}}```
     set n = -10.5
+    set sci = 1e+06
+    set sci_neg = -2.5e-4
     set b = true and false
     set l = [1, s, b, nil, [], {}]
     set m = {"key": "value", "nested": l}
@@ -66,7 +74,7 @@ func full_grammar_test(needs required_param optional opt_param returns ret_val) 
     endon
 
     fail "This is a test failure"
-    
+
     // Callables
     set len_of_l = len(l)
     set last_val = last

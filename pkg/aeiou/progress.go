@@ -1,10 +1,10 @@
-// NeuroScript Version: 0.7.0
-// File version: 1
-// Purpose: Implements the mandatory host-side progress guard digest calculation.
-// filename: aeiou/progress.go
-// nlines: 41
-// risk_rating: LOW
-
+// :: product: FDM/NS
+// :: majorVersion: 0
+// :: fileVersion: 2
+// :: description: Updated ComputeHostDigest to strip V4 control markers (<<<LOOP:DONE>>>) as required by spec.
+// :: latestChange: Added logic to strip <<<LOOP:DONE>>> from digest calculation.
+// :: filename: pkg/aeiou/progress.go
+// :: serialization: go
 package aeiou
 
 import (
@@ -38,10 +38,19 @@ func normalizeAndStrip(input string) string {
 	scanner := bufio.NewScanner(strings.NewReader(input))
 	for scanner.Scan() {
 		line := scanner.Text()
-		// Strip control tokens
+		trimmed := strings.TrimSpace(line)
+
+		// Strip V3 control tokens
 		if strings.HasPrefix(line, TokenMarkerPrefix) && strings.HasSuffix(line, TokenMarkerSuffix) {
 			continue
 		}
+
+		// Strip V4 control marker
+		// Note: The V4 spec says "Strip control markers". <<<LOOP:DONE>>> is the only one.
+		if strings.HasPrefix(trimmed, "<<<LOOP:DONE>>>") {
+			continue
+		}
+
 		// Normalize by trimming trailing space and appending with a consistent newline
 		sb.WriteString(strings.TrimRight(line, " \t"))
 		sb.WriteString("\n")

@@ -1,10 +1,10 @@
-// NeuroScript Version: 0.7.0
-// File version: 8
-// Purpose: Updated tests to validate the new robust parser, including whitespace/blank line tolerance and round-trip composing.
-// filename: aeiou/parser_test.go
-// nlines: 219
-// risk_rating: MEDIUM
-
+// :: product: FDM/NS
+// :: majorVersion: 0
+// :: fileVersion: 9
+// :: description: Updated parser tests to use V4 markers in input strings.
+// :: latestChange: Updated test inputs to NSENV:V4.
+// :: filename: pkg/aeiou/parser_test.go
+// :: serialization: go
 package aeiou
 
 import (
@@ -61,12 +61,12 @@ func TestParse(t *testing.T) {
 		{
 			name: "Parser handles leading/trailing whitespace on markers",
 			input: strings.Join([]string{
-				"   <<<NSENV:V3:START>>>   ",
-				" <<<NSENV:V3:USERDATA>>>",
+				"   <<<NSENV:V4:START>>>   ",
+				" <<<NSENV:V4:USERDATA>>>",
 				"user data",
-				"\t<<<NSENV:V3:ACTIONS>>> ",
+				"\t<<<NSENV:V4:ACTIONS>>> ",
 				"actions",
-				"<<<NSENV:V3:END>>>",
+				"<<<NSENV:V4:END>>>",
 			}, "\n"),
 			expectedEnv: &Envelope{
 				UserData: "user data",

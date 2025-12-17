@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.7.2
-// File version: 4
-// Purpose: Corrects the List tool test to use a more robust assertion, fixing the failure.
-// filename: pkg/tool/capsule/tools_capsule_list_test.go
-// nlines: 41
-// risk_rating: LOW
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 5
+// :: description: Corrects the List tool test to use the current version (4) of the aeiou capsule.
+// :: latestChange: Updated expected capsule ID from aeiou@2 to aeiou@4 to match spec.
+// :: filename: pkg/tool/capsule/tools_capsule_list_test.go
+// :: serialization: go
 package capsule_test
 
 import (
@@ -30,8 +31,9 @@ func TestToolCapsule_List(t *testing.T) {
 				t.Error("Expected to list at least one capsule from the default registry, but got none.")
 			}
 			// Check for a known default capsule to ensure the default registry is loaded correctly.
-			if !slices.Contains(ids, "capsule/aeiou@2") {
-				t.Errorf("Expected capsule list to contain 'capsule/aeiou@2', but it was not found.")
+			// Updated to @4 to match aeiou-v4-spec.md
+			if !slices.Contains(ids, "capsule/aeiou@4") {
+				t.Errorf("Expected capsule list to contain 'capsule/aeiou@4', but it was not found. Got: %v", ids)
 			}
 		},
 	}

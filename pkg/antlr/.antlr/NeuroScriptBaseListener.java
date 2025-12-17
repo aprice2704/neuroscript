@@ -1,4 +1,4 @@
-// Generated from /home/aprice/dev/neuroscript/pkg/parser/NeuroScript.g4 by ANTLR 4.13.1
+// Generated from /home/aprice/dev/neuroscript/pkg/antlr/NeuroScript.g4 by ANTLR 4.13.1
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ErrorNode;
@@ -424,6 +424,18 @@ public class NeuroScriptBaseListener implements NeuroScriptListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterWhisper_stmt(NeuroScriptParser.Whisper_stmtContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitWhisper_stmt(NeuroScriptParser.Whisper_stmtContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterMust_statement(NeuroScriptParser.Must_statementContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -467,6 +479,18 @@ public class NeuroScriptBaseListener implements NeuroScriptListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitAsk_stmt(NeuroScriptParser.Ask_stmtContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterPromptuser_stmt(NeuroScriptParser.Promptuser_stmtContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitPromptuser_stmt(NeuroScriptParser.Promptuser_stmtContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

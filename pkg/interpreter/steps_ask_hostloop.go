@@ -1,11 +1,10 @@
-// NeuroScript Major Version: 1
-// File version: 28
-// Purpose: Wraps error from conn.Converse to provide a more specific error message.
-// Latest change: Added a high-visibility WARN log to detect fallback.
-// filename: pkg/interpreter/steps_ask_hostloop.go
-// nlines: 197
-// risk_rating: HIGH
-
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 30
+// :: description: Updated loop done detection to handle result suffixes (e.g., <<<LOOP:DONE>>> result).
+// :: latestChange: Changed loopDoneSignal check from equality to HasPrefix and capture suffix.
+// :: filename: pkg/interpreter/steps_ask_hostloop.go
+// :: serialization: go
 package interpreter
 
 import (
@@ -31,11 +30,11 @@ const (
 	loopDoneSignal = "<<<LOOP:DONE>>>"
 )
 
-// runAskHostLoop orchestrates the turn-by-turn execution of an AEIOU v3 conversation.
+// runAskHostLoop orchestrates the turn-by-turn execution of an AEIOU v4 conversation.
 // It now accepts the llmconn.Connector again.
 func (i *Interpreter) runAskHostLoop(pos *types.Position, agentModel *types.AgentModel, conn llmconn.Connector, initialEnvelope *aeiou.Envelope) (lang.Value, error) {
 	// --- DEBUG: ADDED HIGH-VISIBILITY LOG ---
-	i.Logger().Warn("--- FALLBACK: Running LEGACY ask host loop (steps_ask_hostloop.go) ---")
+	i.Logger().Info("--- Running V4 Native ask host loop (steps_ask_hostloop.go) ---")
 	// --- END DEBUG ---
 
 	maxTurns := agentModel.MaxTurns
@@ -98,11 +97,6 @@ func (i *Interpreter) runAskHostLoop(pos *types.Position, agentModel *types.Agen
 			i.Logger().Error("Failed to parse AI response envelope", "sid", sessionID, "turn", turn, "error", err, "raw_response", aiResp.TextContent)
 			// THE FIX: Changed lang.ErrorCodeFormat (which doesn't exist) to lang.ErrorCodeSyntax.
 			return nil, lang.NewRuntimeError(lang.ErrorCodeSyntax, "failed to parse AI response envelope", err).WithPosition(pos)
-			/* // Recovery attempt (optional):
-			   diagnosticUserData := fmt.Sprintf(`{"error": "envelope parsing failed", "diagnostic": "%s"}`, err.Error())
-			   turnEnvelope = &aeiou.Envelope{ UserData: diagnosticUserData, Actions: "command endcommand" }
-			   continue
-			*/
 		}
 
 		// --- Execute ACTIONS Block ---
@@ -121,7 +115,7 @@ func (i *Interpreter) runAskHostLoop(pos *types.Position, agentModel *types.Agen
 			return nil, lang.NewRuntimeError(lang.ErrorCodeSyntax, "ACTIONS block must contain exactly one 'command...endcommand' block or be empty", nil).WithPosition(pos)
 		}
 
-		// Execute the AI's commands in the sandboxed interpreter
+		// Execute the AI' commands in the sandboxed interpreter
 		if err := executeAeiouTurn(execInterp, responseEnvelope, &actionEmits, &actionWhispers); err != nil {
 			// Propagate errors from executing the ACTIONS block (e.g., tool errors, syntax errors)
 			return nil, err
@@ -132,12 +126,20 @@ func (i *Interpreter) runAskHostLoop(pos *types.Position, agentModel *types.Agen
 		var loopDone bool
 		for _, emit := range actionEmits {
 			trimmedEmit := strings.TrimSpace(emit)
-			if trimmedEmit == loopDoneSignal {
+			// THE FIX: Check for prefix, not exact match, to handle payload suffix.
+			if strings.HasPrefix(trimmedEmit, loopDoneSignal) {
 				loopDone = true
 				i.Logger().Debug("<<<LOOP:DONE>>> signal detected", "sid", sessionID, "turn", turn)
-				continue // Don't include the signal in the final output or next prompt
+
+				// Extract any payload following the marker (e.g., "<<<LOOP:DONE>>> Success")
+				suffix := strings.TrimPrefix(trimmedEmit, loopDoneSignal)
+				suffix = strings.TrimSpace(suffix)
+				if suffix != "" {
+					cleanEmits = append(cleanEmits, suffix)
+				}
+				continue // Don't include the signal itself in the final output
 			}
-			// Filter out any vestigial AEIOU v2 tokens just in case
+			// Filter out any vestigial AEIOU v3 tokens just in case
 			if !strings.HasPrefix(trimmedEmit, aeiou.TokenMarkerPrefix) {
 				cleanEmits = append(cleanEmits, emit) // Keep the original emit, not trimmed
 			}
