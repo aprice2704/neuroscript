@@ -1,7 +1,11 @@
-// NeuroScript Version: 0.8.0
-// File version: 5
-// Purpose: Adds registration for extra string/codec tools.
-// filename: pkg/tool/strtools/register.go
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 6
+// :: description: Adds registration for ANSI string tools.
+// :: latestChange: Registered stringAnsiToolsToRegister.
+// :: filename: pkg/tool/strtools/register.go
+// :: serialization: go
+
 package strtools
 
 import "github.com/aprice2704/neuroscript/pkg/tool"
@@ -12,7 +16,8 @@ func init() {
 	allTools := append(stringToolsToRegister, stringCodecToolsToRegister...)
 	allTools = append(allTools, stringRegexToolsToRegister...)
 	allTools = append(allTools, stringFormatToolsToRegister...)
-	allTools = append(allTools, stringExtraToolsToRegister...) // Added this line
+	allTools = append(allTools, stringExtraToolsToRegister...)
+	allTools = append(allTools, stringAnsiToolsToRegister...) // Added ANSI tools
 
 	tool.AddToolsetRegistration(
 		"strtools",

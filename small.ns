@@ -1,0 +1,4 @@
+command
+	emit tool.str.color("[white]Some white text[red] and some red[blue]and some blue[reset]")
+endcommand
+

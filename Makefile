@@ -1,5 +1,5 @@
 # NeuroScript Version: 0.3.0
-# File version: 18
+# File version: 19
 # Purpose: Build system configuration for the NeuroScript project. Adds 'nsfmt' binary to the install target.
 # filename: Makefile
 # nlines: 151
@@ -23,7 +23,8 @@ else
 endif
 
 # --- Versioning ---
-G4_VERSION      := $(shell grep -m 1 -i 'NeuroScript Version:' $(G4_FILE) | awk '{print $$NF}')
+# Extracts the first string of digits/dots found after "Version:" (handles "Version:0.95", "Version: 0.95", etc.)
+G4_VERSION      := $(shell grep -m 1 -i 'NeuroScript Version:' $(G4_FILE) | sed -E 's/.*Version:[[:space:]]*([0-9.]+).*/\1/')
 GIT_COMMIT      := $(shell git rev-parse HEAD)
 BUILD_DATE      := $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 

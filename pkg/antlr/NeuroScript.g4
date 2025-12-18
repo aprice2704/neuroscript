@@ -1,6 +1,4 @@
-// :: product: FDM/NS :: majorVersion: 0 :: fileVersion: 84 :: description: The ANTLR4 grammar for
-// NeuroScript. :: latestChange: Added support for scientific notation in NUMBER_LIT. :: filename:
-// NeuroScript.g4 :: serialization: antlr
+// NeuroScript Version: 0.9.5 The ANTLR4 grammar for NeuroScript
 grammar NeuroScript;
 
 // --- LEXER RULES --- (Lexer rules are unchanged)
