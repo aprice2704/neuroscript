@@ -1,15 +1,17 @@
-// NeuroScript Version: 0.7.0
-// File version: 3
-// Purpose: FEAT: Added hover support for structural keywords (func, if, ask, etc.).
-// filename: pkg/nslsp/hover.go
-// nlines: 144
-// risk_rating: MEDIUM
-
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 6
+// :: description: FEAT: Added hover support for user-defined workspace procedures.
+// :: latestChange: Updated hover links to display short filenames while linking to full URIs.
+// :: filename: pkg/nslsp/hover.go
+// :: serialization: go
 package nslsp
 
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"path/filepath"
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/capability"
@@ -62,7 +64,38 @@ func (s *Server) handleTextDocumentHover(ctx context.Context, conn *jsonrpc2.Con
 		return s.getKeywordHover(keywordTokenType), nil
 	}
 
-	// --- Step 4: Nothing found ---
+	// --- Step 4: Check for a workspace-defined procedure (e.g. MyFunc) ---
+	procName := s.extractProcedureNameAtPosition(content, params.Position, uriStr)
+	if procName != "" {
+		if info, found := s.symbolManager.GetSymbolInfo(procName); found {
+			var hoverContent strings.Builder
+			hoverContent.WriteString(fmt.Sprintf("```neuroscript\nfunc %s%s\n```\n", procName, info.Signature))
+			hoverContent.WriteString("---\n")
+
+			// Clean up the link
+			uriString := string(info.URI)
+			parsedURI, err := url.Parse(uriString)
+			displayName := uriString
+			if err == nil {
+				// Use the base filename for display (e.g. "startup_utils.ns")
+				displayName = filepath.Base(parsedURI.Path)
+			}
+
+			// Markdown Link: [display_text](link_target)
+			hoverContent.WriteString(fmt.Sprintf("Defined in: [%s](%s)", displayName, uriString))
+
+			return &lsp.Hover{
+				Contents: []lsp.MarkedString{
+					{
+						Language: "markdown",
+						Value:    hoverContent.String(),
+					},
+				},
+			}, nil
+		}
+	}
+
+	// --- Step 5: Nothing found ---
 	return nil, nil
 }
 

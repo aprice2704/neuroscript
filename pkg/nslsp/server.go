@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.7.0
-// File version: 32
-// Purpose: Integrates the SymbolManager to enable workspace-wide symbol scanning on initialization. FIX: Provide a non-nil Stdin to the interpreter to prevent initialization failures.
-// filename: pkg/nslsp/server.go
-// nlines: 129
-
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 35
+// :: description: Integrates the SymbolManager update on save.
+// :: latestChange: Added textDocument/definition routing and extractProcedureNameAtPosition helper.
+// :: filename: pkg/nslsp/server.go
+// :: serialization: go
 package nslsp
 
 import (
@@ -12,15 +13,19 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"strings"
 
+	"github.com/antlr4-go/antlr/v4"
+	gen "github.com/aprice2704/neuroscript/pkg/antlr/generated"
 	"github.com/aprice2704/neuroscript/pkg/api"
 	"github.com/aprice2704/neuroscript/pkg/parser"
 	"github.com/fsnotify/fsnotify"
+	lsp "github.com/sourcegraph/go-lsp"
 	"github.com/sourcegraph/jsonrpc2"
 )
 
-const serverVersion = "1.3.2"
+const serverVersion = "1.3.5"
 
 // Server holds the state for the NeuroScript Language Server.
 type Server struct {
@@ -39,9 +44,7 @@ type Server struct {
 func NewServer(logger *log.Logger) *Server {
 	adapterLogger := NewServerLogger(logger)
 
-	// THE FIX IS HERE: The interpreter's standard streams must be redirected
-	// to io.Discard. This prevents any accidental writes from polluting the
-	// LSP's stdout channel. Stdin must be non-nil, so we provide an empty reader.
+	// The interpreter's standard streams must be redirected to io.Discard.
 	hostCtx, err := api.NewHostContextBuilder().
 		WithLogger(adapterLogger).
 		WithStdout(io.Discard).
@@ -70,6 +73,15 @@ func NewServer(logger *log.Logger) *Server {
 	}
 }
 
+// RefreshDiagnostics iterates over all open documents and re-publishes diagnostics.
+func (s *Server) RefreshDiagnostics(ctx context.Context) {
+	s.logger.Println("Refreshing diagnostics for all open documents...")
+	openDocs := s.documentManager.GetAll()
+	for uri, content := range openDocs {
+		go PublishDiagnostics(ctx, s.conn, s.logger, s, uri, content)
+	}
+}
+
 // isNotification checks if a JSON-RPC request is a notification (has no ID).
 func isNotification(id jsonrpc2.ID) bool {
 	return id.Str == "" && id.Num == 0
@@ -88,7 +100,6 @@ func (s *Server) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.
 
 	switch req.Method {
 	case "initialize":
-		// Per user request, workspace scan is now triggered by textDocument/didOpen
 		return s.handleInitialize(ctx, conn, req)
 	case "initialized":
 		s.logger.Println("LSP client 'initialized' notification received.")
@@ -112,6 +123,8 @@ func (s *Server) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.
 		return s.handleTextDocumentCompletion(ctx, conn, req)
 	case "textDocument/formatting":
 		return s.handleTextDocumentFormatting(ctx, conn, req)
+	case "textDocument/definition":
+		return s.handleTextDocumentDefinition(ctx, conn, req)
 	default:
 		s.logger.Printf("Received unhandled method: %s", req.Method)
 		if isNotification(req.ID) {
@@ -119,6 +132,47 @@ func (s *Server) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.
 		}
 		return nil, &jsonrpc2.Error{Code: jsonrpc2.CodeMethodNotFound, Message: fmt.Sprintf("method not supported: %s", req.Method)}
 	}
+}
+
+// extractProcedureNameAtPosition finds the simple identifier at the cursor position
+// that corresponds to a procedure call or definition.
+func (s *Server) extractProcedureNameAtPosition(content string, position lsp.Position, sourceName string) string {
+	debugHover := os.Getenv("NSLSP_DEBUG_HOVER") != ""
+	var log loggerFunc = noOpLogger
+	if debugHover {
+		log = func(format string, args ...interface{}) {
+			s.logger.Printf("[DEF_TRACE] "+format, args...)
+		}
+	}
+
+	if s.coreParserAPI == nil {
+		return ""
+	}
+
+	treeFromParser, _ := s.coreParserAPI.ParseForLSP(sourceName, content)
+	if treeFromParser == nil {
+		return ""
+	}
+	parseTreeRoot, ok := treeFromParser.(antlr.ParseTree)
+	if !ok {
+		return ""
+	}
+
+	foundTokenNode := findInitialNodeManually(parseTreeRoot, position.Line, position.Character, log)
+	if foundTokenNode == nil {
+		return ""
+	}
+
+	tokenType := foundTokenNode.GetSymbol().GetTokenType()
+	// We only care about IDENTIFIER tokens
+	if tokenType != gen.NeuroScriptLexerIDENTIFIER {
+		return ""
+	}
+
+	// Verify context: Is this a tool call? If so, we ignore it (handled by extractToolName)
+	// We want direct calls like `MyFunc()` or definitions like `func MyFunc`.
+	// Simple check: The token text is the candidate name.
+	return foundTokenNode.GetText()
 }
 
 // UnmarshalParams is a helper to decode JSON-RPC parameters.

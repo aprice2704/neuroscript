@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.8.0
-// File version: 8
-// Purpose: Implements all LSP request handler methods. ADDED textDocument/formatting handler. FIX: Moved workspace symbol scan from didOpen to initialize and removed the incorrect directory scanning logic.
-// filename: pkg/nslsp/handlers.go
-// nlines: 204
-
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 14
+// :: description: Implements all LSP request handler methods.
+// :: latestChange: FIX: defined InitializeParamsExtended to handle WorkspaceFolders which is missing from the older go-lsp struct.
+// :: filename: pkg/nslsp/handlers.go
+// :: serialization: go
 package nslsp
 
 import (
@@ -18,6 +19,19 @@ import (
 	"github.com/sourcegraph/jsonrpc2"
 )
 
+// WorkspaceFolder represents a workspace folder as defined in LSP 3.6+
+// We define it here because the sourcegraph/go-lsp version might not have it.
+type WorkspaceFolder struct {
+	URI  string `json:"uri"`
+	Name string `json:"name"`
+}
+
+// InitializeParamsExtended extends the base params to support WorkspaceFolders
+type InitializeParamsExtended struct {
+	lsp.InitializeParams
+	WorkspaceFolders []WorkspaceFolder `json:"workspaceFolders"`
+}
+
 func uriToPath(uri lsp.DocumentURI) (string, error) {
 	u, err := url.ParseRequestURI(string(uri))
 	if err != nil {
@@ -26,32 +40,62 @@ func uriToPath(uri lsp.DocumentURI) (string, error) {
 	if u.Scheme != "file" {
 		return "", fmt.Errorf("URI is not a file URI: %s", uri)
 	}
+	// Simple fix for Windows paths often coming in as /C:/...
+	if len(u.Path) > 2 && u.Path[0] == '/' && u.Path[2] == ':' {
+		return u.Path[1:], nil
+	}
 	return u.Path, nil
 }
 
 func (s *Server) handleInitialize(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) (interface{}, error) {
 	s.logger.Println("Handling 'initialize' request...")
-	var params lsp.InitializeParams
+
+	// FIX: Use our extended struct to capture WorkspaceFolders
+	var params InitializeParamsExtended
 	if err := UnmarshalParams(req.Params, &params); err != nil {
 		return nil, &jsonrpc2.Error{Code: jsonrpc2.CodeParseError, Message: err.Error()}
 	}
 	s.logger.Printf("Initialization params: RootURI=%q", params.RootURI)
 
-	s.loadConfig(params.RootURI)
-	s.startFileWatcher(ctx, params.RootURI)
-
-	// *** THE FIX IS HERE ***
-	// This is the correct and only place to trigger the initial workspace scan.
-	if workspacePath, err := uriToPath(params.RootURI); err == nil && workspacePath != "" {
-		s.logger.Printf("Triggering initial workspace symbol scan for: %s", workspacePath)
-		// We can run this in the background. The manager is (or should be)
-		// thread-safe, and subsequent diagnostics will pick up symbols as
-		// they become available.
-		go s.symbolManager.ScanDirectory(workspacePath)
-	} else if params.RootURI != "" {
-		s.logger.Printf("WARN: Could not convert rootURI '%s' to path for symbol scan: %v", params.RootURI, err)
+	// Collect all workspace roots (Multi-root support)
+	var workspacePaths []string
+	if len(params.WorkspaceFolders) > 0 {
+		for _, wf := range params.WorkspaceFolders {
+			if path, err := uriToPath(lsp.DocumentURI(wf.URI)); err == nil && path != "" {
+				workspacePaths = append(workspacePaths, path)
+			}
+		}
 	}
-	// *** END FIX ***
+
+	// Fallback to RootURI if no WorkspaceFolders provided
+	if len(workspacePaths) == 0 && params.RootURI != "" {
+		if path, err := uriToPath(params.RootURI); err == nil && path != "" {
+			workspacePaths = append(workspacePaths, path)
+		}
+	}
+
+	if len(workspacePaths) > 0 {
+		s.logger.Printf("Initializing workspace with %d roots: %v", len(workspacePaths), workspacePaths)
+
+		// Initialize watcher for the primary root.
+		// Note: A more advanced watcher would watch all roots, but we start with RootURI for now.
+		s.startFileWatcher(ctx, params.RootURI)
+
+		go func() {
+			for _, path := range workspacePaths {
+				s.logger.Printf("Scanning workspace root: %s", path)
+				// Load config for this root (to pick up tools.json)
+				s.loadConfig(lsp.DocumentURI("file://" + path))
+
+				// Scan symbols
+				s.symbolManager.ScanDirectory(path)
+			}
+			// Refresh diagnostics once all scans are done
+			s.RefreshDiagnostics(context.Background())
+		}()
+	} else {
+		s.logger.Printf("WARN: No workspace roots found in initialize params.")
+	}
 
 	s.logger.Println("'initialize' request handled successfully.")
 	return lsp.InitializeResult{
@@ -63,11 +107,11 @@ func (s *Server) handleInitialize(ctx context.Context, conn *jsonrpc2.Conn, req 
 					Save:      &lsp.SaveOptions{IncludeText: false},
 				},
 			},
-			HoverProvider: true,
+			HoverProvider:      true,
+			DefinitionProvider: true,
 			CompletionProvider: &lsp.CompletionOptions{
 				TriggerCharacters: []string{"."},
 			},
-			// ADDED: Advertise formatting capability
 			DocumentFormattingProvider: true,
 		},
 	}, nil
@@ -94,11 +138,6 @@ func (s *Server) handleTextDocumentDidOpen(ctx context.Context, conn *jsonrpc2.C
 	s.logger.Printf("Document opened: %s", params.TextDocument.URI)
 	s.documentManager.Set(params.TextDocument.URI, params.TextDocument.Text)
 
-	// *** THE FIX IS HERE ***
-	// The incorrect, directory-based scanning logic has been removed.
-	// The scan is now correctly triggered once in 'initialize'.
-	// *** END FIX ***
-
 	go PublishDiagnostics(ctx, s.conn, s.logger, s, params.TextDocument.URI, params.TextDocument.Text)
 	return nil, nil
 }
@@ -124,9 +163,25 @@ func (s *Server) handleTextDocumentDidSave(ctx context.Context, conn *jsonrpc2.C
 	}
 	s.logger.Printf("didSave: SERVER VERSION '%s', BUILT-IN TOOL COUNT '%d'", serverVersion, s.interpreter.ToolRegistry().NTools())
 	s.logger.Printf("Document saved: %s", params.TextDocument.URI)
-	if content, found := s.documentManager.Get(params.TextDocument.URI); found {
-		go PublishDiagnostics(ctx, s.conn, s.logger, s, params.TextDocument.URI, content)
+
+	var content string
+	var found bool
+	content, found = s.documentManager.Get(params.TextDocument.URI)
+	if !found {
+		if path, err := uriToPath(params.TextDocument.URI); err == nil {
+			if bytes, err := os.ReadFile(path); err == nil {
+				content = string(bytes)
+			}
+		}
 	}
+
+	if content != "" {
+		go func() {
+			s.symbolManager.UpdateSymbol(params.TextDocument.URI, content)
+			PublishDiagnostics(ctx, s.conn, s.logger, s, params.TextDocument.URI, content)
+		}()
+	}
+
 	return nil, nil
 }
 
@@ -137,14 +192,10 @@ func (s *Server) handleTextDocumentDidClose(ctx context.Context, conn *jsonrpc2.
 	}
 	s.logger.Printf("Document closed: %s", params.TextDocument.URI)
 	s.documentManager.Delete(params.TextDocument.URI)
-	// Clear diagnostics for the closed file
 	go PublishDiagnostics(ctx, s.conn, s.logger, s, params.TextDocument.URI, "")
 	return nil, nil
 }
 
-// --- NEW HANDLER ---
-
-// handleTextDocumentFormatting handles the 'textDocument/formatting' request.
 func (s *Server) handleTextDocumentFormatting(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) (interface{}, error) {
 	var params lsp.DocumentFormattingParams
 	if err := UnmarshalParams(req.Params, &params); err != nil {
@@ -153,23 +204,18 @@ func (s *Server) handleTextDocumentFormatting(ctx context.Context, conn *jsonrpc
 
 	s.logger.Printf("Formatting request received for: %s", params.TextDocument.URI)
 
-	// Get the document content from our manager
 	content, found := s.documentManager.Get(params.TextDocument.URI)
 	if !found {
 		s.logger.Printf("Warning: textDocument/formatting request for unknown file: %s", params.TextDocument.URI)
 		return nil, fmt.Errorf("document not found in manager: %s", params.TextDocument.URI)
 	}
 
-	// Call the nsfmt package
 	formatted, err := nsfmt.Format([]byte(content))
 	if err != nil {
-		// If formatting fails (e.g., syntax error), return an error to the client.
-		// This prevents "format on save" from wiping the file.
 		s.logger.Printf("Formatting failed for %s: %v", params.TextDocument.URI, err)
 		return nil, &jsonrpc2.Error{Code: jsonrpc2.CodeInternalError, Message: fmt.Sprintf("nsfmt failed: %v", err)}
 	}
 
-	// Calculate the full document range to replace
 	lines := strings.Split(content, "\n")
 	endLine := len(lines) - 1
 	endChar := 0
@@ -177,7 +223,6 @@ func (s *Server) handleTextDocumentFormatting(ctx context.Context, conn *jsonrpc
 		endChar = len(lines[endLine])
 	}
 
-	// Return a TextEdit to replace the entire document
 	return []lsp.TextEdit{
 		{
 			Range: lsp.Range{
@@ -185,6 +230,35 @@ func (s *Server) handleTextDocumentFormatting(ctx context.Context, conn *jsonrpc
 				End:   lsp.Position{Line: endLine, Character: endChar},
 			},
 			NewText: string(formatted),
+		},
+	}, nil
+}
+
+func (s *Server) handleTextDocumentDefinition(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) (interface{}, error) {
+	var params lsp.TextDocumentPositionParams
+	if err := UnmarshalParams(req.Params, &params); err != nil {
+		return nil, &jsonrpc2.Error{Code: jsonrpc2.CodeParseError, Message: err.Error()}
+	}
+
+	content, found := s.documentManager.Get(params.TextDocument.URI)
+	if !found {
+		return nil, nil
+	}
+
+	symbolName := s.extractProcedureNameAtPosition(content, params.Position, string(params.TextDocument.URI))
+	if symbolName == "" {
+		return nil, nil
+	}
+
+	info, found := s.symbolManager.GetSymbolInfo(symbolName)
+	if !found {
+		return nil, nil
+	}
+
+	return []lsp.Location{
+		{
+			URI:   info.URI,
+			Range: info.Range,
 		},
 	}, nil
 }

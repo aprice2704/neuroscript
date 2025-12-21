@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.7.0
-// File version: 1
-// Purpose: Refactored: Contains all validation listener logic for tool and procedure calls.
-// filename: pkg/nslsp/semantic_validate_calls.go
-// nlines: 153
-
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 2
+// :: description: Refactored: Contains all validation listener logic for tool and procedure calls.
+// :: latestChange: Removed "blue squiggle" information diagnostic for valid workspace procedure calls.
+// :: filename: pkg/nslsp/semantic_validate_calls.go
+// :: serialization: go
 package nslsp
 
 import (
@@ -123,12 +124,8 @@ func (l *validationListener) validateProcedureCall(ctx *gen.Callable_exprContext
 		if isGlobal {
 			symbolInfo = info
 			isDefined = true
-			l.diagnostics = append(l.diagnostics, lsp.Diagnostic{
-				Range:    lspRangeFromToken(token, procName),
-				Severity: lsp.Information,
-				Source:   "nslsp-semantic",
-				Message:  fmt.Sprintf("Procedure '%s' is defined in another file: %s", procName, info.URI),
-			})
+			// We used to emit an Information diagnostic here ("Procedure defined in another file").
+			// It has been removed to reduce noise ("Blue Squiggles").
 		}
 	}
 

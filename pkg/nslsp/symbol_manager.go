@@ -1,14 +1,15 @@
-// NeuroScript Version: 0.7.0
-// File version: 7
-// Purpose: Upgrades SymbolManager to differentiate between minimum (needs) and maximum (optional) arguments. FIX: Reworked to perform synchronous, on-demand scanning of individual directories instead of a full workspace scan. FIX: Removed non-recursive logic to correctly scan subdirectories.
-// filename: pkg/nslsp/symbol_manager.go
-// nlines: 109
-// risk_rating: HIGH
-
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 13
+// :: description: Upgrades SymbolManager with robust URI encoding and signature formatting.
+// :: latestChange: FIX: Use net/url for URI construction. Re-apply signature parentheses fix.
+// :: filename: pkg/nslsp/symbol_manager.go
+// :: serialization: go
 package nslsp
 
 import (
 	"log"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -22,10 +23,11 @@ import (
 
 // SymbolInfo stores where a procedure is defined and its signature details.
 type SymbolInfo struct {
-	URI     lsp.DocumentURI
-	Range   lsp.Range
-	MinArgs int // From 'needs'
-	MaxArgs int // From 'needs' + 'optional'
+	URI       lsp.DocumentURI
+	Range     lsp.Range
+	MinArgs   int    // From 'needs'
+	MaxArgs   int    // From 'needs' + 'optional'
+	Signature string // e.g. "(needs a, b, optional c)"
 }
 
 // SymbolManager scans the workspace and maintains a table of all procedure definitions.
@@ -74,8 +76,17 @@ func (sm *SymbolManager) ScanDirectory(dirPath string) {
 		if err != nil {
 			return err
 		}
-		// THE FIX IS HERE: The non-recursive check was removed. filepath.Walk will now correctly traverse subdirectories.
-		if !info.IsDir() && (strings.HasSuffix(info.Name(), ".ns") || strings.HasSuffix(info.Name(), ".ns.txt")) {
+		if info.IsDir() {
+			// Skip hidden directories (like .git, .vscode) and standard build dirs
+			name := info.Name()
+			if name != "." && (strings.HasPrefix(name, ".") || name == "vendor" || name == "bin" || name == "node_modules") {
+				sm.logger.Printf("SymbolManager: Skipping directory: %s", path)
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		if strings.HasSuffix(info.Name(), ".ns") || strings.HasSuffix(info.Name(), ".ns.txt") {
 			fileCount++
 			sm.parseFileForSymbols(path)
 		}
@@ -87,6 +98,51 @@ func (sm *SymbolManager) ScanDirectory(dirPath string) {
 	}
 	procCountAfter := len(sm.symbols)
 	sm.logger.Printf("SymbolManager: Scan of '%s' complete. Found %d new procedures in %d files.", dirPath, procCountAfter-procCountBefore, fileCount)
+}
+
+// UpdateSymbol parses the content of a single file and updates the symbol table.
+// It removes any old symbols associated with this URI before adding new ones.
+func (sm *SymbolManager) UpdateSymbol(uri lsp.DocumentURI, content string) {
+	sm.logger.Printf("SymbolManager: Updating symbols for %s", uri)
+
+	// 1. Parse the new content
+	tree, _ := sm.parserAPI.ParseForLSP(string(uri), content)
+	if tree == nil {
+		return
+	}
+
+	walker := antlr.NewParseTreeWalker()
+
+	// 2. Lock to update the map
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	// 3. Clear existing symbols for this URI
+	deletedCount := 0
+	for name, info := range sm.symbols {
+		if info.URI == uri {
+			delete(sm.symbols, name)
+			deletedCount++
+		}
+	}
+
+	// 4. Walk the new tree to populate symbols (listener will add to sm.symbols)
+	newSymbols := make(map[string]SymbolInfo)
+	collector := &symbolCollectorMapListener{
+		uri:        uri,
+		newSymbols: newSymbols,
+	}
+	// Unlock for the walk (CPU intensive part)
+	sm.mu.Unlock()
+
+	walker.Walk(collector, tree)
+
+	// Re-lock to merge
+	sm.mu.Lock()
+	for name, info := range newSymbols {
+		sm.symbols[name] = info
+	}
+	sm.logger.Printf("SymbolManager: Updated %s. Cleared %d old symbols, added %d new ones.", uri, deletedCount, len(newSymbols))
 }
 
 // GetSymbolInfo finds a procedure in the workspace.
@@ -105,51 +161,68 @@ func (sm *SymbolManager) parseFileForSymbols(filePath string) {
 		return
 	}
 
-	tree, _ := sm.parserAPI.ParseForLSP(filePath, string(content))
-	if tree == nil {
-		return
+	// FIX: Use net/url to construct a proper file:// URI with encoding (spaces, etc.)
+	u := url.URL{
+		Scheme: "file",
+		Path:   filePath,
 	}
+	uri := lsp.DocumentURI(u.String())
 
-	listener := &symbolScanListener{
-		sm:  sm,
-		uri: lsp.DocumentURI("file://" + filePath),
-	}
-	walker := antlr.NewParseTreeWalker()
-	walker.Walk(listener, tree)
+	sm.UpdateSymbol(uri, string(content))
 }
 
-// symbolScanListener is a simple ANTLR listener that extracts procedure names and arg counts.
-type symbolScanListener struct {
+// symbolCollectorMapListener collects symbols into a local map, avoiding lock contention during the walk.
+type symbolCollectorMapListener struct {
 	*gen.BaseNeuroScriptListener
-	sm  *SymbolManager
-	uri lsp.DocumentURI
+	uri        lsp.DocumentURI
+	newSymbols map[string]SymbolInfo
 }
 
-func (l *symbolScanListener) EnterProcedure_definition(ctx *gen.Procedure_definitionContext) {
+func (l *symbolCollectorMapListener) EnterProcedure_definition(ctx *gen.Procedure_definitionContext) {
 	procName := ctx.IDENTIFIER().GetText()
 	if procName == "" {
 		return
 	}
-
-	needsCount := 0
-	optionalCount := 0
-	if sig := ctx.Signature_part(); sig != nil {
-		if needs := sig.Needs_clause(0); needs != nil && needs.Param_list() != nil {
-			needsCount = len(needs.Param_list().AllIDENTIFIER())
-		}
-		if optional := sig.Optional_clause(0); optional != nil && optional.Param_list() != nil {
-			optionalCount = len(optional.Param_list().AllIDENTIFIER())
-		}
-	}
-
-	l.sm.mu.Lock()
-	defer l.sm.mu.Unlock()
+	needs, optional, signature := extractArgsAndSignature(ctx)
 
 	token := ctx.IDENTIFIER().GetSymbol()
-	l.sm.symbols[procName] = SymbolInfo{
-		URI:     l.uri,
-		Range:   lspRangeFromToken(token, procName),
-		MinArgs: needsCount,
-		MaxArgs: needsCount + optionalCount,
+	l.newSymbols[procName] = SymbolInfo{
+		URI:       l.uri,
+		Range:     lspRangeFromToken(token, procName),
+		MinArgs:   needs,
+		MaxArgs:   needs + optional,
+		Signature: signature,
 	}
+}
+
+// extractArgsAndSignature helper to get counts AND the display string
+func extractArgsAndSignature(ctx *gen.Procedure_definitionContext) (int, int, string) {
+	needsCount := 0
+	optionalCount := 0
+	var parts []string
+
+	if sig := ctx.Signature_part(); sig != nil {
+		if needs := sig.Needs_clause(0); needs != nil && needs.Param_list() != nil {
+			var params []string
+			for _, p := range needs.Param_list().AllIDENTIFIER() {
+				params = append(params, p.GetText())
+			}
+			needsCount = len(params)
+			parts = append(parts, "needs "+strings.Join(params, ", "))
+		}
+		if optional := sig.Optional_clause(0); optional != nil && optional.Param_list() != nil {
+			var params []string
+			for _, p := range optional.Param_list().AllIDENTIFIER() {
+				params = append(params, p.GetText())
+			}
+			optionalCount = len(params)
+			parts = append(parts, "optional "+strings.Join(params, ", "))
+		}
+	}
+
+	// Format: "(needs a, b, optional c)"
+	// If no args, this becomes "()"
+	signature := "(" + strings.Join(parts, ", ") + ")"
+
+	return needsCount, optionalCount, signature
 }
