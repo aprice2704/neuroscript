@@ -1,9 +1,9 @@
 // NeuroScript Version: 0.8.0
-// File version: 18
-// Purpose: Defines public options. Copies ServiceRegistry from public HostContext to internal HostContext.
+// File version: 22
+// Purpose: Adds WithAllowRedefinition public option.
 // filename: pkg/api/options.go
-// nlines: 75
-// risk_rating: HIGH
+// nlines: 112
+// risk_rating: LOW
 
 package api
 
@@ -69,5 +69,13 @@ func WithHostContext(hc *HostContext) Option {
 		// Use the internal WithHostContext option to apply the constructed context.
 		// This assumes 'interpreter.WithHostContext' is an unexported option.
 		interpreter.WithHostContext(internalHC)(i)
+	}
+}
+
+// WithAllowRedefinition sets whether the interpreter allows redefining existing symbols
+// (procedures and variables). If true, new definitions shadow or overwrite existing ones.
+func WithAllowRedefinition(allow bool) Option {
+	return func(i *interpreter.Interpreter) {
+		i.AllowRedefinition = allow
 	}
 }

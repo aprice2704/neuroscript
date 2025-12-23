@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.8.0
-// File version: 21
-// Purpose: Adds WithAccountAdmin and WithAgentModelAdmin for facade injection.
-// Latest change: Removed ALL capsule options except WithCapsuleStore.
-// filename: pkg/interpreter/options.go
-// nlines: 106
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 22
+// :: description: Adds WithAllowRedefinition to supported options.
+// :: latestChange: Added WithAllowRedefinition to allow symbol shadowing/overwriting.
+// :: filename: pkg/interpreter/options.go
+// :: serialization: go
 
 package interpreter
 
@@ -155,5 +156,13 @@ func WithAccountAdmin(admin interfaces.AccountAdmin) InterpreterOption {
 func WithAgentModelAdmin(admin interfaces.AgentModelAdmin) InterpreterOption {
 	return func(i *Interpreter) {
 		i.agentModelAdmin = admin
+	}
+}
+
+// WithAllowRedefinition sets whether the interpreter allows redefining existing symbols
+// (procedures and variables). If true, new definitions shadow or overwrite existing ones.
+func WithAllowRedefinition(allow bool) InterpreterOption {
+	return func(i *Interpreter) {
+		i.AllowRedefinition = allow
 	}
 }

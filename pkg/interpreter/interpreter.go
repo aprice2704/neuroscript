@@ -1,10 +1,10 @@
-// NeuroScript Version: 0.8.0
-// File version: 102
-// Purpose: Core Interpreter struct and New/Set methods. Integrated the new HandleRegistry.
-// Latest change: Removed duplicate HandleRegistry() method definition to fix compiler error.
-// filename: pkg/interpreter/interpreter.go
-// nlines: 243
-// risk_rating: HIGH
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 103
+// :: description: Added AllowRedefinition boolean field to Interpreter struct.
+// :: latestChange: Added AllowRedefinition field to support symbol shadowing/redefinition feature.
+// :: filename: pkg/interpreter/interpreter.go
+// :: serialization: go
 
 package interpreter
 
@@ -74,6 +74,11 @@ type Interpreter struct {
 	cloneRegistryMu sync.Mutex
 
 	PublicAPI tool.Runtime
+
+	// AllowRedefinition controls whether defining a symbol (proc/var) that already exists
+	// is allowed. If true, the new definition overwrites or shadows the old one.
+	// If false (default), it returns a "symbol already defined" error.
+	AllowRedefinition bool
 }
 
 // ID returns the unique identifier for this interpreter instance.

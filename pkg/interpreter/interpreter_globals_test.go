@@ -1,8 +1,10 @@
-// NeuroScript Version: 0.8.0
-// File version: 9
-// Purpose: Fixes parser error by changing '::' comments to '//'.
-// filename: pkg/interpreter/interpreter_globals_test.go
-// nlines: 161
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 10
+// :: description: Added TestGlobalConstantRedefinition to verify tool.ns.def_global_const respects WithAllowRedefinition.
+// :: latestChange: Added test cases for global constant redefinition.
+// :: filename: pkg/interpreter/interpreter_globals_test.go
+// :: serialization: go
 
 package interpreter
 
@@ -12,6 +14,7 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces" // Need this for Load
 	"github.com/aprice2704/neuroscript/pkg/lang"
+	"github.com/aprice2704/neuroscript/pkg/policy" // Added for manual policy construction
 )
 
 // --- The Test ---
@@ -183,6 +186,107 @@ func TestGlobalSymbolWorkflow(t *testing.T) {
 		}
 		if !strings.Contains(err.Error(), "provided by the host and cannot be overridden") { //
 			t.Errorf("Expected override error, but got: %v", err)
+		}
+	})
+}
+
+// TestGlobalConstantRedefinition verifies that tool.ns.def_global_const respects the AllowRedefinition flag.
+func TestGlobalConstantRedefinition(t *testing.T) {
+	t.Run("Allows redefining global constant with WithAllowRedefinition(true)", func(t *testing.T) {
+		// 1. Create a config interpreter with redefinition enabled
+		hc := newTestHostContext(t, nil)
+		// Manually build policy as def_global_const requires ContextConfig
+		cfgPolicy := policy.NewBuilder(policy.ContextConfig).Allow("*").Build()
+		interp := NewInterpreter(
+			WithHostContext(hc),
+			WithExecPolicy(cfgPolicy),
+			WithAllowRedefinition(true), // <--- The feature under test
+		)
+
+		// 2. Define the constant initially
+		cmdScript1 := `
+			command
+				must tool.ns.def_global_const("MY_CONST", 100)
+			endcommand
+		`
+		tree1, _ := interp.Parser().Parse(cmdScript1)
+		prog1, _, _ := interp.ASTBuilder().Build(tree1)
+		interp.state.commands = prog1.Commands
+		if _, err := interp.ExecuteCommands(); err != nil {
+			t.Fatalf("Initial definition failed: %v", err)
+		}
+
+		// Verify initial value
+		val1, exists := interp.GetVariable("MY_CONST")
+		if !exists {
+			t.Fatal("MY_CONST not found after initial definition")
+		}
+		if n, _ := lang.ToFloat64(val1); n != 100 {
+			t.Errorf("Expected MY_CONST to be 100, got %v", val1)
+		}
+
+		// 3. Redefine the constant
+		cmdScript2 := `
+			command
+				must tool.ns.def_global_const("MY_CONST", 200)
+			endcommand
+		`
+		tree2, _ := interp.Parser().Parse(cmdScript2)
+		prog2, _, _ := interp.ASTBuilder().Build(tree2)
+		interp.state.commands = prog2.Commands
+		if _, err := interp.ExecuteCommands(); err != nil {
+			t.Fatalf("Redefinition failed despite AllowRedefinition=true: %v", err)
+		}
+
+		// Verify updated value
+		val2, exists := interp.GetVariable("MY_CONST")
+		if !exists {
+			t.Fatal("MY_CONST not found after redefinition")
+		}
+		if n, _ := lang.ToFloat64(val2); n != 200 {
+			t.Errorf("Expected MY_CONST to be 200 after redefinition, got %v", val2)
+		}
+	})
+
+	t.Run("Fails to redefine global constant by default (AllowRedefinition=false)", func(t *testing.T) {
+		// 1. Create a config interpreter (defaults to AllowRedefinition=false)
+		hc := newTestHostContext(t, nil)
+		cfgPolicy := policy.NewBuilder(policy.ContextConfig).Allow("*").Build()
+		interp := NewInterpreter(
+			WithHostContext(hc),
+			WithExecPolicy(cfgPolicy),
+		)
+
+		// 2. Define the constant initially
+		cmdScript1 := `
+			command
+				must tool.ns.def_global_const("MY_CONST", 100)
+			endcommand
+		`
+		tree1, _ := interp.Parser().Parse(cmdScript1)
+		prog1, _, _ := interp.ASTBuilder().Build(tree1)
+		interp.state.commands = prog1.Commands
+		if _, err := interp.ExecuteCommands(); err != nil {
+			t.Fatalf("Initial definition failed: %v", err)
+		}
+
+		// 3. Attempt to redefine
+		cmdScript2 := `
+			command
+				must tool.ns.def_global_const("MY_CONST", 200)
+			endcommand
+		`
+		tree2, _ := interp.Parser().Parse(cmdScript2)
+		prog2, _, _ := interp.ASTBuilder().Build(tree2)
+		interp.state.commands = prog2.Commands
+		_, err := interp.ExecuteCommands()
+
+		if err == nil {
+			t.Fatal("Expected redefinition to fail by default, but it succeeded")
+		}
+		// We expect the specific error message from interpreter_tools.go
+		if !strings.Contains(err.Error(), "already defined as a global constant") {
+			t.Errorf("Expected 'already defined' error, got: %v", err)
 		}
 	})
 }

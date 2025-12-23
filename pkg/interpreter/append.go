@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 2
-// Purpose: Implements the AppendScript method to merge script definitions into the interpreter.
+// File version: 3
+// Purpose: Updated AppendScript to respect AllowRedefinition flag.
 // filename: pkg/interpreter/append.go
-// nlines: 45
+// nlines: 50
 // risk_rating: MEDIUM
 
 package interpreter
@@ -29,13 +29,20 @@ func (i *Interpreter) appendScript(tree *interfaces.Tree) error {
 	}
 
 	for name, proc := range program.Procedures {
-		if _, exists := i.state.knownProcedures[name]; exists {
-			return lang.NewRuntimeError(lang.ErrorCodeDuplicate, fmt.Sprintf("procedure '%s' already defined", name), lang.ErrProcedureExists)
+		if !i.AllowRedefinition {
+			if _, exists := i.state.knownProcedures[name]; exists {
+				return lang.NewRuntimeError(lang.ErrorCodeDuplicate, fmt.Sprintf("procedure '%s' already defined", name), lang.ErrProcedureExists)
+			}
 		}
+		// If AllowRedefinition is true, or no collision found, overwrite.
 		i.state.knownProcedures[name] = proc
 	}
 
 	for _, eventDecl := range program.Events {
+		// Note: eventManager.register() handles local collision logic.
+		// If needed, we might need to push the AllowRedefinition flag down to it,
+		// but typically multiple handlers for the same event *type* are allowed.
+		// Collision usually refers to named handlers (which Load checks).
 		if err := i.eventManager.register(eventDecl, i); err != nil {
 			return fmt.Errorf("failed to register event handler during append: %w", err)
 		}

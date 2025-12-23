@@ -1,8 +1,10 @@
-// NeuroScript Version: 0.8.0
-// File version: 6
-// Purpose: Fixes "must condition" failure by returning 'true' from def_global_const.
-// filename: pkg/interpreter/interpreter_tools.go
-// nlines: 118
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 7
+// :: description: Updated def_global_const to respect AllowRedefinition flag.
+// :: latestChange: def_global_const now skips collision checks if AllowRedefinition is true.
+// :: filename: pkg/interpreter/interpreter_tools.go
+// :: serialization: go
 
 package interpreter
 
@@ -85,38 +87,56 @@ func (i *Interpreter) registerSymbolTools(registry tool.ToolRegistry) error {
 		}
 
 		// 2. "No Override" Collision Check
-		root.state.variablesMu.Lock()
-		defer root.state.variablesMu.Unlock()
+		// If AllowRedefinition is true, we SKIP these checks and simply overwrite the constant.
+		if !root.AllowRedefinition {
+			root.state.variablesMu.Lock()
+			// Note: We use a defer for unlock here to ensure safety during the checks,
+			// but we need to be careful not to double-unlock if we didn't check.
+			// To keep it simple and safe, we lock for the check and write together.
+			// (The original code locked here, so we maintain that structure).
 
-		// Check local constants
-		if _, exists := root.state.globalConstants[name]; exists {
-			return nil, fmt.Errorf("symbol '%s' is already defined as a global constant", name)
-		}
-		// Check local procedures
-		if _, exists := root.state.knownProcedures[name]; exists {
-			return nil, fmt.Errorf("symbol '%s' is already defined as a procedure", name)
-		}
-		// Check local event handlers (less likely, but for completeness)
-		if _, exists := root.eventManager.eventHandlers[name]; exists {
-			return nil, fmt.Errorf("symbol '%s' is already defined as an event name", name)
-		}
+			// Check local constants
+			if _, exists := root.state.globalConstants[name]; exists {
+				root.state.variablesMu.Unlock()
+				return nil, fmt.Errorf("symbol '%s' is already defined as a global constant", name)
+			}
+			// Check local procedures
+			if _, exists := root.state.knownProcedures[name]; exists {
+				root.state.variablesMu.Unlock()
+				return nil, fmt.Errorf("symbol '%s' is already defined as a procedure", name)
+			}
+			// Check local event handlers (less likely, but for completeness)
+			if _, exists := root.eventManager.eventHandlers[name]; exists {
+				root.state.variablesMu.Unlock()
+				return nil, fmt.Errorf("symbol '%s' is already defined as an event name", name)
+			}
 
-		// Check provider symbols
-		if provider := root.symbolProvider(); provider != nil {
-			if _, exists := provider.GetGlobalConstant(name); exists {
-				return nil, fmt.Errorf("symbol '%s' is provided by the host and cannot be overridden", name)
+			// Check provider symbols
+			if provider := root.symbolProvider(); provider != nil {
+				if _, exists := provider.GetGlobalConstant(name); exists {
+					root.state.variablesMu.Unlock()
+					return nil, fmt.Errorf("symbol '%s' is provided by the host and cannot be overridden", name)
+				}
+				if _, exists := provider.GetProcedure(name); exists {
+					root.state.variablesMu.Unlock()
+					return nil, fmt.Errorf("symbol '%s' is provided by the host and cannot be overridden", name)
+				}
+				if _, exists := provider.GetEventHandlers(name); exists {
+					root.state.variablesMu.Unlock()
+					return nil, fmt.Errorf("symbol '%s' is provided by the host and cannot be overridden", name)
+				}
 			}
-			if _, exists := provider.GetProcedure(name); exists {
-				return nil, fmt.Errorf("symbol '%s' is provided by the host and cannot be overridden", name)
-			}
-			if _, exists := provider.GetEventHandlers(name); exists {
-				return nil, fmt.Errorf("symbol '%s' is provided by the host and cannot be overridden", name)
-			}
+		} else {
+			// If redefinition is allowed, we still need the lock to write.
+			root.state.variablesMu.Lock()
 		}
 
 		// 3. Define the constant
+		// At this point we hold the lock (either from the check block or the else block).
+		defer root.state.variablesMu.Unlock()
+
 		root.state.globalConstants[name] = value
-		// FIX: Return 'true' on success to satisfy 'must' statements.
+		// Return 'true' on success to satisfy 'must' statements.
 		return true, nil
 	}
 
