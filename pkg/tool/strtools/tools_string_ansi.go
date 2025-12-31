@@ -105,7 +105,7 @@ func toolStringColorize(interpreter tool.Runtime, args []interface{}) (interface
 	// Efficiently replace all tags
 	result := ansiReplacer.Replace(inputStr)
 
-	interpreter.GetLogger().Debug("Tool: Colorize", "input_len", len(inputStr), "result_len", len(result))
+	//interpreter.GetLogger().Debug("Tool: Colorize", "input_len", len(inputStr), "result_len", len(result))
 	return result, nil
 }
 

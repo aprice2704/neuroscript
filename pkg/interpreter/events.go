@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.8.0
-// File version: 45
-// Purpose: Fix bug where 'return' was disallowed in event handlers by correctly setting isInHandler to false.
-// filename: pkg/interpreter/events.go
-// nlines: 115
-// risk_rating: MEDIUM
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 48
+// :: description: Updated event handler execution to push context to stackFrames for proper trace inheritance.
+// :: latestChange: Pushed contextName to stackFrames.
+// :: filename: pkg/interpreter/events.go
+// :: serialization: go
 
 package interpreter
 
@@ -89,6 +90,15 @@ func (i *Interpreter) EmitEvent(eventName string, source string, payload lang.Va
 			var execErr error
 			handlerInterpreter := i.fork() // Fork a clean interpreter for the handler //
 
+			// Set meaningful context for stack traces
+			contextName := fmt.Sprintf("Event: %s", eventName)
+			if pos := h.GetPos(); pos != nil {
+				contextName = fmt.Sprintf("%s (defined at %s)", contextName, pos.String())
+			}
+			handlerInterpreter.state.currentProcName = contextName
+			// Push context to stackFrames so called procedures inherit it in their trace
+			handlerInterpreter.state.stackFrames = append(handlerInterpreter.state.stackFrames, contextName)
+
 			defer func() {
 				if r := recover(); r != nil {
 					// Convert panic to a RuntimeError
@@ -99,8 +109,9 @@ func (i *Interpreter) EmitEvent(eventName string, source string, payload lang.Va
 
 				// Report error (either from panic or normal execution) via callback
 				if execErr != nil {
-					rtErr := ensureRuntimeError(execErr, h.GetPos(), "ON_EVENT_HANDLER") //
-					if i.hostContext.EventHandlerErrorCallback != nil {                  //
+					// THE FIX: Use handlerInterpreter to capture the correct stack trace for this execution
+					rtErr := handlerInterpreter.ensureRuntimeError(execErr, h.GetPos(), "ON_EVENT_HANDLER") //
+					if i.hostContext.EventHandlerErrorCallback != nil {                                     //
 						i.hostContext.EventHandlerErrorCallback(eventName, source, rtErr) //
 					} else {
 						// Log if no callback is registered, as this would otherwise be silent.

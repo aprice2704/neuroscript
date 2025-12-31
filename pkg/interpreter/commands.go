@@ -1,12 +1,16 @@
-// NeuroScript Version: 0.8.0
-// File version: 7
-// Purpose: Un-exported ExecuteCommands as it is an internal implementation detail.
-// filename: pkg/interpreter/commands.go
-// nlines: 40
-// risk_rating: MEDIUM
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 9
+// :: description: Updated command block execution to push context to stackFrames, ensuring correct stacking in loops.
+// :: latestChange: Pushed contextName to stackFrames using baseStack.
+// :: filename: pkg/interpreter/commands.go
+// :: serialization: go
+
 package interpreter
 
 import (
+	"fmt"
+
 	"github.com/aprice2704/neuroscript/pkg/lang"
 )
 
@@ -15,10 +19,24 @@ func (i *Interpreter) executeCommands() (lang.Value, error) {
 	var finalResult lang.Value = &lang.NilValue{}
 	var err error
 
+	// Capture the base stack before iterating commands.
+	// This ensures that if we have multiple command blocks, the stack doesn't grow infinitely with siblings.
+	baseStack := i.state.stackFrames
+
 	for _, cmdNode := range i.state.commands {
 		if cmdNode == nil || len(cmdNode.Body) == 0 {
 			continue
 		}
+
+		// Set meaningful context for stack traces
+		contextName := "Command Block"
+		if cmdNode.BaseNode.StartPos != nil {
+			contextName = fmt.Sprintf("Command Block (at %s)", cmdNode.BaseNode.StartPos.String())
+		}
+		i.state.currentProcName = contextName
+		// Push context to stackFrames so called procedures inherit it in their trace.
+		// We append to baseStack to treat each command block as a sibling in the call stack.
+		i.state.stackFrames = append(baseStack, contextName)
 
 		var wasReturn, wasCleared bool
 		finalResult, wasReturn, wasCleared, err = i.executeSteps(cmdNode.Body, false, nil)

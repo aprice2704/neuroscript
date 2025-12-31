@@ -1,14 +1,16 @@
-// NeuroScript Version: 0.8.0
-// File version: 80
-// Purpose: Refactored to use the 'eval' package and HostContext for core execution logic.
-// filename: pkg/interpreter/exec_more.go
-// nlines: 80
-// risk_rating: HIGH
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 82
+// :: description: Enhanced ensureRuntimeError to lookup and display procedure definition locations in stack traces.
+// :: latestChange: Added definition location lookup in stack trace generation.
+// :: filename: pkg/interpreter/exec_more.go
+// :: serialization: go
 
 package interpreter
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/eval"
@@ -68,12 +70,59 @@ func shouldUpdateLastResult(stepTypeLower string) bool {
 	}
 }
 
-func ensureRuntimeError(err error, pos *types.Position, context string) *lang.RuntimeError {
-	if rtErr, ok := err.(*lang.RuntimeError); ok {
-		if rtErr.Position == nil && pos != nil {
-			return rtErr.WithPosition(pos)
-		}
-		return rtErr
+// ensureRuntimeError wraps an error into a proper RuntimeError if it isn't one already.
+// It also enriches the error message with position information and a stack trace.
+func (i *Interpreter) ensureRuntimeError(err error, pos *types.Position, context string) *lang.RuntimeError {
+	var rtErr *lang.RuntimeError
+	if asRtErr, ok := err.(*lang.RuntimeError); ok {
+		rtErr = asRtErr
+	} else {
+		rtErr = lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("internal error during %s", context), err)
 	}
-	return lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("internal error during %s", context), err).WithPosition(pos)
+
+	// 1. Ensure Position
+	if rtErr.Position == nil && pos != nil {
+		rtErr = rtErr.WithPosition(pos)
+	}
+
+	// 2. Format Message with Context & Stack Trace
+	// Avoid re-appending if we catch the error higher up the stack.
+	if !strings.Contains(rtErr.Message, "Stack Trace:") {
+		var sb strings.Builder
+		sb.WriteString(rtErr.Message)
+
+		// Append readable position if available
+		if rtErr.Position != nil {
+			sb.WriteString(fmt.Sprintf("\n  at %s", rtErr.Position.String()))
+		} else if pos != nil {
+			sb.WriteString(fmt.Sprintf("\n  at %s", pos.String()))
+		}
+
+		// Append Stack Trace
+		// Stack frames are stored [root -> leaf]. We print reverse [leaf -> root].
+		stackFrames := i.state.stackFrames
+		if len(stackFrames) > 0 {
+			sb.WriteString("\nStack Trace:")
+			for idx := len(stackFrames) - 1; idx >= 0; idx-- {
+				name := stackFrames[idx]
+				sb.WriteString(fmt.Sprintf("\n  %s", name))
+
+				// Lookup definition location for procedures
+				// Note: We use the shared knownProcedures map.
+				if proc, ok := i.state.knownProcedures[name]; ok && proc != nil {
+					if p := proc.GetPos(); p != nil {
+						sb.WriteString(fmt.Sprintf(" (defined at %s)", p.String()))
+					}
+				}
+			}
+		} else if i.state.currentProcName != "" {
+			// Fallback for single procedure execution or contexts (like events/commands)
+			// where we manually set currentProcName but didn't push a stack frame.
+			sb.WriteString(fmt.Sprintf("\nStack Trace:\n  %s", i.state.currentProcName))
+		}
+
+		rtErr.Message = sb.String()
+	}
+
+	return rtErr
 }

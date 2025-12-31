@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.8.0
-// File version: 91
-// Purpose: This file now compiles correctly as Interpreter now satisfies the eval.Runtime interface.
-// filename: pkg/interpreter/exec.go
-// nlines: 268
-// risk_rating: HIGH
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 92
+// :: description: Updated call sites to use the new context-aware ensureRuntimeError method.
+// :: latestChange: Updated ensureRuntimeError usage.
+// :: filename: pkg/interpreter/exec.go
+// :: serialization: go
 
 package interpreter
 
@@ -215,7 +216,8 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 		}
 
 		if stepErr != nil {
-			rtErr := ensureRuntimeError(stepErr, step.GetPos(), stepTypeLower)
+			// THE FIX: Use method call on 'i'
+			rtErr := i.ensureRuntimeError(stepErr, step.GetPos(), stepTypeLower)
 
 			if errors.Is(rtErr.Unwrap(), lang.ErrBreak) || errors.Is(rtErr.Unwrap(), lang.ErrContinue) {
 				return nil, false, wasCleared, rtErr
@@ -231,7 +233,8 @@ func (i *Interpreter) recExecuteSteps(steps []ast.Step, isInHandler bool, active
 				i.SetVariable("system_error_message", lang.StringValue{Value: rtErr.Message})
 				_, _, handlerCleared, handlerErr := i.executeSteps(handlerToExecute.Body, true, rtErr)
 				if handlerErr != nil {
-					return nil, false, false, ensureRuntimeError(handlerErr, handlerToExecute.GetPos(), "ON_ERROR_HANDLER")
+					// THE FIX: Use method call on 'i'
+					return nil, false, false, i.ensureRuntimeError(handlerErr, handlerToExecute.GetPos(), "ON_ERROR_HANDLER")
 				}
 				if handlerCleared {
 					stepErr = nil
