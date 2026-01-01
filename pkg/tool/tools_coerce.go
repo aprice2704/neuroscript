@@ -1,15 +1,17 @@
-// NeuroScript Version: 0.8.0
-// File version: 3
-// Purpose: Refactored to use new pkg/utils slice conversion helpers.
-// filename: pkg/tool/tools_coerce.go
-// nlines: 104
-// risk_rating: MEDIUM
+// :: product: NS
+// :: majorVersion: 1
+// :: fileVersion: 4
+// :: description: Refactored coercion to include NodeID, EntityID, and Handle validation.
+// :: latestChange: Added validation logic for ArgTypeNodeID, ArgTypeEntityID, and ArgTypeHandle.
+// :: filename: pkg/tool/tools_coerce.go
+// :: serialization: go
 
 package tool
 
 import (
 	"fmt"
 
+	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/utils"
 )
@@ -60,6 +62,36 @@ func coerceArg(x interface{}, t ArgType) (interface{}, error) {
 
 	case ArgTypeNil:
 		return nil, nil // Type spec explicitly wants nil
+
+	case ArgTypeHandle:
+		str, ok := x.(string)
+		if !ok {
+			return nil, fmt.Errorf("expected string for Handle, got %T", x)
+		}
+		if !interfaces.IsNSHandle(str) {
+			return nil, fmt.Errorf("invalid handle format: %s", str)
+		}
+		return str, nil
+
+	case ArgTypeNodeID:
+		str, ok := x.(string)
+		if !ok {
+			return nil, fmt.Errorf("expected string for NodeID, got %T", x)
+		}
+		if !interfaces.IsNodeID(str) {
+			return nil, fmt.Errorf("invalid NodeID: must start with 'N_': %s", str)
+		}
+		return str, nil
+
+	case ArgTypeEntityID:
+		str, ok := x.(string)
+		if !ok {
+			return nil, fmt.Errorf("expected string for EntityID, got %T", x)
+		}
+		if !interfaces.IsEntityID(str) {
+			return nil, fmt.Errorf("invalid EntityID: must start with 'E_': %s", str)
+		}
+		return str, nil
 
 	case ArgTypeSlice, ArgTypeSliceAny: // ArgTypeSlice is an alias for SliceAny
 		coerced, ok, err = utils.ConvertToSliceOfAny(x)

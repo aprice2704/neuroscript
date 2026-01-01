@@ -1,10 +1,10 @@
-// NeuroScript Version: 0.8.0
-// File version: 27 // Bumped version
-// Purpose: Updated Runtime interface to use the new HandleRegistry accessor, removing obsolete handle methods.
-// Latest change: Added ArgTypeHandle constant.
-// filename: pkg/tool/tool_types.go
-// nlines: 174
-// risk_rating: HIGH
+// :: product: NS
+// :: majorVersion: 1
+// :: fileVersion: 28
+// :: description: Updated Runtime interface and ArgType constants.
+// :: latestChange: Added ArgTypeNodeID and ArgTypeEntityID constants.
+// :: filename: pkg/tool/tool_types.go
+// :: serialization: go
 
 package tool
 
@@ -38,7 +38,6 @@ type Runtime interface {
 }
 
 // Wrapper is an interface for runtimes that wrap another runtime.
-// This is used by the tool registry to unwrap internal tools.
 type Wrapper interface {
 	Unwrap() Runtime
 }
@@ -48,13 +47,15 @@ type ArgType string
 
 const (
 	// Primitives
-	ArgTypeAny    ArgType = "any"
-	ArgTypeString ArgType = "string"
-	ArgTypeInt    ArgType = "int"
-	ArgTypeFloat  ArgType = "float"
-	ArgTypeBool   ArgType = "bool"
-	ArgTypeNil    ArgType = "nil"
-	ArgTypeHandle ArgType = "handle" // Added
+	ArgTypeAny      ArgType = "any"
+	ArgTypeString   ArgType = "string"
+	ArgTypeInt      ArgType = "int"
+	ArgTypeFloat    ArgType = "float"
+	ArgTypeBool     ArgType = "bool"
+	ArgTypeNil      ArgType = "nil"
+	ArgTypeHandle   ArgType = "handle"
+	ArgTypeNodeID   ArgType = "nodeid"   // Added
+	ArgTypeEntityID ArgType = "entityid" // Added
 
 	// Generic Collections
 	ArgTypeMap   ArgType = "map"   // Corresponds to map[string]interface{}
@@ -114,7 +115,7 @@ type ToolImplementation struct {
 	Spec              ToolSpec                `json:"spec"`
 	Func              ToolFunc                `json:"-"`
 	RequiresTrust     bool                    `json:"requiresTrust"`
-	IsInternal        bool                    `json:"isInternal"` // <-- NEW
+	IsInternal        bool                    `json:"isInternal"`
 	RequiredCaps      []capability.Capability `json:"requiredCaps,omitempty"`
 	Effects           []string                `json:"effects,omitempty"`
 	SignatureChecksum string                  `json:"signatureChecksum"`
