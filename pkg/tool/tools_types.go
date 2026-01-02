@@ -1,8 +1,8 @@
 // :: product: NS
 // :: majorVersion: 1
-// :: fileVersion: 28
+// :: fileVersion: 29
 // :: description: Updated Runtime interface and ArgType constants.
-// :: latestChange: Added ArgTypeNodeID and ArgTypeEntityID constants.
+// :: latestChange: Added ArgTypeList, ArgTypeBlob, and ArgTypeEmbedding for FDM compatibility.
 // :: filename: pkg/tool/tool_types.go
 // :: serialization: go
 
@@ -47,19 +47,22 @@ type ArgType string
 
 const (
 	// Primitives
-	ArgTypeAny      ArgType = "any"
-	ArgTypeString   ArgType = "string"
-	ArgTypeInt      ArgType = "int"
-	ArgTypeFloat    ArgType = "float"
-	ArgTypeBool     ArgType = "bool"
-	ArgTypeNil      ArgType = "nil"
-	ArgTypeHandle   ArgType = "handle"
-	ArgTypeNodeID   ArgType = "nodeid"   // Added
-	ArgTypeEntityID ArgType = "entityid" // Added
+	ArgTypeAny       ArgType = "any"
+	ArgTypeString    ArgType = "string"
+	ArgTypeInt       ArgType = "int"
+	ArgTypeFloat     ArgType = "float"
+	ArgTypeBool      ArgType = "bool"
+	ArgTypeNil       ArgType = "nil"
+	ArgTypeHandle    ArgType = "handle"
+	ArgTypeNodeID    ArgType = "nodeid"
+	ArgTypeEntityID  ArgType = "entityid"
+	ArgTypeBlob      ArgType = "blob"
+	ArgTypeEmbedding ArgType = "embedding"
 
 	// Generic Collections
 	ArgTypeMap   ArgType = "map"   // Corresponds to map[string]interface{}
 	ArgTypeSlice ArgType = "slice" // Corresponds to []interface{}
+	ArgTypeList  ArgType = "list"  // Alias for compatibility
 
 	// Specific Slices
 	ArgTypeSliceString ArgType = "slice_string"
@@ -69,7 +72,7 @@ const (
 	ArgTypeSliceMap    ArgType = "slice_map"
 	ArgTypeSliceAny    ArgType = "slice_any" // Alias for "slice"
 
-	// Specific Maps (NEW)
+	// Specific Maps
 	ArgTypeMapStringString ArgType = "map_string_string"
 	ArgTypeMapStringInt    ArgType = "map_string_int"
 	ArgTypeMapStringAny    ArgType = "map_string_any" // Alias for "map"
