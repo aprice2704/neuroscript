@@ -1,9 +1,11 @@
-// NeuroScript Version: 0.8.0
-// File version: 8
-// Purpose: Wraps the 'any' result from CapsuleProvider with lang.Wrap().
-// Latest change: Added explicit policy check to addCapsuleFunc to enforce security.
-// filename: pkg/tool/capsule/tools.go
-// nlines: 194
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 11
+// :: description: Logic for capsule tools, including registry operations and metadata parsing.
+// :: latestChange: Updated parseCapsuleFunc to use ErrInvalidCapsuleData and map format names to full MIME types.
+// :: filename: pkg/tool/capsule/tools.go
+// :: serialization: go
+
 package capsule
 
 import (
@@ -25,12 +27,8 @@ import (
 // for all capsule store operations (read and write).
 type capsuleRuntime interface {
 	CapsuleStore() *capsule.Store
-	// --- ADDED: We must be able to get the policy ---
 	GetExecPolicy() *policy.ExecPolicy
 }
-
-// capsuleAdminRuntime -- REMOVED.
-// capsuleProviderRuntime -- REMOVED.
 
 func getCapsuleStore(rt tool.Runtime) (*capsule.Store, error) {
 	interp, ok := rt.(capsuleRuntime)
@@ -44,12 +42,7 @@ func getCapsuleStore(rt tool.Runtime) (*capsule.Store, error) {
 	return store, nil
 }
 
-// getCapsuleRegistryForAdmin -- REMOVED.
-
 func listCapsulesFunc(rt tool.Runtime, args []interface{}) (interface{}, error) {
-	// 1. Check for host-provided capsule service -- REMOVED.
-
-	// 2. Use internal registry logic
 	store, err := getCapsuleStore(rt)
 	if err != nil {
 		return nil, err
@@ -68,9 +61,6 @@ func readCapsuleFunc(rt tool.Runtime, args []interface{}) (interface{}, error) {
 		return nil, lang.ErrInvalidArgument
 	}
 
-	// 1. Check for host-provided capsule service -- REMOVED.
-
-	// 2. Use internal registry logic
 	store, err := getCapsuleStore(rt)
 	if err != nil {
 		return nil, err
@@ -96,9 +86,6 @@ func getLatestCapsuleFunc(rt tool.Runtime, args []interface{}) (interface{}, err
 		return nil, lang.ErrInvalidArgument
 	}
 
-	// 1. Check for host-provided capsule service -- REMOVED.
-
-	// 2. Use internal registry logic
 	store, err := getCapsuleStore(rt)
 	if err != nil {
 		return nil, err
@@ -118,8 +105,6 @@ func addCapsuleFunc(rt tool.Runtime, args []interface{}) (interface{}, error) {
 		return nil, lang.ErrInvalidArgument
 	}
 
-	// --- THE FIX: Enforce policy AT THE TOOL LEVEL ---
-	// This ensures the tool is secure even if called directly (as in tests).
 	runtimeWithPolicy, ok := rt.(capsuleRuntime)
 	if !ok {
 		return nil, fmt.Errorf("internal error: runtime does not implement capsuleRuntime interface")
@@ -129,8 +114,6 @@ func addCapsuleFunc(rt tool.Runtime, args []interface{}) (interface{}, error) {
 		return nil, fmt.Errorf("internal error: runtime returned nil ExecPolicy")
 	}
 
-	// Manually define the tool's metadata for the policy check
-	// (This must match tooldefs_capsule.go)
 	toolMeta := policy.ToolMeta{
 		Name:          "tool.capsule.Add",
 		RequiresTrust: true,
@@ -140,13 +123,9 @@ func addCapsuleFunc(rt tool.Runtime, args []interface{}) (interface{}, error) {
 	}
 
 	if err := execPolicy.CanCall(toolMeta); err != nil {
-		return nil, err // This will be policy.ErrCapability
+		return nil, err
 	}
-	// --- END FIX ---
 
-	// 1. Check for host-provided capsule service -- REMOVED.
-
-	// 2. Fallback to internal registry logic
 	store, err := getCapsuleStore(rt)
 	if err != nil {
 		return nil, err
@@ -158,41 +137,67 @@ func addCapsuleFunc(rt tool.Runtime, args []interface{}) (interface{}, error) {
 	}
 
 	extractor := metadata.NewExtractor(meta)
-	// --- THE FIX: Enforce all required fields from the spec ---
 	if err := extractor.CheckRequired("id", "version", "description", "serialization"); err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrInvalidCapsuleData, err)
 	}
-	// --- END FIX ---
 
 	newCap := capsule.Capsule{
-		Name:    extractor.MustGet("id"),
-		Version: extractor.MustGet("version"),
-		// --- THE FIX: Set the description field for Register ---
+		Name:        extractor.MustGet("id"),
+		Version:     extractor.MustGet("version"),
 		Description: extractor.MustGet("description"),
-		// --- END FIX ---
-		Content: string(bytes.TrimSpace(contentBody)),
+		Content:     string(bytes.TrimSpace(contentBody)),
 	}
 
-	// --- THE FIX: Call Register on the *store* ---
 	if err := store.Register(newCap); err != nil {
 		return nil, fmt.Errorf("failed to register new capsule: %w", err)
 	}
-	// --- END FIX ---
 
-	// --- THE FIX: Return the parsed metadata map, not capsuleToMap() ---
-	// This matches what the test expects and confirms what was parsed.
 	return map[string]interface{}{
-		"id":            newCap.Name, // 'id' in metadata maps to 'Name' in struct
+		"id":            newCap.Name,
 		"version":       newCap.Version,
 		"description":   newCap.Description,
 		"serialization": extractor.MustGet("serialization"),
 	}, nil
-	// --- END FIX ---
+}
+
+func parseCapsuleFunc(rt tool.Runtime, args []interface{}) (interface{}, error) {
+	content, ok := args[0].(string)
+	if !ok {
+		return nil, lang.ErrInvalidArgument
+	}
+
+	meta, _, detectedFormat, err := metadata.ParseWithAutoDetect(strings.NewReader(content))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse content: %w", err)
+	}
+
+	extractor := metadata.NewExtractor(meta)
+	if err := extractor.CheckRequired("id", "version", "description", "serialization"); err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrInvalidCapsuleData, err)
+	}
+
+	return map[string]interface{}{
+		"handle":      extractor.MustGet("id"),
+		"version":     extractor.MustGet("version"),
+		"description": extractor.MustGet("description"),
+		"mime":        extractor.GetOr("mime", toMimeType(detectedFormat)),
+	}, nil
+}
+
+func toMimeType(format string) string {
+	switch format {
+	case "md":
+		return "text/markdown"
+	case "ns":
+		return "application/x-neuroscript"
+	default:
+		return format
+	}
 }
 
 func capsuleToMap(c capsule.Capsule) map[string]interface{} {
 	return map[string]interface{}{
-		"id":          c.ID, // This is "name@version"
+		"id":          c.ID,
 		"name":        c.Name,
 		"version":     c.Version,
 		"description": c.Description,

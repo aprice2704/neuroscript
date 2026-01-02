@@ -1,9 +1,11 @@
-// NeuroScript Version: 0.7.2
-// File version: 7
-// Purpose: Updates the 'Add' tool's return type to map.
-// filename: pkg/tool/capsule/tooldefs.go
-// nlines: 78
-// risk_rating: HIGH
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 8
+// :: description: Tool definitions for the capsule toolset, providing List, Read, GetLatest, Add, and Parse.
+// :: latestChange: Added Parse tool definition to allow metadata extraction from raw content strings.
+// :: filename: pkg/tool/capsule/tooldefs.go
+// :: serialization: go
+
 package capsule
 
 import (
@@ -68,5 +70,18 @@ var CapsuleToolsToRegister = []tool.ToolImplementation{
 		RequiredCaps: []capability.Capability{
 			{Resource: "capsule", Verbs: []string{"write"}, Scopes: []string{"*"}},
 		},
+	},
+	{
+		Spec: tool.ToolSpec{
+			Name:        "Parse",
+			Group:       Group,
+			Description: "Parses a raw capsule string (Markdown or NeuroScript) and returns its metadata fields.",
+			Args: []tool.ArgSpec{
+				{Name: "content", Type: tool.ArgTypeString, Required: true},
+			},
+			ReturnType: tool.ArgTypeMap,
+		},
+		Func:          parseCapsuleFunc,
+		RequiresTrust: false,
 	},
 }

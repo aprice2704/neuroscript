@@ -1,10 +1,11 @@
-// NeuroScript Version: 0.8.0
-// File version: 17
-// Purpose: Fixes test failure by correctly asserting unwrapped slice as []any, not []string.
-// Latest change: Ripped out all provider/adminRegistry logic. Unified on WithCapsuleStore.
-// filename: pkg/tool/capsule/tools_test.go
-// nlines: 90
-// risk_rating: MEDIUM
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 19
+// :: description: Tests for the capsule toolset, including registry operations and the new metadata Parse tool.
+// :: latestChange: Fixed Parse tests by removing leading newlines in content and using ErrInvalidCapsuleData.
+// :: filename: pkg/tool/capsule/tools_test.go
+// :: serialization: go
+
 package capsule_test
 
 import (
@@ -31,7 +32,6 @@ type capsuleTestCase struct {
 	wantResult    interface{}
 	wantToolErrIs error
 	isPrivileged  bool
-	// provider interfaces.CapsuleProvider // REMOVED
 }
 
 func newCapsuleTestInterpreter(t *testing.T, isPrivileged bool) *interpreter.Interpreter {
@@ -52,22 +52,17 @@ func newCapsuleTestInterpreter(t *testing.T, isPrivileged bool) *interpreter.Int
 			Allow("tool.capsule.*").
 			Grant("capsule:write:*").
 			Build()
-		// --- THE FIX: Inject a writable *store* ---
-		// Layer 0: Writable (new) registry
-		// Layer 1: Built-in registry
 		writableStore := capsule.NewStore(capsule.NewRegistry(), capsule.BuiltInRegistry())
 		opts = append(opts, interpreter.WithCapsuleStore(writableStore))
-		// --- END FIX ---
 	} else {
 		testPolicy = policy.NewBuilder(policy.ContextNormal).
 			Allow(
 				"tool.capsule.List",
 				"tool.capsule.Read",
 				"tool.capsule.GetLatest",
+				"tool.capsule.Parse",
 			).Build()
-		// --- THE FIX: Unprivileged tests still need the default store ---
 		opts = append(opts, interpreter.WithCapsuleStore(capsule.DefaultStore()))
-		// --- END FIX ---
 	}
 	opts = append(opts, interpreter.WithExecPolicy(testPolicy))
 	opts = append(opts, interpreter.WithHostContext(hostCtx))
@@ -81,11 +76,6 @@ func testCapsuleToolHelper(t *testing.T, tc capsuleTestCase) {
 	t.Helper()
 
 	interp := newCapsuleTestInterpreter(t, tc.isPrivileged)
-
-	// Inject the provider -- REMOVED.
-	// if tc.provider != nil {
-	// 	interp.SetCapsuleProvider(tc.provider)
-	// }
 
 	if tc.setupFunc != nil {
 		if err := tc.setupFunc(t, interp); err != nil {
@@ -122,5 +112,57 @@ func testCapsuleToolHelper(t *testing.T, tc capsuleTestCase) {
 	}
 }
 
-// --- Mock Provider -- REMOVED ---
-// --- New Tests for Injected Provider -- REMOVED ---
+func TestCapsuleTools_Parse(t *testing.T) {
+	t.Run("Parse Markdown Content", func(t *testing.T) {
+		testCapsuleToolHelper(t, capsuleTestCase{
+			name:     "Valid MD with metadata at end",
+			toolName: "Parse",
+			args: []interface{}{`# MD Test
+Body content.
+
+---
+::id: capsule/test-md
+::version: 1
+::description: Test MD
+::serialization: md`},
+			wantResult: map[string]interface{}{
+				"handle":      "capsule/test-md",
+				"version":     "1",
+				"description": "Test MD",
+				"mime":        "text/markdown",
+			},
+		})
+	})
+
+	t.Run("Parse NeuroScript Content", func(t *testing.T) {
+		testCapsuleToolHelper(t, capsuleTestCase{
+			name:     "Valid NS with metadata at start",
+			toolName: "Parse",
+			args: []interface{}{`::id: capsule/test-ns
+::version: 5
+::description: Test NS
+::serialization: ns
+
+emit "test"
+`},
+			wantResult: map[string]interface{}{
+				"handle":      "capsule/test-ns",
+				"version":     "5",
+				"description": "Test NS",
+				"mime":        "application/x-neuroscript",
+			},
+		})
+	})
+
+	t.Run("Fails on Missing Required Fields", func(t *testing.T) {
+		testCapsuleToolHelper(t, capsuleTestCase{
+			name:     "Missing version",
+			toolName: "Parse",
+			args: []interface{}{`---
+::id: capsule/fail
+::description: Missing version
+::serialization: md`},
+			wantToolErrIs: toolcapsule.ErrInvalidCapsuleData,
+		})
+	})
+}
