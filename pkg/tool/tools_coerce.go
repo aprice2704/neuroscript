@@ -1,8 +1,8 @@
 // :: product: NS
 // :: majorVersion: 1
-// :: fileVersion: 4
+// :: fileVersion: 5
 // :: description: Refactored coercion to include NodeID, EntityID, and Handle validation.
-// :: latestChange: Added validation logic for ArgTypeNodeID, ArgTypeEntityID, and ArgTypeHandle.
+// :: latestChange: Added local lightweight validation for FDM ID types and support for unwrapping NSEntity maps.
 // :: filename: pkg/tool/tools_coerce.go
 // :: serialization: go
 
@@ -10,6 +10,7 @@ package tool
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -74,21 +75,37 @@ func coerceArg(x interface{}, t ArgType) (interface{}, error) {
 		return str, nil
 
 	case ArgTypeNodeID:
+		// Support extraction from NSEntity map (optimistic locking token)
+		if m, ok := x.(map[string]interface{}); ok {
+			if v, found := m["_version"]; found {
+				x = v
+			}
+		}
+
 		str, ok := x.(string)
 		if !ok {
-			return nil, fmt.Errorf("expected string for NodeID, got %T", x)
+			return nil, fmt.Errorf("expected string (or NSEntity with _version) for NodeID, got %T", x)
 		}
-		if !interfaces.IsNodeID(str) {
+		// Lightweight local check (N_...)
+		if !isNodeID(str) {
 			return nil, fmt.Errorf("invalid NodeID: must start with 'N_': %s", str)
 		}
 		return str, nil
 
 	case ArgTypeEntityID:
+		// Support extraction from NSEntity map
+		if m, ok := x.(map[string]interface{}); ok {
+			if v, found := m["id"]; found {
+				x = v
+			}
+		}
+
 		str, ok := x.(string)
 		if !ok {
-			return nil, fmt.Errorf("expected string for EntityID, got %T", x)
+			return nil, fmt.Errorf("expected string (or NSEntity with id) for EntityID, got %T", x)
 		}
-		if !interfaces.IsEntityID(str) {
+		// Lightweight local check (E_...)
+		if !isEntityID(str) {
 			return nil, fmt.Errorf("invalid EntityID: must start with 'E_': %s", str)
 		}
 		return str, nil
@@ -129,4 +146,13 @@ func coerceArg(x interface{}, t ArgType) (interface{}, error) {
 	}
 
 	return coerced, nil
+}
+
+// Local helpers for FDM ID validation to avoid external dependencies
+func isNodeID(s string) bool {
+	return len(s) > 2 && strings.HasPrefix(s, "N_")
+}
+
+func isEntityID(s string) bool {
+	return len(s) > 2 && strings.HasPrefix(s, "E_")
 }
