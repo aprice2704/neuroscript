@@ -1,8 +1,8 @@
 // :: product: NS
 // :: majorVersion: 1
-// :: fileVersion: 4
+// :: fileVersion: 5
 // :: description: Unit tests for tool argument coercion.
-// :: latestChange: Restored missing edge-case tests to fix unused variable warnings.
+// :: latestChange: Added test cases for NSEntity map coercion (EntityID pass-through and NodeID extraction).
 // :: filename: pkg/tool/tools_coerce_test.go
 // :: serialization: go
 
@@ -20,6 +20,21 @@ func TestCoerceArg(t *testing.T) {
 	sliceStringIn := []string{"a", "b"}
 	sliceIntIn := []int{1, 2}
 	sliceMapIn := []map[string]interface{}{{"a": 1}, {"b": 2}}
+
+	// NSEntity Fixtures
+	validEntityID := "E_01KDVGEDWRZC0EBS566QMM90GR"
+	validNodeID := "N_01KDVGEDX830JQB09F9CTRYF0W"
+	nsEntityMap := map[string]interface{}{
+		"id":       validEntityID,
+		"_version": validNodeID,
+		"fields":   map[string]interface{}{"foo": "bar"},
+	}
+	invalidEntityMap := map[string]interface{}{
+		"id": "bad_prefix",
+	}
+	missingIDMap := map[string]interface{}{
+		"foo": "bar",
+	}
 
 	// From lang package, as they would be after lang.Unwrap()
 	unwrappedNum := float64(123)
@@ -85,12 +100,17 @@ func TestCoerceArg(t *testing.T) {
 		{"invalid Handle (spaces)", "user profile", ArgTypeHandle, nil, true},
 
 		// --- ArgTypeNodeID ---
-		{"valid NodeID", "N_01KDVGEDX830JQB09F9CTRYF0W", ArgTypeNodeID, "N_01KDVGEDX830JQB09F9CTRYF0W", false},
+		{"valid NodeID (string)", validNodeID, ArgTypeNodeID, validNodeID, false},
 		{"invalid NodeID (wrong prefix)", "E_01KDVGEDX830JQB09F9CTRYF0W", ArgTypeNodeID, nil, true},
+		{"NodeID extraction from NSEntity", nsEntityMap, ArgTypeNodeID, validNodeID, false}, // Should extract _version
 
 		// --- ArgTypeEntityID ---
-		{"valid EntityID", "E_01KDVGEDWRZC0EBS566QMM90GR", ArgTypeEntityID, "E_01KDVGEDWRZC0EBS566QMM90GR", false},
-		{"invalid EntityID (wrong prefix)", "N_01KDVGEDWRZC0EBS566QMM90GR", ArgTypeEntityID, nil, true},
+		{"valid EntityID (string)", validEntityID, ArgTypeEntityID, validEntityID, false},
+		{"invalid EntityID (wrong prefix)", validNodeID, ArgTypeEntityID, nil, true},
+		// New Pass-through behavior:
+		{"NSEntity Map (pass-through)", nsEntityMap, ArgTypeEntityID, nsEntityMap, false},
+		{"NSEntity Map (bad ID)", invalidEntityMap, ArgTypeEntityID, nil, true},
+		{"NSEntity Map (missing ID)", missingIDMap, ArgTypeEntityID, nil, true},
 
 		// --- ArgTypeMap ---
 		{"map to map", unwrappedMap, ArgTypeMap, unwrappedMap, false},
