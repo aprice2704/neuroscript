@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.5.2
-// File version: 4
-// Purpose: Removed manual tool registration loop from newStringTestInterpreter. Registration is now handled by the package's init() function.
-// filename: pkg/tool/strtools/tools_string_basic_test.go
-// nlines: 201
-// risk_rating: LOW
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 5
+// :: description: Tests for basic string tools.
+// :: latestChange: Added tests for TrimPrefix and TrimSuffix.
+// :: filename: pkg/tool/strtools/tools_string_basic_test.go
+// :: serialization: go
 
 package strtools
 
@@ -198,6 +199,30 @@ func TestToolTrimSpace(t *testing.T) {
 		{name: "Trim Both", toolName: "TrimSpace", args: MakeArgs("  hello  "), wantResult: "hello"},
 		{name: "Trim Internal Space", toolName: "TrimSpace", args: MakeArgs(" hello world "), wantResult: "hello world"},
 		{name: "Validation Wrong Type", toolName: "TrimSpace", args: MakeArgs(123), wantErrIs: lang.ErrArgumentMismatch},
+	}
+	for _, tt := range tests {
+		testStringToolHelper(t, interp, tt)
+	}
+}
+
+func TestToolTrimPrefixSuffix(t *testing.T) {
+	interp := newStringTestInterpreter(t)
+	tests := []struct {
+		name       string
+		toolName   string
+		args       []interface{}
+		wantResult interface{}
+		wantErrIs  error
+	}{
+		{name: "TrimPrefix Match", toolName: "TrimPrefix", args: MakeArgs("hello world", "hello "), wantResult: "world"},
+		{name: "TrimPrefix NoMatch", toolName: "TrimPrefix", args: MakeArgs("hello world", "bye"), wantResult: "hello world"},
+		{name: "TrimPrefix Empty", toolName: "TrimPrefix", args: MakeArgs("hello", ""), wantResult: "hello"},
+		{name: "TrimPrefix WrongType", toolName: "TrimPrefix", args: MakeArgs(123, "a"), wantErrIs: lang.ErrArgumentMismatch},
+
+		{name: "TrimSuffix Match", toolName: "TrimSuffix", args: MakeArgs("filename.txt", ".txt"), wantResult: "filename"},
+		{name: "TrimSuffix NoMatch", toolName: "TrimSuffix", args: MakeArgs("filename.txt", ".jpg"), wantResult: "filename.txt"},
+		{name: "TrimSuffix Empty", toolName: "TrimSuffix", args: MakeArgs("hello", ""), wantResult: "hello"},
+		{name: "TrimSuffix WrongType", toolName: "TrimSuffix", args: MakeArgs(123, "a"), wantErrIs: lang.ErrArgumentMismatch},
 	}
 	for _, tt := range tests {
 		testStringToolHelper(t, interp, tt)

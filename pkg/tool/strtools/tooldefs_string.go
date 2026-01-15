@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.3.1
-// File version: 0.1.8
-// Purpose: Changed 'Join' and 'Concat' ArgType from SliceString to ArgTypeAny to allow generic lists.
-// filename: pkg/tool/strtools/tooldefs_string.go
-// nlines: 198
-// risk_rating: LOW
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 2
+// :: description: Defines string tools including TrimPrefix and TrimSuffix.
+// :: latestChange: Added TrimPrefix and TrimSuffix tool definitions.
+// :: filename: pkg/tool/strtools/tooldefs_string.go
+// :: serialization: go
 
 package strtools
 
@@ -97,6 +98,40 @@ var stringToolsToRegister = []tool.ToolImplementation{
 			ErrorConditions: "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if `input_string` is not a string.",
 		},
 		Func: toolStringTrimSpace,
+	},
+	{
+		Spec: tool.ToolSpec{
+			Name:        "TrimPrefix",
+			Group:       group,
+			Description: "Removes the prefix string from the input string if it exists.",
+			Category:    "String Operations",
+			Args: []tool.ArgSpec{
+				{Name: "input_string", Type: tool.ArgTypeString, Required: true, Description: "The string to trim."},
+				{Name: "prefix", Type: tool.ArgTypeString, Required: true, Description: "The prefix to remove."},
+			},
+			ReturnType:      tool.ArgTypeString,
+			ReturnHelp:      "Returns the string with the prefix removed. If the string doesn't start with the prefix, returns the original string.",
+			Example:         `tool.TrimPrefix("filename.txt", "filename") // Returns ".txt"`,
+			ErrorConditions: "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if arguments are not strings.",
+		},
+		Func: toolStringTrimPrefix,
+	},
+	{
+		Spec: tool.ToolSpec{
+			Name:        "TrimSuffix",
+			Group:       group,
+			Description: "Removes the suffix string from the input string if it exists.",
+			Category:    "String Operations",
+			Args: []tool.ArgSpec{
+				{Name: "input_string", Type: tool.ArgTypeString, Required: true, Description: "The string to trim."},
+				{Name: "suffix", Type: tool.ArgTypeString, Required: true, Description: "The suffix to remove."},
+			},
+			ReturnType:      tool.ArgTypeString,
+			ReturnHelp:      "Returns the string with the suffix removed. If the string doesn't end with the suffix, returns the original string.",
+			Example:         `tool.TrimSuffix("filename.txt", ".txt") // Returns "filename"`,
+			ErrorConditions: "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` (with `ErrorCodeType`) if arguments are not strings.",
+		},
+		Func: toolStringTrimSuffix,
 	},
 	{
 		Spec: tool.ToolSpec{
