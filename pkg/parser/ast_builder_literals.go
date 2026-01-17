@@ -1,9 +1,9 @@
-// NeuroScript Version: 0.7.0
-// File version: 11
-// Purpose: Implemented a manual un-quoter for single-quoted strings to bypass strconv.Unquote failure.
-// filename: pkg/parser/ast_builder_literals.go
-// nlines: 162
-// risk_rating: HIGH
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 12
+// :: description: Added support for TRIPLE_SQ_STRING (”') to ExitLiteral to fix AST builder crash.
+// :: filename: pkg/parser/ast_builder_literals.go
+// :: serialization: go
 package parser
 
 import (
@@ -56,6 +56,20 @@ func (l *neuroScriptListenerImpl) ExitLiteral(ctx *gen.LiteralContext) {
 		tokenText := token.GetText()
 		if len(tokenText) < 6 { // ```...```
 			l.addErrorf(token, "malformed triple-backtick string literal token (too short): %s", tokenText)
+			errorNode := &ast.ErrorNode{Message: "malformed raw string"}
+			nodeToPush = newNode(errorNode, token, types.KindUnknown)
+		} else {
+			rawContent := tokenText[3 : len(tokenText)-3]
+			node := &ast.StringLiteralNode{Value: rawContent, IsRaw: true}
+			nodeToPush = newNode(node, token, types.KindStringLiteral)
+		}
+		l.push(nodeToPush)
+	} else if tripleSqStrNode := ctx.TRIPLE_SQ_STRING(); tripleSqStrNode != nil {
+		// --- FIX: Handle Triple Single Quote Strings ---
+		token := tripleSqStrNode.GetSymbol()
+		tokenText := token.GetText()
+		if len(tokenText) < 6 { // '''...'''
+			l.addErrorf(token, "malformed triple-single-quote string literal token (too short): %s", tokenText)
 			errorNode := &ast.ErrorNode{Message: "malformed raw string"}
 			nodeToPush = newNode(errorNode, token, types.KindUnknown)
 		} else {

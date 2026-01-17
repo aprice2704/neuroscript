@@ -1,6 +1,5 @@
-// NeuroScript Version: 0.9.5 The ANTLR4 grammar for NeuroScript
+// NeuroScript Version: 0.9.7 Added Triple Single Quote support
 grammar NeuroScript;
-
 // --- LEXER RULES --- (Lexer rules are unchanged)
 LINE_ESCAPE_GLOBAL:
 	'\\' ('\r'? '\n' | '\r') -> channel(HIDDEN);
@@ -85,6 +84,8 @@ STRING_LIT:
 	'"' (STRING_DQ_ATOM)*? '"'
 	| '\'' (STRING_SQ_ATOM)*? '\'';
 TRIPLE_BACKTICK_STRING: '```' .*? '```';
+TRIPLE_SQ_STRING:
+	'\'\'\'' .*? '\'\'\''; // NEW: Triple Single Quotes
 fragment METADATA_CONTENT_ATOM:
 	EscapeSequence
 	| CONTINUED_LINE
@@ -300,6 +301,7 @@ placeholder:
 literal:
 	STRING_LIT
 	| TRIPLE_BACKTICK_STRING
+	| TRIPLE_SQ_STRING // NEW: Allowed in parser
 	| NUMBER_LIT
 	| list_literal
 	| map_literal

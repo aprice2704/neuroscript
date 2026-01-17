@@ -41,10 +41,10 @@ func neuroscriptParserInit() {
 		"'named'", "'needs'", "'nil'", "'no'", "'not'", "'on'", "'optional'",
 		"'or'", "'promptuser'", "'return'", "'returns'", "'set'", "'sin'", "'some'",
 		"'tan'", "'timedate'", "'tool'", "'true'", "'typeof'", "'while'", "'whisper'",
-		"'with'", "", "", "", "", "", "'='", "'+'", "'-'", "'*'", "'/'", "'%'",
-		"'**'", "'&'", "'|'", "'^'", "'~'", "'('", "')'", "','", "'['", "']'",
-		"'{'", "'}'", "':'", "'.'", "'{{'", "'=='", "'!='", "'>'", "'<'", "'>='",
-		"'<='",
+		"'with'", "", "", "", "", "", "", "'='", "'+'", "'-'", "'*'", "'/'",
+		"'%'", "'**'", "'&'", "'|'", "'^'", "'~'", "'('", "')'", "','", "'['",
+		"']'", "'{'", "'}'", "':'", "'.'", "'{{'", "'=='", "'!='", "'>'", "'<'",
+		"'>='", "'<='",
 	}
 	staticData.SymbolicNames = []string{
 		"", "LINE_ESCAPE_GLOBAL", "KW_ACOS", "KW_AND", "KW_AS", "KW_ASIN", "KW_ASK",
@@ -57,12 +57,12 @@ func neuroscriptParserInit() {
 		"KW_NO", "KW_NOT", "KW_ON", "KW_OPTIONAL", "KW_OR", "KW_PROMPTUSER",
 		"KW_RETURN", "KW_RETURNS", "KW_SET", "KW_SIN", "KW_SOME", "KW_TAN",
 		"KW_TIMEDATE", "KW_TOOL", "KW_TRUE", "KW_TYPEOF", "KW_WHILE", "KW_WHISPER",
-		"KW_WITH", "STRING_LIT", "TRIPLE_BACKTICK_STRING", "METADATA_LINE",
-		"NUMBER_LIT", "IDENTIFIER", "ASSIGN", "PLUS", "MINUS", "STAR", "SLASH",
-		"PERCENT", "STAR_STAR", "AMPERSAND", "PIPE", "CARET", "TILDE", "LPAREN",
-		"RPAREN", "COMMA", "LBRACK", "RBRACK", "LBRACE", "RBRACE", "COLON",
-		"DOT", "PLACEHOLDER_START", "EQ", "NEQ", "GT", "LT", "GTE", "LTE", "LINE_COMMENT",
-		"NEWLINE", "WS",
+		"KW_WITH", "STRING_LIT", "TRIPLE_BACKTICK_STRING", "TRIPLE_SQ_STRING",
+		"METADATA_LINE", "NUMBER_LIT", "IDENTIFIER", "ASSIGN", "PLUS", "MINUS",
+		"STAR", "SLASH", "PERCENT", "STAR_STAR", "AMPERSAND", "PIPE", "CARET",
+		"TILDE", "LPAREN", "RPAREN", "COMMA", "LBRACK", "RBRACK", "LBRACE",
+		"RBRACE", "COLON", "DOT", "PLACEHOLDER_START", "EQ", "NEQ", "GT", "LT",
+		"GTE", "LTE", "LINE_COMMENT", "NEWLINE", "WS",
 	}
 	staticData.RuleNames = []string{
 		"program", "file_header", "library_script", "command_script", "library_block",
@@ -86,7 +86,7 @@ func neuroscriptParserInit() {
 	}
 	staticData.PredictionContextCache = antlr.NewPredictionContextCache()
 	staticData.serializedATN = []int32{
-		4, 1, 99, 660, 2, 0, 7, 0, 2, 1, 7, 1, 2, 2, 7, 2, 2, 3, 7, 3, 2, 4, 7,
+		4, 1, 100, 661, 2, 0, 7, 0, 2, 1, 7, 1, 2, 2, 7, 2, 2, 3, 7, 3, 2, 4, 7,
 		4, 2, 5, 7, 5, 2, 6, 7, 6, 2, 7, 7, 7, 2, 8, 7, 8, 2, 9, 7, 9, 2, 10, 7,
 		10, 2, 11, 7, 11, 2, 12, 7, 12, 2, 13, 7, 13, 2, 14, 7, 14, 2, 15, 7, 15,
 		2, 16, 7, 16, 2, 17, 7, 17, 2, 18, 7, 18, 2, 19, 7, 19, 2, 20, 7, 20, 2,
@@ -150,19 +150,19 @@ func neuroscriptParserInit() {
 		1, 60, 1, 60, 1, 60, 1, 60, 1, 60, 1, 60, 1, 60, 1, 60, 3, 60, 590, 8,
 		60, 1, 61, 1, 61, 1, 61, 1, 61, 1, 61, 1, 61, 1, 61, 1, 61, 1, 61, 1, 61,
 		3, 61, 602, 8, 61, 1, 61, 1, 61, 1, 61, 1, 61, 1, 62, 1, 62, 1, 62, 1,
-		62, 1, 62, 1, 63, 1, 63, 1, 63, 1, 63, 1, 63, 1, 63, 1, 63, 3, 63, 620,
-		8, 63, 1, 64, 1, 64, 1, 65, 1, 65, 1, 66, 1, 66, 1, 66, 1, 66, 1, 67, 1,
-		67, 1, 67, 1, 67, 1, 68, 3, 68, 635, 8, 68, 1, 69, 1, 69, 1, 69, 5, 69,
-		640, 8, 69, 10, 69, 12, 69, 643, 9, 69, 1, 70, 3, 70, 646, 8, 70, 1, 71,
-		1, 71, 1, 71, 5, 71, 651, 8, 71, 10, 71, 12, 71, 654, 9, 71, 1, 72, 1,
-		72, 1, 72, 1, 72, 1, 72, 0, 0, 73, 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20,
-		22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56,
-		58, 60, 62, 64, 66, 68, 70, 72, 74, 76, 78, 80, 82, 84, 86, 88, 90, 92,
-		94, 96, 98, 100, 102, 104, 106, 108, 110, 112, 114, 116, 118, 120, 122,
-		124, 126, 128, 130, 132, 134, 136, 138, 140, 142, 144, 0, 8, 2, 0, 67,
-		67, 98, 98, 1, 0, 91, 92, 1, 0, 93, 96, 1, 0, 71, 72, 1, 0, 73, 75, 4,
-		0, 46, 47, 56, 56, 72, 72, 80, 80, 2, 0, 36, 36, 69, 69, 2, 0, 29, 29,
-		60, 60, 691, 0, 146, 1, 0, 0, 0, 2, 156, 1, 0, 0, 0, 4, 160, 1, 0, 0, 0,
+		62, 1, 62, 1, 63, 1, 63, 1, 63, 1, 63, 1, 63, 1, 63, 1, 63, 1, 63, 3, 63,
+		621, 8, 63, 1, 64, 1, 64, 1, 65, 1, 65, 1, 66, 1, 66, 1, 66, 1, 66, 1,
+		67, 1, 67, 1, 67, 1, 67, 1, 68, 3, 68, 636, 8, 68, 1, 69, 1, 69, 1, 69,
+		5, 69, 641, 8, 69, 10, 69, 12, 69, 644, 9, 69, 1, 70, 3, 70, 647, 8, 70,
+		1, 71, 1, 71, 1, 71, 5, 71, 652, 8, 71, 10, 71, 12, 71, 655, 9, 71, 1,
+		72, 1, 72, 1, 72, 1, 72, 1, 72, 0, 0, 73, 0, 2, 4, 6, 8, 10, 12, 14, 16,
+		18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52,
+		54, 56, 58, 60, 62, 64, 66, 68, 70, 72, 74, 76, 78, 80, 82, 84, 86, 88,
+		90, 92, 94, 96, 98, 100, 102, 104, 106, 108, 110, 112, 114, 116, 118, 120,
+		122, 124, 126, 128, 130, 132, 134, 136, 138, 140, 142, 144, 0, 8, 2, 0,
+		68, 68, 99, 99, 1, 0, 92, 93, 1, 0, 94, 97, 1, 0, 72, 73, 1, 0, 74, 76,
+		4, 0, 46, 47, 56, 56, 73, 73, 81, 81, 2, 0, 36, 36, 70, 70, 2, 0, 29, 29,
+		60, 60, 693, 0, 146, 1, 0, 0, 0, 2, 156, 1, 0, 0, 0, 4, 160, 1, 0, 0, 0,
 		6, 165, 1, 0, 0, 0, 8, 172, 1, 0, 0, 0, 10, 180, 1, 0, 0, 0, 12, 194, 1,
 		0, 0, 0, 14, 209, 1, 0, 0, 0, 16, 214, 1, 0, 0, 0, 18, 216, 1, 0, 0, 0,
 		20, 230, 1, 0, 0, 0, 22, 232, 1, 0, 0, 0, 24, 259, 1, 0, 0, 0, 26, 261,
@@ -180,10 +180,10 @@ func neuroscriptParserInit() {
 		0, 0, 104, 513, 1, 0, 0, 0, 106, 521, 1, 0, 0, 0, 108, 529, 1, 0, 0, 0,
 		110, 537, 1, 0, 0, 0, 112, 545, 1, 0, 0, 0, 114, 558, 1, 0, 0, 0, 116,
 		560, 1, 0, 0, 0, 118, 565, 1, 0, 0, 0, 120, 589, 1, 0, 0, 0, 122, 601,
-		1, 0, 0, 0, 124, 607, 1, 0, 0, 0, 126, 619, 1, 0, 0, 0, 128, 621, 1, 0,
-		0, 0, 130, 623, 1, 0, 0, 0, 132, 625, 1, 0, 0, 0, 134, 629, 1, 0, 0, 0,
-		136, 634, 1, 0, 0, 0, 138, 636, 1, 0, 0, 0, 140, 645, 1, 0, 0, 0, 142,
-		647, 1, 0, 0, 0, 144, 655, 1, 0, 0, 0, 146, 149, 3, 2, 1, 0, 147, 150,
+		1, 0, 0, 0, 124, 607, 1, 0, 0, 0, 126, 620, 1, 0, 0, 0, 128, 622, 1, 0,
+		0, 0, 130, 624, 1, 0, 0, 0, 132, 626, 1, 0, 0, 0, 134, 630, 1, 0, 0, 0,
+		136, 635, 1, 0, 0, 0, 138, 637, 1, 0, 0, 0, 140, 646, 1, 0, 0, 0, 142,
+		648, 1, 0, 0, 0, 144, 656, 1, 0, 0, 0, 146, 149, 3, 2, 1, 0, 147, 150,
 		3, 4, 2, 0, 148, 150, 3, 6, 3, 0, 149, 147, 1, 0, 0, 0, 149, 148, 1, 0,
 		0, 0, 149, 150, 1, 0, 0, 0, 150, 151, 1, 0, 0, 0, 151, 152, 5, 0, 0, 1,
 		152, 1, 1, 0, 0, 0, 153, 155, 7, 0, 0, 0, 154, 153, 1, 0, 0, 0, 155, 158,
@@ -194,18 +194,18 @@ func neuroscriptParserInit() {
 		0, 167, 165, 1, 0, 0, 0, 167, 168, 1, 0, 0, 0, 168, 7, 1, 0, 0, 0, 169,
 		173, 3, 22, 11, 0, 170, 171, 5, 48, 0, 0, 171, 173, 3, 52, 26, 0, 172,
 		169, 1, 0, 0, 0, 172, 170, 1, 0, 0, 0, 173, 177, 1, 0, 0, 0, 174, 176,
-		5, 98, 0, 0, 175, 174, 1, 0, 0, 0, 176, 179, 1, 0, 0, 0, 177, 175, 1, 0,
+		5, 99, 0, 0, 175, 174, 1, 0, 0, 0, 176, 179, 1, 0, 0, 0, 177, 175, 1, 0,
 		0, 0, 177, 178, 1, 0, 0, 0, 178, 9, 1, 0, 0, 0, 179, 177, 1, 0, 0, 0, 180,
-		181, 5, 12, 0, 0, 181, 182, 5, 98, 0, 0, 182, 183, 3, 34, 17, 0, 183, 184,
-		3, 12, 6, 0, 184, 188, 5, 19, 0, 0, 185, 187, 5, 98, 0, 0, 186, 185, 1,
+		181, 5, 12, 0, 0, 181, 182, 5, 99, 0, 0, 182, 183, 3, 34, 17, 0, 183, 184,
+		3, 12, 6, 0, 184, 188, 5, 19, 0, 0, 185, 187, 5, 99, 0, 0, 186, 185, 1,
 		0, 0, 0, 187, 190, 1, 0, 0, 0, 188, 186, 1, 0, 0, 0, 188, 189, 1, 0, 0,
-		0, 189, 11, 1, 0, 0, 0, 190, 188, 1, 0, 0, 0, 191, 193, 5, 98, 0, 0, 192,
+		0, 189, 11, 1, 0, 0, 0, 190, 188, 1, 0, 0, 0, 191, 193, 5, 99, 0, 0, 192,
 		191, 1, 0, 0, 0, 193, 196, 1, 0, 0, 0, 194, 192, 1, 0, 0, 0, 194, 195,
 		1, 0, 0, 0, 195, 197, 1, 0, 0, 0, 196, 194, 1, 0, 0, 0, 197, 198, 3, 16,
-		8, 0, 198, 202, 5, 98, 0, 0, 199, 201, 3, 14, 7, 0, 200, 199, 1, 0, 0,
+		8, 0, 198, 202, 5, 99, 0, 0, 199, 201, 3, 14, 7, 0, 200, 199, 1, 0, 0,
 		0, 201, 204, 1, 0, 0, 0, 202, 200, 1, 0, 0, 0, 202, 203, 1, 0, 0, 0, 203,
 		13, 1, 0, 0, 0, 204, 202, 1, 0, 0, 0, 205, 206, 3, 16, 8, 0, 206, 207,
-		5, 98, 0, 0, 207, 210, 1, 0, 0, 0, 208, 210, 5, 98, 0, 0, 209, 205, 1,
+		5, 99, 0, 0, 207, 210, 1, 0, 0, 0, 208, 210, 5, 99, 0, 0, 209, 205, 1,
 		0, 0, 0, 209, 208, 1, 0, 0, 0, 210, 15, 1, 0, 0, 0, 211, 215, 3, 20, 10,
 		0, 212, 215, 3, 46, 23, 0, 213, 215, 3, 18, 9, 0, 214, 211, 1, 0, 0, 0,
 		214, 212, 1, 0, 0, 0, 214, 213, 1, 0, 0, 0, 215, 17, 1, 0, 0, 0, 216, 217,
@@ -217,13 +217,13 @@ func neuroscriptParserInit() {
 		0, 0, 230, 221, 1, 0, 0, 0, 230, 222, 1, 0, 0, 0, 230, 223, 1, 0, 0, 0,
 		230, 224, 1, 0, 0, 0, 230, 225, 1, 0, 0, 0, 230, 226, 1, 0, 0, 0, 230,
 		227, 1, 0, 0, 0, 230, 228, 1, 0, 0, 0, 230, 229, 1, 0, 0, 0, 231, 21, 1,
-		0, 0, 0, 232, 233, 5, 31, 0, 0, 233, 234, 5, 69, 0, 0, 234, 235, 3, 24,
-		12, 0, 235, 236, 5, 40, 0, 0, 236, 237, 5, 98, 0, 0, 237, 238, 3, 34, 17,
+		0, 0, 0, 232, 233, 5, 31, 0, 0, 233, 234, 5, 70, 0, 0, 234, 235, 3, 24,
+		12, 0, 235, 236, 5, 40, 0, 0, 236, 237, 5, 99, 0, 0, 237, 238, 3, 34, 17,
 		0, 238, 239, 3, 36, 18, 0, 239, 240, 5, 21, 0, 0, 240, 23, 1, 0, 0, 0,
-		241, 247, 5, 81, 0, 0, 242, 246, 3, 26, 13, 0, 243, 246, 3, 28, 14, 0,
+		241, 247, 5, 82, 0, 0, 242, 246, 3, 26, 13, 0, 243, 246, 3, 28, 14, 0,
 		244, 246, 3, 30, 15, 0, 245, 242, 1, 0, 0, 0, 245, 243, 1, 0, 0, 0, 245,
 		244, 1, 0, 0, 0, 246, 249, 1, 0, 0, 0, 247, 245, 1, 0, 0, 0, 247, 248,
-		1, 0, 0, 0, 248, 250, 1, 0, 0, 0, 249, 247, 1, 0, 0, 0, 250, 260, 5, 82,
+		1, 0, 0, 0, 248, 250, 1, 0, 0, 0, 249, 247, 1, 0, 0, 0, 250, 260, 5, 83,
 		0, 0, 251, 255, 3, 26, 13, 0, 252, 255, 3, 28, 14, 0, 253, 255, 3, 30,
 		15, 0, 254, 251, 1, 0, 0, 0, 254, 252, 1, 0, 0, 0, 254, 253, 1, 0, 0, 0,
 		255, 256, 1, 0, 0, 0, 256, 254, 1, 0, 0, 0, 256, 257, 1, 0, 0, 0, 257,
@@ -231,21 +231,21 @@ func neuroscriptParserInit() {
 		1, 0, 0, 0, 259, 258, 1, 0, 0, 0, 260, 25, 1, 0, 0, 0, 261, 262, 5, 44,
 		0, 0, 262, 263, 3, 32, 16, 0, 263, 27, 1, 0, 0, 0, 264, 265, 5, 49, 0,
 		0, 265, 266, 3, 32, 16, 0, 266, 29, 1, 0, 0, 0, 267, 268, 5, 53, 0, 0,
-		268, 269, 3, 32, 16, 0, 269, 31, 1, 0, 0, 0, 270, 275, 5, 69, 0, 0, 271,
-		272, 5, 83, 0, 0, 272, 274, 5, 69, 0, 0, 273, 271, 1, 0, 0, 0, 274, 277,
+		268, 269, 3, 32, 16, 0, 269, 31, 1, 0, 0, 0, 270, 275, 5, 70, 0, 0, 271,
+		272, 5, 84, 0, 0, 272, 274, 5, 70, 0, 0, 273, 271, 1, 0, 0, 0, 274, 277,
 		1, 0, 0, 0, 275, 273, 1, 0, 0, 0, 275, 276, 1, 0, 0, 0, 276, 33, 1, 0,
-		0, 0, 277, 275, 1, 0, 0, 0, 278, 279, 5, 67, 0, 0, 279, 281, 5, 98, 0,
+		0, 0, 277, 275, 1, 0, 0, 0, 278, 279, 5, 68, 0, 0, 279, 281, 5, 99, 0,
 		0, 280, 278, 1, 0, 0, 0, 281, 284, 1, 0, 0, 0, 282, 280, 1, 0, 0, 0, 282,
 		283, 1, 0, 0, 0, 283, 35, 1, 0, 0, 0, 284, 282, 1, 0, 0, 0, 285, 287, 5,
-		98, 0, 0, 286, 285, 1, 0, 0, 0, 287, 290, 1, 0, 0, 0, 288, 286, 1, 0, 0,
+		99, 0, 0, 286, 285, 1, 0, 0, 0, 287, 290, 1, 0, 0, 0, 288, 286, 1, 0, 0,
 		0, 288, 289, 1, 0, 0, 0, 289, 291, 1, 0, 0, 0, 290, 288, 1, 0, 0, 0, 291,
-		292, 3, 42, 21, 0, 292, 296, 5, 98, 0, 0, 293, 295, 3, 40, 20, 0, 294,
+		292, 3, 42, 21, 0, 292, 296, 5, 99, 0, 0, 293, 295, 3, 40, 20, 0, 294,
 		293, 1, 0, 0, 0, 295, 298, 1, 0, 0, 0, 296, 294, 1, 0, 0, 0, 296, 297,
 		1, 0, 0, 0, 297, 37, 1, 0, 0, 0, 298, 296, 1, 0, 0, 0, 299, 301, 3, 40,
 		20, 0, 300, 299, 1, 0, 0, 0, 301, 304, 1, 0, 0, 0, 302, 300, 1, 0, 0, 0,
 		302, 303, 1, 0, 0, 0, 303, 39, 1, 0, 0, 0, 304, 302, 1, 0, 0, 0, 305, 306,
-		3, 42, 21, 0, 306, 307, 5, 98, 0, 0, 307, 310, 1, 0, 0, 0, 308, 310, 5,
-		98, 0, 0, 309, 305, 1, 0, 0, 0, 309, 308, 1, 0, 0, 0, 310, 41, 1, 0, 0,
+		3, 42, 21, 0, 306, 307, 5, 99, 0, 0, 307, 310, 1, 0, 0, 0, 308, 310, 5,
+		99, 0, 0, 309, 305, 1, 0, 0, 0, 309, 308, 1, 0, 0, 0, 310, 41, 1, 0, 0,
 		0, 311, 315, 3, 44, 22, 0, 312, 315, 3, 46, 23, 0, 313, 315, 3, 48, 24,
 		0, 314, 311, 1, 0, 0, 0, 314, 312, 1, 0, 0, 0, 314, 313, 1, 0, 0, 0, 315,
 		43, 1, 0, 0, 0, 316, 330, 3, 60, 30, 0, 317, 330, 3, 62, 31, 0, 318, 330,
@@ -261,52 +261,52 @@ func neuroscriptParserInit() {
 		0, 0, 334, 332, 1, 0, 0, 0, 334, 333, 1, 0, 0, 0, 335, 47, 1, 0, 0, 0,
 		336, 339, 5, 48, 0, 0, 337, 340, 3, 50, 25, 0, 338, 340, 3, 52, 26, 0,
 		339, 337, 1, 0, 0, 0, 339, 338, 1, 0, 0, 0, 340, 49, 1, 0, 0, 0, 341, 342,
-		5, 25, 0, 0, 342, 343, 5, 15, 0, 0, 343, 344, 5, 98, 0, 0, 344, 345, 3,
+		5, 25, 0, 0, 342, 343, 5, 15, 0, 0, 343, 344, 5, 99, 0, 0, 344, 345, 3,
 		36, 18, 0, 345, 346, 5, 23, 0, 0, 346, 51, 1, 0, 0, 0, 347, 348, 5, 27,
 		0, 0, 348, 351, 3, 94, 47, 0, 349, 350, 5, 43, 0, 0, 350, 352, 5, 65, 0,
 		0, 351, 349, 1, 0, 0, 0, 351, 352, 1, 0, 0, 0, 352, 355, 1, 0, 0, 0, 353,
-		354, 5, 4, 0, 0, 354, 356, 5, 69, 0, 0, 355, 353, 1, 0, 0, 0, 355, 356,
-		1, 0, 0, 0, 356, 357, 1, 0, 0, 0, 357, 358, 5, 15, 0, 0, 358, 359, 5, 98,
+		354, 5, 4, 0, 0, 354, 356, 5, 70, 0, 0, 355, 353, 1, 0, 0, 0, 355, 356,
+		1, 0, 0, 0, 356, 357, 1, 0, 0, 0, 357, 358, 5, 15, 0, 0, 358, 359, 5, 99,
 		0, 0, 359, 360, 3, 36, 18, 0, 360, 361, 5, 23, 0, 0, 361, 53, 1, 0, 0,
 		0, 362, 363, 5, 10, 0, 0, 363, 367, 5, 27, 0, 0, 364, 368, 3, 94, 47, 0,
 		365, 366, 5, 43, 0, 0, 366, 368, 5, 65, 0, 0, 367, 364, 1, 0, 0, 0, 367,
-		365, 1, 0, 0, 0, 368, 55, 1, 0, 0, 0, 369, 378, 5, 69, 0, 0, 370, 371,
-		5, 84, 0, 0, 371, 372, 3, 94, 47, 0, 372, 373, 5, 85, 0, 0, 373, 377, 1,
-		0, 0, 0, 374, 375, 5, 89, 0, 0, 375, 377, 5, 69, 0, 0, 376, 370, 1, 0,
+		365, 1, 0, 0, 0, 368, 55, 1, 0, 0, 0, 369, 378, 5, 70, 0, 0, 370, 371,
+		5, 85, 0, 0, 371, 372, 3, 94, 47, 0, 372, 373, 5, 86, 0, 0, 373, 377, 1,
+		0, 0, 0, 374, 375, 5, 90, 0, 0, 375, 377, 5, 70, 0, 0, 376, 370, 1, 0,
 		0, 0, 376, 374, 1, 0, 0, 0, 377, 380, 1, 0, 0, 0, 378, 376, 1, 0, 0, 0,
 		378, 379, 1, 0, 0, 0, 379, 57, 1, 0, 0, 0, 380, 378, 1, 0, 0, 0, 381, 386,
-		3, 56, 28, 0, 382, 383, 5, 83, 0, 0, 383, 385, 3, 56, 28, 0, 384, 382,
+		3, 56, 28, 0, 382, 383, 5, 84, 0, 0, 383, 385, 3, 56, 28, 0, 384, 382,
 		1, 0, 0, 0, 385, 388, 1, 0, 0, 0, 386, 384, 1, 0, 0, 0, 386, 387, 1, 0,
 		0, 0, 387, 59, 1, 0, 0, 0, 388, 386, 1, 0, 0, 0, 389, 390, 5, 54, 0, 0,
-		390, 391, 3, 58, 29, 0, 391, 392, 5, 70, 0, 0, 392, 393, 3, 94, 47, 0,
+		390, 391, 3, 58, 29, 0, 391, 392, 5, 71, 0, 0, 392, 393, 3, 94, 47, 0,
 		393, 61, 1, 0, 0, 0, 394, 395, 5, 9, 0, 0, 395, 396, 3, 122, 61, 0, 396,
 		63, 1, 0, 0, 0, 397, 399, 5, 52, 0, 0, 398, 400, 3, 138, 69, 0, 399, 398,
 		1, 0, 0, 0, 399, 400, 1, 0, 0, 0, 400, 65, 1, 0, 0, 0, 401, 402, 5, 18,
 		0, 0, 402, 403, 3, 94, 47, 0, 403, 67, 1, 0, 0, 0, 404, 405, 5, 63, 0,
-		0, 405, 406, 3, 94, 47, 0, 406, 407, 5, 83, 0, 0, 407, 408, 3, 94, 47,
+		0, 405, 406, 3, 94, 47, 0, 406, 407, 5, 84, 0, 0, 407, 408, 3, 94, 47,
 		0, 408, 69, 1, 0, 0, 0, 409, 410, 5, 41, 0, 0, 410, 411, 3, 94, 47, 0,
 		411, 71, 1, 0, 0, 0, 412, 414, 5, 28, 0, 0, 413, 415, 3, 94, 47, 0, 414,
 		413, 1, 0, 0, 0, 414, 415, 1, 0, 0, 0, 415, 73, 1, 0, 0, 0, 416, 417, 5,
 		11, 0, 0, 417, 75, 1, 0, 0, 0, 418, 419, 5, 6, 0, 0, 419, 420, 3, 94, 47,
-		0, 420, 421, 5, 83, 0, 0, 421, 424, 3, 94, 47, 0, 422, 423, 5, 64, 0, 0,
+		0, 420, 421, 5, 84, 0, 0, 421, 424, 3, 94, 47, 0, 422, 423, 5, 64, 0, 0,
 		423, 425, 3, 94, 47, 0, 424, 422, 1, 0, 0, 0, 424, 425, 1, 0, 0, 0, 425,
 		428, 1, 0, 0, 0, 426, 427, 5, 35, 0, 0, 427, 429, 3, 56, 28, 0, 428, 426,
 		1, 0, 0, 0, 428, 429, 1, 0, 0, 0, 429, 77, 1, 0, 0, 0, 430, 431, 5, 51,
 		0, 0, 431, 432, 3, 94, 47, 0, 432, 433, 5, 35, 0, 0, 433, 434, 3, 56, 28,
 		0, 434, 79, 1, 0, 0, 0, 435, 436, 5, 8, 0, 0, 436, 81, 1, 0, 0, 0, 437,
 		438, 5, 13, 0, 0, 438, 83, 1, 0, 0, 0, 439, 440, 5, 33, 0, 0, 440, 441,
-		3, 94, 47, 0, 441, 442, 5, 98, 0, 0, 442, 446, 3, 36, 18, 0, 443, 444,
-		5, 17, 0, 0, 444, 445, 5, 98, 0, 0, 445, 447, 3, 36, 18, 0, 446, 443, 1,
+		3, 94, 47, 0, 441, 442, 5, 99, 0, 0, 442, 446, 3, 36, 18, 0, 443, 444,
+		5, 17, 0, 0, 444, 445, 5, 99, 0, 0, 445, 447, 3, 36, 18, 0, 446, 443, 1,
 		0, 0, 0, 446, 447, 1, 0, 0, 0, 447, 448, 1, 0, 0, 0, 448, 449, 5, 22, 0,
 		0, 449, 85, 1, 0, 0, 0, 450, 451, 5, 62, 0, 0, 451, 452, 3, 94, 47, 0,
-		452, 453, 5, 98, 0, 0, 453, 454, 3, 36, 18, 0, 454, 455, 5, 24, 0, 0, 455,
+		452, 453, 5, 99, 0, 0, 453, 454, 3, 36, 18, 0, 454, 455, 5, 24, 0, 0, 455,
 		87, 1, 0, 0, 0, 456, 457, 5, 30, 0, 0, 457, 458, 5, 16, 0, 0, 458, 459,
-		5, 69, 0, 0, 459, 460, 5, 34, 0, 0, 460, 461, 3, 94, 47, 0, 461, 462, 5,
-		98, 0, 0, 462, 463, 3, 36, 18, 0, 463, 464, 5, 20, 0, 0, 464, 89, 1, 0,
-		0, 0, 465, 470, 5, 69, 0, 0, 466, 467, 5, 89, 0, 0, 467, 469, 5, 69, 0,
+		5, 70, 0, 0, 459, 460, 5, 34, 0, 0, 460, 461, 3, 94, 47, 0, 461, 462, 5,
+		99, 0, 0, 462, 463, 3, 36, 18, 0, 463, 464, 5, 20, 0, 0, 464, 89, 1, 0,
+		0, 0, 465, 470, 5, 70, 0, 0, 466, 467, 5, 90, 0, 0, 467, 469, 5, 70, 0,
 		0, 468, 466, 1, 0, 0, 0, 469, 472, 1, 0, 0, 0, 470, 468, 1, 0, 0, 0, 470,
 		471, 1, 0, 0, 0, 471, 91, 1, 0, 0, 0, 472, 470, 1, 0, 0, 0, 473, 478, 5,
-		69, 0, 0, 474, 475, 5, 59, 0, 0, 475, 476, 5, 89, 0, 0, 476, 478, 3, 90,
+		70, 0, 0, 474, 475, 5, 59, 0, 0, 475, 476, 5, 90, 0, 0, 476, 478, 3, 90,
 		45, 0, 477, 473, 1, 0, 0, 0, 477, 474, 1, 0, 0, 0, 478, 93, 1, 0, 0, 0,
 		479, 480, 3, 96, 48, 0, 480, 95, 1, 0, 0, 0, 481, 486, 3, 98, 49, 0, 482,
 		483, 5, 50, 0, 0, 483, 485, 3, 98, 49, 0, 484, 482, 1, 0, 0, 0, 485, 488,
@@ -314,13 +314,13 @@ func neuroscriptParserInit() {
 		0, 0, 488, 486, 1, 0, 0, 0, 489, 494, 3, 100, 50, 0, 490, 491, 5, 3, 0,
 		0, 491, 493, 3, 100, 50, 0, 492, 490, 1, 0, 0, 0, 493, 496, 1, 0, 0, 0,
 		494, 492, 1, 0, 0, 0, 494, 495, 1, 0, 0, 0, 495, 99, 1, 0, 0, 0, 496, 494,
-		1, 0, 0, 0, 497, 502, 3, 102, 51, 0, 498, 499, 5, 78, 0, 0, 499, 501, 3,
+		1, 0, 0, 0, 497, 502, 3, 102, 51, 0, 498, 499, 5, 79, 0, 0, 499, 501, 3,
 		102, 51, 0, 500, 498, 1, 0, 0, 0, 501, 504, 1, 0, 0, 0, 502, 500, 1, 0,
 		0, 0, 502, 503, 1, 0, 0, 0, 503, 101, 1, 0, 0, 0, 504, 502, 1, 0, 0, 0,
-		505, 510, 3, 104, 52, 0, 506, 507, 5, 79, 0, 0, 507, 509, 3, 104, 52, 0,
+		505, 510, 3, 104, 52, 0, 506, 507, 5, 80, 0, 0, 507, 509, 3, 104, 52, 0,
 		508, 506, 1, 0, 0, 0, 509, 512, 1, 0, 0, 0, 510, 508, 1, 0, 0, 0, 510,
 		511, 1, 0, 0, 0, 511, 103, 1, 0, 0, 0, 512, 510, 1, 0, 0, 0, 513, 518,
-		3, 106, 53, 0, 514, 515, 5, 77, 0, 0, 515, 517, 3, 106, 53, 0, 516, 514,
+		3, 106, 53, 0, 514, 515, 5, 78, 0, 0, 515, 517, 3, 106, 53, 0, 516, 514,
 		1, 0, 0, 0, 517, 520, 1, 0, 0, 0, 518, 516, 1, 0, 0, 0, 518, 519, 1, 0,
 		0, 0, 519, 105, 1, 0, 0, 0, 520, 518, 1, 0, 0, 0, 521, 526, 3, 108, 54,
 		0, 522, 523, 7, 1, 0, 0, 523, 525, 3, 108, 54, 0, 524, 522, 1, 0, 0, 0,
@@ -337,16 +337,16 @@ func neuroscriptParserInit() {
 		553, 554, 7, 5, 0, 0, 554, 559, 3, 114, 57, 0, 555, 556, 5, 61, 0, 0, 556,
 		559, 3, 114, 57, 0, 557, 559, 3, 116, 58, 0, 558, 553, 1, 0, 0, 0, 558,
 		555, 1, 0, 0, 0, 558, 557, 1, 0, 0, 0, 559, 115, 1, 0, 0, 0, 560, 563,
-		3, 118, 59, 0, 561, 562, 5, 76, 0, 0, 562, 564, 3, 116, 58, 0, 563, 561,
+		3, 118, 59, 0, 561, 562, 5, 77, 0, 0, 562, 564, 3, 116, 58, 0, 563, 561,
 		1, 0, 0, 0, 563, 564, 1, 0, 0, 0, 564, 117, 1, 0, 0, 0, 565, 572, 3, 120,
-		60, 0, 566, 567, 5, 84, 0, 0, 567, 568, 3, 94, 47, 0, 568, 569, 5, 85,
+		60, 0, 566, 567, 5, 85, 0, 0, 567, 568, 3, 94, 47, 0, 568, 569, 5, 86,
 		0, 0, 569, 571, 1, 0, 0, 0, 570, 566, 1, 0, 0, 0, 571, 574, 1, 0, 0, 0,
 		572, 570, 1, 0, 0, 0, 572, 573, 1, 0, 0, 0, 573, 119, 1, 0, 0, 0, 574,
 		572, 1, 0, 0, 0, 575, 590, 3, 126, 63, 0, 576, 590, 3, 124, 62, 0, 577,
-		590, 5, 69, 0, 0, 578, 590, 5, 36, 0, 0, 579, 590, 3, 122, 61, 0, 580,
-		581, 5, 26, 0, 0, 581, 582, 5, 81, 0, 0, 582, 583, 3, 94, 47, 0, 583, 584,
-		5, 82, 0, 0, 584, 590, 1, 0, 0, 0, 585, 586, 5, 81, 0, 0, 586, 587, 3,
-		94, 47, 0, 587, 588, 5, 82, 0, 0, 588, 590, 1, 0, 0, 0, 589, 575, 1, 0,
+		590, 5, 70, 0, 0, 578, 590, 5, 36, 0, 0, 579, 590, 3, 122, 61, 0, 580,
+		581, 5, 26, 0, 0, 581, 582, 5, 82, 0, 0, 582, 583, 3, 94, 47, 0, 583, 584,
+		5, 83, 0, 0, 584, 590, 1, 0, 0, 0, 585, 586, 5, 82, 0, 0, 586, 587, 3,
+		94, 47, 0, 587, 588, 5, 83, 0, 0, 588, 590, 1, 0, 0, 0, 589, 575, 1, 0,
 		0, 0, 589, 576, 1, 0, 0, 0, 589, 577, 1, 0, 0, 0, 589, 578, 1, 0, 0, 0,
 		589, 579, 1, 0, 0, 0, 589, 580, 1, 0, 0, 0, 589, 585, 1, 0, 0, 0, 590,
 		121, 1, 0, 0, 0, 591, 602, 3, 92, 46, 0, 592, 602, 5, 38, 0, 0, 593, 602,
@@ -355,32 +355,33 @@ func neuroscriptParserInit() {
 		0, 600, 602, 5, 37, 0, 0, 601, 591, 1, 0, 0, 0, 601, 592, 1, 0, 0, 0, 601,
 		593, 1, 0, 0, 0, 601, 594, 1, 0, 0, 0, 601, 595, 1, 0, 0, 0, 601, 596,
 		1, 0, 0, 0, 601, 597, 1, 0, 0, 0, 601, 598, 1, 0, 0, 0, 601, 599, 1, 0,
-		0, 0, 601, 600, 1, 0, 0, 0, 602, 603, 1, 0, 0, 0, 603, 604, 5, 81, 0, 0,
-		604, 605, 3, 136, 68, 0, 605, 606, 5, 82, 0, 0, 606, 123, 1, 0, 0, 0, 607,
-		608, 5, 90, 0, 0, 608, 609, 7, 6, 0, 0, 609, 610, 5, 87, 0, 0, 610, 611,
-		5, 87, 0, 0, 611, 125, 1, 0, 0, 0, 612, 620, 5, 65, 0, 0, 613, 620, 5,
-		66, 0, 0, 614, 620, 5, 68, 0, 0, 615, 620, 3, 132, 66, 0, 616, 620, 3,
-		134, 67, 0, 617, 620, 3, 130, 65, 0, 618, 620, 3, 128, 64, 0, 619, 612,
-		1, 0, 0, 0, 619, 613, 1, 0, 0, 0, 619, 614, 1, 0, 0, 0, 619, 615, 1, 0,
-		0, 0, 619, 616, 1, 0, 0, 0, 619, 617, 1, 0, 0, 0, 619, 618, 1, 0, 0, 0,
-		620, 127, 1, 0, 0, 0, 621, 622, 5, 45, 0, 0, 622, 129, 1, 0, 0, 0, 623,
-		624, 7, 7, 0, 0, 624, 131, 1, 0, 0, 0, 625, 626, 5, 84, 0, 0, 626, 627,
-		3, 136, 68, 0, 627, 628, 5, 85, 0, 0, 628, 133, 1, 0, 0, 0, 629, 630, 5,
-		86, 0, 0, 630, 631, 3, 140, 70, 0, 631, 632, 5, 87, 0, 0, 632, 135, 1,
-		0, 0, 0, 633, 635, 3, 138, 69, 0, 634, 633, 1, 0, 0, 0, 634, 635, 1, 0,
-		0, 0, 635, 137, 1, 0, 0, 0, 636, 641, 3, 94, 47, 0, 637, 638, 5, 83, 0,
-		0, 638, 640, 3, 94, 47, 0, 639, 637, 1, 0, 0, 0, 640, 643, 1, 0, 0, 0,
-		641, 639, 1, 0, 0, 0, 641, 642, 1, 0, 0, 0, 642, 139, 1, 0, 0, 0, 643,
-		641, 1, 0, 0, 0, 644, 646, 3, 142, 71, 0, 645, 644, 1, 0, 0, 0, 645, 646,
-		1, 0, 0, 0, 646, 141, 1, 0, 0, 0, 647, 652, 3, 144, 72, 0, 648, 649, 5,
-		83, 0, 0, 649, 651, 3, 144, 72, 0, 650, 648, 1, 0, 0, 0, 651, 654, 1, 0,
-		0, 0, 652, 650, 1, 0, 0, 0, 652, 653, 1, 0, 0, 0, 653, 143, 1, 0, 0, 0,
-		654, 652, 1, 0, 0, 0, 655, 656, 5, 65, 0, 0, 656, 657, 5, 88, 0, 0, 657,
-		658, 3, 94, 47, 0, 658, 145, 1, 0, 0, 0, 59, 149, 156, 162, 167, 172, 177,
-		188, 194, 202, 209, 214, 230, 245, 247, 254, 256, 259, 275, 282, 288, 296,
-		302, 309, 314, 329, 334, 339, 351, 355, 367, 376, 378, 386, 399, 414, 424,
-		428, 446, 470, 477, 486, 494, 502, 510, 518, 526, 534, 542, 550, 558, 563,
-		572, 589, 601, 619, 634, 641, 645, 652,
+		0, 0, 601, 600, 1, 0, 0, 0, 602, 603, 1, 0, 0, 0, 603, 604, 5, 82, 0, 0,
+		604, 605, 3, 136, 68, 0, 605, 606, 5, 83, 0, 0, 606, 123, 1, 0, 0, 0, 607,
+		608, 5, 91, 0, 0, 608, 609, 7, 6, 0, 0, 609, 610, 5, 88, 0, 0, 610, 611,
+		5, 88, 0, 0, 611, 125, 1, 0, 0, 0, 612, 621, 5, 65, 0, 0, 613, 621, 5,
+		66, 0, 0, 614, 621, 5, 67, 0, 0, 615, 621, 5, 69, 0, 0, 616, 621, 3, 132,
+		66, 0, 617, 621, 3, 134, 67, 0, 618, 621, 3, 130, 65, 0, 619, 621, 3, 128,
+		64, 0, 620, 612, 1, 0, 0, 0, 620, 613, 1, 0, 0, 0, 620, 614, 1, 0, 0, 0,
+		620, 615, 1, 0, 0, 0, 620, 616, 1, 0, 0, 0, 620, 617, 1, 0, 0, 0, 620,
+		618, 1, 0, 0, 0, 620, 619, 1, 0, 0, 0, 621, 127, 1, 0, 0, 0, 622, 623,
+		5, 45, 0, 0, 623, 129, 1, 0, 0, 0, 624, 625, 7, 7, 0, 0, 625, 131, 1, 0,
+		0, 0, 626, 627, 5, 85, 0, 0, 627, 628, 3, 136, 68, 0, 628, 629, 5, 86,
+		0, 0, 629, 133, 1, 0, 0, 0, 630, 631, 5, 87, 0, 0, 631, 632, 3, 140, 70,
+		0, 632, 633, 5, 88, 0, 0, 633, 135, 1, 0, 0, 0, 634, 636, 3, 138, 69, 0,
+		635, 634, 1, 0, 0, 0, 635, 636, 1, 0, 0, 0, 636, 137, 1, 0, 0, 0, 637,
+		642, 3, 94, 47, 0, 638, 639, 5, 84, 0, 0, 639, 641, 3, 94, 47, 0, 640,
+		638, 1, 0, 0, 0, 641, 644, 1, 0, 0, 0, 642, 640, 1, 0, 0, 0, 642, 643,
+		1, 0, 0, 0, 643, 139, 1, 0, 0, 0, 644, 642, 1, 0, 0, 0, 645, 647, 3, 142,
+		71, 0, 646, 645, 1, 0, 0, 0, 646, 647, 1, 0, 0, 0, 647, 141, 1, 0, 0, 0,
+		648, 653, 3, 144, 72, 0, 649, 650, 5, 84, 0, 0, 650, 652, 3, 144, 72, 0,
+		651, 649, 1, 0, 0, 0, 652, 655, 1, 0, 0, 0, 653, 651, 1, 0, 0, 0, 653,
+		654, 1, 0, 0, 0, 654, 143, 1, 0, 0, 0, 655, 653, 1, 0, 0, 0, 656, 657,
+		5, 65, 0, 0, 657, 658, 5, 89, 0, 0, 658, 659, 3, 94, 47, 0, 659, 145, 1,
+		0, 0, 0, 59, 149, 156, 162, 167, 172, 177, 188, 194, 202, 209, 214, 230,
+		245, 247, 254, 256, 259, 275, 282, 288, 296, 302, 309, 314, 329, 334, 339,
+		351, 355, 367, 376, 378, 386, 399, 414, 424, 428, 446, 470, 477, 486, 494,
+		502, 510, 518, 526, 534, 542, 550, 558, 563, 572, 589, 601, 620, 635, 642,
+		646, 653,
 	}
 	deserializer := antlr.NewATNDeserializer(nil)
 	staticData.atn = deserializer.Deserialize(staticData.serializedATN)
@@ -485,39 +486,40 @@ const (
 	NeuroScriptParserKW_WITH                = 64
 	NeuroScriptParserSTRING_LIT             = 65
 	NeuroScriptParserTRIPLE_BACKTICK_STRING = 66
-	NeuroScriptParserMETADATA_LINE          = 67
-	NeuroScriptParserNUMBER_LIT             = 68
-	NeuroScriptParserIDENTIFIER             = 69
-	NeuroScriptParserASSIGN                 = 70
-	NeuroScriptParserPLUS                   = 71
-	NeuroScriptParserMINUS                  = 72
-	NeuroScriptParserSTAR                   = 73
-	NeuroScriptParserSLASH                  = 74
-	NeuroScriptParserPERCENT                = 75
-	NeuroScriptParserSTAR_STAR              = 76
-	NeuroScriptParserAMPERSAND              = 77
-	NeuroScriptParserPIPE                   = 78
-	NeuroScriptParserCARET                  = 79
-	NeuroScriptParserTILDE                  = 80
-	NeuroScriptParserLPAREN                 = 81
-	NeuroScriptParserRPAREN                 = 82
-	NeuroScriptParserCOMMA                  = 83
-	NeuroScriptParserLBRACK                 = 84
-	NeuroScriptParserRBRACK                 = 85
-	NeuroScriptParserLBRACE                 = 86
-	NeuroScriptParserRBRACE                 = 87
-	NeuroScriptParserCOLON                  = 88
-	NeuroScriptParserDOT                    = 89
-	NeuroScriptParserPLACEHOLDER_START      = 90
-	NeuroScriptParserEQ                     = 91
-	NeuroScriptParserNEQ                    = 92
-	NeuroScriptParserGT                     = 93
-	NeuroScriptParserLT                     = 94
-	NeuroScriptParserGTE                    = 95
-	NeuroScriptParserLTE                    = 96
-	NeuroScriptParserLINE_COMMENT           = 97
-	NeuroScriptParserNEWLINE                = 98
-	NeuroScriptParserWS                     = 99
+	NeuroScriptParserTRIPLE_SQ_STRING       = 67
+	NeuroScriptParserMETADATA_LINE          = 68
+	NeuroScriptParserNUMBER_LIT             = 69
+	NeuroScriptParserIDENTIFIER             = 70
+	NeuroScriptParserASSIGN                 = 71
+	NeuroScriptParserPLUS                   = 72
+	NeuroScriptParserMINUS                  = 73
+	NeuroScriptParserSTAR                   = 74
+	NeuroScriptParserSLASH                  = 75
+	NeuroScriptParserPERCENT                = 76
+	NeuroScriptParserSTAR_STAR              = 77
+	NeuroScriptParserAMPERSAND              = 78
+	NeuroScriptParserPIPE                   = 79
+	NeuroScriptParserCARET                  = 80
+	NeuroScriptParserTILDE                  = 81
+	NeuroScriptParserLPAREN                 = 82
+	NeuroScriptParserRPAREN                 = 83
+	NeuroScriptParserCOMMA                  = 84
+	NeuroScriptParserLBRACK                 = 85
+	NeuroScriptParserRBRACK                 = 86
+	NeuroScriptParserLBRACE                 = 87
+	NeuroScriptParserRBRACE                 = 88
+	NeuroScriptParserCOLON                  = 89
+	NeuroScriptParserDOT                    = 90
+	NeuroScriptParserPLACEHOLDER_START      = 91
+	NeuroScriptParserEQ                     = 92
+	NeuroScriptParserNEQ                    = 93
+	NeuroScriptParserGT                     = 94
+	NeuroScriptParserLT                     = 95
+	NeuroScriptParserGTE                    = 96
+	NeuroScriptParserLTE                    = 97
+	NeuroScriptParserLINE_COMMENT           = 98
+	NeuroScriptParserNEWLINE                = 99
+	NeuroScriptParserWS                     = 100
 )
 
 // NeuroScriptParser rules.
@@ -5970,7 +5972,7 @@ func (p *NeuroScriptParser) ClearEventStmt() (localctx IClearEventStmtContext) {
 	}
 
 	switch p.GetTokenStream().LA(1) {
-	case NeuroScriptParserKW_ACOS, NeuroScriptParserKW_ASIN, NeuroScriptParserKW_ATAN, NeuroScriptParserKW_COS, NeuroScriptParserKW_EVAL, NeuroScriptParserKW_FALSE, NeuroScriptParserKW_LAST, NeuroScriptParserKW_LEN, NeuroScriptParserKW_LN, NeuroScriptParserKW_LOG, NeuroScriptParserKW_NIL, NeuroScriptParserKW_NO, NeuroScriptParserKW_NOT, NeuroScriptParserKW_SIN, NeuroScriptParserKW_SOME, NeuroScriptParserKW_TAN, NeuroScriptParserKW_TOOL, NeuroScriptParserKW_TRUE, NeuroScriptParserKW_TYPEOF, NeuroScriptParserSTRING_LIT, NeuroScriptParserTRIPLE_BACKTICK_STRING, NeuroScriptParserNUMBER_LIT, NeuroScriptParserIDENTIFIER, NeuroScriptParserMINUS, NeuroScriptParserTILDE, NeuroScriptParserLPAREN, NeuroScriptParserLBRACK, NeuroScriptParserLBRACE, NeuroScriptParserPLACEHOLDER_START:
+	case NeuroScriptParserKW_ACOS, NeuroScriptParserKW_ASIN, NeuroScriptParserKW_ATAN, NeuroScriptParserKW_COS, NeuroScriptParserKW_EVAL, NeuroScriptParserKW_FALSE, NeuroScriptParserKW_LAST, NeuroScriptParserKW_LEN, NeuroScriptParserKW_LN, NeuroScriptParserKW_LOG, NeuroScriptParserKW_NIL, NeuroScriptParserKW_NO, NeuroScriptParserKW_NOT, NeuroScriptParserKW_SIN, NeuroScriptParserKW_SOME, NeuroScriptParserKW_TAN, NeuroScriptParserKW_TOOL, NeuroScriptParserKW_TRUE, NeuroScriptParserKW_TYPEOF, NeuroScriptParserSTRING_LIT, NeuroScriptParserTRIPLE_BACKTICK_STRING, NeuroScriptParserTRIPLE_SQ_STRING, NeuroScriptParserNUMBER_LIT, NeuroScriptParserIDENTIFIER, NeuroScriptParserMINUS, NeuroScriptParserTILDE, NeuroScriptParserLPAREN, NeuroScriptParserLBRACK, NeuroScriptParserLBRACE, NeuroScriptParserPLACEHOLDER_START:
 		{
 			p.SetState(364)
 			p.Expression()
@@ -6851,7 +6853,7 @@ func (p *NeuroScriptParser) Return_statement() (localctx IReturn_statementContex
 	}
 	_la = p.GetTokenStream().LA(1)
 
-	if ((int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&4287674167257481380) != 0) || ((int64((_la-65)) & ^0x3f) == 0 && ((int64(1)<<(_la-65))&36274331) != 0) {
+	if ((int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&4287674167257481380) != 0) || ((int64((_la-65)) & ^0x3f) == 0 && ((int64(1)<<(_la-65))&72548663) != 0) {
 		{
 			p.SetState(398)
 			p.Expression_list()
@@ -7414,7 +7416,7 @@ func (p *NeuroScriptParser) Fail_statement() (localctx IFail_statementContext) {
 	}
 	_la = p.GetTokenStream().LA(1)
 
-	if ((int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&4287674167257481380) != 0) || ((int64((_la-65)) & ^0x3f) == 0 && ((int64(1)<<(_la-65))&36274331) != 0) {
+	if ((int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&4287674167257481380) != 0) || ((int64((_la-65)) & ^0x3f) == 0 && ((int64(1)<<(_la-65))&72548663) != 0) {
 		{
 			p.SetState(413)
 			p.Expression()
@@ -10492,12 +10494,12 @@ func (p *NeuroScriptParser) Relational_expr() (localctx IRelational_exprContext)
 	}
 	_la = p.GetTokenStream().LA(1)
 
-	for (int64((_la-93)) & ^0x3f) == 0 && ((int64(1)<<(_la-93))&15) != 0 {
+	for (int64((_la-94)) & ^0x3f) == 0 && ((int64(1)<<(_la-94))&15) != 0 {
 		{
 			p.SetState(530)
 			_la = p.GetTokenStream().LA(1)
 
-			if !((int64((_la-93)) & ^0x3f) == 0 && ((int64(1)<<(_la-93))&15) != 0) {
+			if !((int64((_la-94)) & ^0x3f) == 0 && ((int64(1)<<(_la-94))&15) != 0) {
 				p.GetErrorHandler().RecoverInline(p)
 			} else {
 				p.GetErrorHandler().ReportMatch(p)
@@ -10888,12 +10890,12 @@ func (p *NeuroScriptParser) Multiplicative_expr() (localctx IMultiplicative_expr
 	}
 	_la = p.GetTokenStream().LA(1)
 
-	for (int64((_la-73)) & ^0x3f) == 0 && ((int64(1)<<(_la-73))&7) != 0 {
+	for (int64((_la-74)) & ^0x3f) == 0 && ((int64(1)<<(_la-74))&7) != 0 {
 		{
 			p.SetState(546)
 			_la = p.GetTokenStream().LA(1)
 
-			if !((int64((_la-73)) & ^0x3f) == 0 && ((int64(1)<<(_la-73))&7) != 0) {
+			if !((int64((_la-74)) & ^0x3f) == 0 && ((int64(1)<<(_la-74))&7) != 0) {
 				p.GetErrorHandler().RecoverInline(p)
 			} else {
 				p.GetErrorHandler().ReportMatch(p)
@@ -11083,7 +11085,7 @@ func (p *NeuroScriptParser) Unary_expr() (localctx IUnary_exprContext) {
 			p.SetState(553)
 			_la = p.GetTokenStream().LA(1)
 
-			if !((int64((_la-46)) & ^0x3f) == 0 && ((int64(1)<<(_la-46))&17246979075) != 0) {
+			if !((int64((_la-46)) & ^0x3f) == 0 && ((int64(1)<<(_la-46))&34493957123) != 0) {
 				p.GetErrorHandler().RecoverInline(p)
 			} else {
 				p.GetErrorHandler().ReportMatch(p)
@@ -11110,7 +11112,7 @@ func (p *NeuroScriptParser) Unary_expr() (localctx IUnary_exprContext) {
 			p.Unary_expr()
 		}
 
-	case NeuroScriptParserKW_ACOS, NeuroScriptParserKW_ASIN, NeuroScriptParserKW_ATAN, NeuroScriptParserKW_COS, NeuroScriptParserKW_EVAL, NeuroScriptParserKW_FALSE, NeuroScriptParserKW_LAST, NeuroScriptParserKW_LEN, NeuroScriptParserKW_LN, NeuroScriptParserKW_LOG, NeuroScriptParserKW_NIL, NeuroScriptParserKW_SIN, NeuroScriptParserKW_TAN, NeuroScriptParserKW_TOOL, NeuroScriptParserKW_TRUE, NeuroScriptParserSTRING_LIT, NeuroScriptParserTRIPLE_BACKTICK_STRING, NeuroScriptParserNUMBER_LIT, NeuroScriptParserIDENTIFIER, NeuroScriptParserLPAREN, NeuroScriptParserLBRACK, NeuroScriptParserLBRACE, NeuroScriptParserPLACEHOLDER_START:
+	case NeuroScriptParserKW_ACOS, NeuroScriptParserKW_ASIN, NeuroScriptParserKW_ATAN, NeuroScriptParserKW_COS, NeuroScriptParserKW_EVAL, NeuroScriptParserKW_FALSE, NeuroScriptParserKW_LAST, NeuroScriptParserKW_LEN, NeuroScriptParserKW_LN, NeuroScriptParserKW_LOG, NeuroScriptParserKW_NIL, NeuroScriptParserKW_SIN, NeuroScriptParserKW_TAN, NeuroScriptParserKW_TOOL, NeuroScriptParserKW_TRUE, NeuroScriptParserSTRING_LIT, NeuroScriptParserTRIPLE_BACKTICK_STRING, NeuroScriptParserTRIPLE_SQ_STRING, NeuroScriptParserNUMBER_LIT, NeuroScriptParserIDENTIFIER, NeuroScriptParserLPAREN, NeuroScriptParserLBRACK, NeuroScriptParserLBRACE, NeuroScriptParserPLACEHOLDER_START:
 		p.EnterOuterAlt(localctx, 3)
 		{
 			p.SetState(557)
@@ -12276,6 +12278,7 @@ type ILiteralContext interface {
 	// Getter signatures
 	STRING_LIT() antlr.TerminalNode
 	TRIPLE_BACKTICK_STRING() antlr.TerminalNode
+	TRIPLE_SQ_STRING() antlr.TerminalNode
 	NUMBER_LIT() antlr.TerminalNode
 	List_literal() IList_literalContext
 	Map_literal() IMap_literalContext
@@ -12324,6 +12327,10 @@ func (s *LiteralContext) STRING_LIT() antlr.TerminalNode {
 
 func (s *LiteralContext) TRIPLE_BACKTICK_STRING() antlr.TerminalNode {
 	return s.GetToken(NeuroScriptParserTRIPLE_BACKTICK_STRING, 0)
+}
+
+func (s *LiteralContext) TRIPLE_SQ_STRING() antlr.TerminalNode {
+	return s.GetToken(NeuroScriptParserTRIPLE_SQ_STRING, 0)
 }
 
 func (s *LiteralContext) NUMBER_LIT() antlr.TerminalNode {
@@ -12427,7 +12434,7 @@ func (s *LiteralContext) Accept(visitor antlr.ParseTreeVisitor) interface{} {
 func (p *NeuroScriptParser) Literal() (localctx ILiteralContext) {
 	localctx = NewLiteralContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 126, NeuroScriptParserRULE_literal)
-	p.SetState(619)
+	p.SetState(620)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
@@ -12456,10 +12463,21 @@ func (p *NeuroScriptParser) Literal() (localctx ILiteralContext) {
 			}
 		}
 
-	case NeuroScriptParserNUMBER_LIT:
+	case NeuroScriptParserTRIPLE_SQ_STRING:
 		p.EnterOuterAlt(localctx, 3)
 		{
 			p.SetState(614)
+			p.Match(NeuroScriptParserTRIPLE_SQ_STRING)
+			if p.HasError() {
+				// Recognition error - abort rule
+				goto errorExit
+			}
+		}
+
+	case NeuroScriptParserNUMBER_LIT:
+		p.EnterOuterAlt(localctx, 4)
+		{
+			p.SetState(615)
 			p.Match(NeuroScriptParserNUMBER_LIT)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -12468,30 +12486,30 @@ func (p *NeuroScriptParser) Literal() (localctx ILiteralContext) {
 		}
 
 	case NeuroScriptParserLBRACK:
-		p.EnterOuterAlt(localctx, 4)
+		p.EnterOuterAlt(localctx, 5)
 		{
-			p.SetState(615)
+			p.SetState(616)
 			p.List_literal()
 		}
 
 	case NeuroScriptParserLBRACE:
-		p.EnterOuterAlt(localctx, 5)
+		p.EnterOuterAlt(localctx, 6)
 		{
-			p.SetState(616)
+			p.SetState(617)
 			p.Map_literal()
 		}
 
 	case NeuroScriptParserKW_FALSE, NeuroScriptParserKW_TRUE:
-		p.EnterOuterAlt(localctx, 6)
+		p.EnterOuterAlt(localctx, 7)
 		{
-			p.SetState(617)
+			p.SetState(618)
 			p.Boolean_literal()
 		}
 
 	case NeuroScriptParserKW_NIL:
-		p.EnterOuterAlt(localctx, 7)
+		p.EnterOuterAlt(localctx, 8)
 		{
-			p.SetState(618)
+			p.SetState(619)
 			p.Nil_literal()
 		}
 
@@ -12598,7 +12616,7 @@ func (p *NeuroScriptParser) Nil_literal() (localctx INil_literalContext) {
 	p.EnterRule(localctx, 128, NeuroScriptParserRULE_nil_literal)
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(621)
+		p.SetState(622)
 		p.Match(NeuroScriptParserKW_NIL)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -12711,7 +12729,7 @@ func (p *NeuroScriptParser) Boolean_literal() (localctx IBoolean_literalContext)
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(623)
+		p.SetState(624)
 		_la = p.GetTokenStream().LA(1)
 
 		if !(_la == NeuroScriptParserKW_FALSE || _la == NeuroScriptParserKW_TRUE) {
@@ -12842,7 +12860,7 @@ func (p *NeuroScriptParser) List_literal() (localctx IList_literalContext) {
 	p.EnterRule(localctx, 132, NeuroScriptParserRULE_list_literal)
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(625)
+		p.SetState(626)
 		p.Match(NeuroScriptParserLBRACK)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -12850,11 +12868,11 @@ func (p *NeuroScriptParser) List_literal() (localctx IList_literalContext) {
 		}
 	}
 	{
-		p.SetState(626)
+		p.SetState(627)
 		p.Expression_list_opt()
 	}
 	{
-		p.SetState(627)
+		p.SetState(628)
 		p.Match(NeuroScriptParserRBRACK)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -12982,7 +13000,7 @@ func (p *NeuroScriptParser) Map_literal() (localctx IMap_literalContext) {
 	p.EnterRule(localctx, 134, NeuroScriptParserRULE_map_literal)
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(629)
+		p.SetState(630)
 		p.Match(NeuroScriptParserLBRACE)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -12990,11 +13008,11 @@ func (p *NeuroScriptParser) Map_literal() (localctx IMap_literalContext) {
 		}
 	}
 	{
-		p.SetState(630)
+		p.SetState(631)
 		p.Map_entry_list_opt()
 	}
 	{
-		p.SetState(631)
+		p.SetState(632)
 		p.Match(NeuroScriptParserRBRACE)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -13113,16 +13131,16 @@ func (p *NeuroScriptParser) Expression_list_opt() (localctx IExpression_list_opt
 	var _la int
 
 	p.EnterOuterAlt(localctx, 1)
-	p.SetState(634)
+	p.SetState(635)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
 	}
 	_la = p.GetTokenStream().LA(1)
 
-	if ((int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&4287674167257481380) != 0) || ((int64((_la-65)) & ^0x3f) == 0 && ((int64(1)<<(_la-65))&36274331) != 0) {
+	if ((int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&4287674167257481380) != 0) || ((int64((_la-65)) & ^0x3f) == 0 && ((int64(1)<<(_la-65))&72548663) != 0) {
 		{
-			p.SetState(633)
+			p.SetState(634)
 			p.Expression_list()
 		}
 
@@ -13276,10 +13294,10 @@ func (p *NeuroScriptParser) Expression_list() (localctx IExpression_listContext)
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(636)
+		p.SetState(637)
 		p.Expression()
 	}
-	p.SetState(641)
+	p.SetState(642)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
@@ -13288,7 +13306,7 @@ func (p *NeuroScriptParser) Expression_list() (localctx IExpression_listContext)
 
 	for _la == NeuroScriptParserCOMMA {
 		{
-			p.SetState(637)
+			p.SetState(638)
 			p.Match(NeuroScriptParserCOMMA)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -13296,11 +13314,11 @@ func (p *NeuroScriptParser) Expression_list() (localctx IExpression_listContext)
 			}
 		}
 		{
-			p.SetState(638)
+			p.SetState(639)
 			p.Expression()
 		}
 
-		p.SetState(643)
+		p.SetState(644)
 		p.GetErrorHandler().Sync(p)
 		if p.HasError() {
 			goto errorExit
@@ -13419,7 +13437,7 @@ func (p *NeuroScriptParser) Map_entry_list_opt() (localctx IMap_entry_list_optCo
 	var _la int
 
 	p.EnterOuterAlt(localctx, 1)
-	p.SetState(645)
+	p.SetState(646)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
@@ -13428,7 +13446,7 @@ func (p *NeuroScriptParser) Map_entry_list_opt() (localctx IMap_entry_list_optCo
 
 	if _la == NeuroScriptParserSTRING_LIT {
 		{
-			p.SetState(644)
+			p.SetState(645)
 			p.Map_entry_list()
 		}
 
@@ -13582,10 +13600,10 @@ func (p *NeuroScriptParser) Map_entry_list() (localctx IMap_entry_listContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(647)
+		p.SetState(648)
 		p.Map_entry()
 	}
-	p.SetState(652)
+	p.SetState(653)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
@@ -13594,7 +13612,7 @@ func (p *NeuroScriptParser) Map_entry_list() (localctx IMap_entry_listContext) {
 
 	for _la == NeuroScriptParserCOMMA {
 		{
-			p.SetState(648)
+			p.SetState(649)
 			p.Match(NeuroScriptParserCOMMA)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -13602,11 +13620,11 @@ func (p *NeuroScriptParser) Map_entry_list() (localctx IMap_entry_listContext) {
 			}
 		}
 		{
-			p.SetState(649)
+			p.SetState(650)
 			p.Map_entry()
 		}
 
-		p.SetState(654)
+		p.SetState(655)
 		p.GetErrorHandler().Sync(p)
 		if p.HasError() {
 			goto errorExit
@@ -13734,7 +13752,7 @@ func (p *NeuroScriptParser) Map_entry() (localctx IMap_entryContext) {
 	p.EnterRule(localctx, 144, NeuroScriptParserRULE_map_entry)
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(655)
+		p.SetState(656)
 		p.Match(NeuroScriptParserSTRING_LIT)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -13742,7 +13760,7 @@ func (p *NeuroScriptParser) Map_entry() (localctx IMap_entryContext) {
 		}
 	}
 	{
-		p.SetState(656)
+		p.SetState(657)
 		p.Match(NeuroScriptParserCOLON)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -13750,7 +13768,7 @@ func (p *NeuroScriptParser) Map_entry() (localctx IMap_entryContext) {
 		}
 	}
 	{
-		p.SetState(657)
+		p.SetState(658)
 		p.Expression()
 	}
 
