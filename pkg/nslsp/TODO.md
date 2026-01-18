@@ -6,4 +6,4 @@
 
 3. func something() without 'means' does not cause error squiggle it should
 
-4. nsfmt should not return error on syntax errs, just do nothing
+4. DONE: nsfmt should not return error on syntax errs, just do nothing

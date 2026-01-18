@@ -1,8 +1,8 @@
 // :: product: FDM/NS
 // :: majorVersion: 1
-// :: fileVersion: 14
+// :: fileVersion: 16
 // :: description: Implements all LSP request handler methods.
-// :: latestChange: FIX: defined InitializeParamsExtended to handle WorkspaceFolders which is missing from the older go-lsp struct.
+// :: latestChange: Fixed syntax error in WorkspaceFolder struct definition (added missing 'string' type).
 // :: filename: pkg/nslsp/handlers.go
 // :: serialization: go
 package nslsp
@@ -212,8 +212,11 @@ func (s *Server) handleTextDocumentFormatting(ctx context.Context, conn *jsonrpc
 
 	formatted, err := nsfmt.Format([]byte(content))
 	if err != nil {
-		s.logger.Printf("Formatting failed for %s: %v", params.TextDocument.URI, err)
-		return nil, &jsonrpc2.Error{Code: jsonrpc2.CodeInternalError, Message: fmt.Sprintf("nsfmt failed: %v", err)}
+		// FIX: If formatting fails (e.g. syntax error), we do NOT return an RPC error.
+		// Returning an RPC error causes VS Code to focus the Output channel, which is annoying.
+		// We just log it and return no edits (nil).
+		s.logger.Printf("Formatting failed (suppressed) for %s: %v", params.TextDocument.URI, err)
+		return nil, nil
 	}
 
 	lines := strings.Split(content, "\n")

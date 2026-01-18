@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.8.0
-// File version: 4
-// Purpose: Defines extra string/codec tools. Added pretty_print, prefix, and indent args to ToJsonString. Added ParseJsonString.
-// filename: pkg/tool/strtools/tooldefs_string_extra.go
-// nlines: 88
-// risk_rating: LOW
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 5
+// :: description: Defines extra string/codec tools. Updated ToJsonString description to reflect it accepts any type.
+// :: latestChange: Updated ToJsonString docs for Any type support.
+// :: filename: pkg/tool/strtools/tooldefs_string_extra.go
+// :: serialization: go
 
 package strtools
 
@@ -27,7 +28,7 @@ var stringExtraToolsToRegister = []tool.ToolImplementation{
 			Example:         `str.BytesFromBase64("SGVsbG8gV29ybGQ=") // Returns "Hello World"`,
 			ErrorConditions: "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` if input is not a string, invalid Base64, or not valid UTF-8.",
 		},
-		Func: toolBytesFromBase64, // Renamed implementation function
+		Func: toolBytesFromBase64,
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -43,7 +44,7 @@ var stringExtraToolsToRegister = []tool.ToolImplementation{
 			Example:         `str.BytesToBase64("Hello World") // Returns "SGVsbG8gV29ybGQ="`,
 			ErrorConditions: "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided or input is not a string.",
 		},
-		Func: toolBytesToBase64, // Renamed implementation function
+		Func: toolBytesToBase64,
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -59,7 +60,7 @@ var stringExtraToolsToRegister = []tool.ToolImplementation{
 			Example:         `str.ParseFromJsonBase64("eyJrZXkiOiAidmFsdWUifQ==") // Returns {"key": "value"}`,
 			ErrorConditions: "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` if input is not a string, invalid Base64, or invalid JSON.",
 		},
-		Func: toolParseFromJsonBase64, // Renamed implementation function
+		Func: toolParseFromJsonBase64,
 	},
 	{
 		Spec: tool.ToolSpec{
@@ -75,25 +76,25 @@ var stringExtraToolsToRegister = []tool.ToolImplementation{
 			Example:         `str.ParseJsonString("{\"key\": \"value\"}") // Returns {"key": "value"}`,
 			ErrorConditions: "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` if input is not a string or is invalid JSON.",
 		},
-		Func: toolParseJsonString, // Added implementation function
+		Func: toolParseJsonString,
 	},
 	{
 		Spec: tool.ToolSpec{
 			Name:        "ToJsonString",
 			Group:       group,
-			Description: "Converts a map or list into a JSON formatted string, with optional pretty-printing.",
+			Description: "Converts any value (map, list, string, number, etc.) into a JSON formatted string.",
 			Category:    "String Codecs",
 			Args: []tool.ArgSpec{
-				{Name: "value", Type: tool.ArgTypeAny, Required: true, Description: "The map or list to stringify."},
+				{Name: "value", Type: tool.ArgTypeAny, Required: true, Description: "The value to stringify."},
 				{Name: "pretty_print", Type: tool.ArgTypeBool, Required: false, Description: "If true, formats the JSON with indentation. Default: false."},
 				{Name: "prefix", Type: tool.ArgTypeString, Required: false, Description: "The line prefix for pretty-printing. Default: \"\". Only used if pretty_print is true."},
 				{Name: "indent", Type: tool.ArgTypeString, Required: false, Description: "The indentation string for pretty-printing. Default: \"  \". Only used if pretty_print is true."},
 			},
 			ReturnType:      tool.ArgTypeString,
 			ReturnHelp:      "Returns the JSON formatted string.",
-			Example:         `str.ToJsonString({"key": "value"}, pretty_print: true, indent: "\t") // Returns "{\n\t\"key\": \"value\"\n}"`,
+			Example:         `str.ToJsonString({"key": "value"}) // Returns "{\"key\":\"value\"}"`,
 			ErrorConditions: "Returns `ErrArgumentMismatch` if the wrong number of arguments is provided. Returns `ErrInvalidArgument` if the value cannot be represented as JSON or if optional arguments have wrong types.",
 		},
-		Func: toolToJsonString, // Renamed implementation function
+		Func: toolToJsonString,
 	},
 }

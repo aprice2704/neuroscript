@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.8.0
-// File version: 5
-// Purpose: Implements extra string/codec tools. Updated ToJsonString to support pretty_print, prefix, and indent. Added ParseJsonString.
-// filename: pkg/tool/strtools/tools_string_extra.go
-// nlines: 168
-// risk_rating: MEDIUM
+// :: product: FDM/NS
+// :: majorVersion: 0
+// :: fileVersion: 6
+// :: description: Updated ToJsonString to accept Any type (primitives, etc), aligning with json.Marshal behavior.
+// :: latestChange: Removed restrictive type switch in toolToJsonString.
+// :: filename: pkg/tool/strtools/tools_string_extra.go
+// :: serialization: go
 
 package strtools
 
@@ -103,7 +104,7 @@ func toolParseJsonString(interpreter tool.Runtime, args []interface{}) (interfac
 	return parsedValue, nil
 }
 
-// toolToJsonString converts a NeuroScript map/list (passed as interface{}) to a JSON string.
+// toolToJsonString converts any NeuroScript value (passed as interface{}) to a JSON string.
 func toolToJsonString(interpreter tool.Runtime, args []interface{}) (interface{}, error) {
 	if len(args) < 1 || len(args) > 4 {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "ToJsonString: expected 1 to 4 arguments (value, [pretty_print], [prefix], [indent])", lang.ErrArgumentMismatch)
@@ -139,14 +140,7 @@ func toolToJsonString(interpreter tool.Runtime, args []interface{}) (interface{}
 	}
 	// --- End Argument Coercion ---
 
-	// Ensure the input is actually a map or slice, as expected by the spec.
-	switch value.(type) {
-	case map[string]interface{}, []interface{}:
-		// Okay, proceed
-	default:
-		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("ToJsonString: expected a map or list argument, got %T", value), lang.ErrArgumentMismatch)
-	}
-
+	// FIX: Removed restrictive type switch. json.Marshal handles all standard types.
 	var jsonData []byte
 	var err error
 
@@ -157,7 +151,7 @@ func toolToJsonString(interpreter tool.Runtime, args []interface{}) (interface{}
 	}
 
 	if err != nil {
-		// This can happen with complex types not representable in JSON
+		// This can happen with complex types not representable in JSON (e.g. channels, functions)
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInvalidValue, fmt.Sprintf("ToJsonString: failed to marshal value to JSON: %v", err), lang.ErrInvalidArgument)
 	}
 
