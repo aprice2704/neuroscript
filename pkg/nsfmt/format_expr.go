@@ -1,8 +1,10 @@
-// NeuroScript Version: 0.8.0
-// File version: 15
-// Purpose: BUGFIX: Adds exception for pure-whitespace strings (like "\n") to remain double-quoted for readability in concatenations.
-// filename: pkg/nsfmt/format_expr.go
-// nlines: 271
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 16
+// :: description: Updated formatMapLiteral to sort by key.TestString() instead of .Value.
+// :: latestChange: Fix sorting of map entries now that Key is an Expression.
+// :: filename: pkg/nsfmt/format_expr.go
+// :: serialization: go
 
 package nsfmt
 
@@ -207,7 +209,8 @@ func (f *formatter) formatMapLiteral(m *ast.MapLiteralNode, prefixLen int) strin
 
 	// Sort entries by key for stable output
 	sort.Slice(m.Entries, func(i, j int) bool {
-		return m.Entries[i].Key.Value < m.Entries[j].Key.Value
+		// FIX: Use TestString() for sorting expressions
+		return m.Entries[i].Key.TestString() < m.Entries[j].Key.TestString()
 	})
 
 	for i, entry := range m.Entries {

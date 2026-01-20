@@ -1,8 +1,10 @@
-// NeuroScript Version: 0.8.0
-// File version: 7
-// Purpose: Corrected list and map literal parsing to iterate 'popN' results in forward (FIFO) order, fixing an element-reversal bug.
-// filename: pkg/parser/ast_builder_collections.go
-// nlines: 105
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 8
+// :: description: Updated ExitMap_entry to pop key expression from stack instead of reading string literal token.
+// :: latestChange: Support for expression-based map keys.
+// :: filename: pkg/parser/ast_builder_collections.go
+// :: serialization: go
 
 package parser
 
@@ -61,25 +63,36 @@ func (l *neuroScriptListenerImpl) ExitList_literal(c *gen.List_literalContext) {
 }
 
 func (l *neuroScriptListenerImpl) ExitMap_entry(c *gen.Map_entryContext) {
-	val, ok := l.pop()
+	// Stack expectation: [KeyExpression, ValueExpression]
+	// We pop in reverse order: Value, then Key.
+
+	valRaw, ok := l.pop()
 	if !ok {
-		l.addError(c, "stack underflow in map entry value")
+		l.addError(c, "stack underflow in map entry (missing value)")
 		return
 	}
-	valueExpr, ok := val.(ast.Expression)
+	valueExpr, ok := valRaw.(ast.Expression)
 	if !ok {
-		l.addError(c, "map entry value is not ast.Expression, got %T", val)
+		l.addError(c, "map entry value is not ast.Expression, got %T", valRaw)
 		return
 	}
 
-	keyToken := c.STRING_LIT().GetSymbol()
-	keyNode := &ast.StringLiteralNode{
-		Value: unquote(keyToken.GetText()),
+	keyRaw, ok := l.pop()
+	if !ok {
+		l.addError(c, "stack underflow in map entry (missing key)")
+		return
 	}
-	newNode(keyNode, keyToken, types.KindStringLiteral)
+	keyExpr, ok := keyRaw.(ast.Expression)
+	if !ok {
+		l.addError(c, "map entry key is not ast.Expression, got %T", keyRaw)
+		return
+	}
 
-	entry := &ast.MapEntryNode{Key: keyNode, Value: valueExpr}
-	node := newNode(entry, keyToken, types.KindMapEntry)
+	// The start token is the start of the key expression
+	startToken := c.GetStart()
+
+	entry := &ast.MapEntryNode{Key: keyExpr, Value: valueExpr}
+	node := newNode(entry, startToken, types.KindMapEntry)
 	l.push(node)
 }
 

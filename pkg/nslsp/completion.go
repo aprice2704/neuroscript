@@ -1,8 +1,10 @@
-// NeuroScript Version: 0.7.0
-// File version: 10
-// Purpose: Implements textDocument/completion. FEAT: Merges built-in function completions and snippet completions.
-// filename: pkg/nslsp/completion.go
-// nlines: 206
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 11
+// :: description: Implements textDocument/completion. FEAT: Merges built-ins, snippets, and now External Constants.
+// :: latestChange: Added getExternalConstantCompletions to completion handler.
+// :: filename: pkg/nslsp/completion.go
+// :: serialization: go
 
 package nslsp
 
@@ -62,12 +64,14 @@ func (s *Server) handleTextDocumentCompletion(ctx context.Context, conn *jsonrpc
 	}
 
 	// --- General Completion Logic ---
-	// If we are not in a tool expression, return snippets and built-in functions.
+	// If we are not in a tool expression, return snippets, built-in functions, AND constants.
 	snippets := s.getSnippetCompletions()
 	builtIns := s.getBuiltInCompletions()
+	constants := s.getExternalConstantCompletions()
 
-	// Merge the two lists
+	// Merge the lists
 	snippets.Items = append(snippets.Items, builtIns.Items...)
+	snippets.Items = append(snippets.Items, constants.Items...)
 	return snippets, nil
 }
 
@@ -137,6 +141,28 @@ func (s *Server) getToolNameCompletions(prefix string) *lsp.CompletionList {
 		collectTools(s.externalTools.ListTools())
 	}
 
+	sort.Slice(items, func(i, j int) bool { return items[i].Label < items[j].Label })
+
+	return &lsp.CompletionList{IsIncomplete: false, Items: items}
+}
+
+func (s *Server) getExternalConstantCompletions() *lsp.CompletionList {
+	if s.externalTools == nil {
+		return &lsp.CompletionList{IsIncomplete: false, Items: []lsp.CompletionItem{}}
+	}
+
+	allConsts := s.externalTools.GetConstants()
+	items := make([]lsp.CompletionItem, 0, len(allConsts))
+
+	for k, v := range allConsts {
+		items = append(items, lsp.CompletionItem{
+			Label:         k,
+			Kind:          lsp.CIKConstant,
+			Detail:        fmt.Sprintf("Constant (%v)", v),
+			Documentation: "Imported from external metadata.",
+		})
+	}
+	// Sort for UX
 	sort.Slice(items, func(i, j int) bool { return items[i].Label < items[j].Label })
 
 	return &lsp.CompletionList{IsIncomplete: false, Items: items}

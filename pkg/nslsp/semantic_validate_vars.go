@@ -1,8 +1,10 @@
-// NeuroScript Version: 0.7.0
-// File version: 3
-// Purpose: Refactored: Contains all validation listener logic for variable scope, initialization tracking, and read validation. FIX: Corrected compiler errors by using IDENTIFIER(0) instead of IDENTIFIER(). FIX: Pre-initialize built-in variables 'stdout' and 'stderr'. FEAT: Added check for built-in functions to prevent false uninitialized var warnings.
-// filename: pkg/nslsp/semantic_validate_vars.go
-// nlines: 147
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 4
+// :: description: Refactored: Contains all validation listener logic for variable scope, initialization tracking, and read validation.
+// :: latestChange: Updated EnterPrimary to check ExternalToolManager for constants before flagging UninitializedVar.
+// :: filename: pkg/nslsp/semantic_validate_vars.go
+// :: serialization: go
 
 package nslsp
 
@@ -154,23 +156,30 @@ func (l *validationListener) EnterPrimary(ctx *gen.PrimaryContext) {
 
 	varName := ctx.IDENTIFIER().GetText()
 
-	// Check if it's initialized
+	// 1. Check if it's initialized in scope
 	if _, isInitialized := l.initializedVars[varName]; isInitialized {
 		return // It's fine
 	}
 
-	// Check if it's a built-in function
+	// 2. Check if it's a built-in function
 	if _, isBuiltIn := newBuiltInFunctionsSet[varName]; isBuiltIn {
 		return
 	}
 
-	// Check if it's a procedure name (being used as a value, e.g. `set x = MyFunc`)
+	// 3. Check if it's a procedure name (being used as a value, e.g. `set x = MyFunc`)
 	if _, isLocalProc := l.semanticAnalyzer.localSymbols[varName]; isLocalProc {
 		return
 	}
 	if l.semanticAnalyzer.symbolManager != nil {
 		if _, isGlobalProc := l.semanticAnalyzer.symbolManager.GetSymbolInfo(varName); isGlobalProc {
 			return
+		}
+	}
+
+	// 4. THE FIX: Check if it's a known External Constant
+	if l.semanticAnalyzer.externalTools != nil {
+		if l.semanticAnalyzer.externalTools.HasConstant(varName) {
+			return // It's a valid constant
 		}
 	}
 

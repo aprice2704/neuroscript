@@ -1,9 +1,9 @@
 // filename: pkg/parser/ast_builder_nested_map_test.go
 // NeuroScript Version: 0.6.3
-// File version: 2
-// Purpose: Updated to pass after fixing the lexer ambiguity for '}}'.
+// File version: 3
+// Purpose: Updated assertions to type-cast MapEntryNode.Key (which is now Expression) to StringLiteralNode.
 // nlines: 55
-// risk_rating: MEDIUM
+// risk_rating: LOW
 
 package parser
 
@@ -52,7 +52,8 @@ func TestNestedMapInCallStatement(t *testing.T) {
 	// Find the 'payload' entry
 	var payloadValue ast.Expression
 	for _, entry := range arg.Entries {
-		if entry.Key.Value == "payload" {
+		// FIX: Cast Key to *ast.StringLiteralNode
+		if keyLit, ok := entry.Key.(*ast.StringLiteralNode); ok && keyLit.Value == "payload" {
 			payloadValue = entry.Value
 			break
 		}
@@ -71,7 +72,13 @@ func TestNestedMapInCallStatement(t *testing.T) {
 		t.Fatalf("Expected 1 entry in the nested map, but got %d", len(nestedMap.Entries))
 	}
 
-	if nestedMap.Entries[0].Key.Value != "message" {
-		t.Errorf("Expected nested map key to be 'message', but got '%s'", nestedMap.Entries[0].Key.Value)
+	// FIX: Cast Key to *ast.StringLiteralNode
+	nestedKeyLit, ok := nestedMap.Entries[0].Key.(*ast.StringLiteralNode)
+	if !ok {
+		t.Fatalf("Expected nested map key to be *ast.StringLiteralNode, got %T", nestedMap.Entries[0].Key)
+	}
+
+	if nestedKeyLit.Value != "message" {
+		t.Errorf("Expected nested map key to be 'message', but got '%s'", nestedKeyLit.Value)
 	}
 }

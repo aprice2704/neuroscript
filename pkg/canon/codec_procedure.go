@@ -1,8 +1,10 @@
-// NeuroScript Version: 0.7.2
-// File version: 13
-// Purpose: Exports ValueToNode and NodeToValue helpers so they can be re-exported by pkg/api.
-// filename: pkg/canon/codec_procedure.go
-// nlines: 200+
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 14
+// :: description: Updated NodeToValue to enforce string literal keys for map literals (static context constraint).
+// :: latestChange: Fixed map key access to type-assert *ast.StringLiteralNode.
+// :: filename: pkg/canon/codec_procedure.go
+// :: serialization: go
 
 package canon
 
@@ -31,7 +33,6 @@ func encodeProcedure(v *canonVisitor, n ast.Node) error {
 		v.writeString(node.Metadata[k])
 	}
 
-	// --- FIX: Serialize missing fields ---
 	// Comments
 	v.writeVarint(int64(len(node.Comments)))
 	for _, comment := range node.Comments {
@@ -41,7 +42,6 @@ func encodeProcedure(v *canonVisitor, n ast.Node) error {
 	}
 	// BlankLinesBefore
 	v.writeVarint(int64(node.BlankLinesBefore))
-	// --- END FIX ---
 
 	// Params
 	v.writeVarint(int64(len(node.RequiredParams)))
@@ -51,17 +51,15 @@ func encodeProcedure(v *canonVisitor, n ast.Node) error {
 	v.writeVarint(int64(len(node.OptionalParams)))
 	for _, param := range node.OptionalParams {
 		v.writeString(param.Name)
-		// --- FIX: Call exported ValueToNode ---
 		defaultValueNode, _ := ValueToNode(param.Default)
 		if err := v.visitor(defaultValueNode); err != nil {
 			return err
 		}
 	}
 
-	// --- FIX: Serialize missing Variadic fields ---
+	// Variadic fields
 	v.writeBool(node.Variadic)
 	v.writeString(node.VariadicParamName)
-	// --- END FIX ---
 
 	v.writeVarint(int64(len(node.ReturnVarNames)))
 	for _, name := range node.ReturnVarNames {
@@ -93,7 +91,7 @@ func decodeProcedure(r *canonReader) (ast.Node, error) {
 		RequiredParams: make([]string, 0),
 		OptionalParams: make([]*ast.ParamSpec, 0),
 		ErrorHandlers:  make([]*ast.Step, 0),
-		Comments:       make([]*ast.Comment, 0), // Init empty
+		Comments:       make([]*ast.Comment, 0),
 	}
 	name, err := r.readString()
 	if err != nil {
@@ -121,7 +119,6 @@ func decodeProcedure(r *canonReader) (ast.Node, error) {
 		}
 	}
 
-	// --- FIX: Deserialize missing fields ---
 	// Comments
 	commentCount, err := r.readVarint()
 	if err != nil {
@@ -144,7 +141,6 @@ func decodeProcedure(r *canonReader) (ast.Node, error) {
 		return nil, err
 	}
 	proc.BlankLinesBefore = int(blankLines)
-	// --- END FIX ---
 
 	// Params
 	reqCount, err := r.readVarint()
@@ -178,7 +174,6 @@ func decodeProcedure(r *canonReader) (ast.Node, error) {
 			}
 
 			var defaultVal lang.Value
-			// --- FIX: Call exported NodeToValue ---
 			defaultVal, err = NodeToValue(defaultNode)
 			if err != nil {
 				return nil, fmt.Errorf("could not decode param %s: %w", paramName, err)
@@ -192,7 +187,7 @@ func decodeProcedure(r *canonReader) (ast.Node, error) {
 		}
 	}
 
-	// --- FIX: Deserialize missing Variadic fields ---
+	// Variadic fields
 	proc.Variadic, err = r.readBool()
 	if err != nil {
 		return nil, err
@@ -201,7 +196,6 @@ func decodeProcedure(r *canonReader) (ast.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	// --- END FIX ---
 
 	retCount, err := r.readVarint()
 	if err != nil {
@@ -247,8 +241,7 @@ func decodeProcedure(r *canonReader) (ast.Node, error) {
 	return proc, nil
 }
 
-// --- FIX: Rename to ValueToNode (exported) ---
-// ValueToNode and NodeToValue are helpers to convert between runtime values and AST nodes for default params.
+// ValueToNode converts a runtime lang.Value to an AST Node.
 func ValueToNode(val lang.Value) (ast.Node, error) {
 	if val == nil {
 		return &ast.NilLiteralNode{BaseNode: ast.BaseNode{NodeKind: types.KindNilLiteral}}, nil
@@ -268,7 +261,7 @@ func ValueToNode(val lang.Value) (ast.Node, error) {
 			Elements: make([]ast.Expression, len(v.Value)),
 		}
 		for i, elemVal := range v.Value {
-			elemNode, err := ValueToNode(elemVal) // <<< FIX: Recursive call
+			elemNode, err := ValueToNode(elemVal)
 			if err != nil {
 				return nil, err
 			}
@@ -282,7 +275,7 @@ func ValueToNode(val lang.Value) (ast.Node, error) {
 		}
 		for key, val := range v.Value {
 			keyNode := &ast.StringLiteralNode{BaseNode: ast.BaseNode{NodeKind: types.KindStringLiteral}, Value: key}
-			valNode, err := ValueToNode(val) // <<< FIX: Recursive call
+			valNode, err := ValueToNode(val)
 			if err != nil {
 				return nil, err
 			}
@@ -298,7 +291,7 @@ func ValueToNode(val lang.Value) (ast.Node, error) {
 	}
 }
 
-// --- FIX: Rename to NodeToValue (exported) ---
+// NodeToValue converts an AST Node to a runtime lang.Value (static evaluation only).
 func NodeToValue(node ast.Node) (lang.Value, error) {
 	if node == nil {
 		return lang.NilValue{}, nil
@@ -319,7 +312,7 @@ func NodeToValue(node ast.Node) (lang.Value, error) {
 	case *ast.ListLiteralNode:
 		listVal := lang.ListValue{Value: make([]lang.Value, len(n.Elements))}
 		for i, elemNode := range n.Elements {
-			elemVal, err := NodeToValue(elemNode) // <<< FIX: Recursive call
+			elemVal, err := NodeToValue(elemNode)
 			if err != nil {
 				return nil, err
 			}
@@ -329,8 +322,15 @@ func NodeToValue(node ast.Node) (lang.Value, error) {
 	case *ast.MapLiteralNode:
 		mapVal := lang.MapValue{Value: make(map[string]lang.Value, len(n.Entries))}
 		for _, entry := range n.Entries {
-			key := entry.Key.Value
-			val, err := NodeToValue(entry.Value) // <<< FIX: Recursive call
+			// FIX: Ensure key is a static string literal.
+			// NodeToValue is used for static default parameters, so dynamic keys are not supported here.
+			keyLit, ok := entry.Key.(*ast.StringLiteralNode)
+			if !ok {
+				return nil, fmt.Errorf("NodeToValue: map key must be a string literal, got %T", entry.Key)
+			}
+			key := keyLit.Value
+
+			val, err := NodeToValue(entry.Value)
 			if err != nil {
 				return nil, err
 			}

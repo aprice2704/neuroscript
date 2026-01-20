@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.8.0
-// File version: 7
-// Purpose: Fixes element/lvalue access to handle `lang.MapValue` (value type) and `*lang.ListValue` (pointer type).
-// filename: pkg/eval/evaluation.go
-// nlines: 278
-// risk_rating: HIGH
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 8
+// :: description: Updated evaluateMapLiteral to evaluate key expressions at runtime.
+// :: latestChange: Support for dynamic keys in map literals.
+// :: filename: pkg/eval/evaluation.go
+// :: serialization: go
 
 package eval
 
@@ -123,15 +124,21 @@ func (e *evaluation) evaluateListLiteral(node *ast.ListLiteralNode) (lang.Value,
 func (e *evaluation) evaluateMapLiteral(node *ast.MapLiteralNode) (lang.Value, error) {
 	m := make(map[string]lang.Value)
 	for _, pair := range node.Entries {
-		// Note: The AST guarantees keys are StringLiterals, so this direct access is safe.
+		// Evaluate Key
+		keyVal, err := e.Expression(pair.Key)
+		if err != nil {
+			return nil, lang.WrapErrorWithPosition(err, pair.Key.GetPos(), "evaluating map key")
+		}
+		keyStr, _ := lang.ToString(keyVal)
+
+		// Evaluate Value
 		val, err := e.Expression(pair.Value)
 		if err != nil {
-			return nil, err
+			return nil, lang.WrapErrorWithPosition(err, pair.Value.GetPos(), "evaluating map value")
 		}
-		m[pair.Key.Value] = val
+
+		m[keyStr] = val
 	}
-	// Per lang/value_helpers.go, Wrap() now returns MapValue, not *MapValue.
-	// We return MapValue here for consistency, as NewMapValue() returns a pointer.
 	return lang.MapValue{Value: m}, nil
 }
 

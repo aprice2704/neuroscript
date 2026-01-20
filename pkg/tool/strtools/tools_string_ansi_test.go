@@ -27,37 +27,37 @@ func TestToolStringAnsi(t *testing.T) {
 		// --- Colorize Tests ---
 		{
 			name:       "Colorize Simple Red",
-			toolName:   "Colorize",
+			toolName:   "Color",
 			args:       MakeArgs("[red]Hello[reset]"),
 			wantResult: "\x1b[31mHello\x1b[0m",
 		},
 		{
 			name:       "Colorize Multiple Tags",
-			toolName:   "Colorize",
+			toolName:   "Color",
 			args:       MakeArgs("[bold][blue]Info:[reset] text"),
 			wantResult: "\x1b[1m\x1b[34mInfo:\x1b[0m text",
 		},
 		{
 			name:       "Colorize Unknown Tag",
-			toolName:   "Colorize",
+			toolName:   "Color",
 			args:       MakeArgs("[unknown] tag"),
 			wantResult: "[unknown] tag", // Should remain unchanged
 		},
 		{
 			name:       "Colorize No Tags",
-			toolName:   "Colorize",
+			toolName:   "Color",
 			args:       MakeArgs("plain text"),
 			wantResult: "plain text",
 		},
 		{
 			name:       "Colorize Empty String",
-			toolName:   "Colorize",
+			toolName:   "Color",
 			args:       MakeArgs(""),
 			wantResult: "",
 		},
 		{
 			name:      "Colorize Wrong Type",
-			toolName:  "Colorize",
+			toolName:  "Color",
 			args:      MakeArgs(123),
 			wantErrIs: lang.ErrArgumentMismatch,
 		},

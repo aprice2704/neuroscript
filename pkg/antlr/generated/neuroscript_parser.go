@@ -376,12 +376,12 @@ func neuroscriptParserInit() {
 		648, 653, 3, 144, 72, 0, 649, 650, 5, 84, 0, 0, 650, 652, 3, 144, 72, 0,
 		651, 649, 1, 0, 0, 0, 652, 655, 1, 0, 0, 0, 653, 651, 1, 0, 0, 0, 653,
 		654, 1, 0, 0, 0, 654, 143, 1, 0, 0, 0, 655, 653, 1, 0, 0, 0, 656, 657,
-		5, 65, 0, 0, 657, 658, 5, 89, 0, 0, 658, 659, 3, 94, 47, 0, 659, 145, 1,
-		0, 0, 0, 59, 149, 156, 162, 167, 172, 177, 188, 194, 202, 209, 214, 230,
-		245, 247, 254, 256, 259, 275, 282, 288, 296, 302, 309, 314, 329, 334, 339,
-		351, 355, 367, 376, 378, 386, 399, 414, 424, 428, 446, 470, 477, 486, 494,
-		502, 510, 518, 526, 534, 542, 550, 558, 563, 572, 589, 601, 620, 635, 642,
-		646, 653,
+		3, 94, 47, 0, 657, 658, 5, 89, 0, 0, 658, 659, 3, 94, 47, 0, 659, 145,
+		1, 0, 0, 0, 59, 149, 156, 162, 167, 172, 177, 188, 194, 202, 209, 214,
+		230, 245, 247, 254, 256, 259, 275, 282, 288, 296, 302, 309, 314, 329, 334,
+		339, 351, 355, 367, 376, 378, 386, 399, 414, 424, 428, 446, 470, 477, 486,
+		494, 502, 510, 518, 526, 534, 542, 550, 558, 563, 572, 589, 601, 620, 635,
+		642, 646, 653,
 	}
 	deserializer := antlr.NewATNDeserializer(nil)
 	staticData.atn = deserializer.Deserialize(staticData.serializedATN)
@@ -13444,7 +13444,7 @@ func (p *NeuroScriptParser) Map_entry_list_opt() (localctx IMap_entry_list_optCo
 	}
 	_la = p.GetTokenStream().LA(1)
 
-	if _la == NeuroScriptParserSTRING_LIT {
+	if ((int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&4287674167257481380) != 0) || ((int64((_la-65)) & ^0x3f) == 0 && ((int64(1)<<(_la-65))&72548663) != 0) {
 		{
 			p.SetState(645)
 			p.Map_entry_list()
@@ -13653,9 +13653,9 @@ type IMap_entryContext interface {
 	GetParser() antlr.Parser
 
 	// Getter signatures
-	STRING_LIT() antlr.TerminalNode
+	AllExpression() []IExpressionContext
+	Expression(i int) IExpressionContext
 	COLON() antlr.TerminalNode
-	Expression() IExpressionContext
 
 	// IsMap_entryContext differentiates from other interfaces.
 	IsMap_entryContext()
@@ -13693,20 +13693,37 @@ func NewMap_entryContext(parser antlr.Parser, parent antlr.ParserRuleContext, in
 
 func (s *Map_entryContext) GetParser() antlr.Parser { return s.parser }
 
-func (s *Map_entryContext) STRING_LIT() antlr.TerminalNode {
-	return s.GetToken(NeuroScriptParserSTRING_LIT, 0)
+func (s *Map_entryContext) AllExpression() []IExpressionContext {
+	children := s.GetChildren()
+	len := 0
+	for _, ctx := range children {
+		if _, ok := ctx.(IExpressionContext); ok {
+			len++
+		}
+	}
+
+	tst := make([]IExpressionContext, len)
+	i := 0
+	for _, ctx := range children {
+		if t, ok := ctx.(IExpressionContext); ok {
+			tst[i] = t.(IExpressionContext)
+			i++
+		}
+	}
+
+	return tst
 }
 
-func (s *Map_entryContext) COLON() antlr.TerminalNode {
-	return s.GetToken(NeuroScriptParserCOLON, 0)
-}
-
-func (s *Map_entryContext) Expression() IExpressionContext {
+func (s *Map_entryContext) Expression(i int) IExpressionContext {
 	var t antlr.RuleContext
+	j := 0
 	for _, ctx := range s.GetChildren() {
 		if _, ok := ctx.(IExpressionContext); ok {
-			t = ctx.(antlr.RuleContext)
-			break
+			if j == i {
+				t = ctx.(antlr.RuleContext)
+				break
+			}
+			j++
 		}
 	}
 
@@ -13715,6 +13732,10 @@ func (s *Map_entryContext) Expression() IExpressionContext {
 	}
 
 	return t.(IExpressionContext)
+}
+
+func (s *Map_entryContext) COLON() antlr.TerminalNode {
+	return s.GetToken(NeuroScriptParserCOLON, 0)
 }
 
 func (s *Map_entryContext) GetRuleContext() antlr.RuleContext {
@@ -13753,11 +13774,7 @@ func (p *NeuroScriptParser) Map_entry() (localctx IMap_entryContext) {
 	p.EnterOuterAlt(localctx, 1)
 	{
 		p.SetState(656)
-		p.Match(NeuroScriptParserSTRING_LIT)
-		if p.HasError() {
-			// Recognition error - abort rule
-			goto errorExit
-		}
+		p.Expression()
 	}
 	{
 		p.SetState(657)

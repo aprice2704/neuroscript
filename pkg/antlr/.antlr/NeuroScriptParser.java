@@ -4414,7 +4414,7 @@ public class NeuroScriptParser extends Parser {
 			setState(646);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if (_la==STRING_LIT) {
+			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 4287674167257481380L) != 0) || ((((_la - 65)) & ~0x3f) == 0 && ((1L << (_la - 65)) & 72548663L) != 0)) {
 				{
 				setState(645);
 				map_entry_list();
@@ -4492,11 +4492,13 @@ public class NeuroScriptParser extends Parser {
 
 	@SuppressWarnings("CheckReturnValue")
 	public static class Map_entryContext extends ParserRuleContext {
-		public TerminalNode STRING_LIT() { return getToken(NeuroScriptParser.STRING_LIT, 0); }
-		public TerminalNode COLON() { return getToken(NeuroScriptParser.COLON, 0); }
-		public ExpressionContext expression() {
-			return getRuleContext(ExpressionContext.class,0);
+		public List<ExpressionContext> expression() {
+			return getRuleContexts(ExpressionContext.class);
 		}
+		public ExpressionContext expression(int i) {
+			return getRuleContext(ExpressionContext.class,i);
+		}
+		public TerminalNode COLON() { return getToken(NeuroScriptParser.COLON, 0); }
 		public Map_entryContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
 		}
@@ -4510,7 +4512,7 @@ public class NeuroScriptParser extends Parser {
 			enterOuterAlt(_localctx, 1);
 			{
 			setState(656);
-			match(STRING_LIT);
+			expression();
 			setState(657);
 			match(COLON);
 			setState(658);
@@ -4932,7 +4934,7 @@ public class NeuroScriptParser extends Parser {
 		"H\u0000\u028b\u0289\u0001\u0000\u0000\u0000\u028c\u028f\u0001\u0000\u0000"+
 		"\u0000\u028d\u028b\u0001\u0000\u0000\u0000\u028d\u028e\u0001\u0000\u0000"+
 		"\u0000\u028e\u008f\u0001\u0000\u0000\u0000\u028f\u028d\u0001\u0000\u0000"+
-		"\u0000\u0290\u0291\u0005A\u0000\u0000\u0291\u0292\u0005Y\u0000\u0000\u0292"+
+		"\u0000\u0290\u0291\u0003^/\u0000\u0291\u0292\u0005Y\u0000\u0000\u0292"+
 		"\u0293\u0003^/\u0000\u0293\u0091\u0001\u0000\u0000\u0000;\u0095\u009c"+
 		"\u00a2\u00a7\u00ac\u00b1\u00bc\u00c2\u00ca\u00d1\u00d6\u00e6\u00f5\u00f7"+
 		"\u00fe\u0100\u0103\u0113\u011a\u0120\u0128\u012e\u0135\u013a\u0149\u014e"+

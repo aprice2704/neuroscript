@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.6.3
-// File version: 17
-// Purpose: FIX: Normalizes nil param defaults to lang.NilValue to match codec roundtrip behavior.
-// filename: pkg/canon/comprehensive_e2e_test.go
-// nlines: 138
-// risk_rating: HIGH
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 18
+// :: description: Fixed slice sorting in tests to use TestString() since MapEntryNode.Key is now an Expression.
+// :: latestChange: Updated cmp.Diff sorting logic.
+// :: filename: pkg/canon/comprehensive_e2e_test.go
+// :: serialization: go
 
 package canon
 
@@ -13,7 +14,7 @@ import (
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
-	"github.com/aprice2704/neuroscript/pkg/lang" // <<< ADDED
+	"github.com/aprice2704/neuroscript/pkg/lang"
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/parser"
 	"github.com/aprice2704/neuroscript/pkg/types"
@@ -52,7 +53,7 @@ func normalizeAST(p *ast.Program) {
 				s.Values = nil
 				s.LValues = nil
 			}
-			// FIX: Add normalization for WhisperStmt
+			// Normalization for WhisperStmt
 			if s.Type == "whisper" && s.WhisperStmt == nil {
 				s.WhisperStmt = &ast.WhisperStmt{
 					BaseNode: ast.BaseNode{NodeKind: types.KindWhisperStmt},
@@ -71,13 +72,12 @@ func normalizeAST(p *ast.Program) {
 	}
 
 	for _, proc := range p.Procedures {
-		// --- FIX: Normalize nil defaults to lang.NilValue ---
+		// Normalize nil defaults to lang.NilValue
 		for _, param := range proc.OptionalParams {
 			if param.Default == nil {
 				param.Default = lang.NilValue{}
 			}
 		}
-		// --- END FIX ---
 
 		walkSteps(proc.Steps)
 		for _, handler := range proc.ErrorHandlers {
@@ -108,7 +108,6 @@ func runRoundtripComparison(t *testing.T, scriptPath string) {
 	if pErr != nil {
 		t.Fatalf("parser.Parse() failed unexpectedly: %v", pErr)
 	}
-	// FIX: Instantiate an ASTBuilder, not a ParserAPI.
 	builder := parser.NewASTBuilder(logging.NewNoOpLogger())
 	program, _, bErr := builder.Build(antlrTree)
 	if bErr != nil {
@@ -134,7 +133,8 @@ func runRoundtripComparison(t *testing.T, scriptPath string) {
 		cmpopts.IgnoreFields(ast.BaseNode{}, "StartPos", "StopPos"),
 		cmpopts.IgnoreUnexported(ast.Procedure{}, ast.Step{}, ast.LValueNode{}),
 		cmpopts.EquateEmpty(),
-		cmpopts.SortSlices(func(a, b *ast.MapEntryNode) bool { return a.Key.Value < b.Key.Value }),
+		// FIX: Use TestString() for stable sorting of expression keys
+		cmpopts.SortSlices(func(a, b *ast.MapEntryNode) bool { return a.Key.TestString() < b.Key.TestString() }),
 	}
 
 	if diff := cmp.Diff(originalTree, decodedTree, cmpOpts...); diff != "" {
@@ -142,7 +142,6 @@ func runRoundtripComparison(t *testing.T, scriptPath string) {
 	}
 }
 
-// TestComprehensiveGrammarRoundtrip is the ultimate regression test for the canonicalization process.
 func TestComprehensiveGrammarRoundtrip(t *testing.T) {
 	testCases := []struct {
 		name       string

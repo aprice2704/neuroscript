@@ -1,5 +1,6 @@
-// NeuroScript Version: 0.9.7 Added Triple Single Quote support
+// NeuroScript Version: 0.9.71 Allow expressions LHS map lits
 grammar NeuroScript;
+
 // --- LEXER RULES --- (Lexer rules are unchanged)
 LINE_ESCAPE_GLOBAL:
 	'\\' ('\r'? '\n' | '\r') -> channel(HIDDEN);
@@ -132,6 +133,7 @@ fragment UNICODE_ESC:
 fragment HEX_ESC: 'x' HEX_DIGIT HEX_DIGIT;
 fragment OCTAL_ESC: [0-3]? [0-7] [0-7];
 fragment HEX_DIGIT: [0-9a-fA-F];
+
 // --- PARSER RULES ---
 
 program: file_header (library_script | command_script)? EOF;
@@ -140,6 +142,7 @@ file_header: (METADATA_LINE | NEWLINE)*;
 
 library_script: library_block+;
 command_script: command_block+;
+
 library_block: (procedure_definition | KW_ON event_handler) NEWLINE*;
 
 command_block:
@@ -182,6 +185,7 @@ signature_part:
 needs_clause: KW_NEEDS param_list;
 optional_clause: KW_OPTIONAL param_list;
 returns_clause: KW_RETURNS param_list;
+
 param_list: IDENTIFIER (COMMA IDENTIFIER)*;
 metadata_block: (METADATA_LINE NEWLINE)*;
 
@@ -190,6 +194,7 @@ non_empty_statement_list:
 
 statement_list: body_line*;
 body_line: statement NEWLINE | NEWLINE;
+
 statement: simple_statement | block_statement | on_stmt;
 
 // General statements for functions/handlers
@@ -244,6 +249,7 @@ ask_stmt:
 promptuser_stmt: KW_PROMPTUSER expression KW_INTO lvalue;
 break_statement: KW_BREAK;
 continue_statement: KW_CONTINUE;
+
 if_statement:
 	KW_IF expression NEWLINE non_empty_statement_list (
 		KW_ELSE NEWLINE non_empty_statement_list
@@ -298,6 +304,7 @@ callable_expr: (
 // FIX: Changed placeholder to use two RBRACE tokens instead of a custom token.
 placeholder:
 	PLACEHOLDER_START (IDENTIFIER | KW_LAST) RBRACE RBRACE;
+
 literal:
 	STRING_LIT
 	| TRIPLE_BACKTICK_STRING
@@ -309,10 +316,12 @@ literal:
 	| nil_literal;
 nil_literal: KW_NIL;
 boolean_literal: KW_TRUE | KW_FALSE;
+
 list_literal: LBRACK expression_list_opt RBRACK;
 map_literal: LBRACE map_entry_list_opt RBRACE;
 expression_list_opt: expression_list?;
 expression_list: expression (COMMA expression)*;
 map_entry_list_opt: map_entry_list?;
 map_entry_list: map_entry (COMMA map_entry)*;
-map_entry: STRING_LIT COLON expression;
+map_entry:
+	expression COLON expression; // CHANGED: Allowed expression on LHS

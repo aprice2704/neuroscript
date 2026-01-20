@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.8.0
-// File version: 6
-// Purpose: Implements Expression interface for CallTarget to fix formatter bug.
-// filename: pkg/ast/ast_expressions.go
-// nlines: 200+
-// risk_rating: MEDIUM
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 7
+// :: description: Updated MapEntryNode.Key to be generic Expression instead of *StringLiteralNode.
+// :: latestChange: Changed Key type to Expression to support dynamic map keys.
+// :: filename: pkg/ast/ast_expressions.go
+// :: serialization: go
 
 package ast
 
@@ -160,7 +161,7 @@ func (n *ListLiteralNode) TestString() string {
 // MapEntryNode represents a single key-value pair in a map literal.
 type MapEntryNode struct {
 	BaseNode
-	Key   *StringLiteralNode // Keys are always string literals
+	Key   Expression // Key is now any Expression, evaluated to string at runtime
 	Value Expression
 }
 

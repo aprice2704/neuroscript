@@ -1,4 +1,11 @@
-// filename: pkg/parser/parser_test.go
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 15
+// :: description: Updated invalid_map_key test expectation to false (valid) as dynamic keys are now supported.
+// :: latestChange: Flipped expectError for invalid_map_key.ns.txt.
+// :: filename: pkg/parser/parser_test.go
+// :: serialization: go
+
 package parser
 
 import (
@@ -23,16 +30,17 @@ func TestNeuroScriptParser(t *testing.T) {
 		expectError bool
 		desc        string
 	}{
-		"valid_basic.ns.txt":                {false, "Basic valid syntax with metadata"},
-		"valid_metadata.ns.txt":             {false, "Valid file and procedure metadata, allows blank lines between funcs"},
-		"valid_control_flow.ns.txt":         {false, "Valid if/else/endif blocks (corrected)"},
-		"valid_error_handler.ns.txt":        {false, "Valid on_error/endon syntax"},
-		"valid_tool_call.ns.txt":            {false, "Valid tool call (using LAST) and map access syntax"},
-		"invalid_keyword_case.ns.txt":       {true, "Invalid uppercase keywords"},
-		"invalid_syntax_structure.ns.txt":   {true, "Invalid structure (missing means, mismatched end)"},
-		"valid_metadata_format.ns.txt":      {false, "Syntactically valid metadata format (semantic check needed later)"},
-		"invalid_line_continuation.ns.txt":  {true, "Invalid use of the line continuation character"},
-		"invalid_map_key.ns.txt":            {true, "Using a variable as a map key, which is not allowed"},
+		"valid_basic.ns.txt":               {false, "Basic valid syntax with metadata"},
+		"valid_metadata.ns.txt":            {false, "Valid file and procedure metadata, allows blank lines between funcs"},
+		"valid_control_flow.ns.txt":        {false, "Valid if/else/endif blocks (corrected)"},
+		"valid_error_handler.ns.txt":       {false, "Valid on_error/endon syntax"},
+		"valid_tool_call.ns.txt":           {false, "Valid tool call (using LAST) and map access syntax"},
+		"invalid_keyword_case.ns.txt":      {true, "Invalid uppercase keywords"},
+		"invalid_syntax_structure.ns.txt":  {true, "Invalid structure (missing means, mismatched end)"},
+		"valid_metadata_format.ns.txt":     {false, "Syntactically valid metadata format (semantic check needed later)"},
+		"invalid_line_continuation.ns.txt": {true, "Invalid use of the line continuation character"},
+		// FIX: Dynamic map keys are now allowed, so this test file (previously invalid) should now parse successfully.
+		"invalid_map_key.ns.txt":            {false, "Using a variable as a map key (Now Allowed)"},
 		"valid_recursive_call.ns.txt":       {false, "A function calling itself should parse correctly"},
 		"valid_complex_accessor.ns.txt":     {false, "Using a function call as a map accessor"},
 		"valid_comprehensive_syntax.ns.txt": {false, "A wide range of valid syntax constructs"},

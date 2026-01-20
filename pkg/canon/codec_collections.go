@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.6.3
-// File version: 1
-// Purpose: Implements encoders/decoders for collection-based AST nodes.
-// filename: pkg/canon/codec_collections.go
-// nlines: 100
-// risk_rating: MEDIUM
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 2
+// :: description: Fixed MapEntryNode key handling to support Expression type (sorting by string rep, casting correctly).
+// :: latestChange: Updated encode/decode to handle Expression keys.
+// :: filename: pkg/canon/codec_collections.go
+// :: serialization: go
 
 package canon
 
@@ -45,9 +46,10 @@ func decodeListLiteral(r *canonReader) (ast.Node, error) {
 func encodeMapLiteral(v *canonVisitor, n ast.Node) error {
 	node := n.(*ast.MapLiteralNode)
 	v.writeVarint(int64(len(node.Entries)))
-	// Sort entries by key for deterministic output
+	// Sort entries by key string representation for deterministic output.
+	// Since Key is now an Expression, we use TestString() for stable sorting.
 	sort.Slice(node.Entries, func(i, j int) bool {
-		return node.Entries[i].Key.Value < node.Entries[j].Key.Value
+		return node.Entries[i].Key.TestString() < node.Entries[j].Key.TestString()
 	})
 	for _, entry := range node.Entries {
 		if err := v.visitor(entry); err != nil {
@@ -88,7 +90,8 @@ func decodeMapEntry(r *canonReader) (ast.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	node.Key = key.(*ast.StringLiteralNode)
+	// FIX: Key is now an ast.Expression, not *ast.StringLiteralNode
+	node.Key = key.(ast.Expression)
 	value, err := r.visitor()
 	if err != nil {
 		return nil, err
