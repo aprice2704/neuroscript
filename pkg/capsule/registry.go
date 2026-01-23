@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.7.2
-// File version: 10
-// Purpose: Adds the 'Description' field to the struct to store the mandatory metadata.
-// Latest change: Made the *Store writable (Register/Delete) to unify the capsule API.
-// filename: pkg/capsule/registry.go
-// nlines: 283
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 12
+// :: description: Added defensive map initialization in Register to prevent nil map panics.
+// :: latestChange: Added lazy make(map) in Register.
+// :: filename: pkg/capsule/registry.go
+// :: serialization: go
 
 package capsule
 
@@ -36,9 +37,7 @@ type Capsule struct {
 
 var (
 	// nameRE validates the <name> part of a capsule id.
-	// --- THE FIX: Removed dot from allowed characters ---
 	nameRE = regexp.MustCompile(`^capsule/[a-z0-9_-]+$`)
-	// --- END FIX ---
 )
 
 // ValidateName returns nil if name is well-formed.
@@ -80,7 +79,6 @@ func (r *Registry) Register(c Capsule) error {
 		return fmt.Errorf("capsule version must be an integer, but got %q", c.Version)
 	}
 	if c.Description == "" {
-		// This was added as a required field in the loader
 		return errors.New("capsule description cannot be empty")
 	}
 
@@ -93,6 +91,11 @@ func (r *Registry) Register(c Capsule) error {
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	// DEFENSIVE FIX: Lazy init map to prevent "assignment to entry in nil map" panic
+	if r.capsules == nil {
+		r.capsules = make(map[string]map[string]Capsule)
+	}
 
 	if _, ok := r.capsules[c.Name]; !ok {
 		r.capsules[c.Name] = make(map[string]Capsule)
@@ -109,7 +112,6 @@ func (r *Registry) MustRegister(c Capsule) {
 }
 
 // Delete removes all versions of a capsule by its name.
-// This makes the registry behave like a map for sync purposes.
 func (r *Registry) Delete(name string) error {
 	if err := ValidateName(name); err != nil {
 		return fmt.Errorf("invalid name for capsule delete: %w", err)
@@ -118,7 +120,9 @@ func (r *Registry) Delete(name string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	delete(r.capsules, name)
+	if r.capsules != nil {
+		delete(r.capsules, name)
+	}
 	return nil
 }
 
@@ -126,6 +130,9 @@ func (r *Registry) Delete(name string) error {
 func (r *Registry) Get(name, version string) (Capsule, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+	if r.capsules == nil {
+		return Capsule{}, false
+	}
 	versions, ok := r.capsules[name]
 	if !ok {
 		return Capsule{}, false
@@ -138,6 +145,9 @@ func (r *Registry) Get(name, version string) (Capsule, bool) {
 func (r *Registry) GetLatest(name string) (Capsule, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+	if r.capsules == nil {
+		return Capsule{}, false
+	}
 	versions, ok := r.capsules[name]
 	if !ok || len(versions) == 0 {
 		return Capsule{}, false
@@ -154,8 +164,6 @@ func (r *Registry) GetLatest(name string) (Capsule, bool) {
 		if err1 == nil && err2 == nil {
 			return v1 > v2
 		}
-		// Fallback for non-integer versions, though Register now prevents them.
-		// Kept for theoretical backward compatibility or other registry sources.
 		sv1 := versionKeys[i]
 		if !strings.HasPrefix(sv1, "v") {
 			sv1 = "v" + sv1
@@ -175,6 +183,9 @@ func (r *Registry) GetLatest(name string) (Capsule, bool) {
 func (r *Registry) List() []Capsule {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+	if r.capsules == nil {
+		return nil
+	}
 	var allCapsules []Capsule
 	for _, versions := range r.capsules {
 		for _, c := range versions {
@@ -226,6 +237,10 @@ func (s *Store) GetLatest(name string) (Capsule, bool) {
 	for _, r := range s.registries {
 		// Check if the name exists at all in this registry layer.
 		r.mu.RLock()
+		if r.capsules == nil {
+			r.mu.RUnlock()
+			continue
+		}
 		_, ok := r.capsules[name]
 		r.mu.RUnlock()
 
@@ -238,7 +253,6 @@ func (s *Store) GetLatest(name string) (Capsule, bool) {
 }
 
 // List returns all capsules from all registries, sorted by priority then ID.
-// It does not handle potential duplicates across registries.
 func (s *Store) List() []Capsule {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -255,10 +269,7 @@ func (s *Store) List() []Capsule {
 	return allCapsules
 }
 
-// --- ADDED: Store Write Methods ---
-
-// writableRegistry returns the first registry (index 0), which is designated
-// as the writable layer for admin tools.
+// writableRegistry returns the first registry (index 0).
 func (s *Store) writableRegistry() (*Registry, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -286,37 +297,24 @@ func (s *Store) Delete(name string) error {
 	return reg.Delete(name)
 }
 
-// --- END: Store Write Methods ---
-
-// --- Default Singletons (FIXED) ---
-
 var (
-	builtInRegistry      *Registry // The registry for embedded content
-	defaultStore         *Store    // The default store that contains the built-in registry
+	builtInRegistry      *Registry
+	defaultStore         *Store
 	defaultSingletonOnce sync.Once
 )
 
-// initSingletons initializes the built-in registry and the default store.
 func initSingletons() {
 	defaultSingletonOnce.Do(func() {
 		builtInRegistry = NewRegistry()
-		// THE FIX: The default store now has an empty, writable registry
-		// at index 0, layered over the built-in one.
 		defaultStore = NewStore(NewRegistry(), builtInRegistry)
 	})
 }
 
-// BuiltInRegistry returns the singleton registry for built-in capsules.
-// This is primarily used by the loader (e.g., in loader.go) to populate
-// the default set of capsules.
 func BuiltInRegistry() *Registry {
 	initSingletons()
 	return builtInRegistry
 }
 
-// DefaultStore returns the singleton, layered store.
-// It is initialized with the BuiltInRegistry as its first layer.
-// Application code should use this to get capsules or add new registries.
 func DefaultStore() *Store {
 	initSingletons()
 	return defaultStore

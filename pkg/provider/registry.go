@@ -1,8 +1,8 @@
 // NeuroScript Version: 0.8.0
-// File version: 2
-// Purpose: Replaced non-existent lang.ErrNil with lang.ErrInvalidArgument.
+// File version: 3
+// Purpose: Added Register method to Registry for host initialization.
 // filename: pkg/provider/registry.go
-// nlines: 119
+// nlines: 128
 // risk_rating: MEDIUM
 
 package provider
@@ -29,6 +29,15 @@ type Registry struct {
 // NewRegistry creates a new, empty provider registry.
 func NewRegistry() *Registry {
 	return &Registry{m: make(map[string]AIProvider)}
+}
+
+// Register adds a provider to the registry.
+// This is intended for use by the host application during initialization.
+func (r *Registry) Register(name string, p AIProvider) {
+	key := strings.ToLower(name)
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.m[key] = p
 }
 
 // ---------- reader view ----------
