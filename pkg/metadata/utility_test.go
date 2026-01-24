@@ -1,12 +1,14 @@
-// NeuroScript Version: 0.3.0
-// File version: 2
-// Purpose: Contains tests for the metadata utility and extractor.
-// filename: pkg/metadata/utility_test.go
-// nlines: 118
-// risk_rating: LOW
+// :: product: FDM/NS
+// :: majorVersion: 0
+// :: fileVersion: 3
+// :: description: Contains tests for the metadata utility, extractor, and UNIFIED PARSING LOGIC with tricky line ending cases.
+// :: latestChange: Added extensive test cases for CRLF, mixed line endings, and trailing whitespace to verify unified parser robustness.
+// :: filename: pkg/metadata/utility_test.go
+// :: serialization: go
 package metadata_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/metadata"
@@ -112,4 +114,133 @@ func TestExtractor(t *testing.T) {
 			t.Error("CheckRequired() expected an error for missing key")
 		}
 	})
+}
+
+// --- Tricky Line Ending & Parsing Tests ---
+
+func TestReadLines_TrickyEndings(t *testing.T) {
+	cases := []struct {
+		name     string
+		input    string
+		expected []string
+	}{
+		{
+			name:     "Unix Newlines",
+			input:    "Line 1\nLine 2\nLine 3",
+			expected: []string{"Line 1", "Line 2", "Line 3"},
+		},
+		{
+			name:     "Windows CRLF",
+			input:    "Line 1\r\nLine 2\r\nLine 3",
+			expected: []string{"Line 1", "Line 2", "Line 3"},
+		},
+		{
+			name:     "Mixed Line Endings",
+			input:    "Line 1\nLine 2\r\nLine 3",
+			expected: []string{"Line 1", "Line 2", "Line 3"},
+		},
+		{
+			name:     "Trailing Newline",
+			input:    "Line 1\n",
+			expected: []string{"Line 1"},
+		},
+		{
+			name:     "No Trailing Newline",
+			input:    "Line 1",
+			expected: []string{"Line 1"},
+		},
+		{
+			name:     "Empty File",
+			input:    "",
+			expected: nil, // Scanner returns nothing for empty input
+		},
+		{
+			name:     "Only Newlines",
+			input:    "\n\n",
+			expected: []string{"", ""},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := strings.NewReader(tc.input)
+			lines, err := metadata.ReadLines(r)
+			if err != nil {
+				t.Fatalf("ReadLines failed: %v", err)
+			}
+			if len(lines) != len(tc.expected) {
+				t.Fatalf("Line count mismatch. Got %d, want %d. Got: %q", len(lines), len(tc.expected), lines)
+			}
+			for i, line := range lines {
+				if line != tc.expected[i] {
+					t.Errorf("Line %d mismatch. Got %q, want %q", i, line, tc.expected[i])
+				}
+			}
+		})
+	}
+}
+
+func TestParseHeaderBlock_Tricky(t *testing.T) {
+	input := []string{
+		"",                // Leading blank line (ignored)
+		":: schema: ns",   // Valid
+		":: key: val   ",  // Trailing spaces on line (should be trimmed)
+		"   ",             // Blank line with spaces (ends block)
+		":: content: yes", // Should NOT be in metadata
+	}
+
+	store, endLine := metadata.ParseHeaderBlock(input)
+	if store == nil {
+		t.Fatal("ParseHeaderBlock returned nil store")
+	}
+
+	if val := store["schema"]; val != "ns" {
+		t.Errorf("Expected schema=ns, got %q", val)
+	}
+	if val := store["key"]; val != "val" {
+		t.Errorf("Expected key=val, got %q (check whitespace trimming)", val)
+	}
+	if _, ok := store["content"]; ok {
+		t.Error("ParseHeaderBlock consumed past the blank line")
+	}
+
+	// 0: "", 1: meta, 2: meta, 3: blank(break).
+	// endLine should point to index 4 (content start)?
+	// Loop:
+	// i=0: blank, continue.
+	// i=1: match.
+	// i=2: match.
+	// i=3: no match (trim="" not regex). Break.
+	// metaEndLine was last set at i+1 during i=2 -> 3.
+	// So lines[3] is the start of non-meta. Correct.
+	if endLine != 3 {
+		t.Errorf("Expected endLine=3, got %d", endLine)
+	}
+}
+
+func TestParseFooterBlock_Tricky(t *testing.T) {
+	input := []string{
+		"Content",
+		"",
+		":: schema: md  ", // Trailing whitespace
+		":: id: test",
+		"", // Trailing blank line (should be skipped)
+	}
+
+	store, startLine := metadata.ParseFooterBlock(input)
+	if store == nil {
+		t.Fatal("ParseFooterBlock returned nil store")
+	}
+
+	if val := store["schema"]; val != "md" {
+		t.Errorf("Expected schema=md, got %q", val)
+	}
+	if val := store["id"]; val != "test" {
+		t.Errorf("Expected id=test, got %q", val)
+	}
+
+	// Index 2 is the start of metadata.
+	if startLine != 2 {
+		t.Errorf("Expected startLine=2, got %d", startLine)
+	}
 }

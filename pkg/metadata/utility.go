@@ -1,17 +1,26 @@
-// NeuroScript Version: 0.3.0
-// File version: 3
-// Purpose: Provides utilities for extracting and validating metadata, exporting NormalizeKey.
-// filename: pkg/metadata/utility.go
-// nlines: 98
-// risk_rating: LOW
+// :: product: FDM/NS
+// :: majorVersion: 0
+// :: fileVersion: 5
+// :: description: Provides utilities for extracting and validating metadata, including the SINGLE SOURCE OF TRUTH for parsing logic.
+// :: latestChange: Centralized MetaRegex, ReadLines, ParseHeaderBlock, and ParseFooterBlock to eliminate parser drift.
+// :: filename: pkg/metadata/utility.go
+// :: serialization: go
 package metadata
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"regexp"
 	"strconv"
 	"strings"
 )
+
+// MetaRegex captures the key and value from a metadata line.
+// It is the Single Source of Truth for what constitutes a metadata line.
+// We use a lenient regex here to allow the parser to read slightly malformed files,
+// though the spec enforces strict spacing for validation/linting.
+var MetaRegex = regexp.MustCompile(`^::\s*([a-zA-Z0-9_.-]+)\s*:\s*(.*?)\s*$`)
 
 // Pre-defined sets of required metadata keys for different schemas.
 var (
@@ -106,4 +115,108 @@ func (e *Extractor) CheckRequired(keys ...string) error {
 		return fmt.Errorf("missing required metadata keys: %v", missing)
 	}
 	return nil
+}
+
+// --- Unified Parsing Logic (Single Source of Truth) ---
+
+// ReadLines reads all lines from a reader using a scanner to handle line endings reliably.
+// It automatically handles \n and \r\n line endings.
+func ReadLines(r io.Reader) ([]string, error) {
+	var lines []string
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return lines, nil
+}
+
+// ParseHeaderBlock extracts a NeuroScript-style metadata block from the beginning of the lines.
+// Returns the store and the line index where the content begins (inclusive).
+// Returns (nil, 0) if no valid header block is found.
+func ParseHeaderBlock(lines []string) (Store, int) {
+	store := make(Store)
+	metaEndLine := 0
+	pastLeadingWhitespace := false
+
+	for i, line := range lines {
+		trimmedLine := strings.TrimSpace(line)
+
+		if !pastLeadingWhitespace && trimmedLine == "" {
+			metaEndLine = i + 1
+			continue
+		}
+		pastLeadingWhitespace = true
+
+		if !MetaRegex.MatchString(trimmedLine) {
+			break // End of the contiguous block
+		}
+
+		// It matches, so extract it
+		matches := MetaRegex.FindStringSubmatch(trimmedLine)
+		if len(matches) == 3 {
+			key := strings.ToLower(matches[1])
+			val := strings.TrimSpace(matches[2])
+			store[key] = val
+		}
+
+		// This line is metadata, so content starts after it
+		metaEndLine = i + 1
+	}
+
+	if len(store) == 0 {
+		return nil, 0
+	}
+
+	return store, metaEndLine
+}
+
+// ParseFooterBlock extracts a Markdown-style metadata block from the end of the lines.
+// Returns the store and the line index where the content ends (exclusive).
+// Returns (nil, len(lines)) if no valid footer block is found.
+func ParseFooterBlock(lines []string) (Store, int) {
+	store := make(Store)
+	metaStartLine := len(lines)
+	inBlock := false
+
+	// Scan backwards
+	for i := len(lines) - 1; i >= 0; i-- {
+		line := lines[i]
+		trimmedLine := strings.TrimSpace(line)
+
+		if trimmedLine == "" {
+			if inBlock {
+				// A blank line breaks the contiguity of the block.
+				break
+			}
+			continue // Skip trailing blank lines
+		}
+
+		if MetaRegex.MatchString(trimmedLine) {
+			inBlock = true
+			metaStartLine = i // Potentially moves up
+		} else {
+			// Content line found, block ends here.
+			break
+		}
+	}
+
+	// Now parse forward from the identified start
+	if inBlock && metaStartLine < len(lines) {
+		for i := metaStartLine; i < len(lines); i++ {
+			line := lines[i]
+			trimmedLine := strings.TrimSpace(line)
+			matches := MetaRegex.FindStringSubmatch(trimmedLine)
+			if len(matches) == 3 {
+				key := strings.ToLower(matches[1])
+				val := strings.TrimSpace(matches[2])
+				store[key] = val
+			}
+		}
+		return store, metaStartLine
+	}
+
+	return nil, len(lines)
 }
