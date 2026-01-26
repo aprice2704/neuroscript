@@ -37,7 +37,7 @@ func toolSleep(interpreter tool.Runtime, args []interface{}) (interface{}, error
 		return nil, lang.NewRuntimeError(lang.ErrorCodePolicy, err.Error(), err)
 	}
 
-	interpreter.GetLogger().Debug("Tool: Sleep", "duration_seconds", duration)
+	// interpreter.GetLogger().Debug("Tool: Sleep", "duration_seconds", duration)
 	time.Sleep(time.Duration(duration * float64(time.Second)))
 	return nil, nil
 }
@@ -47,7 +47,7 @@ func toolNow(interpreter tool.Runtime, args []interface{}) (interface{}, error) 
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "Now: expected 0 arguments", lang.ErrArgumentMismatch)
 	}
 	now := float64(time.Now().Unix())
-	interpreter.GetLogger().Debug("Tool: Now", "timestamp", now)
+	// interpreter.GetLogger().Debug("Tool: Now", "timestamp", now)
 	return now, nil
 }
 
@@ -59,6 +59,6 @@ func toolHostname(interpreter tool.Runtime, args []interface{}) (interface{}, er
 	if err != nil {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("Hostname: failed to get hostname: %v", err), lang.ErrInternal)
 	}
-	interpreter.GetLogger().Debug("Tool: Hostname", "hostname", hostname)
+	// interpreter.GetLogger().Debug("Tool: Hostname", "hostname", hostname)
 	return hostname, nil
 }

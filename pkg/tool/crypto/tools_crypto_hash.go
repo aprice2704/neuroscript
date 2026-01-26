@@ -51,7 +51,7 @@ func toolHash(interpreter tool.Runtime, args []interface{}) (interface{}, error)
 	}
 	h.Write([]byte(input))
 	result := hex.EncodeToString(h.Sum(nil))
-	interpreter.GetLogger().Debug("Tool: Hash", "algorithm", algo)
+	// interpreter.GetLogger().Debug("Tool: Hash", "algorithm", algo)
 	return result, nil
 }
 
@@ -81,7 +81,7 @@ func toolHMAC(interpreter tool.Runtime, args []interface{}) (interface{}, error)
 	h := hmac.New(hf, []byte(secret))
 	h.Write([]byte(input))
 	result := hex.EncodeToString(h.Sum(nil))
-	interpreter.GetLogger().Debug("Tool: HMAC", "algorithm", algo)
+	// interpreter.GetLogger().Debug("Tool: HMAC", "algorithm", algo)
 	return result, nil
 }
 
@@ -90,6 +90,6 @@ func toolUUID(interpreter tool.Runtime, args []interface{}) (interface{}, error)
 		return nil, lang.NewRuntimeError(lang.ErrorCodeArgMismatch, "UUID: expected 0 arguments", lang.ErrArgumentMismatch)
 	}
 	id := uuid.New().String()
-	interpreter.GetLogger().Debug("Tool: UUID", "generated_id", id)
+	// interpreter.GetLogger().Debug("Tool: UUID", "generated_id", id)
 	return id, nil
 }

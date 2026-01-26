@@ -43,21 +43,21 @@ func toolFileHash(interpreter tool.Runtime, args []interface{}) (interface{}, er
 	// --- Path Validation ---
 	absPath, secErr := security.SecureFilePath(filePathRel, sandboxRoot)
 	if secErr != nil {
-		errMsg := fmt.Sprintf("FileHash: path security error for '%s': %v", filePathRel, secErr)
-		interpreter.GetLogger().Debug("Tool: FileHash] %s (Sandbox Root: %s)", errMsg, sandboxRoot)
+		//	errMsg := fmt.Sprintf("FileHash: path security error for '%s': %v", filePathRel, secErr)
+		// interpreter.GetLogger().Debug("Tool: FileHash] %s (Sandbox Root: %s)", errMsg, sandboxRoot)
 		// Return the RuntimeError from SecureFilePath directly
 		return "", secErr
 	}
 
 	// --- File Hashing ---
-	interpreter.GetLogger().Debug("Tool: FileHash attempting to hash validated path", "validated_path", absPath, "original_relative_path", filePathRel, "sandbox_root", sandboxRoot)
+	// interpreter.GetLogger().Debug("Tool: FileHash attempting to hash validated path", "validated_path", absPath, "original_relative_path", filePathRel, "sandbox_root", sandboxRoot)
 
 	file, openErr := os.Open(absPath)
 	if openErr != nil {
 		errMsg := ""
 		if errors.Is(openErr, os.ErrNotExist) {
 			errMsg = fmt.Sprintf("FileHash: file not found at path '%s'", filePathRel)
-			interpreter.GetLogger().Debug("Tool: FileHash] %s", errMsg)
+			// interpreter.GetLogger().Debug("Tool: FileHash] %s", errMsg)
 			return "", lang.NewRuntimeError(lang.ErrorCodeFileNotFound, errMsg, lang.ErrFileNotFound)
 		}
 		if errors.Is(openErr, os.ErrPermission) {
@@ -82,7 +82,7 @@ func toolFileHash(interpreter tool.Runtime, args []interface{}) (interface{}, er
 	}
 	if stat.IsDir() {
 		errMsg := fmt.Sprintf("FileHash: path '%s' is a directory, not a file", filePathRel)
-		interpreter.GetLogger().Debug("Tool: FileHash] %s", errMsg)
+		// interpreter.GetLogger().Debug("Tool: FileHash] %s", errMsg)
 		// Use ErrorCodePathTypeMismatch and ErrPathNotFile sentinel
 		return "", lang.NewRuntimeError(lang.ErrorCodePathTypeMismatch, errMsg, lang.ErrPathNotFile)
 	}
@@ -100,6 +100,6 @@ func toolFileHash(interpreter tool.Runtime, args []interface{}) (interface{}, er
 	hashBytes := hasher.Sum(nil)
 	hashString := fmt.Sprintf("%x", hashBytes)
 
-	interpreter.GetLogger().Debug("Tool: FileHash] Successfully calculated SHA256 hash", "file_path", filePathRel, "hash", hashString)
+	// interpreter.GetLogger().Debug("Tool: FileHash] Successfully calculated SHA256 hash", "file_path", filePathRel, "hash", hashString)
 	return hashString, nil
 }

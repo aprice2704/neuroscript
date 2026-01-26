@@ -42,7 +42,7 @@ func toolLineCountFile(interpreter tool.Runtime, args []interface{}) (interface{
 		return int64(-1), secErr
 	}
 
-	interpreter.GetLogger().Debug("Tool: LineCountFile] Attempting to read validated path", "absolute_path", absPath, "original_path", filePath, "sandbox", sandboxRoot)
+	// interpreter.GetLogger().Debug("Tool: LineCountFile] Attempting to read validated path", "absolute_path", absPath, "original_path", filePath, "sandbox", sandboxRoot)
 	contentBytes, readErr := os.ReadFile(absPath)
 	if readErr != nil {
 		interpreter.GetLogger().Warn("TOOL LineCountFile] Read error", "path", filePath, "error", readErr)
@@ -60,7 +60,7 @@ func toolLineCountFile(interpreter tool.Runtime, args []interface{}) (interface{
 
 	content := string(contentBytes)
 	if len(content) == 0 {
-		interpreter.GetLogger().Debug("Tool: LineCountFile] Counted 0 lines (empty file)", "file_path", filePath)
+		// interpreter.GetLogger().Debug("Tool: LineCountFile] Counted 0 lines (empty file)", "file_path", filePath)
 		return int64(0), nil
 	}
 
@@ -69,7 +69,7 @@ func toolLineCountFile(interpreter tool.Runtime, args []interface{}) (interface{
 		lineCount++
 	}
 
-	interpreter.GetLogger().Debug("Tool: LineCountFile] Counted lines", "count", lineCount, "file_path", filePath)
+	// interpreter.GetLogger().Debug("Tool: LineCountFile] Counted lines", "count", lineCount, "file_path", filePath)
 	return lineCount, nil
 }
 
@@ -85,6 +85,6 @@ func toolSanitizeFilename(interpreter tool.Runtime, args []interface{}) (interfa
 
 	// SanitizeFilename itself doesn't currently return an error. If it did, we'd handle it here.
 	sanitized := security.SanitizeFilename(name)
-	interpreter.GetLogger().Debug("Tool: SanitizeFilename", "input", name, "output", sanitized)
+	// interpreter.GetLogger().Debug("Tool: SanitizeFilename", "input", name, "output", sanitized)
 	return sanitized, nil
 }

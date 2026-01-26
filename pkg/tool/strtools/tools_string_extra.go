@@ -37,7 +37,7 @@ func toolBytesFromBase64(interpreter tool.Runtime, args []interface{}) (interfac
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInvalidValue, "BytesFromBase64: byte data is not valid UTF-8", lang.ErrInvalidArgument)
 	}
 
-	interpreter.GetLogger().Debug("Tool: BytesFromBase64", "input_len", len(base64Data), "output_len", len(byteData))
+	// interpreter.GetLogger().Debug("Tool: BytesFromBase64", "input_len", len(base64Data), "output_len", len(byteData))
 	return string(byteData), nil
 }
 
@@ -54,7 +54,7 @@ func toolBytesToBase64(interpreter tool.Runtime, args []interface{}) (interface{
 	byteData := []byte(stringData)
 	base64Data := base64.StdEncoding.EncodeToString(byteData)
 
-	interpreter.GetLogger().Debug("Tool: BytesToBase64", "input_len", len(stringData), "output_len", len(base64Data))
+	// interpreter.GetLogger().Debug("Tool: BytesToBase64", "input_len", len(stringData), "output_len", len(base64Data))
 	return base64Data, nil
 }
 
@@ -80,7 +80,7 @@ func toolParseFromJsonBase64(interpreter tool.Runtime, args []interface{}) (inte
 	}
 
 	// lang.Wrap should handle the conversion to NeuroScript maps/lists if necessary.
-	interpreter.GetLogger().Debug("Tool: ParseFromJsonBase64", "input_len", len(base64Data))
+	// interpreter.GetLogger().Debug("Tool: ParseFromJsonBase64", "input_len", len(base64Data))
 	return parsedValue, nil
 }
 
@@ -100,7 +100,7 @@ func toolParseJsonString(interpreter tool.Runtime, args []interface{}) (interfac
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInvalidValue, fmt.Sprintf("ParseJsonString: invalid JSON data: %v", err), lang.ErrInvalidArgument)
 	}
 
-	interpreter.GetLogger().Debug("Tool: ParseJsonString", "input_len", len(jsonString))
+	// interpreter.GetLogger().Debug("Tool: ParseJsonString", "input_len", len(jsonString))
 	return parsedValue, nil
 }
 
@@ -156,6 +156,6 @@ func toolToJsonString(interpreter tool.Runtime, args []interface{}) (interface{}
 	}
 
 	jsonString := string(jsonData)
-	interpreter.GetLogger().Debug("Tool: ToJsonString", "output_len", len(jsonString), "pretty", prettyPrint)
+	// interpreter.GetLogger().Debug("Tool: ToJsonString", "output_len", len(jsonString), "pretty", prettyPrint)
 	return jsonString, nil
 }

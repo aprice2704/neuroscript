@@ -31,6 +31,6 @@ func toolGetenv(interpreter tool.Runtime, args []interface{}) (interface{}, erro
 	// The policy gate should have already checked for the specific variable in scope.
 	// e.g., grants: [{Resource: "env", Verbs: ["read"], Scopes: ["HOME", "USER"]}]
 	value := os.Getenv(varName)
-	//	interpreter.GetLogger().Debug("Tool: Getenv", "variable", varName, "found", value != "")
+	//	// interpreter.GetLogger().Debug("Tool: Getenv", "variable", varName, "found", value != "")
 	return value, nil
 }

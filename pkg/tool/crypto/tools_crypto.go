@@ -39,7 +39,7 @@ func toolSignJWT(interpreter tool.Runtime, args []interface{}) (interface{}, err
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("SignJWT: failed to sign token: %v", err), lang.ErrInternal)
 	}
 
-	interpreter.GetLogger().Debug("Tool: SignJWT", "algorithm", algo)
+	// interpreter.GetLogger().Debug("Tool: SignJWT", "algorithm", algo)
 	return signedString, nil
 }
 
@@ -66,7 +66,7 @@ func toolVerifyJWT(interpreter tool.Runtime, args []interface{}) (interface{}, e
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		interpreter.GetLogger().Debug("Tool: VerifyJWT", "claims", claims)
+		// interpreter.GetLogger().Debug("Tool: VerifyJWT", "claims", claims)
 		return (map[string]interface{})(claims), nil
 	}
 
@@ -90,7 +90,7 @@ func toolDecodeJWT(interpreter tool.Runtime, args []interface{}) (interface{}, e
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
-		interpreter.GetLogger().Debug("Tool: DecodeJWT", "claims", claims)
+		// interpreter.GetLogger().Debug("Tool: DecodeJWT", "claims", claims)
 		return (map[string]interface{})(claims), nil
 	}
 

@@ -26,7 +26,7 @@ func toolStringLength(interpreter tool.Runtime, args []interface{}) (interface{}
 		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("String.Length: input_string argument must be a string, got %T", args[0]), lang.ErrArgumentMismatch)
 	}
 	length := float64(utf8.RuneCountInString(inputStr))
-	interpreter.GetLogger().Debug("Tool: String.Length", "input", inputStr, "length", length)
+	// interpreter.GetLogger().Debug("Tool: String.Length", "input", inputStr, "length", length)
 	return length, nil
 }
 
@@ -40,7 +40,7 @@ func toolStringToUpper(interpreter tool.Runtime, args []interface{}) (interface{
 		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("String.ToUpper: input_string argument must be a string, got %T", args[0]), lang.ErrArgumentMismatch)
 	}
 	result := strings.ToUpper(inputStr)
-	interpreter.GetLogger().Debug("Tool: String.ToUpper", "input", inputStr, "result", result)
+	// interpreter.GetLogger().Debug("Tool: String.ToUpper", "input", inputStr, "result", result)
 	return result, nil
 }
 
@@ -54,7 +54,7 @@ func toolStringToLower(interpreter tool.Runtime, args []interface{}) (interface{
 		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("String.ToLower: input_string argument must be a string, got %T", args[0]), lang.ErrArgumentMismatch)
 	}
 	result := strings.ToLower(inputStr)
-	interpreter.GetLogger().Debug("Tool: String.ToLower", "input", inputStr, "result", result)
+	// interpreter.GetLogger().Debug("Tool: String.ToLower", "input", inputStr, "result", result)
 	return result, nil
 }
 
@@ -68,7 +68,7 @@ func toolStringTrimSpace(interpreter tool.Runtime, args []interface{}) (interfac
 		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("String.TrimSpace: input_string argument must be a string, got %T", args[0]), lang.ErrArgumentMismatch)
 	}
 	result := strings.TrimSpace(inputStr)
-	interpreter.GetLogger().Debug("Tool: String.TrimSpace", "input", inputStr, "result", result)
+	// interpreter.GetLogger().Debug("Tool: String.TrimSpace", "input", inputStr, "result", result)
 	return result, nil
 }
 
@@ -88,7 +88,7 @@ func toolStringTrimPrefix(interpreter tool.Runtime, args []interface{}) (interfa
 	}
 
 	result := strings.TrimPrefix(inputStr, prefix)
-	interpreter.GetLogger().Debug("Tool: String.TrimPrefix", "input", inputStr, "prefix", prefix, "result", result)
+	// interpreter.GetLogger().Debug("Tool: String.TrimPrefix", "input", inputStr, "prefix", prefix, "result", result)
 	return result, nil
 }
 
@@ -108,6 +108,6 @@ func toolStringTrimSuffix(interpreter tool.Runtime, args []interface{}) (interfa
 	}
 
 	result := strings.TrimSuffix(inputStr, suffix)
-	interpreter.GetLogger().Debug("Tool: String.TrimSuffix", "input", inputStr, "suffix", suffix, "result", result)
+	// interpreter.GetLogger().Debug("Tool: String.TrimSuffix", "input", inputStr, "suffix", suffix, "result", result)
 	return result, nil
 }

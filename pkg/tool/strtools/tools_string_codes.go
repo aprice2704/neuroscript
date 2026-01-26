@@ -28,7 +28,7 @@ func toolStringToBase64(interpreter tool.Runtime, args []interface{}) (interface
 		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("ToBase64: input_string argument must be a string, got %T", args[0]), lang.ErrArgumentMismatch)
 	}
 	encoded := base64.StdEncoding.EncodeToString([]byte(inputStr))
-	interpreter.GetLogger().Debug("Tool: ToBase64", "input_len", len(inputStr), "output_len", len(encoded))
+	// interpreter.GetLogger().Debug("Tool: ToBase64", "input_len", len(inputStr), "output_len", len(encoded))
 	return encoded, nil
 }
 
@@ -44,7 +44,7 @@ func toolStringFromBase64(interpreter tool.Runtime, args []interface{}) (interfa
 	if err != nil {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInvalidValue, fmt.Sprintf("FromBase64: invalid base64 string: %v", err), lang.ErrInvalidArgument)
 	}
-	interpreter.GetLogger().Debug("Tool: FromBase64", "input_len", len(encodedStr), "output_len", len(decoded))
+	// interpreter.GetLogger().Debug("Tool: FromBase64", "input_len", len(encodedStr), "output_len", len(decoded))
 	return string(decoded), nil
 }
 
@@ -57,7 +57,7 @@ func toolStringToHex(interpreter tool.Runtime, args []interface{}) (interface{},
 		return nil, lang.NewRuntimeError(lang.ErrorCodeType, fmt.Sprintf("ToHex: input_string argument must be a string, got %T", args[0]), lang.ErrArgumentMismatch)
 	}
 	encoded := hex.EncodeToString([]byte(inputStr))
-	interpreter.GetLogger().Debug("Tool: ToHex", "input_len", len(inputStr), "output_len", len(encoded))
+	// interpreter.GetLogger().Debug("Tool: ToHex", "input_len", len(inputStr), "output_len", len(encoded))
 	return encoded, nil
 }
 
@@ -73,7 +73,7 @@ func toolStringFromHex(interpreter tool.Runtime, args []interface{}) (interface{
 	if err != nil {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInvalidValue, fmt.Sprintf("FromHex: invalid hex string: %v", err), lang.ErrInvalidArgument)
 	}
-	interpreter.GetLogger().Debug("Tool: FromHex", "input_len", len(encodedStr), "output_len", len(decoded))
+	// interpreter.GetLogger().Debug("Tool: FromHex", "input_len", len(encodedStr), "output_len", len(decoded))
 	return string(decoded), nil
 }
 
@@ -96,7 +96,7 @@ func toolStringCompress(interpreter tool.Runtime, args []interface{}) (interface
 	}
 
 	encoded := base64.StdEncoding.EncodeToString(buf.Bytes())
-	interpreter.GetLogger().Debug("Tool: Compress", "input_len", len(inputStr), "compressed_b64_len", len(encoded))
+	// interpreter.GetLogger().Debug("Tool: Compress", "input_len", len(inputStr), "compressed_b64_len", len(encoded))
 	return encoded, nil
 }
 
@@ -125,6 +125,6 @@ func toolStringDecompress(interpreter tool.Runtime, args []interface{}) (interfa
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInvalidValue, fmt.Sprintf("Decompress: failed to read decompressed data: %v", err), lang.ErrInvalidArgument)
 	}
 
-	interpreter.GetLogger().Debug("Tool: Decompress", "input_len", len(encodedStr), "decompressed_len", len(decompressed))
+	// interpreter.GetLogger().Debug("Tool: Decompress", "input_len", len(encodedStr), "decompressed_len", len(decompressed))
 	return string(decompressed), nil
 }

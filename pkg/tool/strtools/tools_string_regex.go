@@ -29,7 +29,7 @@ func toolMatchRegex(interpreter tool.Runtime, args []interface{}) (interface{}, 
 	if err != nil {
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInvalidValue, fmt.Sprintf("MatchRegex: invalid regex pattern: %v", err), lang.ErrInvalidArgument)
 	}
-	interpreter.GetLogger().Debug("Tool: MatchRegex", "pattern", pattern, "result", matched)
+	// interpreter.GetLogger().Debug("Tool: MatchRegex", "pattern", pattern, "result", matched)
 	return matched, nil
 }
 
@@ -48,7 +48,7 @@ func toolFindAllRegex(interpreter tool.Runtime, args []interface{}) (interface{}
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInvalidValue, fmt.Sprintf("FindAllRegex: invalid regex pattern: %v", err), lang.ErrInvalidArgument)
 	}
 	matches := re.FindAllString(input, -1)
-	interpreter.GetLogger().Debug("Tool: FindAllRegex", "pattern", pattern, "matches_count", len(matches))
+	// interpreter.GetLogger().Debug("Tool: FindAllRegex", "pattern", pattern, "matches_count", len(matches))
 	return matches, nil
 }
 
@@ -68,6 +68,6 @@ func toolReplaceRegex(interpreter tool.Runtime, args []interface{}) (interface{}
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInvalidValue, fmt.Sprintf("ReplaceRegex: invalid regex pattern: %v", err), lang.ErrInvalidArgument)
 	}
 	result := re.ReplaceAllString(input, replacement)
-	interpreter.GetLogger().Debug("Tool: ReplaceRegex", "pattern", pattern)
+	// interpreter.GetLogger().Debug("Tool: ReplaceRegex", "pattern", pattern)
 	return result, nil
 }

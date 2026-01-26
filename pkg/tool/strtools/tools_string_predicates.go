@@ -31,7 +31,7 @@ func toolStringContains(interpreter tool.Runtime, args []interface{}) (interface
 	}
 
 	contains := strings.Contains(inputStr, substr)
-	interpreter.GetLogger().Debug("Tool: String.Contains", "input", inputStr, "substring", substr, "result", contains)
+	// interpreter.GetLogger().Debug("Tool: String.Contains", "input", inputStr, "substring", substr, "result", contains)
 	return contains, nil
 }
 
@@ -51,7 +51,7 @@ func toolStringHasPrefix(interpreter tool.Runtime, args []interface{}) (interfac
 	}
 
 	hasPrefix := strings.HasPrefix(inputStr, prefix)
-	interpreter.GetLogger().Debug("Tool: String.HasPrefix", "input", inputStr, "prefix", prefix, "result", hasPrefix)
+	// interpreter.GetLogger().Debug("Tool: String.HasPrefix", "input", inputStr, "prefix", prefix, "result", hasPrefix)
 	return hasPrefix, nil
 }
 
@@ -71,6 +71,6 @@ func toolStringHasSuffix(interpreter tool.Runtime, args []interface{}) (interfac
 	}
 
 	hasSuffix := strings.HasSuffix(inputStr, suffix)
-	interpreter.GetLogger().Debug("Tool: String.HasSuffix", "input", inputStr, "suffix", suffix, "result", hasSuffix)
+	// interpreter.GetLogger().Debug("Tool: String.HasSuffix", "input", inputStr, "suffix", suffix, "result", hasSuffix)
 	return hasSuffix, nil
 }

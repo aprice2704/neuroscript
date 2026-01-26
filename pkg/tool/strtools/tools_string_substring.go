@@ -63,12 +63,12 @@ func toolStringSubstring(interpreter tool.Runtime, args []interface{}) (interfac
 
 	// Handle cases resulting in empty string
 	if startIndex >= endIndex || startIndex >= runeCount {
-		interpreter.GetLogger().Debug("Tool: String.Substring (empty due to indices/length)", "input", inputStr, "start", startIndexRaw, "length", lengthRaw, "rune_count", runeCount, "result", "")
+		// interpreter.GetLogger().Debug("Tool: String.Substring (empty due to indices/length)", "input", inputStr, "start", startIndexRaw, "length", lengthRaw, "rune_count", runeCount, "result", "")
 		return "", nil
 	}
 
 	substring := string(runes[startIndex:endIndex])
-	interpreter.GetLogger().Debug("Tool: String.Substring", "input", inputStr, "start", startIndexRaw, "length", lengthRaw, "result", substring)
+	// interpreter.GetLogger().Debug("Tool: String.Substring", "input", inputStr, "start", startIndexRaw, "length", lengthRaw, "result", substring)
 	return substring, nil
 }
 
@@ -98,6 +98,6 @@ func toolStringReplace(interpreter tool.Runtime, args []interface{}) (interface{
 
 	count := int(countRaw)
 	result := strings.Replace(inputStr, oldSubstr, newSubstr, count)
-	//interpreter.GetLogger().Debug("Tool: String.Replace", "input", inputStr, "old", oldSubstr, "new", newSubstr, "count", count, "result", result)
+	//// interpreter.GetLogger().Debug("Tool: String.Replace", "input", inputStr, "old", oldSubstr, "new", newSubstr, "count", count, "result", result)
 	return result, nil
 }

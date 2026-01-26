@@ -26,7 +26,7 @@ func toolLineCountString(interpreter tool.Runtime, args []interface{}) (interfac
 	}
 
 	if content == "" {
-		interpreter.GetLogger().Debug("Tool: String.LineCount", "content", content, "line_count", 0)
+		// interpreter.GetLogger().Debug("Tool: String.LineCount", "content", content, "line_count", 0)
 		return float64(0), nil
 	}
 	// Count occurrences of newline character
@@ -36,6 +36,6 @@ func toolLineCountString(interpreter tool.Runtime, args []interface{}) (interfac
 		lineCount++
 	}
 
-	interpreter.GetLogger().Debug("Tool: String.LineCount", "content_len", len(content), "line_count", lineCount)
+	// interpreter.GetLogger().Debug("Tool: String.LineCount", "content_len", len(content), "line_count", lineCount)
 	return lineCount, nil
 }

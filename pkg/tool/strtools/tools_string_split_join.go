@@ -30,7 +30,7 @@ func toolStringConcat(interpreter tool.Runtime, args []interface{}) (interface{}
 		for _, str := range list {
 			builder.WriteString(str)
 		}
-		interpreter.GetLogger().Debug("Tool: String.Concat (fast path)", "input_count", len(list), "result_length", builder.Len())
+		// interpreter.GetLogger().Debug("Tool: String.Concat (fast path)", "input_count", len(list), "result_length", builder.Len())
 		return builder.String(), nil
 
 	case []interface{}:
@@ -43,7 +43,7 @@ func toolStringConcat(interpreter tool.Runtime, args []interface{}) (interface{}
 			}
 			builder.WriteString(s)
 		}
-		interpreter.GetLogger().Debug("Tool: String.Concat (builder path)", "input_count", len(list), "result_length", builder.Len())
+		// interpreter.GetLogger().Debug("Tool: String.Concat (builder path)", "input_count", len(list), "result_length", builder.Len())
 		return builder.String(), nil
 
 	default:
@@ -69,7 +69,7 @@ func toolStringSplit(interpreter tool.Runtime, args []interface{}) (interface{},
 	// Corrected: Directly return []string
 	parts := strings.Split(inputStr, separator)
 
-	interpreter.GetLogger().Debug("Tool: String.Split", "input_length", len(inputStr), "separator", separator, "parts_count", len(parts))
+	// interpreter.GetLogger().Debug("Tool: String.Split", "input_length", len(inputStr), "separator", separator, "parts_count", len(parts))
 	return parts, nil // Return []string directly
 }
 
@@ -86,7 +86,7 @@ func toolSplitWords(interpreter tool.Runtime, args []interface{}) (interface{}, 
 	// Corrected: Directly return []string
 	parts := strings.Fields(inputStr)
 
-	interpreter.GetLogger().Debug("Tool: String.SplitWords", "input_length", len(inputStr), "parts_count", len(parts))
+	// interpreter.GetLogger().Debug("Tool: String.SplitWords", "input_length", len(inputStr), "parts_count", len(parts))
 	return parts, nil // Return []string directly
 }
 
@@ -102,6 +102,7 @@ func toolStringJoin(interpreter tool.Runtime, args []interface{}) (interface{}, 
 
 	var builder strings.Builder
 	var listLen int
+	_ = listLen
 
 	// Handle both []string (fast path) and []interface{} (robust path)
 	switch list := args[0].(type) {
@@ -114,7 +115,7 @@ func toolStringJoin(interpreter tool.Runtime, args []interface{}) (interface{}, 
 			}
 			builder.WriteString(str)
 		}
-		interpreter.GetLogger().Debug("Tool: String.Join (fast path)", "input_count", listLen, "separator", separator, "result_length", builder.Len())
+		// interpreter.GetLogger().Debug("Tool: String.Join (fast path)", "input_count", listLen, "separator", separator, "result_length", builder.Len())
 		return builder.String(), nil
 
 	case []interface{}:
@@ -131,7 +132,7 @@ func toolStringJoin(interpreter tool.Runtime, args []interface{}) (interface{}, 
 			}
 			builder.WriteString(s)
 		}
-		interpreter.GetLogger().Debug("Tool: String.Join (builder path)", "input_count", listLen, "separator", separator, "result_length", builder.Len())
+		// interpreter.GetLogger().Debug("Tool: String.Join (builder path)", "input_count", listLen, "separator", separator, "result_length", builder.Len())
 		return builder.String(), nil
 
 	default:

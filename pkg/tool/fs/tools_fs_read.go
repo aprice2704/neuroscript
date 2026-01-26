@@ -45,7 +45,7 @@ func toolReadFile(interpreter tool.Runtime, args []interface{}) (interface{}, er
 		return "", secErr // Return empty string and the error
 	}
 
-	interpreter.GetLogger().Debug("Tool: ReadFile attempting to read", "validated_path", absPath, "original_relative_path", relPath, "sandbox_root", sandboxRoot)
+	// interpreter.GetLogger().Debug("Tool: ReadFile attempting to read", "validated_path", absPath, "original_relative_path", relPath, "sandbox_root", sandboxRoot)
 
 	// Read the file content
 	contentBytes, err := os.ReadFile(absPath)
@@ -77,6 +77,6 @@ func toolReadFile(interpreter tool.Runtime, args []interface{}) (interface{}, er
 
 	// Success
 	content := string(contentBytes)
-	interpreter.GetLogger().Debug("Tool: ReadFile successful", "file_path", relPath, "bytes_read", len(contentBytes))
+	// interpreter.GetLogger().Debug("Tool: ReadFile successful", "file_path", relPath, "bytes_read", len(contentBytes))
 	return content, nil
 }
