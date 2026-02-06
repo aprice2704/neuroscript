@@ -1,8 +1,8 @@
 // :: product: NS
 // :: majorVersion: 1
-// :: fileVersion: 3
-// :: description: Re-exports tool.ArgType constants for the public API facade.
-// :: latestChange: Added NodeID, EntityID, List, Blob, and Embedding for FDM compatibility.
+// :: fileVersion: 5
+// :: description: Re-exports tool.ArgType constants for the public API facade. Fixed ArgTypeVoid definition.
+// :: latestChange: Defined ArgTypeVoid using explicit tool.ArgType to resolve compilation error.
 // :: filename: pkg/api/reexport_type_strings.go
 // :: serialization: go
 
@@ -48,3 +48,6 @@ const (
 	ArgTypeMapStringAny    = tool.ArgTypeMapStringAny
 	ArgTypeMapAnyAny       = tool.ArgTypeMapAnyAny
 )
+
+// FIX: Define Void using the imported tool.ArgType to ensure it is a valid constant.
+const ArgTypeVoid = tool.ArgType("void")

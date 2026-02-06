@@ -1,8 +1,8 @@
 // :: product: NS
 // :: majorVersion: 1
-// :: fileVersion: 29
-// :: description: Updated Runtime interface and ArgType constants.
-// :: latestChange: Added ArgTypeList, ArgTypeBlob, and ArgTypeEmbedding for FDM compatibility.
+// :: fileVersion: 30
+// :: description: Updated Runtime interface and ArgType constants. Added recursive MapKeySpecs to ArgSpec.
+// :: latestChange: Replaced MapKeys []string with MapKeySpecs []ArgSpec to support deep metadata for map parameters.
 // :: filename: pkg/tool/tool_types.go
 // :: serialization: go
 
@@ -53,6 +53,7 @@ const (
 	ArgTypeFloat     ArgType = "float"
 	ArgTypeBool      ArgType = "bool"
 	ArgTypeNil       ArgType = "nil"
+	ArgTypeVoid      ArgType = "void"
 	ArgTypeHandle    ArgType = "handle"
 	ArgTypeNodeID    ArgType = "nodeid"
 	ArgTypeEntityID  ArgType = "entityid"
@@ -89,6 +90,8 @@ type ArgSpec struct {
 	Description  string      `json:"description"`
 	Required     bool        `json:"required"`
 	DefaultValue interface{} `json:"defaultValue,omitempty"`
+	// MapKeySpecs provides detailed metadata for keys when the Type is ArgTypeMap.
+	MapKeySpecs []ArgSpec `json:"mapKeySpecs,omitempty"`
 }
 
 // ToolSpec defines the specification for a tool.
