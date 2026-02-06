@@ -265,47 +265,19 @@
     ],
     "description": "Returns the canonical name of the welcome overlay."
   },
-  "FDM.Plan.AddExcludeMIMETypes": {
-    "prefix": "FDM.Plan.AddExcludeMIMETypes",
-    "body": [
-      "tool.FDM.Plan.AddExcludeMIMETypes(${1:planObj}, ${2:mimeTypes})"
-    ],
-    "description": "Adds a list of MIME types to the plan's exclusion list."
-  },
-  "FDM.Plan.AddIgnorePatterns": {
-    "prefix": "FDM.Plan.AddIgnorePatterns",
-    "body": [
-      "tool.FDM.Plan.AddIgnorePatterns(${1:planObj}, ${2:patterns})"
-    ],
-    "description": "Adds a list of glob patterns to an ingest_plan's ignore list."
-  },
-  "FDM.Plan.AddIndex": {
-    "prefix": "FDM.Plan.AddIndex",
-    "body": [
-      "tool.FDM.Plan.AddIndex(${1:planObj}, ${2:indexID})"
-    ],
-    "description": "Adds an index to an ingest_plan, creating a new version of the plan."
-  },
   "FDM.Plan.AddOverlay": {
     "prefix": "FDM.Plan.AddOverlay",
     "body": [
       "tool.FDM.Plan.AddOverlay(${1:planObj}, ${2:overlayID})"
     ],
-    "description": "Adds an overlay to an ingest_plan, creating a new version of the plan."
+    "description": "Adds an overlay to an ingest_plan."
   },
   "FDM.Plan.Create": {
     "prefix": "FDM.Plan.Create",
     "body": [
       "tool.FDM.Plan.Create(${1:repoPath})"
     ],
-    "description": "Creates a new, empty ingest_plan node for a given repository path."
-  },
-  "FDM.Plan.SetRespectGitignore": {
-    "prefix": "FDM.Plan.SetRespectGitignore",
-    "body": [
-      "tool.FDM.Plan.SetRespectGitignore(${1:planObj}, ${2:respect})"
-    ],
-    "description": "Sets whether the ingestion plan should respect .gitignore files."
+    "description": "Creates a new ingest_plan node."
   },
   "FDM.Project.Create": {
     "prefix": "FDM.Project.Create",
@@ -340,28 +312,35 @@
     "body": [
       "tool.FDM.Query(${1:filter}, ${2:limit})"
     ],
-    "description": "Executes a structured query against the FDM Graph to find nodes matching specific criteria. Delegates to the QueryService."
+    "description": "Executes a structured query against the FDM Graph. Supports 'filter' map and optional 'limit'."
   },
   "FDM.RegisterOverlay": {
     "prefix": "FDM.RegisterOverlay",
     "body": [
       "tool.FDM.RegisterOverlay(${1:overlayName})"
     ],
-    "description": "Creates and registers a standard, named overlay required by a script."
+    "description": "Registers a named overlay."
   },
   "FDM.Repo.Ingest": {
     "prefix": "FDM.Repo.Ingest",
     "body": [
-      "tool.FDM.Repo.Ingest(${1:planObj}, ${2:repoName}, ${3:queueID})"
+      "tool.FDM.Repo.Ingest({",
+      "    \"plan\": ${1:plan (entityid)},",
+      "    \"name\": ${2:name (string)},",
+      "    \"queue_id\": ${3:queue_id (string)}",
+      "})"
     ],
-    "description": "Executes a full ingestion process by walking the entire repository based on a specified ingest_plan."
+    "description": "Executes a full ingestion process based on a plan."
   },
   "FDM.Repo.IngestChanges": {
     "prefix": "FDM.Repo.IngestChanges",
     "body": [
-      "tool.FDM.Repo.IngestChanges(${1:planObj}, ${2:filePaths})"
+      "tool.FDM.Repo.IngestChanges({",
+      "    \"plan\": ${1:plan (entityid)},",
+      "    \"files\": ${2:files (slice)}",
+      "})"
     ],
-    "description": "Executes an incremental ingestion process for a specified list of changed files."
+    "description": "Executes an incremental ingestion for changed files."
   },
   "FDM.SIO.FindSymbol": {
     "prefix": "FDM.SIO.FindSymbol",
@@ -426,7 +405,7 @@
     "body": [
       "tool.FDM.Symbol.Find(${1:symbolName})"
     ],
-    "description": "Finds all definitions of a given Go symbol."
+    "description": "Finds all definitions of a Go symbol."
   },
   "FDM.Walk.GetEntity": {
     "prefix": "FDM.Walk.GetEntity",
@@ -664,7 +643,14 @@
   "fdm.admin.charter_agent": {
     "prefix": "fdm.admin.charter_agent",
     "body": [
-      "tool.fdm.admin.charter_agent(${1:name}, ${2:kind}, ${3:script_capsule}, ${4:charter_capsule}, ${5:model}, ${6:is_core})"
+      "tool.fdm.admin.charter_agent({",
+      "    \"name\": ${1:name (string)},",
+      "    \"kind\": ${2:kind (string)},",
+      "    \"script\": ${3:script (string)},",
+      "    \"charter\": ${4:charter (string)},",
+      "    \"model\": ${5:model (string)},",
+      "    \"is_core\": ${6:is_core (bool)}",
+      "})"
     ],
     "description": "Charters (creates or updates) an agent with cryptographic identity and signed artifacts."
   },
@@ -1136,49 +1122,68 @@
   "fdm.handle.associate": {
     "prefix": "fdm.handle.associate",
     "body": [
-      "tool.fdm.handle.associate(${1:type}, ${2:entityid}, ${3:handle})"
+      "tool.fdm.handle.associate({",
+      "    \"type\": ${1:type (string)},",
+      "    \"id\": ${2:id (entityid)},",
+      "    \"handle\": ${3:handle (string)}",
+      "})"
     ],
     "description": "Assigns a unique handle to an existing entity."
   },
   "fdm.handle.get": {
     "prefix": "fdm.handle.get",
     "body": [
-      "tool.fdm.handle.get(${1:entityid})"
+      "tool.fdm.handle.get({",
+      "    \"id\": ${1:id (entityid)}",
+      "})"
     ],
-    "description": "Retrieves the current handle associated with an EntityID."
+    "description": "Retrieves the handle for an EntityID."
   },
   "fdm.handle.getdisplayname": {
     "prefix": "fdm.handle.getdisplayname",
     "body": [
-      "tool.fdm.handle.getdisplayname(${1:entityid})"
+      "tool.fdm.handle.getdisplayname({",
+      "    \"id\": ${1:id (entityid)}",
+      "})"
     ],
     "description": "Retrieves the non-unique fdm:displayname for an entity."
   },
   "fdm.handle.list": {
     "prefix": "fdm.handle.list",
     "body": [
-      "tool.fdm.handle.list(${1:match})"
+      "tool.fdm.handle.list({",
+      "    \"match\": ${1:match (string)}",
+      "})"
     ],
     "description": "Debug tool to list handles matching a substring."
   },
   "fdm.handle.lookup": {
     "prefix": "fdm.handle.lookup",
     "body": [
-      "tool.fdm.handle.lookup(${1:type}, ${2:handle})"
+      "tool.fdm.handle.lookup({",
+      "    \"type\": ${1:type (string)},",
+      "    \"handle\": ${2:handle (string)}",
+      "})"
     ],
-    "description": "Resolves a handle to an EntityID, returning nil if not found (instead of erroring)."
+    "description": "Resolves a handle to an EntityID, returning nil if not found."
   },
   "fdm.handle.resolve": {
     "prefix": "fdm.handle.resolve",
     "body": [
-      "tool.fdm.handle.resolve(${1:type}, ${2:handle})"
+      "tool.fdm.handle.resolve({",
+      "    \"type\": ${1:type (string)},",
+      "    \"handle\": ${2:handle (string)}",
+      "})"
     ],
     "description": "Resolves a human-friendly handle to a stable EntityID."
   },
   "fdm.handle.setdisplayname": {
     "prefix": "fdm.handle.setdisplayname",
     "body": [
-      "tool.fdm.handle.setdisplayname(${1:entityid}, ${2:name})"
+      "tool.fdm.handle.setdisplayname({",
+      "    \"id\": ${1:id (entityid)},",
+      "    \"name\": ${2:name (string)}",
+      "})"
     ],
     "description": "Sets the human-readable display name for an entity."
   },
