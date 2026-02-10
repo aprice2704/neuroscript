@@ -1,14 +1,15 @@
 // NeuroScript Version: 0.8.0
-// File version: 23
-// Purpose: Injects the new ProviderRegistry into the TestHarness and interpreter.
+// File version: 24
+// Purpose: Replaced non-thread-safe bytes.Buffer with a thread-safe implementation to fix the Dirty Buffer anti-pattern.
 // filename: pkg/interpreter/testing_helpers_test.go
-// nlines: 78
+// nlines: 110
 // risk_rating: LOW
 
 package interpreter_test
 
 import (
 	"bytes"
+	"sync"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
@@ -17,8 +18,32 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/logging"
 	"github.com/aprice2704/neuroscript/pkg/parser"
 	"github.com/aprice2704/neuroscript/pkg/policy"
-	"github.com/aprice2704/neuroscript/pkg/provider" // <-- ADDED
+	"github.com/aprice2704/neuroscript/pkg/provider"
 )
+
+// ThreadSafeBuffer is a simple wrapper around bytes.Buffer to satisfy Law 15.12.
+type ThreadSafeBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *ThreadSafeBuffer) Write(p []byte) (n int, err error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *ThreadSafeBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
+}
+
+func (b *ThreadSafeBuffer) Read(p []byte) (n int, err error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Read(p)
+}
 
 // TestHarness provides a consistent, fully-initialized set of components for interpreter testing.
 type TestHarness struct {
@@ -28,7 +53,7 @@ type TestHarness struct {
 	ASTBuilder       *parser.ASTBuilder
 	HostContext      *interpreter.HostContext
 	Logger           interfaces.Logger
-	ProviderRegistry *provider.Registry // <-- ADDED (Task p3-reg)
+	ProviderRegistry *provider.Registry
 }
 
 // NewTestHarness creates a new, fully configured test harness.
@@ -37,23 +62,21 @@ func NewTestHarness(t *testing.T) *TestHarness {
 
 	logger := logging.NewTestLogger(t)
 
-	// Create a HostContext with safe, non-nil defaults for I/O functions.
+	// Create a HostContext with thread-safe buffers instead of bytes.Buffer
+	// to prevent "Dirty Buffer" data races during async tests.
 	hostCtx := &interpreter.HostContext{
 		Logger:      logger,
-		Stdout:      &bytes.Buffer{},
-		Stdin:       &bytes.Buffer{},
-		Stderr:      &bytes.Buffer{},
+		Stdout:      &ThreadSafeBuffer{},
+		Stdin:       &ThreadSafeBuffer{},
+		Stderr:      &ThreadSafeBuffer{},
 		EmitFunc:    func(v lang.Value) {},    // Default no-op
 		WhisperFunc: func(h, d lang.Value) {}, // Default no-op
 	}
 
-	// Create a maximally permissive policy for testing. This runs in a trusted
-	// context and grants all administrative capabilities to prevent permission
-	// errors in interpreter logic tests.
 	privilegedPolicy := policy.NewBuilder(policy.ContextConfig).
 		Allow("*").
 		Grant("model:admin:*").
-		Grant("model:read:*"). // Grant permission to read models.
+		Grant("model:read:*").
 		Grant("account:admin:*").
 		Grant("env:read:*").
 		Grant("bus:write:*").
@@ -62,30 +85,23 @@ func NewTestHarness(t *testing.T) *TestHarness {
 		Grant("tool:exec:*").
 		Build()
 
-	// --- ADDED (Tasks p3-reg, p3-pass) ---
-	// Create the new provider registry.
 	providerRegistry := provider.NewRegistry()
-	// We do NOT register mocks here; individual tests will do that.
-	// ---
 
-	// The interpreter creates its own parser and builder internally,
-	// so we create it directly and then get its components.
 	interp := interpreter.NewInterpreter(
 		interpreter.WithHostContext(hostCtx),
 		interpreter.WithExecPolicy(privilegedPolicy),
-		interpreter.WithProviderRegistry(providerRegistry), // <-- ADDED (Task p3-pass)
+		interpreter.WithProviderRegistry(providerRegistry),
 	)
 
 	h := &TestHarness{
 		T:                t,
 		Interpreter:      interp,
-		Parser:           interp.Parser(),     // Get the parser FROM the interpreter.
-		ASTBuilder:       interp.ASTBuilder(), // Get the builder FROM the interpreter.
+		Parser:           interp.Parser(),
+		ASTBuilder:       interp.ASTBuilder(),
 		HostContext:      hostCtx,
 		Logger:           logger,
-		ProviderRegistry: providerRegistry, // <-- ADDED
+		ProviderRegistry: providerRegistry,
 	}
 
-	t.Logf("[DEBUG] NewTestHarness: RETURNING harness with a fully privileged interpreter.")
 	return h
 }
