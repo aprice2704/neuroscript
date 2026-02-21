@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.8.0
-// File version: 52.0.0
-// Purpose: Fixes bug where runProcedure only checked local procs, not the symbol provider.
-// filename: pkg/interpreter/procedures.go
-// nlines: 66
-// risk_rating: HIGH
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 53
+// :: description: Fixes bug where optional parameters were not bound to the execution scope.
+// :: latestChange: Iterate over proc.OptionalParams and bind arguments or fallback to nil.
+// :: filename: pkg/interpreter/procedures.go
+// :: serialization: go
 
 package interpreter
 
@@ -67,6 +68,15 @@ func (i *Interpreter) runProcedure(procName string, args ...lang.Value) (lang.Va
 			procInterpreter.SetVariable(paramName, args[idx])
 		} else {
 			procInterpreter.SetVariable(paramName, &lang.NilValue{})
+		}
+	}
+
+	for idx, optParam := range proc.OptionalParams {
+		argIdx := len(proc.RequiredParams) + idx
+		if argIdx < len(args) {
+			procInterpreter.SetVariable(optParam.Name, args[argIdx])
+		} else {
+			procInterpreter.SetVariable(optParam.Name, &lang.NilValue{})
 		}
 	}
 

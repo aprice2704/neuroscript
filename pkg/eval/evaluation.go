@@ -1,8 +1,8 @@
 // :: product: FDM/NS
 // :: majorVersion: 1
-// :: fileVersion: 8
-// :: description: Updated evaluateMapLiteral to evaluate key expressions at runtime.
-// :: latestChange: Support for dynamic keys in map literals.
+// :: fileVersion: 9
+// :: description: Updated Expression switch to handle ast.TypeOfNode.
+// :: latestChange: Added evaluation logic for ast.TypeOfNode.
 // :: filename: pkg/eval/evaluation.go
 // :: serialization: go
 
@@ -45,6 +45,12 @@ func (e *evaluation) Expression(node ast.Expression) (lang.Value, error) {
 		return e.evaluateBinaryOp(n)
 	case *ast.UnaryOpNode:
 		return e.evaluateUnaryOp(n)
+	case *ast.TypeOfNode:
+		val, err := e.Expression(n.Argument)
+		if err != nil {
+			return nil, err
+		}
+		return lang.StringValue{Value: string(lang.TypeOf(val))}, nil
 	case *ast.CallableExprNode:
 		return e.evaluateCall(n)
 	case *ast.LValueNode:

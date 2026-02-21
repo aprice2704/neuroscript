@@ -4,14 +4,30 @@
     "body": [
       "tool.FDM.Bus.Publish(${1:topic}, ${2:payload_base64}, ${3:scope}, ${4:correlationId})"
     ],
-    "description": "Publishes a message to a topic on the FDM event bus (fire-and-forget). Payload must be Base64 encoded. Source is automatically set from the calling agent's context."
+    "description": "Publishes a message to a topic. Source is automatic."
   },
   "FDM.Bus.Request": {
     "prefix": "FDM.Bus.Request",
     "body": [
       "tool.FDM.Bus.Request(${1:topic}, ${2:payload_base64}, ${3:scope}, ${4:timeoutMs})"
     ],
-    "description": "Sends a request message and waits for a reply. Request payload must be Base64 encoded. Source is automatically set from the calling agent's context."
+    "description": "Sends a request message and waits for a reply."
+  },
+  "FDM.CreateNode": {
+    "prefix": "FDM.CreateNode",
+    "body": [
+      "tool.FDM.CreateNode(${1:type}, ${2:fields})"
+    ],
+    "description": "Creates a new graph node. Specialized builders used for known types."
+  },
+  "FDM.DeleteNode": {
+    "prefix": "FDM.DeleteNode",
+    "body": [
+      "tool.FDM.DeleteNode({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Deletes a specific node version."
   },
   "FDM.FS.History": {
     "prefix": "FDM.FS.History",
@@ -46,21 +62,21 @@
     "body": [
       "tool.FDM.File.list()"
     ],
-    "description": "Lists all file paths currently indexed by the File Overlay."
+    "description": "Lists indexed file paths."
   },
   "FDM.File.patch": {
     "prefix": "FDM.File.patch",
     "body": [
       "tool.FDM.File.patch(${1:path}, ${2:patchText})"
     ],
-    "description": "Applies a diff patch to a file, writes it to disk, and triggers relevant FDM updates via events."
+    "description": "Applies a diff patch to a file."
   },
   "FDM.File.read": {
     "prefix": "FDM.File.read",
     "body": [
       "tool.FDM.File.read(${1:identifier})"
     ],
-    "description": "Reads the content of a file from the FDM Graph (not disk). Supports Path, NodeID (N_), or EntityID (E_)."
+    "description": "Reads file content from the Graph."
   },
   "FDM.Forum.CreateForProject": {
     "prefix": "FDM.Forum.CreateForProject",
@@ -167,12 +183,47 @@
     ],
     "description": "Submits a unipolar (+1/support, 0/abstain) vote for a message."
   },
+  "FDM.GetNode": {
+    "prefix": "FDM.GetNode",
+    "body": [
+      "tool.FDM.GetNode(${1:id})"
+    ],
+    "description": "Retrieves a specific node version by NodeID."
+  },
   "FDM.IPC.Send": {
     "prefix": "FDM.IPC.Send",
     "body": [
       "tool.FDM.IPC.Send(${1:data})"
     ],
     "description": "Encodes arbitrary data into a high-performance binary envelope and sends it to a connected IPC client like Lotfi."
+  },
+  "FDM.Meta.Get": {
+    "prefix": "FDM.Meta.Get",
+    "body": [
+      "tool.FDM.Meta.Get(${1:targetID})"
+    ],
+    "description": "Retrieves metadata attached to a specific node (e.g., a file or chunk ID)."
+  },
+  "FDM.Ns.GetFunction": {
+    "prefix": "FDM.Ns.GetFunction",
+    "body": [
+      "tool.FDM.Ns.GetFunction(${1:name})"
+    ],
+    "description": "Retrieves a specific NeuroScript function by name."
+  },
+  "FDM.Ns.ListFunctions": {
+    "prefix": "FDM.Ns.ListFunctions",
+    "body": [
+      "tool.FDM.Ns.ListFunctions()"
+    ],
+    "description": "Lists all NeuroScript functions defined in the codebase."
+  },
+  "FDM.Ns.ListHandlers": {
+    "prefix": "FDM.Ns.ListHandlers",
+    "body": [
+      "tool.FDM.Ns.ListHandlers()"
+    ],
+    "description": "Lists all NeuroScript event handlers defined in the codebase."
   },
   "FDM.Overlays.ListMeta": {
     "prefix": "FDM.Overlays.ListMeta",
@@ -186,14 +237,7 @@
     "body": [
       "tool.FDM.Overlays.get_fco()"
     ],
-    "description": "Returns the canonical name of the File Content Overlay (FCO)."
-  },
-  "FDM.Overlays.get_fileoverlay": {
-    "prefix": "FDM.Overlays.get_fileoverlay",
-    "body": [
-      "tool.FDM.Overlays.get_fileoverlay()"
-    ],
-    "description": "Returns the canonical name of the File Overlay."
+    "description": "Returns the canonical name of the File Content Overlay."
   },
   "FDM.Overlays.get_forum": {
     "prefix": "FDM.Overlays.get_forum",
@@ -208,62 +252,6 @@
       "tool.FDM.Overlays.get_fso()"
     ],
     "description": "Returns the canonical name of the Filesystem Overlay."
-  },
-  "FDM.Overlays.get_fvo": {
-    "prefix": "FDM.Overlays.get_fvo",
-    "body": [
-      "tool.FDM.Overlays.get_fvo()"
-    ],
-    "description": "Returns the canonical name of the File Version Overlay."
-  },
-  "FDM.Overlays.get_legacy": {
-    "prefix": "FDM.Overlays.get_legacy",
-    "body": [
-      "tool.FDM.Overlays.get_legacy()"
-    ],
-    "description": "Returns the canonical name of the legacy overlay."
-  },
-  "FDM.Overlays.get_natlang": {
-    "prefix": "FDM.Overlays.get_natlang",
-    "body": [
-      "tool.FDM.Overlays.get_natlang()"
-    ],
-    "description": "Returns the canonical name of the natural language overlay."
-  },
-  "FDM.Overlays.get_neuromorphic": {
-    "prefix": "FDM.Overlays.get_neuromorphic",
-    "body": [
-      "tool.FDM.Overlays.get_neuromorphic()"
-    ],
-    "description": "Returns the canonical name of the Neuromorphic Overlay."
-  },
-  "FDM.Overlays.get_plan": {
-    "prefix": "FDM.Overlays.get_plan",
-    "body": [
-      "tool.FDM.Overlays.get_plan()"
-    ],
-    "description": "Returns the canonical name of the plan overlay."
-  },
-  "FDM.Overlays.get_sio": {
-    "prefix": "FDM.Overlays.get_sio",
-    "body": [
-      "tool.FDM.Overlays.get_sio()"
-    ],
-    "description": "Returns the canonical name of the Symbol Index Overlay (SIO)."
-  },
-  "FDM.Overlays.get_summary": {
-    "prefix": "FDM.Overlays.get_summary",
-    "body": [
-      "tool.FDM.Overlays.get_summary()"
-    ],
-    "description": "Returns the canonical name of the summary overlay."
-  },
-  "FDM.Overlays.get_welcome": {
-    "prefix": "FDM.Overlays.get_welcome",
-    "body": [
-      "tool.FDM.Overlays.get_welcome()"
-    ],
-    "description": "Returns the canonical name of the welcome overlay."
   },
   "FDM.Plan.AddOverlay": {
     "prefix": "FDM.Plan.AddOverlay",
@@ -325,29 +313,26 @@
     "prefix": "FDM.Repo.Ingest",
     "body": [
       "tool.FDM.Repo.Ingest({",
-      "    \"plan\": ${1:plan (entityid)},",
-      "    \"name\": ${2:name (string)},",
-      "    \"queue_id\": ${3:queue_id (string)}",
+      "    ${1:key}: ${2:value}",
       "})"
     ],
-    "description": "Executes a full ingestion process based on a plan."
+    "description": "Triggers a full ingestion process based on a plan."
   },
   "FDM.Repo.IngestChanges": {
     "prefix": "FDM.Repo.IngestChanges",
     "body": [
       "tool.FDM.Repo.IngestChanges({",
-      "    \"plan\": ${1:plan (entityid)},",
-      "    \"files\": ${2:files (slice)}",
+      "    ${1:key}: ${2:value}",
       "})"
     ],
-    "description": "Executes an incremental ingestion for changed files."
+    "description": "(Deprecated) Use Ingest instead."
   },
   "FDM.SIO.FindSymbol": {
     "prefix": "FDM.SIO.FindSymbol",
     "body": [
       "tool.FDM.SIO.FindSymbol(${1:symbolName})"
     ],
-    "description": "Finds all definitions of a given Go symbol from the Symbol Index Overlay."
+    "description": "Finds definitions in SIO."
   },
   "FDM.Services.List": {
     "prefix": "FDM.Services.List",
@@ -355,50 +340,6 @@
       "tool.FDM.Services.List()"
     ],
     "description": "Lists the status of all registered FDM services."
-  },
-  "FDM.Store.admin_add_alias": {
-    "prefix": "FDM.Store.admin_add_alias",
-    "body": [
-      "tool.FDM.Store.admin_add_alias(${1:alias_name}, ${2:target_uri})"
-    ],
-    "description": "Adds an alias to the persistence router (privileged)."
-  },
-  "FDM.Store.admin_add_mount": {
-    "prefix": "FDM.Store.admin_add_mount",
-    "body": [
-      "tool.FDM.Store.admin_add_mount({",
-      "    ${1:key}: ${2:value}",
-      "})"
-    ],
-    "description": "Adds a mount point to the persistence router (privileged)."
-  },
-  "FDM.Store.delete": {
-    "prefix": "FDM.Store.delete",
-    "body": [
-      "tool.FDM.Store.delete(${1:uri})"
-    ],
-    "description": "Deletes a value from the persistence layer."
-  },
-  "FDM.Store.get": {
-    "prefix": "FDM.Store.get",
-    "body": [
-      "tool.FDM.Store.get(${1:uri})"
-    ],
-    "description": "Retrieves a value from the persistence layer."
-  },
-  "FDM.Store.list": {
-    "prefix": "FDM.Store.list",
-    "body": [
-      "tool.FDM.Store.list(${1:uri_prefix})"
-    ],
-    "description": "Lists keys and values under a given URI prefix."
-  },
-  "FDM.Store.put": {
-    "prefix": "FDM.Store.put",
-    "body": [
-      "tool.FDM.Store.put(${1:uri}, ${2:value})"
-    ],
-    "description": "Saves a value to the persistence layer."
   },
   "FDM.Symbol.Find": {
     "prefix": "FDM.Symbol.Find",
@@ -412,42 +353,49 @@
     "body": [
       "tool.FDM.Walk.GetEntity(${1:handle})"
     ],
-    "description": "Returns the FDM NSEntity object for the handle items (Overlay only). Returns nil for FS items."
+    "description": "Returns NSEntity object for overlays."
   },
   "FDM.Walk.IsDir": {
     "prefix": "FDM.Walk.IsDir",
     "body": [
       "tool.FDM.Walk.IsDir(${1:handle})"
     ],
-    "description": "Returns true if the item is a container/directory."
+    "description": "Returns true if container."
   },
   "FDM.Walk.ModTime": {
     "prefix": "FDM.Walk.ModTime",
     "body": [
       "tool.FDM.Walk.ModTime(${1:handle})"
     ],
-    "description": "Returns the modification time (Unix Nano)."
+    "description": "Returns modification time."
+  },
+  "FDM.Walk.Ops.StatSummary": {
+    "prefix": "FDM.Walk.Ops.StatSummary",
+    "body": [
+      "tool.FDM.Walk.Ops.StatSummary(${1:handle})"
+    ],
+    "description": "Returns structural statistics."
   },
   "FDM.Walk.Path": {
     "prefix": "FDM.Walk.Path",
     "body": [
       "tool.FDM.Walk.Path(${1:handle})"
     ],
-    "description": "Returns the logical path of the item."
+    "description": "Returns logical path."
   },
   "FDM.Walk.Size": {
     "prefix": "FDM.Walk.Size",
     "body": [
       "tool.FDM.Walk.Size(${1:handle})"
     ],
-    "description": "Returns the size of the item in bytes."
+    "description": "Returns size in bytes."
   },
   "FDM.Walk.Type": {
     "prefix": "FDM.Walk.Type",
     "body": [
       "tool.FDM.Walk.Type(${1:handle})"
     ],
-    "description": "Returns the handle type tag ('fsmeta' or 'overlaymeta')."
+    "description": "Returns handle type tag."
   },
   "account.Delete": {
     "prefix": "account.Delete",
@@ -539,27 +487,6 @@
       "tool.ai.embed.text(${1:text})"
     ],
     "description": "Generates a semantic vector embedding for the given text."
-  },
-  "analysis.ndsa.ingest": {
-    "prefix": "analysis.ndsa.ingest",
-    "body": [
-      "tool.analysis.ndsa.ingest(${1:raw_json}, ${2:subject_id}, ${3:model_name})"
-    ],
-    "description": "Parses raw LLM output, sanitizes it, and persists all Atoms/Contracts to the Graph."
-  },
-  "analysis.ndsa.sanitize": {
-    "prefix": "analysis.ndsa.sanitize",
-    "body": [
-      "tool.analysis.ndsa.sanitize(${1:raw_json}, ${2:subject_id})"
-    ],
-    "description": "Parses and sanitizes raw NDSA JSON output."
-  },
-  "analysis.ndsa.submit": {
-    "prefix": "analysis.ndsa.submit",
-    "body": [
-      "tool.analysis.ndsa.submit(${1:raw_json}, ${2:subject_id}, ${3:model_name}, ${4:order_id}, ${5:work_item_id}, ${6:worker_id})"
-    ],
-    "description": "Ingests artifacts, updates the WorkItem ledger, and Acks the WorkOrder."
   },
   "capsule.Add": {
     "prefix": "capsule.Add",
@@ -675,7 +602,7 @@
       "    ${1:key}: ${2:value}",
       "})"
     ],
-    "description": "Privileged tool to manually register an agent with specific identity details."
+    "description": "Privileged. Imports an external agent identity into the FDM graph from a details map."
   },
   "fdm.admin.reboot_agent": {
     "prefix": "fdm.admin.reboot_agent",
@@ -747,6 +674,13 @@
     ],
     "description": "Retrieves the contents of the agent's charter capsule (Cached at Boot)."
   },
+  "fdm.agent.get_entity": {
+    "prefix": "fdm.agent.get_entity",
+    "body": [
+      "tool.fdm.agent.get_entity()"
+    ],
+    "description": "Retrieves the agent's own authoritative NSEntity object (current head)."
+  },
   "fdm.agent.get_identities": {
     "prefix": "fdm.agent.get_identities",
     "body": [
@@ -787,7 +721,7 @@
     "body": [
       "tool.fdm.agent.get_node()"
     ],
-    "description": "Retrieves the agent's own FDM node."
+    "description": "Retrieves the agent's own FDM node snapshot (immutable version)."
   },
   "fdm.agent.get_noetic_script": {
     "prefix": "fdm.agent.get_noetic_script",
@@ -822,7 +756,7 @@
     "body": [
       "tool.fdm.agent.lookup(${1:did})"
     ],
-    "description": "Resolves a DID to an agent node using the authoritative graph index."
+    "description": "Retrieves the current head node of an agent by its DID."
   },
   "fdm.agent.register_agent": {
     "prefix": "fdm.agent.register_agent",
@@ -869,23 +803,61 @@
   "fdm.analysis.inspect": {
     "prefix": "fdm.analysis.inspect",
     "body": [
-      "tool.fdm.analysis.inspect(${1:run_id}, ${2:pass_id})"
+      "tool.fdm.analysis.inspect({",
+      "    ${1:key}: ${2:value}",
+      "})"
     ],
     "description": "Returns status and counters for a specific analysis run or pass."
+  },
+  "fdm.analysis.logs": {
+    "prefix": "fdm.analysis.logs",
+    "body": [
+      "tool.fdm.analysis.logs(${1:run_id})"
+    ],
+    "description": "Retrieves pipeline logs for a given run ID."
+  },
+  "fdm.analysis.ndsa.ingest": {
+    "prefix": "fdm.analysis.ndsa.ingest",
+    "body": [
+      "tool.fdm.analysis.ndsa.ingest({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Parses raw LLM output, sanitizes it, and persists all Atoms/Contracts to the Graph."
+  },
+  "fdm.analysis.ndsa.sanitize": {
+    "prefix": "fdm.analysis.ndsa.sanitize",
+    "body": [
+      "tool.fdm.analysis.ndsa.sanitize({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Parses and sanitizes raw NDSA JSON output."
+  },
+  "fdm.analysis.ndsa.submit": {
+    "prefix": "fdm.analysis.ndsa.submit",
+    "body": [
+      "tool.fdm.analysis.ndsa.submit({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Ingests artifacts, updates the WorkItem ledger, and Acks the WorkOrder."
+  },
+  "fdm.analysis.reconcile": {
+    "prefix": "fdm.analysis.reconcile",
+    "body": [
+      "tool.fdm.analysis.reconcile()"
+    ],
+    "description": "Forces a router reconciliation cycle to advance stuck pipelines."
   },
   "fdm.analysis.run": {
     "prefix": "fdm.analysis.run",
     "body": [
-      "tool.fdm.analysis.run(${1:repo_id}, ${2:config_name}, ${3:options})"
+      "tool.fdm.analysis.run({",
+      "    ${1:key}: ${2:value}",
+      "})"
     ],
     "description": "Triggers a specific analysis pipeline on a repository."
-  },
-  "fdm.analysis.verify": {
-    "prefix": "fdm.analysis.verify",
-    "body": [
-      "tool.fdm.analysis.verify(${1:repo_id}, ${2:checks})"
-    ],
-    "description": "Runs post-pass verification checks on the latest run for a repo."
   },
   "fdm.capsule.CreateCapsule": {
     "prefix": "fdm.capsule.CreateCapsule",
@@ -1004,7 +976,7 @@
     "body": [
       "tool.fdm.events.compose(${1:kind}, ${2:payload})"
     ],
-    "description": "Composes a new, standard event object suitable for sending with fdm.events.send."
+    "description": "Composes a new standard event object."
   },
   "fdm.events.get_id": {
     "prefix": "fdm.events.get_id",
@@ -1013,7 +985,7 @@
       "    ${1:key}: ${2:value}",
       "})"
     ],
-    "description": "Extracts the message ID from a standard event object."
+    "description": "Extracts the message ID."
   },
   "fdm.events.get_kind": {
     "prefix": "fdm.events.get_kind",
@@ -1022,7 +994,7 @@
       "    ${1:key}: ${2:value}",
       "})"
     ],
-    "description": "Extracts the kind (topic) from a standard event object."
+    "description": "Extracts the event kind."
   },
   "fdm.events.get_payload": {
     "prefix": "fdm.events.get_payload",
@@ -1040,7 +1012,14 @@
       "    ${1:key}: ${2:value}",
       "})"
     ],
-    "description": "Sends a pre-composed event object (from fdm.events.compose) to the FDM bus."
+    "description": "Sends a pre-composed event object to the FDM bus."
+  },
+  "fdm.filesync.apply_pass": {
+    "prefix": "fdm.filesync.apply_pass",
+    "body": [
+      "tool.fdm.filesync.apply_pass(${1:pass_id}, ${2:dry_run})"
+    ],
+    "description": "Applies all patches associated with a Pass Task to the filesystem."
   },
   "fdm.graph.CreateEntity": {
     "prefix": "fdm.graph.CreateEntity",
@@ -1055,6 +1034,13 @@
       "tool.fdm.graph.DeleteEntity(${1:entity})"
     ],
     "description": "Deletes (tombstones) an Entity. Requires the entity object to ensure you are deleting the version you think you are."
+  },
+  "fdm.graph.ExtractID": {
+    "prefix": "fdm.graph.ExtractID",
+    "body": [
+      "tool.fdm.graph.ExtractID(${1:entity})"
+    ],
+    "description": "Extracts the stable EntityID string from an Entity Map or validates a raw ID string."
   },
   "fdm.graph.GetChildren": {
     "prefix": "fdm.graph.GetChildren",
@@ -1073,9 +1059,9 @@
   "fdm.graph.GetEntity": {
     "prefix": "fdm.graph.GetEntity",
     "body": [
-      "tool.fdm.graph.GetEntity(${1:id})"
+      "tool.fdm.graph.GetEntity(${1:entity})"
     ],
-    "description": "Retrieves the current state (Head) of an Entity by its ID string."
+    "description": "Retrieves the current state (Head) of an Entity. Accepts an Entity Object (Map) containing at least 'id'."
   },
   "fdm.graph.GetNodeStats": {
     "prefix": "fdm.graph.GetNodeStats",
@@ -1200,48 +1186,6 @@
       "tool.fdm.index.search_vectors(${1:query}, ${2:provider}, ${3:limit}, ${4:min_score})"
     ],
     "description": "Performs a raw semantic search against the vector index, returning chunks."
-  },
-  "fdm.kms.generate": {
-    "prefix": "fdm.kms.generate",
-    "body": [
-      "tool.fdm.kms.generate(${1:label}, ${2:kind})"
-    ],
-    "description": "Generates a new named key. Privileged."
-  },
-  "fdm.kms.get_public": {
-    "prefix": "fdm.kms.get_public",
-    "body": [
-      "tool.fdm.kms.get_public(${1:label}, ${2:key_id})"
-    ],
-    "description": "Retrieves the public key for a named asymmetric key."
-  },
-  "fdm.kms.lock": {
-    "prefix": "fdm.kms.lock",
-    "body": [
-      "tool.fdm.kms.lock()"
-    ],
-    "description": "Seals the Key Management Service. Privileged."
-  },
-  "fdm.kms.sign": {
-    "prefix": "fdm.kms.sign",
-    "body": [
-      "tool.fdm.kms.sign(${1:label}, ${2:data_b64}, ${3:key_id})"
-    ],
-    "description": "Signs a message with a named key."
-  },
-  "fdm.kms.status": {
-    "prefix": "fdm.kms.status",
-    "body": [
-      "tool.fdm.kms.status()"
-    ],
-    "description": "Gets the current status of the Key Management Service."
-  },
-  "fdm.kms.unlock": {
-    "prefix": "fdm.kms.unlock",
-    "body": [
-      "tool.fdm.kms.unlock(${1:passphrase}, ${2:raw_key_b64})"
-    ],
-    "description": "Unseals the Key Management Service. Privileged."
   },
   "fdm.llm.CountTokens": {
     "prefix": "fdm.llm.CountTokens",
@@ -1585,52 +1529,6 @@
       "tool.fdm.nodes.analysis.run.upsert(${1:handle}, ${2:fields})"
     ],
     "description": "Ensures a AnalysisRun entity exists with the given human handle."
-  },
-  "fdm.nodes.analysis.work_item.create": {
-    "prefix": "fdm.nodes.analysis.work_item.create",
-    "body": [
-      "tool.fdm.nodes.analysis.work_item.create({",
-      "    ${1:key}: ${2:value}",
-      "})"
-    ],
-    "description": "Creates a new AnalysisWorkItem. Expects a map of fields.\\nValid keys:\\n- analysispassrunid: Parent Pass Run (Required)\\n- analysisscoperef: Target Node Snapshot (Required)\\n- analysisitemstatus: Item processing status (Required)\\n- analysisattempt: Current attempt count\\n- analysiserrorsignature: Canonical error signature for grouping\\n- analysiserrordetails: Full error message or stack trace\\n- analysispartialreason: Reason for partial status\\n- analysisoutputs: Derived output nodes"
-  },
-  "fdm.nodes.analysis.work_item.find": {
-    "prefix": "fdm.nodes.analysis.work_item.find",
-    "body": [
-      "tool.fdm.nodes.analysis.work_item.find({",
-      "    ${1:key}: ${2:value}",
-      "})"
-    ],
-    "description": "Finds AnalysisWorkItem nodes by exact field match."
-  },
-  "fdm.nodes.analysis.work_item.get": {
-    "prefix": "fdm.nodes.analysis.work_item.get",
-    "body": [
-      "tool.fdm.nodes.analysis.work_item.get(${1:id})"
-    ],
-    "description": "Gets a AnalysisWorkItem node by E_ or N_ ID."
-  },
-  "fdm.nodes.analysis.work_item.list": {
-    "prefix": "fdm.nodes.analysis.work_item.list",
-    "body": [
-      "tool.fdm.nodes.analysis.work_item.list()"
-    ],
-    "description": "Lists all active AnalysisWorkItem nodes."
-  },
-  "fdm.nodes.analysis.work_item.mutate": {
-    "prefix": "fdm.nodes.analysis.work_item.mutate",
-    "body": [
-      "tool.fdm.nodes.analysis.work_item.mutate(${1:entity}, ${2:updates})"
-    ],
-    "description": "Partial update for AnalysisWorkItem. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- analysispassrunid: Parent Pass Run (Required)\\n- analysisscoperef: Target Node Snapshot (Required)\\n- analysisitemstatus: Item processing status (Required)\\n- analysisattempt: Current attempt count\\n- analysiserrorsignature: Canonical error signature for grouping\\n- analysiserrordetails: Full error message or stack trace\\n- analysispartialreason: Reason for partial status\\n- analysisoutputs: Derived output nodes"
-  },
-  "fdm.nodes.analysis.work_item.upsert": {
-    "prefix": "fdm.nodes.analysis.work_item.upsert",
-    "body": [
-      "tool.fdm.nodes.analysis.work_item.upsert(${1:handle}, ${2:fields})"
-    ],
-    "description": "Ensures a AnalysisWorkItem entity exists with the given human handle."
   },
   "fdm.nodes.capsule.def.create": {
     "prefix": "fdm.nodes.capsule.def.create",
@@ -4031,7 +3929,7 @@
       "    ${1:key}: ${2:value}",
       "})"
     ],
-    "description": "Creates a new NdsaAtom. Expects a map of fields.\\nValid keys:\\n- ndsasubject: The EntityID this is about (Required)\\n- ndsafamily: Semantic class of speech act (Required)\\n- ndsakey: Specific key (e.g. risk.impact) (Required)\\n- ndsacontentkind: Discriminator for content field (Required)\\n- ndsacontenttext: Text payload\\n- ndsacontentlist: List payload (Native JSON)\\n- ndsacontentmap: Map payload (Native JSON)\\n- ndsascope: Scope of the assertion (Required)\\n- ndsascopeid: Identifier for the scope (e.g. function signature or symbol name)\\n- ndsaconfidence: Confidence 0.0-1.0\\n- ndsamodel: Asserter identity/model\\n- ndsaevidencekind: Source of truth backing this claim\\n- ndsaevidencerefs: List of structured evidence objects (frozen contract)\\n- ndsavector: Embedding vector"
+    "description": "Creates a new NdsaAtom. Expects a map of fields.\\nValid keys:\\n- ndsasubject: The EntityID this is about (Required)\\n- ndsafamily: Semantic class of speech act (Required)\\n- ndsakey: Specific key (e.g. risk.impact) (Required)\\n- ndsacontentkind: Discriminator for content field (Required)\\n- ndsacontenttext: Text payload\\n- ndsacontentlist: List payload (Native JSON)\\n- ndsacontentmap: Map payload (Native JSON)\\n- ndsascope: Scope of the assertion (Required)\\n- ndsascopeid: Identifier for the scope (e.g. function signature or symbol name)\\n- ndsaconfidence: Confidence 0.0-1.0\\n- ndsamodel: Asserter identity/model\\n- ndsasourcehash: Hash of the source file content\\n- ndsaevidencekind: Source of truth backing this claim\\n- ndsaevidencerefs: List of structured evidence objects (frozen contract)\\n- ndsavector: Embedding vector"
   },
   "fdm.nodes.ndsa.atom.find": {
     "prefix": "fdm.nodes.ndsa.atom.find",
@@ -4061,7 +3959,7 @@
     "body": [
       "tool.fdm.nodes.ndsa.atom.mutate(${1:entity}, ${2:updates})"
     ],
-    "description": "Partial update for NdsaAtom. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- ndsasubject: The EntityID this is about (Required)\\n- ndsafamily: Semantic class of speech act (Required)\\n- ndsakey: Specific key (e.g. risk.impact) (Required)\\n- ndsacontentkind: Discriminator for content field (Required)\\n- ndsacontenttext: Text payload\\n- ndsacontentlist: List payload (Native JSON)\\n- ndsacontentmap: Map payload (Native JSON)\\n- ndsascope: Scope of the assertion (Required)\\n- ndsascopeid: Identifier for the scope (e.g. function signature or symbol name)\\n- ndsaconfidence: Confidence 0.0-1.0\\n- ndsamodel: Asserter identity/model\\n- ndsaevidencekind: Source of truth backing this claim\\n- ndsaevidencerefs: List of structured evidence objects (frozen contract)\\n- ndsavector: Embedding vector"
+    "description": "Partial update for NdsaAtom. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- ndsasubject: The EntityID this is about (Required)\\n- ndsafamily: Semantic class of speech act (Required)\\n- ndsakey: Specific key (e.g. risk.impact) (Required)\\n- ndsacontentkind: Discriminator for content field (Required)\\n- ndsacontenttext: Text payload\\n- ndsacontentlist: List payload (Native JSON)\\n- ndsacontentmap: Map payload (Native JSON)\\n- ndsascope: Scope of the assertion (Required)\\n- ndsascopeid: Identifier for the scope (e.g. function signature or symbol name)\\n- ndsaconfidence: Confidence 0.0-1.0\\n- ndsamodel: Asserter identity/model\\n- ndsasourcehash: Hash of the source file content\\n- ndsaevidencekind: Source of truth backing this claim\\n- ndsaevidencerefs: List of structured evidence objects (frozen contract)\\n- ndsavector: Embedding vector"
   },
   "fdm.nodes.ndsa.atom.upsert": {
     "prefix": "fdm.nodes.ndsa.atom.upsert",
@@ -5094,7 +4992,7 @@
     "body": [
       "tool.fdm.persist.get(${1:uri})"
     ],
-    "description": "Retrieves a value from a storage URI as a string, or nil if not found."
+    "description": "Retrieves a value from a storage URI as a string."
   },
   "fdm.persist.list": {
     "prefix": "fdm.persist.list",
@@ -5109,13 +5007,6 @@
       "tool.fdm.persist.put(${1:uri}, ${2:value})"
     ],
     "description": "Saves a value (string or bytes) to a storage URI."
-  },
-  "fdm.persist_admin.add_alias": {
-    "prefix": "fdm.persist_admin.add_alias",
-    "body": [
-      "tool.fdm.persist_admin.add_alias(${1:alias_name}, ${2:target_uri})"
-    ],
-    "description": "Adds a new alias to the storage configuration. Privileged."
   },
   "fdm.persist_admin.add_mount": {
     "prefix": "fdm.persist_admin.add_mount",
@@ -5138,7 +5029,7 @@
     "body": [
       "tool.fdm.walk(${1:pattern}, ${2:source})"
     ],
-    "description": "Walks a directory tree or overlay using a glob pattern. Returns a list of opaque handles."
+    "description": "Walks a directory tree or overlay using a glob pattern."
   },
   "fdm.workq.ack": {
     "prefix": "fdm.workq.ack",
@@ -5154,7 +5045,7 @@
     "prefix": "fdm.workq.create_queue",
     "body": [
       "tool.fdm.workq.create_queue({",
-      "    \"project_id\": ${1:project_id (string)},",
+      "    \"project_id\": ${1:project_id (entityid)},",
       "    \"name\": ${2:name (string)},",
       "    \"kind\": ${3:kind (string)},",
       "    \"state\": ${4:state (string)},",
@@ -5168,7 +5059,7 @@
     "prefix": "fdm.workq.delete_queue",
     "body": [
       "tool.fdm.workq.delete_queue({",
-      "    \"queue_id\": ${1:queue_id (string)}",
+      "    \"queue_id\": ${1:queue_id (entityid)}",
       "})"
     ],
     "description": "Permanently removes a work queue."
@@ -5188,12 +5079,13 @@
     "prefix": "fdm.workq.enqueue",
     "body": [
       "tool.fdm.workq.enqueue({",
-      "    \"queue_id\": ${1:queue_id (string)},",
-      "    \"project_id\": ${2:project_id (string)},",
+      "    \"queue_id\": ${1:queue_id (entityid)},",
+      "    \"project_id\": ${2:project_id (entityid)},",
       "    \"kind\": ${3:kind (string)},",
       "    \"args\": ${4:args (map)},",
       "    \"priority\": ${5:priority (int)},",
-      "    \"policy\": ${6:policy (map)}",
+      "    \"policy\": ${6:policy (map)},",
+      "    \"context\": ${7:context (list)}",
       "})"
     ],
     "description": "Creates a persistent 'Task' node and adds it to the specified queue."
@@ -5202,7 +5094,7 @@
     "prefix": "fdm.workq.list_queues",
     "body": [
       "tool.fdm.workq.list_queues({",
-      "    \"project_id\": ${1:project_id (string)}",
+      "    \"project_id\": ${1:project_id (entityid)}",
       "})"
     ],
     "description": "Returns a list of all work queues."
@@ -5222,7 +5114,7 @@
     "prefix": "fdm.workq.pause_queue",
     "body": [
       "tool.fdm.workq.pause_queue({",
-      "    \"queue_id\": ${1:queue_id (string)}",
+      "    \"queue_id\": ${1:queue_id (entityid)}",
       "})"
     ],
     "description": "Transitions a queue to the 'Paused' state."
@@ -5250,7 +5142,7 @@
     "prefix": "fdm.workq.resume_queue",
     "body": [
       "tool.fdm.workq.resume_queue({",
-      "    \"queue_id\": ${1:queue_id (string)}",
+      "    \"queue_id\": ${1:queue_id (entityid)}",
       "})"
     ],
     "description": "Transitions a queue to the 'Active' state."
@@ -5284,7 +5176,7 @@
     "body": [
       "tool.fs.ExecutePlan(${1:plan_obj})"
     ],
-    "description": "Executes a declarative traversal plan (plan_walk)."
+    "description": "Executes declarative plan."
   },
   "fs.Hash": {
     "prefix": "fs.Hash",

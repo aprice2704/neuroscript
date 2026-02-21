@@ -1,9 +1,11 @@
-// NeuroScript Version: 0.5.2
-// File version: 5.0.0
-// Purpose: Refactored to use the centralized TestHarness for robust interpreter initialization within the fuzzing loop.
-// filename: pkg/interpreter/interpreter_param_passing_test.go
-// nlines: 275
-// risk_rating: MEDIUM
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 7
+// :: description: Refactored to use the centralized TestHarness, test optional parameters, and comprehensively test typeof operator.
+// :: latestChange: Added TestInterpreter_TypeOf and corresponding test script.
+// :: filename: pkg/interpreter/interpreter_param_passing_test.go
+// :: serialization: go
+
 package interpreter_test
 
 import (
@@ -20,12 +22,14 @@ import (
 
 const paramPassingTestScriptEnhanced = `
 :: Name: Parameter Passing Test Script (Enhanced)
-:: Version: 1.2.0
+:: Version: 1.3.0
 
 func mainEntry(needs strArg, intArg, boolArg, floatArg returns result) means
   emit "mainEntry_recvd:" + strArg + "," + intArg + "," + boolArg + "," + floatArg
   call helperProc(strArg + "_to_helper", intArg * 2, not boolArg, floatArg / 2.0)
   call recursiveProc(strArg, intArg, boolArg, 3)
+  call optionalProc("reqVal", "optVal")
+  call optionalProc("reqValOnly")
   set result = "mainEntry_completed_with_" + strArg
   return result
 endfunc
@@ -44,6 +48,33 @@ func recursiveProc(needs rStrArg, rIntArg, rBoolArg, rDepth returns result) mean
   endif
   set result = "recursiveProc_completed_depth_" + rDepth
   return result
+endfunc
+
+func optionalProc(needs reqParam optional optParam) means
+  emit "optionalProc_recvd:" + reqParam + "," + typeof(optParam)
+endfunc
+`
+
+const typeOfTestScript = `
+:: Name: TypeOf Operator Test Script
+:: Version: 1.0.0
+
+func testTypeOf() means
+  set s = "hello"
+  set n = 42.5
+  set b = true
+  set l = [1, 2, 3]
+  set m = {"key": "value"}
+  set x = nil
+  
+  emit "typeof_s:" + typeof(s)
+  emit "typeof_n:" + typeof(n)
+  emit "typeof_b:" + typeof(b)
+  emit "typeof_l:" + typeof(l)
+  emit "typeof_m:" + typeof(m)
+  emit "typeof_x:" + typeof(x)
+  emit "typeof_literal_num:" + typeof(100)
+  emit "typeof_literal_str:" + typeof("direct")
 endfunc
 `
 
@@ -160,6 +191,8 @@ func TestInterpreter_ParameterPassingFuzz(t *testing.T) {
 				fmt.Sprintf("recursiveProc_recvd:%s,%d,%t,3", strVal, intVal, boolVal),
 				fmt.Sprintf("recursiveProc_recvd:%s,%d,%t,2", strVal, intVal+3, !boolVal),
 				fmt.Sprintf("recursiveProc_recvd:%s,%d,%t,1", strVal, (intVal+3)+2, boolVal),
+				"optionalProc_recvd:reqVal,string",
+				"optionalProc_recvd:reqValOnly,nil",
 			}
 
 			if len(outputLines) != len(expectedEmits) {
@@ -175,5 +208,48 @@ func TestInterpreter_ParameterPassingFuzz(t *testing.T) {
 			}
 			t.Logf("[DEBUG] Turn 5 (Iter %d): Assertions complete.", iteration)
 		})
+	}
+}
+
+func TestInterpreter_TypeOf(t *testing.T) {
+	h := NewTestHarness(t)
+	tree, parseErr := h.Parser.Parse(typeOfTestScript)
+	if parseErr != nil {
+		t.Fatalf("Failed to parse script: %v", parseErr)
+	}
+	program, _, buildErr := h.ASTBuilder.Build(tree)
+	if buildErr != nil {
+		t.Fatalf("Failed to build AST: %v", buildErr)
+	}
+
+	var capturedOutput bytes.Buffer
+	h.HostContext.EmitFunc = func(v lang.Value) {
+		fmt.Fprintln(&capturedOutput, v.String())
+	}
+
+	interp := h.Interpreter
+	interp.Load(&interfaces.Tree{Root: program})
+
+	_, runErr := interp.Run("testTypeOf")
+	if runErr != nil {
+		t.Fatalf("Error executing procedure: %v. Output: %s", runErr, capturedOutput.String())
+	}
+
+	output := capturedOutput.String()
+	expectedEmits := []string{
+		"typeof_s:string",
+		"typeof_n:number",
+		"typeof_b:boolean",
+		"typeof_l:list",
+		"typeof_m:map",
+		"typeof_x:nil",
+		"typeof_literal_num:number",
+		"typeof_literal_str:string",
+	}
+
+	for _, expected := range expectedEmits {
+		if !strings.Contains(output, expected) {
+			t.Errorf("Expected output to contain '%s', got:\n%s", expected, output)
+		}
 	}
 }
