@@ -1,8 +1,8 @@
 // :: product: FDM/NS
 // :: majorVersion: 1
-// :: fileVersion: 14
-// :: description: Updated NodeToValue to enforce string literal keys for map literals (static context constraint).
-// :: latestChange: Fixed map key access to type-assert *ast.StringLiteralNode.
+// :: fileVersion: 16
+// :: description: Updated decodeProcedure with safe type assertions to prevent panics on corrupted or legacy blobs.
+// :: latestChange: Replaced raw type assertions with safe checks.
 // :: filename: pkg/canon/codec_procedure.go
 // :: serialization: go
 
@@ -131,7 +131,11 @@ func decodeProcedure(r *canonReader) (ast.Node, error) {
 			if err != nil {
 				return nil, err
 			}
-			proc.Comments[i] = node.(*ast.Comment)
+			commentNode, ok := node.(*ast.Comment)
+			if !ok {
+				return nil, fmt.Errorf("expected *ast.Comment in procedure, got %T", node)
+			}
+			proc.Comments[i] = commentNode
 		}
 	}
 
@@ -221,7 +225,11 @@ func decodeProcedure(r *canonReader) (ast.Node, error) {
 			if err != nil {
 				return nil, err
 			}
-			proc.ErrorHandlers[i] = node.(*ast.Step)
+			stepNode, ok := node.(*ast.Step)
+			if !ok {
+				return nil, fmt.Errorf("expected *ast.Step in ErrorHandlers, got %T", node)
+			}
+			proc.ErrorHandlers[i] = stepNode
 		}
 	}
 
@@ -236,7 +244,11 @@ func decodeProcedure(r *canonReader) (ast.Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		proc.Steps[i] = *node.(*ast.Step)
+		stepNode, ok := node.(*ast.Step)
+		if !ok {
+			return nil, fmt.Errorf("expected *ast.Step in Steps, got %T", node)
+		}
+		proc.Steps[i] = *stepNode
 	}
 	return proc, nil
 }
@@ -322,8 +334,6 @@ func NodeToValue(node ast.Node) (lang.Value, error) {
 	case *ast.MapLiteralNode:
 		mapVal := lang.MapValue{Value: make(map[string]lang.Value, len(n.Entries))}
 		for _, entry := range n.Entries {
-			// FIX: Ensure key is a static string literal.
-			// NodeToValue is used for static default parameters, so dynamic keys are not supported here.
 			keyLit, ok := entry.Key.(*ast.StringLiteralNode)
 			if !ok {
 				return nil, fmt.Errorf("NodeToValue: map key must be a string literal, got %T", entry.Key)

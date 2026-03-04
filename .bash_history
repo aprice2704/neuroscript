@@ -14,3 +14,5 @@ cd pkg/interpreter/
 cd pkg/nsfmt/
 cd pkg/eval
 make
+p parseFunctionNode
+cd pkg/canon/

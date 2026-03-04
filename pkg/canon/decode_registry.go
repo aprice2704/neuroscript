@@ -1,8 +1,10 @@
-// NeuroScript Version: 0.6.3
-// File version: 6
-// Purpose: Implements the new registry-based AST decoding process. Adds DecodeNode for minimal node persistence.
-// filename: pkg/canon/decode_registry.go
-// nlines: 83
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 8
+// :: description: Implements the registry-based AST decoding process.
+// :: latestChange: Passing the magic version byte down to the canonReader for backward compatibility.
+// :: filename: pkg/canon/decode_registry.go
+// :: serialization: go
 
 package canon
 
@@ -16,15 +18,37 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
+// isValidMagic checks if the blob starts with the stable magic number
+// or a known legacy magic number (which used volatile types.KindMarker).
+func isValidMagic(blob []byte) bool {
+	if len(blob) < 4 {
+		return false
+	}
+	if blob[0] == 'N' && blob[1] == 'S' && blob[2] == 'C' {
+		// Stable version
+		if blob[3] == magicNumber[3] {
+			return true
+		}
+		// Legacy types.KindMarker values (historical range for backward compatibility)
+		if blob[3] >= 20 && blob[3] <= 50 {
+			return true
+		}
+	}
+	return false
+}
+
 // DecodeWithRegistry reconstructs an AST Tree from its binary representation
 // using the new registry-based codec system. It requires the root node
 // to be an *ast.Program.
 func DecodeWithRegistry(blob []byte) (*ast.Tree, error) {
-	if blob == nil || !bytes.HasPrefix(blob, magicNumber) {
+	if !isValidMagic(blob) {
 		return nil, ErrInvalidMagic
 	}
 
-	reader := &canonReader{r: bytes.NewReader(blob[len(magicNumber):])}
+	reader := &canonReader{
+		r:       bytes.NewReader(blob[4:]),
+		version: blob[3],
+	}
 	reader.visitor = reader.readNodeWithRegistry
 
 	root, err := reader.visitor()
@@ -47,11 +71,14 @@ func DecodeWithRegistry(blob []byte) (*ast.Tree, error) {
 // This is the correct method for reading minimal AST fragments (e.g.,
 // a persisted *ast.Procedure or *ast.StringLiteralNode).
 func DecodeNode(blob []byte) (ast.Node, error) {
-	if blob == nil || !bytes.HasPrefix(blob, magicNumber) {
+	if !isValidMagic(blob) {
 		return nil, ErrInvalidMagic
 	}
 
-	reader := &canonReader{r: bytes.NewReader(blob[len(magicNumber):])}
+	reader := &canonReader{
+		r:       bytes.NewReader(blob[4:]),
+		version: blob[3],
+	}
 	reader.visitor = reader.readNodeWithRegistry
 
 	node, err := reader.visitor()

@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.6.3
-// File version: 2
-// Purpose: Defines shared helper structs and primitive I/O methods, now with robust sentinel error handling.
-// filename: pkg/canon/codec_helpers.go
-// nlines: 100
-// risk_rating: LOW
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 3
+// :: description: Defines shared helper structs and primitive I/O methods. Includes format versioning.
+// :: latestChange: Added canonReader.version and isV2Format() for legacy blob compatibility.
+// :: filename: pkg/canon/codec_helpers.go
+// :: serialization: go
 
 package canon
 
@@ -32,6 +33,14 @@ type canonReader struct {
 	r       *bytes.Reader
 	history []string
 	visitor func() (ast.Node, error) // For recursive calls
+	version byte                     // The version byte from the magic number
+}
+
+// isV2Format determines if the blob includes newer fields like Comments and BlankLinesBefore.
+func (r *canonReader) isV2Format() bool {
+	// Version 0x01 is the new stable version.
+	// Versions >= 34 correspond to the transition period where Comments were added to the serialization format.
+	return r.version == 0x01 || r.version >= 34
 }
 
 // --- Primitive Writers ---

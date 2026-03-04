@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.6.3
-// File version: 2
-// Purpose: Implements encoders/decoders for literal and simple AST nodes. Removed debugging print statements.
-// filename: pkg/canon/codec_literals.go
-// nlines: 120
-// risk_rating: LOW
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 3
+// :: description: Implements encoders/decoders for literal and simple AST nodes. Added InterpolatedString.
+// :: latestChange: Added encodeInterpolatedString and decodeInterpolatedString.
+// :: filename: pkg/canon/codec_literals.go
+// :: serialization: go
 
 package canon
 
@@ -85,6 +86,40 @@ func decodeVariable(r *canonReader) (ast.Node, error) {
 	node.Name, err = r.readString()
 	if err != nil {
 		return nil, err
+	}
+	return node, nil
+}
+
+func encodeInterpolatedString(v *canonVisitor, n ast.Node) error {
+	node := n.(*ast.InterpolatedStringNode)
+	v.writeString(node.Delimiter)
+	v.writeVarint(int64(len(node.Parts)))
+	for _, part := range node.Parts {
+		if err := v.visitor(part); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func decodeInterpolatedString(r *canonReader) (ast.Node, error) {
+	node := &ast.InterpolatedStringNode{BaseNode: ast.BaseNode{NodeKind: types.KindInterpolatedString}}
+	var err error
+	node.Delimiter, err = r.readString()
+	if err != nil {
+		return nil, err
+	}
+	count, err := r.readVarint()
+	if err != nil {
+		return nil, err
+	}
+	node.Parts = make([]ast.Expression, count)
+	for i := 0; i < int(count); i++ {
+		part, err := r.visitor()
+		if err != nil {
+			return nil, err
+		}
+		node.Parts[i] = part.(ast.Expression)
 	}
 	return node, nil
 }

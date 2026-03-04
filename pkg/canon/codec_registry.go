@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.6.3
-// File version: 8
-// Purpose: Registers codecs for Ask/Prompt/WhisperStmt and Comment. Fixes compiler errors from bad copy-paste.
-// filename: pkg/canon/codec_registry.go
-// nlines: 70
-// risk_rating: LOW
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 9
+// :: description: Registers codecs for Ask/Prompt/WhisperStmt, Comment, and InterpolatedString.
+// :: latestChange: Registered KindInterpolatedString codec to fix decoding panics.
+// :: filename: pkg/canon/codec_registry.go
+// :: serialization: go
 
 package canon
 
@@ -29,7 +30,7 @@ func init() {
 		types.KindProcedureDecl: {EncodeFunc: encodeProcedure, DecodeFunc: decodeProcedure},
 		types.KindOnEventDecl:   {EncodeFunc: encodeOnEventDecl, DecodeFunc: decodeOnEventDecl},
 		types.KindSecretRef:     {EncodeFunc: encodeSecretRef, DecodeFunc: decodeSecretRef},
-		types.KindComment:       {EncodeFunc: encodeComment, DecodeFunc: decodeComment}, // <<< ADDED
+		types.KindComment:       {EncodeFunc: encodeComment, DecodeFunc: decodeComment},
 		// KindMetadataLine is handled within other nodes, not as a standalone.
 
 		// Statements
@@ -49,10 +50,11 @@ func init() {
 		types.KindLValue:        {EncodeFunc: encodeLValue, DecodeFunc: decodeLValue},
 
 		// Literals
-		types.KindStringLiteral:  {EncodeFunc: encodeStringLiteral, DecodeFunc: decodeStringLiteral},
-		types.KindNumberLiteral:  {EncodeFunc: encodeNumberLiteral, DecodeFunc: decodeNumberLiteral},
-		types.KindBooleanLiteral: {EncodeFunc: encodeBooleanLiteral, DecodeFunc: decodeBooleanLiteral},
-		types.KindNilLiteral:     {EncodeFunc: encodeNilLiteral, DecodeFunc: decodeNilLiteral},
+		types.KindStringLiteral:      {EncodeFunc: encodeStringLiteral, DecodeFunc: decodeStringLiteral},
+		types.KindNumberLiteral:      {EncodeFunc: encodeNumberLiteral, DecodeFunc: decodeNumberLiteral},
+		types.KindBooleanLiteral:     {EncodeFunc: encodeBooleanLiteral, DecodeFunc: decodeBooleanLiteral},
+		types.KindNilLiteral:         {EncodeFunc: encodeNilLiteral, DecodeFunc: decodeNilLiteral},
+		types.KindInterpolatedString: {EncodeFunc: encodeInterpolatedString, DecodeFunc: decodeInterpolatedString},
 
 		// Collections
 		types.KindListLiteral: {EncodeFunc: encodeListLiteral, DecodeFunc: decodeListLiteral},
@@ -64,10 +66,9 @@ func init() {
 		types.KindEval:   {EncodeFunc: encodeEval, DecodeFunc: decodeEval},
 		types.KindTypeOf: {EncodeFunc: encodeTypeOf, DecodeFunc: decodeTypeOf},
 
-		// --- FIX: Register codecs for statement Kinds ---
+		// Statement Wrappers
 		types.KindAskStmt:        {EncodeFunc: encodeAskStmt_wrapper, DecodeFunc: decodeAskStmt_wrapper},
 		types.KindPromptUserStmt: {EncodeFunc: encodePromptUserStmt_wrapper, DecodeFunc: decodePromptUserStmt_wrapper},
 		types.KindWhisperStmt:    {EncodeFunc: encodeWhisperStmt_wrapper, DecodeFunc: decodeWhisperStmt_wrapper},
-		// --- END FIX ---
 	}
 }

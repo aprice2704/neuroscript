@@ -1,13 +1,16 @@
-// NeuroScript Version: 0.8.0
-// File version: 9
-// Purpose: Serializes and deserializes Step.Comments and Step.BlankLinesBefore.
-// filename: pkg/canon/codec_step.go
-// nlines: 200+
-// risk_rating: HIGH
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 11
+// :: description: Updated decodeStep with safe type assertions to prevent panics.
+// :: latestChange: Replaced raw type assertions with safe checks.
+// :: filename: pkg/canon/codec_step.go
+// :: serialization: go
 
 package canon
 
 import (
+	"fmt"
+
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
@@ -16,7 +19,6 @@ func encodeStep(v *canonVisitor, n ast.Node) error {
 	node := n.(*ast.Step)
 	v.writeString(node.Type)
 
-	// --- FIX: Serialize Comments and BlankLinesBefore ---
 	v.writeVarint(int64(len(node.Comments)))
 	for _, comment := range node.Comments {
 		if err := v.visitor(comment); err != nil {
@@ -24,7 +26,6 @@ func encodeStep(v *canonVisitor, n ast.Node) error {
 		}
 	}
 	v.writeVarint(int64(node.BlankLinesBefore))
-	// --- END FIX ---
 
 	switch node.Type {
 	case "set":
@@ -90,7 +91,6 @@ func encodeStep(v *canonVisitor, n ast.Node) error {
 			}
 		}
 	case "ask":
-		// Normalize the AST on the fly. The parser puts the data in Values/LValues.
 		stmt := node.AskStmt
 		if stmt == nil && len(node.Values) > 0 {
 			stmt = &ast.AskStmt{
@@ -127,7 +127,6 @@ func decodeStep(r *canonReader) (ast.Node, error) {
 		return nil, err
 	}
 
-	// --- FIX: Deserialize Comments and BlankLinesBefore ---
 	commentCount, err := r.readVarint()
 	if err != nil {
 		return nil, err
@@ -138,7 +137,11 @@ func decodeStep(r *canonReader) (ast.Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		step.Comments[i] = node.(*ast.Comment)
+		commentNode, ok := node.(*ast.Comment)
+		if !ok {
+			return nil, fmt.Errorf("expected *ast.Comment in step, got %T", node)
+		}
+		step.Comments[i] = commentNode
 	}
 
 	blankLines, err := r.readVarint()
@@ -146,7 +149,6 @@ func decodeStep(r *canonReader) (ast.Node, error) {
 		return nil, err
 	}
 	step.BlankLinesBefore = int(blankLines)
-	// --- END FIX ---
 
 	switch step.Type {
 	case "set":
@@ -160,7 +162,11 @@ func decodeStep(r *canonReader) (ast.Node, error) {
 			if err != nil {
 				return nil, err
 			}
-			step.LValues[i] = node.(*ast.LValueNode)
+			lvalNode, ok := node.(*ast.LValueNode)
+			if !ok {
+				return nil, fmt.Errorf("expected *ast.LValueNode in set step, got %T", node)
+			}
+			step.LValues[i] = lvalNode
 		}
 		valCount, err := r.readVarint()
 		if err != nil {
@@ -204,7 +210,11 @@ func decodeStep(r *canonReader) (ast.Node, error) {
 				if err != nil {
 					return nil, err
 				}
-				step.Body[i] = *node.(*ast.Step)
+				stepNode, ok := node.(*ast.Step)
+				if !ok {
+					return nil, fmt.Errorf("expected *ast.Step in body, got %T", node)
+				}
+				step.Body[i] = *stepNode
 			}
 		}
 		if step.Type == "if" {
@@ -212,14 +222,17 @@ func decodeStep(r *canonReader) (ast.Node, error) {
 			if err != nil {
 				return nil, err
 			}
-			// FIX: Ensure ElseBody is a non-nil, empty slice if count is zero.
 			step.ElseBody = make([]ast.Step, elseCount)
 			for i := 0; i < int(elseCount); i++ {
 				node, err := r.visitor()
 				if err != nil {
 					return nil, err
 				}
-				step.ElseBody[i] = *node.(*ast.Step)
+				stepNode, ok := node.(*ast.Step)
+				if !ok {
+					return nil, fmt.Errorf("expected *ast.Step in else body, got %T", node)
+				}
+				step.ElseBody[i] = *stepNode
 			}
 		}
 	case "for":
@@ -242,14 +255,22 @@ func decodeStep(r *canonReader) (ast.Node, error) {
 			if err != nil {
 				return nil, err
 			}
-			step.Body[i] = *node.(*ast.Step)
+			stepNode, ok := node.(*ast.Step)
+			if !ok {
+				return nil, fmt.Errorf("expected *ast.Step in for body, got %T", node)
+			}
+			step.Body[i] = *stepNode
 		}
 	case "call":
 		call, err := r.visitor()
 		if err != nil {
 			return nil, err
 		}
-		step.Call = call.(*ast.CallableExprNode)
+		callNode, ok := call.(*ast.CallableExprNode)
+		if !ok {
+			return nil, fmt.Errorf("expected *ast.CallableExprNode in call step, got %T", call)
+		}
+		step.Call = callNode
 	case "on_error":
 		bodyCount, err := r.readVarint()
 		if err != nil {
@@ -261,7 +282,11 @@ func decodeStep(r *canonReader) (ast.Node, error) {
 			if err != nil {
 				return nil, err
 			}
-			step.Body[i] = *node.(*ast.Step)
+			stepNode, ok := node.(*ast.Step)
+			if !ok {
+				return nil, fmt.Errorf("expected *ast.Step in on_error body, got %T", node)
+			}
+			step.Body[i] = *stepNode
 		}
 	case "ask":
 		step.AskStmt, err = decodeAskStmt(r)

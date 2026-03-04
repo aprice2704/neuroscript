@@ -1,13 +1,15 @@
-// NeuroScript Version: 0.7.2
-// File version: 6
-// Purpose: Adds wrapper functions to expose Ask/Prompt/Whisper statement codecs to the registry.
-// filename: pkg/canon/codec_statements.go
-// nlines: 200+
-// risk_rating: MEDIUM
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 8
+// :: description: Updated decodeOnEventDecl and wrappers with safe type assertions.
+// :: latestChange: Replaced raw type assertions with safe checks.
+// :: filename: pkg/canon/codec_statements.go
+// :: serialization: go
 
 package canon
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
@@ -19,12 +21,11 @@ import (
 // in the main codec registry.
 
 func encodeAskStmt(v *canonVisitor, stmt *ast.AskStmt) error {
-	// A nil check is crucial here.
 	if stmt == nil {
-		v.writeBool(false) // Write a single byte indicating nil
+		v.writeBool(false)
 		return nil
 	}
-	v.writeBool(true) // Indicate that the statement is not nil
+	v.writeBool(true)
 
 	if err := v.visitor(stmt.AgentModelExpr); err != nil {
 		return err
@@ -94,7 +95,11 @@ func decodeAskStmt(r *canonReader) (*ast.AskStmt, error) {
 		if err != nil {
 			return nil, err
 		}
-		stmt.IntoTarget = intoTarget.(*ast.LValueNode)
+		lvalNode, ok := intoTarget.(*ast.LValueNode)
+		if !ok {
+			return nil, fmt.Errorf("expected *ast.LValueNode for AskStmt target, got %T", intoTarget)
+		}
+		stmt.IntoTarget = lvalNode
 	}
 	return stmt, nil
 }
@@ -135,7 +140,11 @@ func decodePromptUserStmt(r *canonReader) (*ast.PromptUserStmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	stmt.IntoTarget = intoTarget.(*ast.LValueNode)
+	lvalNode, ok := intoTarget.(*ast.LValueNode)
+	if !ok {
+		return nil, fmt.Errorf("expected *ast.LValueNode for PromptUserStmt target, got %T", intoTarget)
+	}
+	stmt.IntoTarget = lvalNode
 	return stmt, nil
 }
 
@@ -230,7 +239,11 @@ func decodeCommandBlock(r *canonReader) (ast.Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		node.Body[i] = *step.(*ast.Step)
+		stepNode, ok := step.(*ast.Step)
+		if !ok {
+			return nil, fmt.Errorf("expected *ast.Step in command block, got %T", step)
+		}
+		node.Body[i] = *stepNode
 	}
 	return node, nil
 }
@@ -238,7 +251,6 @@ func decodeCommandBlock(r *canonReader) (ast.Node, error) {
 func encodeOnEventDecl(v *canonVisitor, n ast.Node) error {
 	node := n.(*ast.OnEventDecl)
 
-	// FIX: Add Metadata encoding.
 	v.writeVarint(int64(len(node.Metadata)))
 	keys := make([]string, 0, len(node.Metadata))
 	for k := range node.Metadata {
@@ -271,7 +283,6 @@ func decodeOnEventDecl(r *canonReader) (ast.Node, error) {
 		Comments: make([]*ast.Comment, 0), // Comments are not yet serialized, but init for consistency.
 	}
 
-	// FIX: Add Metadata decoding.
 	metaCount, err := r.readVarint()
 	if err != nil {
 		return nil, err
@@ -313,7 +324,11 @@ func decodeOnEventDecl(r *canonReader) (ast.Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		node.Body[i] = *step.(*ast.Step)
+		stepNode, ok := step.(*ast.Step)
+		if !ok {
+			return nil, fmt.Errorf("expected *ast.Step in event handler, got %T", step)
+		}
+		node.Body[i] = *stepNode
 	}
 	return node, nil
 }

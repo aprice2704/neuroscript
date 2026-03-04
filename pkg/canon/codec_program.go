@@ -1,12 +1,15 @@
-// NeuroScript Version: 0.7.2
-// File version: 4
-// Purpose: Implements Comment serialization/deserialization.
-// filename: pkg/canon/codec_program.go
-// nlines: 100+
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 6
+// :: description: Updated decodeProgram with safe type assertions to prevent panics.
+// :: latestChange: Replaced raw type assertions with safe checks.
+// :: filename: pkg/canon/codec_program.go
+// :: serialization: go
 
 package canon
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
@@ -56,21 +59,18 @@ func encodeProgram(v *canonVisitor, n ast.Node) error {
 		}
 	}
 
-	// --- FIX: Encode Comments ---
 	v.writeVarint(int64(len(node.Comments)))
 	for _, comment := range node.Comments {
 		if err := v.visitor(comment); err != nil {
 			return err
 		}
 	}
-	// --- END FIX ---
 
 	return nil
 }
 
 func decodeProgram(r *canonReader) (ast.Node, error) {
 	prog := ast.NewProgram()
-	// FIX: Unconditionally initialize Metadata to guarantee it's not nil.
 	prog.Metadata = make(map[string]string)
 
 	// Decode Metadata
@@ -102,7 +102,10 @@ func decodeProgram(r *canonReader) (ast.Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		proc := node.(*ast.Procedure)
+		proc, ok := node.(*ast.Procedure)
+		if !ok {
+			return nil, fmt.Errorf("expected *ast.Procedure in program, got %T", node)
+		}
 		prog.Procedures[proc.Name()] = proc
 	}
 
@@ -117,7 +120,11 @@ func decodeProgram(r *canonReader) (ast.Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		prog.Events[i] = node.(*ast.OnEventDecl)
+		eventNode, ok := node.(*ast.OnEventDecl)
+		if !ok {
+			return nil, fmt.Errorf("expected *ast.OnEventDecl in program, got %T", node)
+		}
+		prog.Events[i] = eventNode
 	}
 
 	// Decode Commands
@@ -131,10 +138,14 @@ func decodeProgram(r *canonReader) (ast.Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		prog.Commands[i] = node.(*ast.CommandNode)
+		cmdNode, ok := node.(*ast.CommandNode)
+		if !ok {
+			return nil, fmt.Errorf("expected *ast.CommandNode in program, got %T", node)
+		}
+		prog.Commands[i] = cmdNode
 	}
 
-	// --- FIX: Decode Comments ---
+	// Decode Comments
 	commentCount, err := r.readVarint()
 	if err != nil {
 		return nil, err
@@ -146,10 +157,13 @@ func decodeProgram(r *canonReader) (ast.Node, error) {
 			if err != nil {
 				return nil, err
 			}
-			prog.Comments[i] = node.(*ast.Comment)
+			commentNode, ok := node.(*ast.Comment)
+			if !ok {
+				return nil, fmt.Errorf("expected *ast.Comment in program, got %T", node)
+			}
+			prog.Comments[i] = commentNode
 		}
 	}
-	// --- END FIX ---
 
 	return prog, nil
 }
