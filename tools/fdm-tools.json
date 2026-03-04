@@ -483,6 +483,26 @@
     },
     {
       "spec": {
+        "name": "load_from_file",
+        "groupname": "capsule",
+        "fullname": "",
+        "description": "Safely loads, parses, and registers a capsule from the FDM_CAPSULE_DIR.",
+        "args": [
+          {
+            "name": "filename",
+            "type": "string",
+            "description": "The filename of the capsule relative to FDM_CAPSULE_DIR.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
         "name": "Parse",
         "groupname": "capsule",
         "fullname": "tool.capsule.parse",
@@ -665,6 +685,27 @@
     },
     {
       "spec": {
+        "name": "GetNeighborhood",
+        "groupname": "FDM",
+        "fullname": "",
+        "description": "Retrieves the direct 1-hop neighborhood of a node or entity, formatted for Cytoscape.js.",
+        "args": [
+          {
+            "name": "id",
+            "type": "string",
+            "description": "",
+            "required": true
+          }
+        ],
+        "returnType": "map",
+        "returnHelp": "Returns a map containing 'nodes' and 'edges' arrays structured for Cytoscape."
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
         "name": "GetNode",
         "groupname": "FDM",
         "fullname": "",
@@ -688,12 +729,12 @@
         "name": "Query",
         "groupname": "FDM",
         "fullname": "",
-        "description": "Executes a structured query against the FDM Graph. Supports 'filter' map and optional 'limit'.",
+        "description": "Executes a structured query against the FDM Graph. Supports 'filter' map (with 'type', 'fields', or 'linked') and optional 'limit'. Use 'linked' to traverse relationships: {'linked': {'node': 'E_123', 'direction': 'outbound', 'link_type': 'link/entity', 'link_kind': 'link/member_of'}}.",
         "args": [
           {
             "name": "filter",
             "type": "map",
-            "description": "Constraints: 'type' (string), 'fields' (map).",
+            "description": "Constraints: 'type' (string), 'fields' (map), 'linked' (map).",
             "required": true
           },
           {
@@ -1036,6 +1077,48 @@
         ],
         "returnType": "map",
         "returnHelp": "Returns map {\"script_sig\": hex, \"charter_sig\": hex, \"did\": signer_did}."
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "sync_agent",
+        "groupname": "fdm.admin",
+        "fullname": "",
+        "description": "Re-reads the agent's script and charter capsules from the registry, re-signs them, updates the graph node, and reboots the agent. Use this to apply capsule updates.",
+        "args": [
+          {
+            "name": "did",
+            "type": "string",
+            "description": "The DID of the agent to sync.",
+            "required": true
+          }
+        ],
+        "returnType": "string",
+        "returnHelp": "Status message."
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "parse_payload",
+        "groupname": "fdm.aeiou",
+        "fullname": "",
+        "description": "Cleans and parses raw JSON or JSONL LLM text output into a structured list.",
+        "args": [
+          {
+            "name": "raw_text",
+            "type": "string",
+            "description": "The raw payload from the LLM.",
+            "required": false
+          }
+        ],
+        "returnType": "list",
+        "returnHelp": "Returns a list of parsed objects."
       },
       "requiresTrust": false,
       "isInternal": false,
@@ -1577,6 +1660,19 @@
     },
     {
       "spec": {
+        "name": "reindex_overlays",
+        "groupname": "fdm.analysis",
+        "fullname": "",
+        "description": "Forces all active Overlays (FSO, FCO, SIO) to immediately re-sync from the Graph truth.",
+        "returnType": "bool",
+        "returnHelp": "Returns true upon completion."
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
         "name": "run",
         "groupname": "fdm.analysis",
         "fullname": "",
@@ -1586,6 +1682,90 @@
             "name": "params",
             "type": "map",
             "description": "Keys: repo_id (entityid/string), config_name (string), options (map)",
+            "required": false
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "get_package_context",
+        "groupname": "fdm.analysis.book",
+        "fullname": "",
+        "description": "Gathers full NDSA, API, and file context for a package to generate a book section.",
+        "args": [
+          {
+            "name": "package_id",
+            "type": "string",
+            "description": "",
+            "required": false
+          },
+          {
+            "name": "role",
+            "type": "string",
+            "description": "",
+            "required": false
+          },
+          {
+            "name": "importance",
+            "type": "int",
+            "description": "",
+            "required": false
+          },
+          {
+            "name": "max_api_items",
+            "type": "int",
+            "description": "",
+            "required": false
+          },
+          {
+            "name": "is_appendix",
+            "type": "bool",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "get_subsystem_context",
+        "groupname": "fdm.analysis.book",
+        "fullname": "",
+        "description": "Gathers full structural context for a subsystem to generate a book section.",
+        "args": [
+          {
+            "name": "subsystem_id",
+            "type": "string",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "submit_section",
+        "groupname": "fdm.analysis.book",
+        "fullname": "",
+        "description": "Submits a generated markdown section, validates its citations, and persists it to the graph.",
+        "args": [
+          {
+            "name": "params",
+            "type": "map",
+            "description": "Keys: section_id, logical_id, run_nid, task_id, title, kind, body_md",
             "required": false
           }
         ],
@@ -1650,6 +1830,96 @@
           }
         ],
         "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "exists",
+        "groupname": "fdm.blob",
+        "fullname": "",
+        "description": "Checks if a blob exists in the CAS.",
+        "args": [
+          {
+            "name": "hash",
+            "type": "string",
+            "description": "The SHA256 hash of the blob",
+            "required": false
+          }
+        ],
+        "returnType": "bool",
+        "returnHelp": "Returns true if the blob exists, false otherwise."
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "get",
+        "groupname": "fdm.blob",
+        "fullname": "",
+        "description": "Retrieves blob content from the CAS using its SHA256 hash.",
+        "args": [
+          {
+            "name": "hash",
+            "type": "string",
+            "description": "The SHA256 hash of the blob",
+            "required": false
+          }
+        ],
+        "returnType": "string",
+        "returnHelp": "Returns the blob data as a string."
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "put",
+        "groupname": "fdm.blob",
+        "fullname": "",
+        "description": "Writes data to the Content-Addressed Storage (CAS) and returns the hash and size.",
+        "args": [
+          {
+            "name": "data",
+            "type": "any",
+            "description": "The data (string or bytes) to store in the CAS",
+            "required": false
+          },
+          {
+            "name": "alias",
+            "type": "string",
+            "description": "Optional human-friendly filename to create in the index directory",
+            "required": false
+          }
+        ],
+        "returnType": "map",
+        "returnHelp": "Returns a map containing 'hash' (string) and 'size_bytes' (int)."
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "resolve_alias",
+        "groupname": "fdm.blob",
+        "fullname": "",
+        "description": "Finds the SHA256 hash of the blob associated with a given alias.",
+        "args": [
+          {
+            "name": "alias",
+            "type": "string",
+            "description": "The alias filename to resolve",
+            "required": false
+          }
+        ],
+        "returnType": "string",
+        "returnHelp": "Returns the SHA256 hash of the blob."
       },
       "requiresTrust": false,
       "isInternal": false,
@@ -2255,6 +2525,429 @@
         "returnType": "bool"
       },
       "requiresTrust": true,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "add_by_ref",
+        "groupname": "fdm.export",
+        "fullname": "",
+        "description": "Adds entities that have a specific field pointing to any of the source IDs.",
+        "args": [
+          {
+            "name": "session_handle",
+            "type": "string",
+            "description": "",
+            "required": true
+          },
+          {
+            "name": "target_type",
+            "type": "string",
+            "description": "",
+            "required": true
+          },
+          {
+            "name": "ref_field",
+            "type": "string",
+            "description": "",
+            "required": true
+          },
+          {
+            "name": "source_ids",
+            "type": "any",
+            "description": "list, string/entity, or 'ALL_CURRENT_IN_SESSION'",
+            "required": true
+          },
+          {
+            "name": "strategy",
+            "type": "map",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "int",
+        "returnHelp": "Returns the number of target entities discovered and added to the session."
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "add_explicit",
+        "groupname": "fdm.export",
+        "fullname": "",
+        "description": "Adds specific EntityIDs to the export session with a resolution strategy.",
+        "args": [
+          {
+            "name": "session_handle",
+            "type": "string",
+            "description": "",
+            "required": true
+          },
+          {
+            "name": "entity_ids",
+            "type": "any",
+            "description": "list or single string/entity object",
+            "required": true
+          },
+          {
+            "name": "strategy",
+            "type": "map",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "int",
+        "returnHelp": "Returns the number of entities successfully added to the session."
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "add_field_targets",
+        "groupname": "fdm.export",
+        "fullname": "",
+        "description": "Iterates entities already in the session, extracts a reference field, and adds those targets.",
+        "args": [
+          {
+            "name": "session_handle",
+            "type": "string",
+            "description": "",
+            "required": true
+          },
+          {
+            "name": "source_type",
+            "type": "string",
+            "description": "Node type to scan, or 'ALL_CURRENT_IN_SESSION'",
+            "required": true
+          },
+          {
+            "name": "field_name",
+            "type": "string",
+            "description": "",
+            "required": true
+          },
+          {
+            "name": "strategy",
+            "type": "map",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "int",
+        "returnHelp": "Returns the number of target entities added."
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "add_query",
+        "groupname": "fdm.export",
+        "fullname": "",
+        "description": "Adds entities of a specific type matching a query filter to the session.",
+        "args": [
+          {
+            "name": "session_handle",
+            "type": "string",
+            "description": "",
+            "required": true
+          },
+          {
+            "name": "node_type",
+            "type": "string",
+            "description": "",
+            "required": true
+          },
+          {
+            "name": "query",
+            "type": "map",
+            "description": "",
+            "required": false
+          },
+          {
+            "name": "strategy",
+            "type": "map",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "int",
+        "returnHelp": "Returns the number of entities added."
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "add_traversal",
+        "groupname": "fdm.export",
+        "fullname": "",
+        "description": "Traverses the graph via link nodes and adds the resulting entities to the export session.",
+        "args": [
+          {
+            "name": "session_handle",
+            "type": "string",
+            "description": "",
+            "required": true
+          },
+          {
+            "name": "start_ids",
+            "type": "any",
+            "description": "list, string/entity, or 'ALL_CURRENT_IN_SESSION'",
+            "required": true
+          },
+          {
+            "name": "edge_kind",
+            "type": "string",
+            "description": "",
+            "required": true
+          },
+          {
+            "name": "direction",
+            "type": "string",
+            "description": "'outbound' or 'inbound'",
+            "required": true
+          },
+          {
+            "name": "target_type",
+            "type": "string",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "int",
+        "returnHelp": "Returns the number of target entities discovered and added to the session."
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "begin",
+        "groupname": "fdm.export",
+        "fullname": "",
+        "description": "Initializes a new export session.",
+        "args": [
+          {
+            "name": "session_handle",
+            "type": "string",
+            "description": "",
+            "required": true
+          }
+        ],
+        "returnType": "bool",
+        "returnHelp": "Returns true once the session is ready."
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "import_begin",
+        "groupname": "fdm.export",
+        "fullname": "",
+        "description": "Initializes a new import session buffer.",
+        "args": [
+          {
+            "name": "session_handle",
+            "type": "string",
+            "description": "",
+            "required": true
+          }
+        ],
+        "returnType": "bool",
+        "returnHelp": "Returns true once the import session is ready."
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "import_commit",
+        "groupname": "fdm.export",
+        "fullname": "",
+        "description": "Executes the import against the graph and mints a sys/import_record receipt.",
+        "args": [
+          {
+            "name": "session_handle",
+            "type": "string",
+            "description": "",
+            "required": true
+          },
+          {
+            "name": "policy",
+            "type": "map",
+            "description": "",
+            "required": true
+          }
+        ],
+        "returnType": "map",
+        "returnHelp": "Returns the final ImportReport."
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "import_load_blob",
+        "groupname": "fdm.export",
+        "fullname": "",
+        "description": "Loads an .fdmx payload from the Blob Service (CAS) into an active import session.",
+        "args": [
+          {
+            "name": "session_handle",
+            "type": "string",
+            "description": "",
+            "required": true
+          },
+          {
+            "name": "blob_hash",
+            "type": "string",
+            "description": "",
+            "required": true
+          }
+        ],
+        "returnType": "int",
+        "returnHelp": "Returns the size of the loaded payload in bytes."
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "import_load_file",
+        "groupname": "fdm.export",
+        "fullname": "",
+        "description": "Loads an .fdmx file from disk into an active import session.",
+        "args": [
+          {
+            "name": "session_handle",
+            "type": "string",
+            "description": "",
+            "required": true
+          },
+          {
+            "name": "file_path",
+            "type": "string",
+            "description": "",
+            "required": true
+          }
+        ],
+        "returnType": "int",
+        "returnHelp": "Returns the size of the loaded payload in bytes."
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "import_plan",
+        "groupname": "fdm.export",
+        "fullname": "",
+        "description": "Simulates an import using the active policy and returns a dry-run report.",
+        "args": [
+          {
+            "name": "session_handle",
+            "type": "string",
+            "description": "",
+            "required": true
+          },
+          {
+            "name": "policy",
+            "type": "map",
+            "description": "",
+            "required": true
+          }
+        ],
+        "returnType": "map",
+        "returnHelp": "Returns the expected ImportReport."
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "pack",
+        "groupname": "fdm.export",
+        "fullname": "",
+        "description": "Materializes the session and returns a cryptographically sealed MessagePack blob.",
+        "args": [
+          {
+            "name": "session_handle",
+            "type": "string",
+            "description": "",
+            "required": true
+          },
+          {
+            "name": "plan_id",
+            "type": "string",
+            "description": "",
+            "required": true
+          },
+          {
+            "name": "include_history",
+            "type": "bool",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "any",
+        "returnHelp": "Returns the raw bytes of the sealed .fdmx payload."
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "pack_to_blob",
+        "groupname": "fdm.export",
+        "fullname": "",
+        "description": "Materializes the session, seals it, and writes directly to the Blob Service (CAS).",
+        "args": [
+          {
+            "name": "session_handle",
+            "type": "string",
+            "description": "",
+            "required": true
+          },
+          {
+            "name": "plan_id",
+            "type": "string",
+            "description": "",
+            "required": true
+          },
+          {
+            "name": "include_history",
+            "type": "bool",
+            "description": "",
+            "required": false
+          },
+          {
+            "name": "alias",
+            "type": "string",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "map",
+        "returnHelp": "Returns a map containing 'hash' and 'size_bytes' of the stored blob."
+      },
+      "requiresTrust": false,
       "isInternal": false,
       "signatureChecksum": ""
     },
@@ -4483,6 +5176,874 @@
     {
       "spec": {
         "name": "create",
+        "groupname": "fdm.nodes.book.artifact",
+        "fullname": "",
+        "description": "Creates a new BookArtifact. Expects a map of fields.\\nValid keys:\\n- bookbookrunid: The run this artifact belongs to (Required)\\n- bookartifacttype: The file type of the artifact (Required)\\n- bookhash: Cryptographic hash (sha256) of the artifact file (Required)\\n- booksizebytes: File size in bytes (Required)\\n- bookmediatype: MIME type of the artifact (Required)\\n- booksourcehash: Hash of the book/source node used to render this (Required)\\n- booklocator: URI locator pointing to the external blob (Required)\\n- bookrenderedat: When the artifact was rendered (Required)",
+        "args": [
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "The field values for the new node.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "find",
+        "groupname": "fdm.nodes.book.artifact",
+        "fullname": "",
+        "description": "Finds BookArtifact nodes by exact field match.",
+        "args": [
+          {
+            "name": "filter",
+            "type": "map",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "get",
+        "groupname": "fdm.nodes.book.artifact",
+        "fullname": "",
+        "description": "Gets a BookArtifact node by E_ or N_ ID.",
+        "args": [
+          {
+            "name": "id",
+            "type": "entityid",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "list",
+        "groupname": "fdm.nodes.book.artifact",
+        "fullname": "",
+        "description": "Lists all active BookArtifact nodes.",
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "mutate",
+        "groupname": "fdm.nodes.book.artifact",
+        "fullname": "",
+        "description": "Partial update for BookArtifact. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- bookbookrunid: The run this artifact belongs to (Required)\\n- bookartifacttype: The file type of the artifact (Required)\\n- bookhash: Cryptographic hash (sha256) of the artifact file (Required)\\n- booksizebytes: File size in bytes (Required)\\n- bookmediatype: MIME type of the artifact (Required)\\n- booksourcehash: Hash of the book/source node used to render this (Required)\\n- booklocator: URI locator pointing to the external blob (Required)\\n- bookrenderedat: When the artifact was rendered (Required)",
+        "args": [
+          {
+            "name": "entity",
+            "type": "entityid",
+            "description": "The full Entity object map (with id and _version).",
+            "required": true
+          },
+          {
+            "name": "updates",
+            "type": "map",
+            "description": "The partial fields to update.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "upsert",
+        "groupname": "fdm.nodes.book.artifact",
+        "fullname": "",
+        "description": "Ensures a BookArtifact entity exists with the given human handle.",
+        "args": [
+          {
+            "name": "handle",
+            "type": "string",
+            "description": "Unique human alias.",
+            "required": true
+          },
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "Initial fields or updates.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "create",
+        "groupname": "fdm.nodes.book.manifest",
+        "fullname": "",
+        "description": "Creates a new BookManifest. Expects a map of fields.\\nValid keys:\\n- bookbookrunid: The run this manifest finalizes (Required)\\n- booksnapshotid: The repo snapshot this book describes (Required)\\n- bookartifactids: The rendered book/artifact NodeIDs (Required)\\n- bookpassrunids: The pipeline pass runs involved (Required)\\n- bookrenderconfig: The configuration used for rendering",
+        "args": [
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "The field values for the new node.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "find",
+        "groupname": "fdm.nodes.book.manifest",
+        "fullname": "",
+        "description": "Finds BookManifest nodes by exact field match.",
+        "args": [
+          {
+            "name": "filter",
+            "type": "map",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "get",
+        "groupname": "fdm.nodes.book.manifest",
+        "fullname": "",
+        "description": "Gets a BookManifest node by E_ or N_ ID.",
+        "args": [
+          {
+            "name": "id",
+            "type": "entityid",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "list",
+        "groupname": "fdm.nodes.book.manifest",
+        "fullname": "",
+        "description": "Lists all active BookManifest nodes.",
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "mutate",
+        "groupname": "fdm.nodes.book.manifest",
+        "fullname": "",
+        "description": "Partial update for BookManifest. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- bookbookrunid: The run this manifest finalizes (Required)\\n- booksnapshotid: The repo snapshot this book describes (Required)\\n- bookartifactids: The rendered book/artifact NodeIDs (Required)\\n- bookpassrunids: The pipeline pass runs involved (Required)\\n- bookrenderconfig: The configuration used for rendering",
+        "args": [
+          {
+            "name": "entity",
+            "type": "entityid",
+            "description": "The full Entity object map (with id and _version).",
+            "required": true
+          },
+          {
+            "name": "updates",
+            "type": "map",
+            "description": "The partial fields to update.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "upsert",
+        "groupname": "fdm.nodes.book.manifest",
+        "fullname": "",
+        "description": "Ensures a BookManifest entity exists with the given human handle.",
+        "args": [
+          {
+            "name": "handle",
+            "type": "string",
+            "description": "Unique human alias.",
+            "required": true
+          },
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "Initial fields or updates.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "create",
+        "groupname": "fdm.nodes.book.metric",
+        "fullname": "",
+        "description": "Creates a new BookMetric. Expects a map of fields.\\nValid keys:\\n- bookbookrunid: The run this metric belongs to (Required)\\n- bookmetrictype: The name/type of the metric (e.g., total_loc, ndsa_coverage_percent) (Required)\\n- bookvalue: The numeric value of the metric\\n- booksourcequery: The query or method used to derive this metric\\n- bookcomputedat: When the metric was computed (Required)",
+        "args": [
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "The field values for the new node.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "find",
+        "groupname": "fdm.nodes.book.metric",
+        "fullname": "",
+        "description": "Finds BookMetric nodes by exact field match.",
+        "args": [
+          {
+            "name": "filter",
+            "type": "map",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "get",
+        "groupname": "fdm.nodes.book.metric",
+        "fullname": "",
+        "description": "Gets a BookMetric node by E_ or N_ ID.",
+        "args": [
+          {
+            "name": "id",
+            "type": "entityid",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "list",
+        "groupname": "fdm.nodes.book.metric",
+        "fullname": "",
+        "description": "Lists all active BookMetric nodes.",
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "mutate",
+        "groupname": "fdm.nodes.book.metric",
+        "fullname": "",
+        "description": "Partial update for BookMetric. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- bookbookrunid: The run this metric belongs to (Required)\\n- bookmetrictype: The name/type of the metric (e.g., total_loc, ndsa_coverage_percent) (Required)\\n- bookvalue: The numeric value of the metric\\n- booksourcequery: The query or method used to derive this metric\\n- bookcomputedat: When the metric was computed (Required)",
+        "args": [
+          {
+            "name": "entity",
+            "type": "entityid",
+            "description": "The full Entity object map (with id and _version).",
+            "required": true
+          },
+          {
+            "name": "updates",
+            "type": "map",
+            "description": "The partial fields to update.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "upsert",
+        "groupname": "fdm.nodes.book.metric",
+        "fullname": "",
+        "description": "Ensures a BookMetric entity exists with the given human handle.",
+        "args": [
+          {
+            "name": "handle",
+            "type": "string",
+            "description": "Unique human alias.",
+            "required": true
+          },
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "Initial fields or updates.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "create",
+        "groupname": "fdm.nodes.book.outline",
+        "fullname": "",
+        "description": "Creates a new BookOutline. Expects a map of fields.\\nValid keys:\\n- bookbookrunid: The run this outline belongs to (Required)\\n- bookchapters: Ordered list of subsystem EntityIDs forming the chapters (Required)\\n- bookpackagemap: JSON mapping subsystem EntityIDs to their member package EntityIDs (Required)\\n- bookgeneratedat: When the outline was generated (Required)",
+        "args": [
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "The field values for the new node.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "find",
+        "groupname": "fdm.nodes.book.outline",
+        "fullname": "",
+        "description": "Finds BookOutline nodes by exact field match.",
+        "args": [
+          {
+            "name": "filter",
+            "type": "map",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "get",
+        "groupname": "fdm.nodes.book.outline",
+        "fullname": "",
+        "description": "Gets a BookOutline node by E_ or N_ ID.",
+        "args": [
+          {
+            "name": "id",
+            "type": "entityid",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "list",
+        "groupname": "fdm.nodes.book.outline",
+        "fullname": "",
+        "description": "Lists all active BookOutline nodes.",
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "mutate",
+        "groupname": "fdm.nodes.book.outline",
+        "fullname": "",
+        "description": "Partial update for BookOutline. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- bookbookrunid: The run this outline belongs to (Required)\\n- bookchapters: Ordered list of subsystem EntityIDs forming the chapters (Required)\\n- bookpackagemap: JSON mapping subsystem EntityIDs to their member package EntityIDs (Required)\\n- bookgeneratedat: When the outline was generated (Required)",
+        "args": [
+          {
+            "name": "entity",
+            "type": "entityid",
+            "description": "The full Entity object map (with id and _version).",
+            "required": true
+          },
+          {
+            "name": "updates",
+            "type": "map",
+            "description": "The partial fields to update.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "upsert",
+        "groupname": "fdm.nodes.book.outline",
+        "fullname": "",
+        "description": "Ensures a BookOutline entity exists with the given human handle.",
+        "args": [
+          {
+            "name": "handle",
+            "type": "string",
+            "description": "Unique human alias.",
+            "required": true
+          },
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "Initial fields or updates.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "create",
+        "groupname": "fdm.nodes.book.run",
+        "fullname": "",
+        "description": "Creates a new BookRun. Expects a map of fields.\\nValid keys:\\n- booksnapshotid: The repository snapshot NodeID this book is generated from (Required)\\n- booksourcepassrunids: The upstream pass_run IDs (e.g. partition) that fed this run\\n- bookstartedat: When the book generation run started (Required)\\n- bookconfig: Configuration options for the run\\n- bookstatus: Current state of the book pipeline (Required)",
+        "args": [
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "The field values for the new node.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "find",
+        "groupname": "fdm.nodes.book.run",
+        "fullname": "",
+        "description": "Finds BookRun nodes by exact field match.",
+        "args": [
+          {
+            "name": "filter",
+            "type": "map",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "get",
+        "groupname": "fdm.nodes.book.run",
+        "fullname": "",
+        "description": "Gets a BookRun node by E_ or N_ ID.",
+        "args": [
+          {
+            "name": "id",
+            "type": "entityid",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "list",
+        "groupname": "fdm.nodes.book.run",
+        "fullname": "",
+        "description": "Lists all active BookRun nodes.",
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "mutate",
+        "groupname": "fdm.nodes.book.run",
+        "fullname": "",
+        "description": "Partial update for BookRun. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- booksnapshotid: The repository snapshot NodeID this book is generated from (Required)\\n- booksourcepassrunids: The upstream pass_run IDs (e.g. partition) that fed this run\\n- bookstartedat: When the book generation run started (Required)\\n- bookconfig: Configuration options for the run\\n- bookstatus: Current state of the book pipeline (Required)",
+        "args": [
+          {
+            "name": "entity",
+            "type": "entityid",
+            "description": "The full Entity object map (with id and _version).",
+            "required": true
+          },
+          {
+            "name": "updates",
+            "type": "map",
+            "description": "The partial fields to update.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "upsert",
+        "groupname": "fdm.nodes.book.run",
+        "fullname": "",
+        "description": "Ensures a BookRun entity exists with the given human handle.",
+        "args": [
+          {
+            "name": "handle",
+            "type": "string",
+            "description": "Unique human alias.",
+            "required": true
+          },
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "Initial fields or updates.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "create",
+        "groupname": "fdm.nodes.book.section",
+        "fullname": "",
+        "description": "Creates a new BookSection. Expects a map of fields.\\nValid keys:\\n- bookbookrunid: The run this section belongs to (Required)\\n- booksectionid: A stable logical identifier for the section (e.g., subsystem_xyz) (Required)\\n- bookkind: The semantic kind of this section (Required)\\n- booktitle: The display title of the section (Required)\\n- bookbodymd: The markdown prose content (Required)\\n- bookcitations: Explicit NodeIDs (e.g. ndsa/atom) referenced inside the body\\n- bookinputs: NodeIDs that fed the section generation (subsystem, packages, metrics)\\n- bookgeneratedbytaskid: The task/task EntityID that generated this section (Required)\\n- bookgeneratedat: When this section was completed (Required)\\n- bookcontenthash: Hash of the payload used to generate this section for idempotency",
+        "args": [
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "The field values for the new node.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "find",
+        "groupname": "fdm.nodes.book.section",
+        "fullname": "",
+        "description": "Finds BookSection nodes by exact field match.",
+        "args": [
+          {
+            "name": "filter",
+            "type": "map",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "get",
+        "groupname": "fdm.nodes.book.section",
+        "fullname": "",
+        "description": "Gets a BookSection node by E_ or N_ ID.",
+        "args": [
+          {
+            "name": "id",
+            "type": "entityid",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "list",
+        "groupname": "fdm.nodes.book.section",
+        "fullname": "",
+        "description": "Lists all active BookSection nodes.",
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "mutate",
+        "groupname": "fdm.nodes.book.section",
+        "fullname": "",
+        "description": "Partial update for BookSection. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- bookbookrunid: The run this section belongs to (Required)\\n- booksectionid: A stable logical identifier for the section (e.g., subsystem_xyz) (Required)\\n- bookkind: The semantic kind of this section (Required)\\n- booktitle: The display title of the section (Required)\\n- bookbodymd: The markdown prose content (Required)\\n- bookcitations: Explicit NodeIDs (e.g. ndsa/atom) referenced inside the body\\n- bookinputs: NodeIDs that fed the section generation (subsystem, packages, metrics)\\n- bookgeneratedbytaskid: The task/task EntityID that generated this section (Required)\\n- bookgeneratedat: When this section was completed (Required)\\n- bookcontenthash: Hash of the payload used to generate this section for idempotency",
+        "args": [
+          {
+            "name": "entity",
+            "type": "entityid",
+            "description": "The full Entity object map (with id and _version).",
+            "required": true
+          },
+          {
+            "name": "updates",
+            "type": "map",
+            "description": "The partial fields to update.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "upsert",
+        "groupname": "fdm.nodes.book.section",
+        "fullname": "",
+        "description": "Ensures a BookSection entity exists with the given human handle.",
+        "args": [
+          {
+            "name": "handle",
+            "type": "string",
+            "description": "Unique human alias.",
+            "required": true
+          },
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "Initial fields or updates.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "create",
+        "groupname": "fdm.nodes.book.source",
+        "fullname": "",
+        "description": "Creates a new BookSource. Expects a map of fields.\\nValid keys:\\n- bookbookrunid: The run this source belongs to (Required)\\n- bookformat: The output format (Required)\\n- bookcontent: The full stitched source content (Required)\\n- booksectionids: The ordered book/section NodeIDs used to build this source (Required)\\n- bookassembledat: When the source was stitched together (Required)",
+        "args": [
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "The field values for the new node.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "find",
+        "groupname": "fdm.nodes.book.source",
+        "fullname": "",
+        "description": "Finds BookSource nodes by exact field match.",
+        "args": [
+          {
+            "name": "filter",
+            "type": "map",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "get",
+        "groupname": "fdm.nodes.book.source",
+        "fullname": "",
+        "description": "Gets a BookSource node by E_ or N_ ID.",
+        "args": [
+          {
+            "name": "id",
+            "type": "entityid",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "list",
+        "groupname": "fdm.nodes.book.source",
+        "fullname": "",
+        "description": "Lists all active BookSource nodes.",
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "mutate",
+        "groupname": "fdm.nodes.book.source",
+        "fullname": "",
+        "description": "Partial update for BookSource. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- bookbookrunid: The run this source belongs to (Required)\\n- bookformat: The output format (Required)\\n- bookcontent: The full stitched source content (Required)\\n- booksectionids: The ordered book/section NodeIDs used to build this source (Required)\\n- bookassembledat: When the source was stitched together (Required)",
+        "args": [
+          {
+            "name": "entity",
+            "type": "entityid",
+            "description": "The full Entity object map (with id and _version).",
+            "required": true
+          },
+          {
+            "name": "updates",
+            "type": "map",
+            "description": "The partial fields to update.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "upsert",
+        "groupname": "fdm.nodes.book.source",
+        "fullname": "",
+        "description": "Ensures a BookSource entity exists with the given human handle.",
+        "args": [
+          {
+            "name": "handle",
+            "type": "string",
+            "description": "Unique human alias.",
+            "required": true
+          },
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "Initial fields or updates.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "create",
         "groupname": "fdm.nodes.capsule.def",
         "fullname": "",
         "description": "Creates a new CapsuleDef. Expects a map of fields.\\nValid keys:\\n",
@@ -4981,7 +6542,7 @@
         "name": "create",
         "groupname": "fdm.nodes.code.contract",
         "fullname": "",
-        "description": "Creates a new CodeContract. Expects a map of fields.\\nValid keys:\\n- contractsubject: Subject of the contract (Required)\\n- contracttype: Type (function, interface)\\n- contractvisibility: Visibility (public, private)\\n- contractsignature: Full signature string\\n- fdmdisplayname: Name (e.g. DoWork) (Required)\\n- contractpkg: Package name\\n- contractcontractistool: Is this a tool?\\n- analysisrunid: Analysis Run ID",
+        "description": "Creates a new CodeContract. Expects a map of fields.\\nValid keys:\\n- contractsubject: Subject of the contract (Required)\\n- contracttype: Type (function, interface)\\n- contractvisibility: Visibility (public, private)\\n- contractsignature: Full signature string\\n- fdmdisplayname: Name (e.g. DoWork) (Required)\\n- contractpkg: Package name\\n- contractcontractistool: Is this a tool?\\n- analysisrunid: Analysis Run ID\\n- contractorigin: Origin of this contract (e.g., ast, llm, manual)\\n- contractmodel: Model used to generate this contract (if origin=llm)\\n- contractsourcehash: Hash of the source file content\\n- contractsourcemodtime: Modification time of the source file",
         "args": [
           {
             "name": "fields",
@@ -5053,7 +6614,7 @@
         "name": "mutate",
         "groupname": "fdm.nodes.code.contract",
         "fullname": "",
-        "description": "Partial update for CodeContract. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- contractsubject: Subject of the contract (Required)\\n- contracttype: Type (function, interface)\\n- contractvisibility: Visibility (public, private)\\n- contractsignature: Full signature string\\n- fdmdisplayname: Name (e.g. DoWork) (Required)\\n- contractpkg: Package name\\n- contractcontractistool: Is this a tool?\\n- analysisrunid: Analysis Run ID",
+        "description": "Partial update for CodeContract. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- contractsubject: Subject of the contract (Required)\\n- contracttype: Type (function, interface)\\n- contractvisibility: Visibility (public, private)\\n- contractsignature: Full signature string\\n- fdmdisplayname: Name (e.g. DoWork) (Required)\\n- contractpkg: Package name\\n- contractcontractistool: Is this a tool?\\n- analysisrunid: Analysis Run ID\\n- contractorigin: Origin of this contract (e.g., ast, llm, manual)\\n- contractmodel: Model used to generate this contract (if origin=llm)\\n- contractsourcehash: Hash of the source file content\\n- contractsourcemodtime: Modification time of the source file",
         "args": [
           {
             "name": "entity",
@@ -5105,7 +6666,7 @@
         "name": "create",
         "groupname": "fdm.nodes.code.file",
         "fullname": "",
-        "description": "Creates a new CodeFile. Expects a map of fields.\\nValid keys:\\n- codepath: Relative path of the file (Identity) (Required)\\n- codecontent: The full textual content of the file\\n- codeabspath: Absolute filesystem path (IO)\\n- codelanguage: Detected language (Required)\\n- codesha: Content SHA\\n- codesize: File size in bytes\\n- codemode: File permission mode\\n- codemodtime: Modification time\\n- analysisrunid: Analysis Run ID\\n- verrepoid: Repository EntityID\\n- vercommithash: Commit Hash\\n- vercommitts: Commit Timestamp\\n- verishead: Is Head\\n- verversion: Version\\n- verfolio: Folio reference\\n- verbranch: Branch name\\n- vertag: Tag name\\n- fsiparent: Parent directory or container",
+        "description": "Creates a new CodeFile. Expects a map of fields.\\nValid keys:\\n- codepath: Relative path of the file (Identity) (Required)\\n- codecontent: The full textual content of the file\\n- codeisblob: If true, content is stored in the FDM Blob Service instead of inline\\n- codeabspath: Absolute filesystem path (IO)\\n- codelanguage: Detected language (Required)\\n- codesha: Content SHA\\n- codesize: File size in bytes\\n- codemode: File permission mode\\n- codemodtime: Modification time\\n- analysisrunid: Analysis Run ID\\n- verrepoid: Repository EntityID\\n- vercommithash: Commit Hash\\n- vercommitts: Commit Timestamp\\n- verishead: Is Head\\n- verversion: Version\\n- verfolio: Folio reference\\n- verbranch: Branch name\\n- vertag: Tag name\\n- fsiparent: Parent directory or container",
         "args": [
           {
             "name": "fields",
@@ -5177,7 +6738,7 @@
         "name": "mutate",
         "groupname": "fdm.nodes.code.file",
         "fullname": "",
-        "description": "Partial update for CodeFile. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- codepath: Relative path of the file (Identity) (Required)\\n- codecontent: The full textual content of the file\\n- codeabspath: Absolute filesystem path (IO)\\n- codelanguage: Detected language (Required)\\n- codesha: Content SHA\\n- codesize: File size in bytes\\n- codemode: File permission mode\\n- codemodtime: Modification time\\n- analysisrunid: Analysis Run ID\\n- verrepoid: Repository EntityID\\n- vercommithash: Commit Hash\\n- vercommitts: Commit Timestamp\\n- verishead: Is Head\\n- verversion: Version\\n- verfolio: Folio reference\\n- verbranch: Branch name\\n- vertag: Tag name\\n- fsiparent: Parent directory or container",
+        "description": "Partial update for CodeFile. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- codepath: Relative path of the file (Identity) (Required)\\n- codecontent: The full textual content of the file\\n- codeisblob: If true, content is stored in the FDM Blob Service instead of inline\\n- codeabspath: Absolute filesystem path (IO)\\n- codelanguage: Detected language (Required)\\n- codesha: Content SHA\\n- codesize: File size in bytes\\n- codemode: File permission mode\\n- codemodtime: Modification time\\n- analysisrunid: Analysis Run ID\\n- verrepoid: Repository EntityID\\n- vercommithash: Commit Hash\\n- vercommitts: Commit Timestamp\\n- verishead: Is Head\\n- verversion: Version\\n- verfolio: Folio reference\\n- verbranch: Branch name\\n- vertag: Tag name\\n- fsiparent: Parent directory or container",
         "args": [
           {
             "name": "entity",
@@ -10933,7 +12494,7 @@
         "name": "create",
         "groupname": "fdm.nodes.ndsa.atom",
         "fullname": "",
-        "description": "Creates a new NdsaAtom. Expects a map of fields.\\nValid keys:\\n- ndsasubject: The EntityID this is about (Required)\\n- ndsafamily: Semantic class of speech act (Required)\\n- ndsakey: Specific key (e.g. risk.impact) (Required)\\n- ndsacontentkind: Discriminator for content field (Required)\\n- ndsacontenttext: Text payload\\n- ndsacontentlist: List payload (Native JSON)\\n- ndsacontentmap: Map payload (Native JSON)\\n- ndsascope: Scope of the assertion (Required)\\n- ndsascopeid: Identifier for the scope (e.g. function signature or symbol name)\\n- ndsaconfidence: Confidence 0.0-1.0\\n- ndsamodel: Asserter identity/model\\n- ndsasourcehash: Hash of the source file content\\n- ndsaevidencekind: Source of truth backing this claim\\n- ndsaevidencerefs: List of structured evidence objects (frozen contract)\\n- ndsavector: Embedding vector",
+        "description": "Creates a new NdsaAtom. Expects a map of fields.\\nValid keys:\\n- ndsasubject: The EntityID this is about (Required)\\n- ndsafamily: Semantic class of speech act (Required)\\n- ndsakey: Specific key (e.g. risk.impact) (Required)\\n- ndsacontentkind: Discriminator for content field (Required)\\n- ndsacontenttext: Text payload\\n- ndsacontentlist: List payload (Native JSON)\\n- ndsacontentmap: Map payload (Native JSON)\\n- ndsascope: Scope of the assertion (Required)\\n- ndsascopeid: Identifier for the scope (e.g. function signature or symbol name)\\n- ndsaconfidence: Confidence 0.0-1.0\\n- ndsamodel: Asserter identity/model\\n- ndsasourcehash: Hash of the source file content\\n- ndsasourcemodtime: Modification time of the source file\\n- ndsaevidencekind: Source of truth backing this claim\\n- ndsaevidencerefs: List of structured evidence objects (frozen contract)\\n- ndsavector: Embedding vector",
         "args": [
           {
             "name": "fields",
@@ -11005,7 +12566,7 @@
         "name": "mutate",
         "groupname": "fdm.nodes.ndsa.atom",
         "fullname": "",
-        "description": "Partial update for NdsaAtom. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- ndsasubject: The EntityID this is about (Required)\\n- ndsafamily: Semantic class of speech act (Required)\\n- ndsakey: Specific key (e.g. risk.impact) (Required)\\n- ndsacontentkind: Discriminator for content field (Required)\\n- ndsacontenttext: Text payload\\n- ndsacontentlist: List payload (Native JSON)\\n- ndsacontentmap: Map payload (Native JSON)\\n- ndsascope: Scope of the assertion (Required)\\n- ndsascopeid: Identifier for the scope (e.g. function signature or symbol name)\\n- ndsaconfidence: Confidence 0.0-1.0\\n- ndsamodel: Asserter identity/model\\n- ndsasourcehash: Hash of the source file content\\n- ndsaevidencekind: Source of truth backing this claim\\n- ndsaevidencerefs: List of structured evidence objects (frozen contract)\\n- ndsavector: Embedding vector",
+        "description": "Partial update for NdsaAtom. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- ndsasubject: The EntityID this is about (Required)\\n- ndsafamily: Semantic class of speech act (Required)\\n- ndsakey: Specific key (e.g. risk.impact) (Required)\\n- ndsacontentkind: Discriminator for content field (Required)\\n- ndsacontenttext: Text payload\\n- ndsacontentlist: List payload (Native JSON)\\n- ndsacontentmap: Map payload (Native JSON)\\n- ndsascope: Scope of the assertion (Required)\\n- ndsascopeid: Identifier for the scope (e.g. function signature or symbol name)\\n- ndsaconfidence: Confidence 0.0-1.0\\n- ndsamodel: Asserter identity/model\\n- ndsasourcehash: Hash of the source file content\\n- ndsasourcemodtime: Modification time of the source file\\n- ndsaevidencekind: Source of truth backing this claim\\n- ndsaevidencerefs: List of structured evidence objects (frozen contract)\\n- ndsavector: Embedding vector",
         "args": [
           {
             "name": "entity",
@@ -11551,6 +13112,378 @@
     {
       "spec": {
         "name": "create",
+        "groupname": "fdm.nodes.partition.cohesion_vector",
+        "fullname": "",
+        "description": "Creates a new PartitionCohesionVector. Expects a map of fields.\\nValid keys:\\n- partitionsnapshotid: Repository snapshot NodeID (Required)\\n- partitionpackageid: The go/package NodeID (Required)\\n- partitionrecipeversion: Recipe version used to compute this vector (Required)\\n- partitionfeatures: Murmur3 Hash -\u003e Exact Term Frequency (map[string]int) (Required)\\n- partitionnormsq: Squared L2 norm to avoid floating point square roots (Required)\\n- partitionatomcount: Number of NDSA atoms incorporated (Required)\\n- partitionsourcequery: Deterministic query spec used to select atoms (Required)",
+        "args": [
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "The field values for the new node.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "find",
+        "groupname": "fdm.nodes.partition.cohesion_vector",
+        "fullname": "",
+        "description": "Finds PartitionCohesionVector nodes by exact field match.",
+        "args": [
+          {
+            "name": "filter",
+            "type": "map",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "get",
+        "groupname": "fdm.nodes.partition.cohesion_vector",
+        "fullname": "",
+        "description": "Gets a PartitionCohesionVector node by E_ or N_ ID.",
+        "args": [
+          {
+            "name": "id",
+            "type": "entityid",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "list",
+        "groupname": "fdm.nodes.partition.cohesion_vector",
+        "fullname": "",
+        "description": "Lists all active PartitionCohesionVector nodes.",
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "mutate",
+        "groupname": "fdm.nodes.partition.cohesion_vector",
+        "fullname": "",
+        "description": "Partial update for PartitionCohesionVector. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- partitionsnapshotid: Repository snapshot NodeID (Required)\\n- partitionpackageid: The go/package NodeID (Required)\\n- partitionrecipeversion: Recipe version used to compute this vector (Required)\\n- partitionfeatures: Murmur3 Hash -\u003e Exact Term Frequency (map[string]int) (Required)\\n- partitionnormsq: Squared L2 norm to avoid floating point square roots (Required)\\n- partitionatomcount: Number of NDSA atoms incorporated (Required)\\n- partitionsourcequery: Deterministic query spec used to select atoms (Required)",
+        "args": [
+          {
+            "name": "entity",
+            "type": "entityid",
+            "description": "The full Entity object map (with id and _version).",
+            "required": true
+          },
+          {
+            "name": "updates",
+            "type": "map",
+            "description": "The partial fields to update.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "upsert",
+        "groupname": "fdm.nodes.partition.cohesion_vector",
+        "fullname": "",
+        "description": "Ensures a PartitionCohesionVector entity exists with the given human handle.",
+        "args": [
+          {
+            "name": "handle",
+            "type": "string",
+            "description": "Unique human alias.",
+            "required": true
+          },
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "Initial fields or updates.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "create",
+        "groupname": "fdm.nodes.partition.config",
+        "fullname": "",
+        "description": "Creates a new PartitionConfig. Expects a map of fields.\\nValid keys:\\n- partitionsnapshotid: Repository snapshot NodeID (Required)\\n- partitionrecipeversion: e.g., 'v1.0.0' (Required)\\n- partitionvectorschema: e.g., 'ndsa_cohesion_v1' (Required)\\n- partitionweightimportbp: Import weight in basis points (Required)\\n- partitionweightsemanticbp: Semantic weight in basis points (Required)\\n- partitionweightcyclebp: Cycle weight in basis points (Required)\\n- partitionsemanticedgethresholdbp: Minimum semantic similarity to keep edge (Required)\\n- partitiontopkperpackage: Top K semantic neighbors per package (Required)\\n- partitioncomputedat: When the config was computed/applied (Required)",
+        "args": [
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "The field values for the new node.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "find",
+        "groupname": "fdm.nodes.partition.config",
+        "fullname": "",
+        "description": "Finds PartitionConfig nodes by exact field match.",
+        "args": [
+          {
+            "name": "filter",
+            "type": "map",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "get",
+        "groupname": "fdm.nodes.partition.config",
+        "fullname": "",
+        "description": "Gets a PartitionConfig node by E_ or N_ ID.",
+        "args": [
+          {
+            "name": "id",
+            "type": "entityid",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "list",
+        "groupname": "fdm.nodes.partition.config",
+        "fullname": "",
+        "description": "Lists all active PartitionConfig nodes.",
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "mutate",
+        "groupname": "fdm.nodes.partition.config",
+        "fullname": "",
+        "description": "Partial update for PartitionConfig. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- partitionsnapshotid: Repository snapshot NodeID (Required)\\n- partitionrecipeversion: e.g., 'v1.0.0' (Required)\\n- partitionvectorschema: e.g., 'ndsa_cohesion_v1' (Required)\\n- partitionweightimportbp: Import weight in basis points (Required)\\n- partitionweightsemanticbp: Semantic weight in basis points (Required)\\n- partitionweightcyclebp: Cycle weight in basis points (Required)\\n- partitionsemanticedgethresholdbp: Minimum semantic similarity to keep edge (Required)\\n- partitiontopkperpackage: Top K semantic neighbors per package (Required)\\n- partitioncomputedat: When the config was computed/applied (Required)",
+        "args": [
+          {
+            "name": "entity",
+            "type": "entityid",
+            "description": "The full Entity object map (with id and _version).",
+            "required": true
+          },
+          {
+            "name": "updates",
+            "type": "map",
+            "description": "The partial fields to update.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "upsert",
+        "groupname": "fdm.nodes.partition.config",
+        "fullname": "",
+        "description": "Ensures a PartitionConfig entity exists with the given human handle.",
+        "args": [
+          {
+            "name": "handle",
+            "type": "string",
+            "description": "Unique human alias.",
+            "required": true
+          },
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "Initial fields or updates.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "create",
+        "groupname": "fdm.nodes.partition.semantic_edge",
+        "fullname": "",
+        "description": "Creates a new PartitionSemanticEdge. Expects a map of fields.\\nValid keys:\\n- partitionsnapshotid: Repository snapshot NodeID (Required)\\n- partitionpackageaid: First go/package NodeID (Required)\\n- partitionpackagebid: Second go/package NodeID (Required)\\n- partitionsimilaritybp: Cosine similarity scaled 0-10000 (Required)",
+        "args": [
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "The field values for the new node.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "find",
+        "groupname": "fdm.nodes.partition.semantic_edge",
+        "fullname": "",
+        "description": "Finds PartitionSemanticEdge nodes by exact field match.",
+        "args": [
+          {
+            "name": "filter",
+            "type": "map",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "get",
+        "groupname": "fdm.nodes.partition.semantic_edge",
+        "fullname": "",
+        "description": "Gets a PartitionSemanticEdge node by E_ or N_ ID.",
+        "args": [
+          {
+            "name": "id",
+            "type": "entityid",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "list",
+        "groupname": "fdm.nodes.partition.semantic_edge",
+        "fullname": "",
+        "description": "Lists all active PartitionSemanticEdge nodes.",
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "mutate",
+        "groupname": "fdm.nodes.partition.semantic_edge",
+        "fullname": "",
+        "description": "Partial update for PartitionSemanticEdge. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- partitionsnapshotid: Repository snapshot NodeID (Required)\\n- partitionpackageaid: First go/package NodeID (Required)\\n- partitionpackagebid: Second go/package NodeID (Required)\\n- partitionsimilaritybp: Cosine similarity scaled 0-10000 (Required)",
+        "args": [
+          {
+            "name": "entity",
+            "type": "entityid",
+            "description": "The full Entity object map (with id and _version).",
+            "required": true
+          },
+          {
+            "name": "updates",
+            "type": "map",
+            "description": "The partial fields to update.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "upsert",
+        "groupname": "fdm.nodes.partition.semantic_edge",
+        "fullname": "",
+        "description": "Ensures a PartitionSemanticEdge entity exists with the given human handle.",
+        "args": [
+          {
+            "name": "handle",
+            "type": "string",
+            "description": "Unique human alias.",
+            "required": true
+          },
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "Initial fields or updates.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "create",
         "groupname": "fdm.nodes.patch",
         "fullname": "",
         "description": "Creates a new Patch. Expects a map of fields.\\nValid keys:\\n- patchcontent: Patch content (Required)\\n- patchinputsha: Optimistic locking SHA\\n- patchsource: Provenance source snapshot",
@@ -11652,6 +13585,130 @@
         "groupname": "fdm.nodes.patch",
         "fullname": "",
         "description": "Ensures a Patch entity exists with the given human handle.",
+        "args": [
+          {
+            "name": "handle",
+            "type": "string",
+            "description": "Unique human alias.",
+            "required": true
+          },
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "Initial fields or updates.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "create",
+        "groupname": "fdm.nodes.plan.export",
+        "fullname": "",
+        "description": "Creates a new PlanExport. Expects a map of fields.\\nValid keys:\\n- fdmdisplayname: Human-readable name of the export run\\n- plancreatedby: Creator EntityID (Required)\\n- planexporttarget: Where the resulting MessagePack blob should be written (e.g., a file path or CAS URI) (Required)\\n- planincludehistory: If true, the exporter walks the Prev pointers and packages the entire historical chain\\n- planexportbuilderfn: The name of the NeuroScript function to invoke to build the export session (Required)\\n- planexportargs: Optional arguments to pass to the NeuroScript builder function",
+        "args": [
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "The field values for the new node.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "find",
+        "groupname": "fdm.nodes.plan.export",
+        "fullname": "",
+        "description": "Finds PlanExport nodes by exact field match.",
+        "args": [
+          {
+            "name": "filter",
+            "type": "map",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "get",
+        "groupname": "fdm.nodes.plan.export",
+        "fullname": "",
+        "description": "Gets a PlanExport node by E_ or N_ ID.",
+        "args": [
+          {
+            "name": "id",
+            "type": "entityid",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "list",
+        "groupname": "fdm.nodes.plan.export",
+        "fullname": "",
+        "description": "Lists all active PlanExport nodes.",
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "mutate",
+        "groupname": "fdm.nodes.plan.export",
+        "fullname": "",
+        "description": "Partial update for PlanExport. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- fdmdisplayname: Human-readable name of the export run\\n- plancreatedby: Creator EntityID (Required)\\n- planexporttarget: Where the resulting MessagePack blob should be written (e.g., a file path or CAS URI) (Required)\\n- planincludehistory: If true, the exporter walks the Prev pointers and packages the entire historical chain\\n- planexportbuilderfn: The name of the NeuroScript function to invoke to build the export session (Required)\\n- planexportargs: Optional arguments to pass to the NeuroScript builder function",
+        "args": [
+          {
+            "name": "entity",
+            "type": "entityid",
+            "description": "The full Entity object map (with id and _version).",
+            "required": true
+          },
+          {
+            "name": "updates",
+            "type": "map",
+            "description": "The partial fields to update.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "upsert",
+        "groupname": "fdm.nodes.plan.export",
+        "fullname": "",
+        "description": "Ensures a PlanExport entity exists with the given human handle.",
         "args": [
           {
             "name": "handle",
@@ -12295,6 +14352,502 @@
     {
       "spec": {
         "name": "create",
+        "groupname": "fdm.nodes.stress.config",
+        "fullname": "",
+        "description": "Creates a new StressConfig. Expects a map of fields.\\nValid keys:\\n- stresssnapshotid: Repository snapshot NodeID (Required)\\n- stressrecipeversion: Recipe version (Required)\\n- stressaggregationmode: Aggregation approach (Required)\\n- stressweightloadbp: Load weight in BP (Required)\\n- stressweightcouplingbp: Coupling weight in BP (Required)\\n- stressweightgrowthbp: Growth weight in BP (Required)\\n- stressweightdeficitbp: Semantic deficit weight in BP (Required)\\n- stressanchormaxfanin: Absolute anchor for max fan-in (Required)\\n- stressanchormaxcrossimports: Absolute anchor for max cross-boundary imports (Required)",
+        "args": [
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "The field values for the new node.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "find",
+        "groupname": "fdm.nodes.stress.config",
+        "fullname": "",
+        "description": "Finds StressConfig nodes by exact field match.",
+        "args": [
+          {
+            "name": "filter",
+            "type": "map",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "get",
+        "groupname": "fdm.nodes.stress.config",
+        "fullname": "",
+        "description": "Gets a StressConfig node by E_ or N_ ID.",
+        "args": [
+          {
+            "name": "id",
+            "type": "entityid",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "list",
+        "groupname": "fdm.nodes.stress.config",
+        "fullname": "",
+        "description": "Lists all active StressConfig nodes.",
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "mutate",
+        "groupname": "fdm.nodes.stress.config",
+        "fullname": "",
+        "description": "Partial update for StressConfig. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- stresssnapshotid: Repository snapshot NodeID (Required)\\n- stressrecipeversion: Recipe version (Required)\\n- stressaggregationmode: Aggregation approach (Required)\\n- stressweightloadbp: Load weight in BP (Required)\\n- stressweightcouplingbp: Coupling weight in BP (Required)\\n- stressweightgrowthbp: Growth weight in BP (Required)\\n- stressweightdeficitbp: Semantic deficit weight in BP (Required)\\n- stressanchormaxfanin: Absolute anchor for max fan-in (Required)\\n- stressanchormaxcrossimports: Absolute anchor for max cross-boundary imports (Required)",
+        "args": [
+          {
+            "name": "entity",
+            "type": "entityid",
+            "description": "The full Entity object map (with id and _version).",
+            "required": true
+          },
+          {
+            "name": "updates",
+            "type": "map",
+            "description": "The partial fields to update.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "upsert",
+        "groupname": "fdm.nodes.stress.config",
+        "fullname": "",
+        "description": "Ensures a StressConfig entity exists with the given human handle.",
+        "args": [
+          {
+            "name": "handle",
+            "type": "string",
+            "description": "Unique human alias.",
+            "required": true
+          },
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "Initial fields or updates.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "create",
+        "groupname": "fdm.nodes.stress.delta",
+        "fullname": "",
+        "description": "Creates a new StressDelta. Expects a map of fields.\\nValid keys:\\n- stressfromrunid: The baseline stress/run NodeID (Required)\\n- stresstorunid: The current stress/run NodeID (Required)\\n- stressentitypath: Stable cross-snapshot join key (Required)\\n- stressdeltabp: Velocity of stress (can be negative) (Required)",
+        "args": [
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "The field values for the new node.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "find",
+        "groupname": "fdm.nodes.stress.delta",
+        "fullname": "",
+        "description": "Finds StressDelta nodes by exact field match.",
+        "args": [
+          {
+            "name": "filter",
+            "type": "map",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "get",
+        "groupname": "fdm.nodes.stress.delta",
+        "fullname": "",
+        "description": "Gets a StressDelta node by E_ or N_ ID.",
+        "args": [
+          {
+            "name": "id",
+            "type": "entityid",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "list",
+        "groupname": "fdm.nodes.stress.delta",
+        "fullname": "",
+        "description": "Lists all active StressDelta nodes.",
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "mutate",
+        "groupname": "fdm.nodes.stress.delta",
+        "fullname": "",
+        "description": "Partial update for StressDelta. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- stressfromrunid: The baseline stress/run NodeID (Required)\\n- stresstorunid: The current stress/run NodeID (Required)\\n- stressentitypath: Stable cross-snapshot join key (Required)\\n- stressdeltabp: Velocity of stress (can be negative) (Required)",
+        "args": [
+          {
+            "name": "entity",
+            "type": "entityid",
+            "description": "The full Entity object map (with id and _version).",
+            "required": true
+          },
+          {
+            "name": "updates",
+            "type": "map",
+            "description": "The partial fields to update.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "upsert",
+        "groupname": "fdm.nodes.stress.delta",
+        "fullname": "",
+        "description": "Ensures a StressDelta entity exists with the given human handle.",
+        "args": [
+          {
+            "name": "handle",
+            "type": "string",
+            "description": "Unique human alias.",
+            "required": true
+          },
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "Initial fields or updates.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "create",
+        "groupname": "fdm.nodes.stress.run",
+        "fullname": "",
+        "description": "Creates a new StressRun. Expects a map of fields.\\nValid keys:\\n- stresssnapshotid: Repository snapshot NodeID (Required)\\n- stressconfigid: The stress/config NodeID (Required)\\n- stressbaselinesnapshotid: Previous snapshot NodeID for delta calculations\\n- stresscomputedat: When the stress index was computed (Required)",
+        "args": [
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "The field values for the new node.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "find",
+        "groupname": "fdm.nodes.stress.run",
+        "fullname": "",
+        "description": "Finds StressRun nodes by exact field match.",
+        "args": [
+          {
+            "name": "filter",
+            "type": "map",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "get",
+        "groupname": "fdm.nodes.stress.run",
+        "fullname": "",
+        "description": "Gets a StressRun node by E_ or N_ ID.",
+        "args": [
+          {
+            "name": "id",
+            "type": "entityid",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "list",
+        "groupname": "fdm.nodes.stress.run",
+        "fullname": "",
+        "description": "Lists all active StressRun nodes.",
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "mutate",
+        "groupname": "fdm.nodes.stress.run",
+        "fullname": "",
+        "description": "Partial update for StressRun. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- stresssnapshotid: Repository snapshot NodeID (Required)\\n- stressconfigid: The stress/config NodeID (Required)\\n- stressbaselinesnapshotid: Previous snapshot NodeID for delta calculations\\n- stresscomputedat: When the stress index was computed (Required)",
+        "args": [
+          {
+            "name": "entity",
+            "type": "entityid",
+            "description": "The full Entity object map (with id and _version).",
+            "required": true
+          },
+          {
+            "name": "updates",
+            "type": "map",
+            "description": "The partial fields to update.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "upsert",
+        "groupname": "fdm.nodes.stress.run",
+        "fullname": "",
+        "description": "Ensures a StressRun entity exists with the given human handle.",
+        "args": [
+          {
+            "name": "handle",
+            "type": "string",
+            "description": "Unique human alias.",
+            "required": true
+          },
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "Initial fields or updates.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "create",
+        "groupname": "fdm.nodes.stress.value",
+        "fullname": "",
+        "description": "Creates a new StressValue. Expects a map of fields.\\nValid keys:\\n- stressstressrunid: The stress/run NodeID (Required)\\n- stressunittype: The architectural level (Required)\\n- stressunitnodeid: The NodeID of the unit being scored (Required)\\n- stressentitypath: Stable cross-snapshot join key (e.g., pkg:github.com/...) (Required)\\n- stresssemanticexempt: If true, semantic deficit is 0 (autogen/mocks)\\n- stressscoreloadbp: Load component score (Required)\\n- stressscorecouplingbp: Coupling component score (Required)\\n- stressscoregrowthbp: Growth component score (Required)\\n- stressscoredeficitbp: Semantic deficit component score (Required)\\n- stressstresstotalbp: Final aggregated stress score (Required)",
+        "args": [
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "The field values for the new node.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "find",
+        "groupname": "fdm.nodes.stress.value",
+        "fullname": "",
+        "description": "Finds StressValue nodes by exact field match.",
+        "args": [
+          {
+            "name": "filter",
+            "type": "map",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "get",
+        "groupname": "fdm.nodes.stress.value",
+        "fullname": "",
+        "description": "Gets a StressValue node by E_ or N_ ID.",
+        "args": [
+          {
+            "name": "id",
+            "type": "entityid",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "list",
+        "groupname": "fdm.nodes.stress.value",
+        "fullname": "",
+        "description": "Lists all active StressValue nodes.",
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "mutate",
+        "groupname": "fdm.nodes.stress.value",
+        "fullname": "",
+        "description": "Partial update for StressValue. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- stressstressrunid: The stress/run NodeID (Required)\\n- stressunittype: The architectural level (Required)\\n- stressunitnodeid: The NodeID of the unit being scored (Required)\\n- stressentitypath: Stable cross-snapshot join key (e.g., pkg:github.com/...) (Required)\\n- stresssemanticexempt: If true, semantic deficit is 0 (autogen/mocks)\\n- stressscoreloadbp: Load component score (Required)\\n- stressscorecouplingbp: Coupling component score (Required)\\n- stressscoregrowthbp: Growth component score (Required)\\n- stressscoredeficitbp: Semantic deficit component score (Required)\\n- stressstresstotalbp: Final aggregated stress score (Required)",
+        "args": [
+          {
+            "name": "entity",
+            "type": "entityid",
+            "description": "The full Entity object map (with id and _version).",
+            "required": true
+          },
+          {
+            "name": "updates",
+            "type": "map",
+            "description": "The partial fields to update.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "upsert",
+        "groupname": "fdm.nodes.stress.value",
+        "fullname": "",
+        "description": "Ensures a StressValue entity exists with the given human handle.",
+        "args": [
+          {
+            "name": "handle",
+            "type": "string",
+            "description": "Unique human alias.",
+            "required": true
+          },
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "Initial fields or updates.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "create",
         "groupname": "fdm.nodes.structure.subsystem",
         "fullname": "",
         "description": "Creates a new StructureSubsystem. Expects a map of fields.\\nValid keys:\\n- fdmdisplayname: Subsystem Name (Required)\\n- structuredescription: Description of the subsystem's purpose\\n- structurestrategy: Strategy used to define this subsystem (Required)\\n- analysisrunid: Analysis Run ID\\n- verrepoid: Repository EntityID",
@@ -12768,6 +15321,130 @@
         "groupname": "fdm.nodes.sys.finding",
         "fullname": "",
         "description": "Ensures a SysFinding entity exists with the given human handle.",
+        "args": [
+          {
+            "name": "handle",
+            "type": "string",
+            "description": "Unique human alias.",
+            "required": true
+          },
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "Initial fields or updates.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "create",
+        "groupname": "fdm.nodes.sys.import_record",
+        "fullname": "",
+        "description": "Creates a new SysImportRecord. Expects a map of fields.\\nValid keys:\\n- sysimporthash: SHA-256 checksum of the imported .fdmx payload (Required)\\n- sysimportsignerdid: DID of the agent that signed the payload\\n- sysimportsignature: The original cryptographic signature attached to the payload\\n- sysimportts: Timestamp when the import was committed (Required)\\n- sysimportnodescount: Number of nodes successfully imported (Required)\\n- sysimportskippedcount: Number of nodes skipped during import (Required)\\n- sysimportentitiesminted: Number of new EntityIDs minted (Required)\\n- sysimportentitiesmatched: Number of existing EntityIDs matched (Required)\\n- sysimportwarnings: List of shape verification and hash match warnings\\n- sysimportdefaultedfields: Record of fields that had default values injected\\n- sysimportdroppedfields: Record of unrecognized fields that were dropped",
+        "args": [
+          {
+            "name": "fields",
+            "type": "map",
+            "description": "The field values for the new node.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "find",
+        "groupname": "fdm.nodes.sys.import_record",
+        "fullname": "",
+        "description": "Finds SysImportRecord nodes by exact field match.",
+        "args": [
+          {
+            "name": "filter",
+            "type": "map",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "get",
+        "groupname": "fdm.nodes.sys.import_record",
+        "fullname": "",
+        "description": "Gets a SysImportRecord node by E_ or N_ ID.",
+        "args": [
+          {
+            "name": "id",
+            "type": "entityid",
+            "description": "",
+            "required": false
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "list",
+        "groupname": "fdm.nodes.sys.import_record",
+        "fullname": "",
+        "description": "Lists all active SysImportRecord nodes.",
+        "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "mutate",
+        "groupname": "fdm.nodes.sys.import_record",
+        "fullname": "",
+        "description": "Partial update for SysImportRecord. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- sysimporthash: SHA-256 checksum of the imported .fdmx payload (Required)\\n- sysimportsignerdid: DID of the agent that signed the payload\\n- sysimportsignature: The original cryptographic signature attached to the payload\\n- sysimportts: Timestamp when the import was committed (Required)\\n- sysimportnodescount: Number of nodes successfully imported (Required)\\n- sysimportskippedcount: Number of nodes skipped during import (Required)\\n- sysimportentitiesminted: Number of new EntityIDs minted (Required)\\n- sysimportentitiesmatched: Number of existing EntityIDs matched (Required)\\n- sysimportwarnings: List of shape verification and hash match warnings\\n- sysimportdefaultedfields: Record of fields that had default values injected\\n- sysimportdroppedfields: Record of unrecognized fields that were dropped",
+        "args": [
+          {
+            "name": "entity",
+            "type": "entityid",
+            "description": "The full Entity object map (with id and _version).",
+            "required": true
+          },
+          {
+            "name": "updates",
+            "type": "map",
+            "description": "The partial fields to update.",
+            "required": true
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "upsert",
+        "groupname": "fdm.nodes.sys.import_record",
+        "fullname": "",
+        "description": "Ensures a SysImportRecord entity exists with the given human handle.",
         "args": [
           {
             "name": "handle",
@@ -19249,6 +21926,48 @@
     "FDM_FIELD_ANALYSIS_RUN_VER_IS_HEAD": "ver:is_head",
     "FDM_FIELD_ANALYSIS_RUN_VER_REPO_ID": "ver:repo_id",
     "FDM_FIELD_ANALYSIS_RUN_VER_VERSION": "ver:version",
+    "FDM_FIELD_BOOK_ARTIFACT_BOOK_RUN_ID": "book:book_run_id",
+    "FDM_FIELD_BOOK_ARTIFACT_HASH": "book:hash",
+    "FDM_FIELD_BOOK_ARTIFACT_LOCATOR": "book:locator",
+    "FDM_FIELD_BOOK_ARTIFACT_MEDIA_TYPE": "book:media_type",
+    "FDM_FIELD_BOOK_ARTIFACT_RENDERED_AT": "book:rendered_at",
+    "FDM_FIELD_BOOK_ARTIFACT_SIZE_BYTES": "book:size_bytes",
+    "FDM_FIELD_BOOK_ARTIFACT_SOURCE_HASH": "book:source_hash",
+    "FDM_FIELD_BOOK_ARTIFACT_TYPE": "book:artifact_type",
+    "FDM_FIELD_BOOK_MANIFEST_ARTIFACT_IDS": "book:artifact_ids",
+    "FDM_FIELD_BOOK_MANIFEST_BOOK_RUN_ID": "book:book_run_id",
+    "FDM_FIELD_BOOK_MANIFEST_PASS_RUN_IDS": "book:pass_run_ids",
+    "FDM_FIELD_BOOK_MANIFEST_RENDER_CONFIG": "book:render_config",
+    "FDM_FIELD_BOOK_MANIFEST_SNAPSHOT_ID": "book:snapshot_id",
+    "FDM_FIELD_BOOK_METRIC_BOOK_RUN_ID": "book:book_run_id",
+    "FDM_FIELD_BOOK_METRIC_COMPUTED_AT": "book:computed_at",
+    "FDM_FIELD_BOOK_METRIC_SOURCE_QUERY": "book:source_query",
+    "FDM_FIELD_BOOK_METRIC_TYPE": "book:metric_type",
+    "FDM_FIELD_BOOK_METRIC_VALUE": "book:value",
+    "FDM_FIELD_BOOK_OUTLINE_BOOK_RUN_ID": "book:book_run_id",
+    "FDM_FIELD_BOOK_OUTLINE_CHAPTERS": "book:chapters",
+    "FDM_FIELD_BOOK_OUTLINE_GENERATED_AT": "book:generated_at",
+    "FDM_FIELD_BOOK_OUTLINE_PACKAGE_MAP": "book:package_map",
+    "FDM_FIELD_BOOK_RUN_CONFIG": "book:config",
+    "FDM_FIELD_BOOK_RUN_SNAPSHOT_ID": "book:snapshot_id",
+    "FDM_FIELD_BOOK_RUN_SOURCE_PASS_RUN_IDS": "book:source_pass_run_ids",
+    "FDM_FIELD_BOOK_RUN_STARTED_AT": "book:started_at",
+    "FDM_FIELD_BOOK_RUN_STATUS": "book:status",
+    "FDM_FIELD_BOOK_SECTION_BODY_MD": "book:body_md",
+    "FDM_FIELD_BOOK_SECTION_BOOK_RUN_ID": "book:book_run_id",
+    "FDM_FIELD_BOOK_SECTION_CITATIONS": "book:citations",
+    "FDM_FIELD_BOOK_SECTION_CONTENT_HASH": "book:content_hash",
+    "FDM_FIELD_BOOK_SECTION_GENERATED_AT": "book:generated_at",
+    "FDM_FIELD_BOOK_SECTION_GENERATED_BY_TASK_ID": "book:generated_by_task_id",
+    "FDM_FIELD_BOOK_SECTION_ID": "book:section_id",
+    "FDM_FIELD_BOOK_SECTION_INPUTS": "book:inputs",
+    "FDM_FIELD_BOOK_SECTION_KIND": "book:kind",
+    "FDM_FIELD_BOOK_SECTION_TITLE": "book:title",
+    "FDM_FIELD_BOOK_SOURCE_ASSEMBLED_AT": "book:assembled_at",
+    "FDM_FIELD_BOOK_SOURCE_BOOK_RUN_ID": "book:book_run_id",
+    "FDM_FIELD_BOOK_SOURCE_CONTENT": "book:content",
+    "FDM_FIELD_BOOK_SOURCE_FORMAT": "book:format",
+    "FDM_FIELD_BOOK_SOURCE_SECTION_IDS": "book:section_ids",
     "FDM_FIELD_CAPSULE_CONTENT": "fdm:content",
     "FDM_FIELD_CAPSULE_DATA": "core:data",
     "FDM_FIELD_CAPSULE_DESCRIPTION": "fdm:description",
@@ -19290,8 +22009,12 @@
     "FDM_FIELD_CODE_CONTEXT_BUNDLE_PROVENANCE": "code:provenance",
     "FDM_FIELD_CODE_CONTRACT_ANALYSIS_RUN_ID": "analysis:run_id",
     "FDM_FIELD_CODE_CONTRACT_CONTRACT_IS_TOOL": "contract:contract_is_tool",
+    "FDM_FIELD_CODE_CONTRACT_MODEL": "contract:model",
+    "FDM_FIELD_CODE_CONTRACT_ORIGIN": "contract:origin",
     "FDM_FIELD_CODE_CONTRACT_PKG": "contract:pkg",
     "FDM_FIELD_CODE_CONTRACT_SIGNATURE": "contract:signature",
+    "FDM_FIELD_CODE_CONTRACT_SOURCE_HASH": "contract:source_hash",
+    "FDM_FIELD_CODE_CONTRACT_SOURCE_MOD_TIME": "contract:source_mod_time",
     "FDM_FIELD_CODE_CONTRACT_SUBJECT": "contract:subject",
     "FDM_FIELD_CODE_CONTRACT_TYPE": "contract:type",
     "FDM_FIELD_CODE_CONTRACT_VISIBILITY": "contract:visibility",
@@ -19300,6 +22023,7 @@
     "FDM_FIELD_CODE_FILE_ANALYSIS_RUN_ID": "analysis:run_id",
     "FDM_FIELD_CODE_FILE_CONTENT": "code:content",
     "FDM_FIELD_CODE_FILE_FSI_PARENT": "fsi:parent",
+    "FDM_FIELD_CODE_FILE_IS_BLOB": "code:is_blob",
     "FDM_FIELD_CODE_FILE_LANGUAGE": "code:language",
     "FDM_FIELD_CODE_FILE_MODE": "code:mode",
     "FDM_FIELD_CODE_FILE_MODTIME": "code:modtime",
@@ -19641,6 +22365,7 @@
     "FDM_FIELD_NDSA_ATOM_SCOPE": "ndsa:scope",
     "FDM_FIELD_NDSA_ATOM_SCOPE_ID": "ndsa:scope_id",
     "FDM_FIELD_NDSA_ATOM_SOURCE_HASH": "ndsa:source_hash",
+    "FDM_FIELD_NDSA_ATOM_SOURCE_MOD_TIME": "ndsa:source_mod_time",
     "FDM_FIELD_NDSA_ATOM_SUBJECT": "ndsa:subject",
     "FDM_FIELD_NDSA_ATOM_VECTOR": "ndsa:vector",
     "FDM_FIELD_NDSA_CANONICAL_CONTENT_KIND": "ndsa:content_kind",
@@ -19690,6 +22415,26 @@
     "FDM_FIELD_ORDER_STATUS": "work:status",
     "FDM_FIELD_ORDER_TASK_ID": "work:task_id",
     "FDM_FIELD_ORDER_WORKER_ID": "work:worker_id",
+    "FDM_FIELD_PARTITION_COHESION_VECTOR_ATOM_COUNT": "partition:atom_count",
+    "FDM_FIELD_PARTITION_COHESION_VECTOR_FEATURES": "partition:features",
+    "FDM_FIELD_PARTITION_COHESION_VECTOR_NORM_SQ": "partition:norm_sq",
+    "FDM_FIELD_PARTITION_COHESION_VECTOR_PACKAGE_ID": "partition:package_id",
+    "FDM_FIELD_PARTITION_COHESION_VECTOR_RECIPE_VERSION": "partition:recipe_version",
+    "FDM_FIELD_PARTITION_COHESION_VECTOR_SNAPSHOT_ID": "partition:snapshot_id",
+    "FDM_FIELD_PARTITION_COHESION_VECTOR_SOURCE_QUERY": "partition:source_query",
+    "FDM_FIELD_PARTITION_CONFIG_COMPUTED_AT": "partition:computed_at",
+    "FDM_FIELD_PARTITION_CONFIG_RECIPE_VERSION": "partition:recipe_version",
+    "FDM_FIELD_PARTITION_CONFIG_SEMANTIC_EDGE_THRESHOLD_BP": "partition:semantic_edge_threshold_bp",
+    "FDM_FIELD_PARTITION_CONFIG_SNAPSHOT_ID": "partition:snapshot_id",
+    "FDM_FIELD_PARTITION_CONFIG_TOPK_PER_PACKAGE": "partition:topk_per_package",
+    "FDM_FIELD_PARTITION_CONFIG_VECTOR_SCHEMA": "partition:vector_schema",
+    "FDM_FIELD_PARTITION_CONFIG_WEIGHT_CYCLE_BP": "partition:weight_cycle_bp",
+    "FDM_FIELD_PARTITION_CONFIG_WEIGHT_IMPORT_BP": "partition:weight_import_bp",
+    "FDM_FIELD_PARTITION_CONFIG_WEIGHT_SEMANTIC_BP": "partition:weight_semantic_bp",
+    "FDM_FIELD_PARTITION_SEMANTIC_EDGE_PACKAGE_AID": "partition:package_a_id",
+    "FDM_FIELD_PARTITION_SEMANTIC_EDGE_PACKAGE_BID": "partition:package_b_id",
+    "FDM_FIELD_PARTITION_SEMANTIC_EDGE_SIMILARITY_BP": "partition:similarity_bp",
+    "FDM_FIELD_PARTITION_SEMANTIC_EDGE_SNAPSHOT_ID": "partition:snapshot_id",
     "FDM_FIELD_PATCH_CONTENT": "patch:content",
     "FDM_FIELD_PATCH_INPUT_SHA": "patch:input_sha",
     "FDM_FIELD_PATCH_SOURCE": "patch:source",
@@ -19697,6 +22442,11 @@
     "FDM_FIELD_PLAN_CREATED_BY": "plan:created_by",
     "FDM_FIELD_PLAN_EMBED_MODEL": "plan:embed_model",
     "FDM_FIELD_PLAN_EXCLUDE_MIME_TYPES": "plan:exclude_mime_types",
+    "FDM_FIELD_PLAN_EXPORT_ARGS": "plan:export_args",
+    "FDM_FIELD_PLAN_EXPORT_BUILDER_FN": "plan:export_builder_fn",
+    "FDM_FIELD_PLAN_EXPORT_CREATED_BY": "plan:created_by",
+    "FDM_FIELD_PLAN_EXPORT_INCLUDE_HISTORY": "plan:include_history",
+    "FDM_FIELD_PLAN_EXPORT_TARGET": "plan:export_target",
     "FDM_FIELD_PLAN_IGNORE_PATTERNS": "plan:ignore_patterns",
     "FDM_FIELD_PLAN_INDEXES": "plan:indexes",
     "FDM_FIELD_PLAN_INGEST_CHUNKER": "plan:chunker",
@@ -19762,6 +22512,33 @@
     "FDM_FIELD_ROLE_SCOPE": "role:scope",
     "FDM_FIELD_ROLE_TITLE": "role:title",
     "FDM_FIELD_ROLE_TYPICAL_EVENTS": "role:typical_events",
+    "FDM_FIELD_STRESS_CONFIG_AGGREGATION_MODE": "stress:aggregation_mode",
+    "FDM_FIELD_STRESS_CONFIG_ANCHOR_MAX_CROSS_IMPORTS": "stress:anchor_max_cross_imports",
+    "FDM_FIELD_STRESS_CONFIG_ANCHOR_MAX_FAN_IN": "stress:anchor_max_fan_in",
+    "FDM_FIELD_STRESS_CONFIG_RECIPE_VERSION": "stress:recipe_version",
+    "FDM_FIELD_STRESS_CONFIG_SNAPSHOT_ID": "stress:snapshot_id",
+    "FDM_FIELD_STRESS_CONFIG_WEIGHT_COUPLING_BP": "stress:weight_coupling_bp",
+    "FDM_FIELD_STRESS_CONFIG_WEIGHT_DEFICIT_BP": "stress:weight_deficit_bp",
+    "FDM_FIELD_STRESS_CONFIG_WEIGHT_GROWTH_BP": "stress:weight_growth_bp",
+    "FDM_FIELD_STRESS_CONFIG_WEIGHT_LOAD_BP": "stress:weight_load_bp",
+    "FDM_FIELD_STRESS_DELTA_BP": "stress:delta_bp",
+    "FDM_FIELD_STRESS_DELTA_ENTITY_PATH": "stress:entity_path",
+    "FDM_FIELD_STRESS_DELTA_FROM_RUN_ID": "stress:from_run_id",
+    "FDM_FIELD_STRESS_DELTA_TO_RUN_ID": "stress:to_run_id",
+    "FDM_FIELD_STRESS_RUN_BASELINE_SNAPSHOT_ID": "stress:baseline_snapshot_id",
+    "FDM_FIELD_STRESS_RUN_COMPUTED_AT": "stress:computed_at",
+    "FDM_FIELD_STRESS_RUN_CONFIG_ID": "stress:config_id",
+    "FDM_FIELD_STRESS_RUN_SNAPSHOT_ID": "stress:snapshot_id",
+    "FDM_FIELD_STRESS_VALUE_ENTITY_PATH": "stress:entity_path",
+    "FDM_FIELD_STRESS_VALUE_SCORE_COUPLING_BP": "stress:score_coupling_bp",
+    "FDM_FIELD_STRESS_VALUE_SCORE_DEFICIT_BP": "stress:score_deficit_bp",
+    "FDM_FIELD_STRESS_VALUE_SCORE_GROWTH_BP": "stress:score_growth_bp",
+    "FDM_FIELD_STRESS_VALUE_SCORE_LOAD_BP": "stress:score_load_bp",
+    "FDM_FIELD_STRESS_VALUE_SEMANTIC_EXEMPT": "stress:semantic_exempt",
+    "FDM_FIELD_STRESS_VALUE_STRESS_RUN_ID": "stress:stress_run_id",
+    "FDM_FIELD_STRESS_VALUE_STRESS_TOTAL_BP": "stress:stress_total_bp",
+    "FDM_FIELD_STRESS_VALUE_UNIT_NODE_ID": "stress:unit_node_id",
+    "FDM_FIELD_STRESS_VALUE_UNIT_TYPE": "stress:unit_type",
     "FDM_FIELD_STRUCTURE_SUBSYSTEM_ANALYSIS_RUN_ID": "analysis:run_id",
     "FDM_FIELD_STRUCTURE_SUBSYSTEM_DESCRIPTION": "structure:description",
     "FDM_FIELD_STRUCTURE_SUBSYSTEM_STRATEGY": "structure:strategy",
@@ -19784,6 +22561,17 @@
     "FDM_FIELD_SYS_FINDING_SEVERITY": "sys:severity",
     "FDM_FIELD_SYS_FINDING_STATUS": "sys:status",
     "FDM_FIELD_SYS_FINDING_TARGET": "sys:target",
+    "FDM_FIELD_SYS_IMPORT_RECORD_IMPORT_DEFAULTED_FIELDS": "sys:import_defaulted_fields",
+    "FDM_FIELD_SYS_IMPORT_RECORD_IMPORT_DROPPED_FIELDS": "sys:import_dropped_fields",
+    "FDM_FIELD_SYS_IMPORT_RECORD_IMPORT_ENTITIES_MATCHED": "sys:import_entities_matched",
+    "FDM_FIELD_SYS_IMPORT_RECORD_IMPORT_ENTITIES_MINTED": "sys:import_entities_minted",
+    "FDM_FIELD_SYS_IMPORT_RECORD_IMPORT_HASH": "sys:import_hash",
+    "FDM_FIELD_SYS_IMPORT_RECORD_IMPORT_NODES_COUNT": "sys:import_nodes_count",
+    "FDM_FIELD_SYS_IMPORT_RECORD_IMPORT_SIGNATURE": "sys:import_signature",
+    "FDM_FIELD_SYS_IMPORT_RECORD_IMPORT_SIGNER_DID": "sys:import_signer_did",
+    "FDM_FIELD_SYS_IMPORT_RECORD_IMPORT_SKIPPED_COUNT": "sys:import_skipped_count",
+    "FDM_FIELD_SYS_IMPORT_RECORD_IMPORT_TS": "sys:import_ts",
+    "FDM_FIELD_SYS_IMPORT_RECORD_IMPORT_WARNINGS": "sys:import_warnings",
     "FDM_FIELD_SYS_KMS_KEY_ID": "sys:kms_key_id",
     "FDM_FIELD_SYS_KMS_KEY_KMS_AAD": "sys:kms_aad",
     "FDM_FIELD_SYS_KMS_KEY_KMS_CIPHERTEXT": "sys:kms_ciphertext",
@@ -19867,6 +22655,13 @@
     "FDM_NODE_TYPE_AI_CONTEXT_SNAPSHOT": "ai/context_snapshot",
     "FDM_NODE_TYPE_ANALYSIS_PASS_RUN": "analysis/pass_run",
     "FDM_NODE_TYPE_ANALYSIS_RUN": "analysis/run",
+    "FDM_NODE_TYPE_BOOK_ARTIFACT": "book/artifact",
+    "FDM_NODE_TYPE_BOOK_MANIFEST": "book/manifest",
+    "FDM_NODE_TYPE_BOOK_METRIC": "book/metric",
+    "FDM_NODE_TYPE_BOOK_OUTLINE": "book/outline",
+    "FDM_NODE_TYPE_BOOK_RUN": "book/run",
+    "FDM_NODE_TYPE_BOOK_SECTION": "book/section",
+    "FDM_NODE_TYPE_BOOK_SOURCE": "book/source",
     "FDM_NODE_TYPE_CAPSULE": "fdm/capsule",
     "FDM_NODE_TYPE_CAPSULE_DEF": "capsule/def",
     "FDM_NODE_TYPE_CHUNK": "code/chunk",
@@ -19928,17 +22723,26 @@
     "FDM_NODE_TYPE_NS_CONSTANT": "ns/constant",
     "FDM_NODE_TYPE_NS_FUNCTION": "ns/function",
     "FDM_NODE_TYPE_NS_HANDLER": "ns/handler",
+    "FDM_NODE_TYPE_PARTITION_COHESION_VECTOR": "partition/cohesion_vector",
+    "FDM_NODE_TYPE_PARTITION_CONFIG": "partition/config",
+    "FDM_NODE_TYPE_PARTITION_SEMANTIC_EDGE": "partition/semantic_edge",
     "FDM_NODE_TYPE_PATCH": "patch/patch",
+    "FDM_NODE_TYPE_PLAN_EXPORT": "plan/export",
     "FDM_NODE_TYPE_PLAN_INGEST": "plan/ingest",
     "FDM_NODE_TYPE_PLAN_WALK": "plan/walk",
     "FDM_NODE_TYPE_PROJECT": "project/project",
     "FDM_NODE_TYPE_ROLE": "role/role",
     "FDM_NODE_TYPE_ROLE_ASSIGNMENT": "role/assignment",
+    "FDM_NODE_TYPE_STRESS_CONFIG": "stress/config",
+    "FDM_NODE_TYPE_STRESS_DELTA": "stress/delta",
+    "FDM_NODE_TYPE_STRESS_RUN": "stress/run",
+    "FDM_NODE_TYPE_STRESS_VALUE": "stress/value",
     "FDM_NODE_TYPE_STRUCTURE_SUBSYSTEM": "structure/subsystem",
     "FDM_NODE_TYPE_SUMMARY": "summary/summary",
     "FDM_NODE_TYPE_SYSTEM_BOOTSTRAP": "system/bootstrap",
     "FDM_NODE_TYPE_SYS_CURSOR": "sys/cursor",
     "FDM_NODE_TYPE_SYS_FINDING": "sys/finding",
+    "FDM_NODE_TYPE_SYS_IMPORT_RECORD": "sys/import_record",
     "FDM_NODE_TYPE_SYS_KMS_KEY": "sys/kms_key",
     "FDM_NODE_TYPE_SYS_KMS_META": "sys/kms_meta",
     "FDM_NODE_TYPE_SYS_LIFECYCLE": "sys/lifecycle",

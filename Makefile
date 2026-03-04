@@ -1,9 +1,10 @@
-# NeuroScript Version: 0.3.0
-# File version: 19
-# Purpose: Build system configuration for the NeuroScript project. Adds 'nsfmt' binary to the install target.
-# filename: Makefile
-# nlines: 151
-# risk_rating: LOW
+# :: product: FDM/NS
+# :: majorVersion: 1
+# :: fileVersion: 20
+# :: description: Build system configuration for the NeuroScript project. 
+# :: latestChange: Added DISABLE_VSCODE environment variable support to skip VSCode extension build.
+# :: filename: Makefile
+# :: serialization: makefile
 
 # Directories
 ROOT_DIR        := $(shell pwd)
@@ -51,6 +52,15 @@ ANTLR_STAMP_FILE   := $(ANTLR_OUTPUT_DIR)/.antlr-generated-stamp
 # Version file
 VERSION_GO_FILE := $(PKG_DIR)/lang/version.go
 
+# --- VSCode integration toggle ---
+# Set DISABLE_VSCODE=1 to skip building the VSCode extension.
+DISABLE_VSCODE ?=
+ifeq ($(DISABLE_VSCODE),)
+  VSCODE_BUILD_DEP := build-vscode
+else
+  VSCODE_BUILD_DEP :=
+endif
+
 # ------------------------------------------------------------------------------
 # Default target
 .PHONY: all
@@ -59,7 +69,7 @@ all: build
 # ------------------------------------------------------------------------------
 # Build the project
 .PHONY: build
-build: install build-vscode
+build: install $(VSCODE_BUILD_DEP)
 
 # ------------------------------------------------------------------------------
 # Install Go binaries to the standard Go bin path
@@ -177,3 +187,7 @@ help:
 	@echo "  vet               - Run go vet to check for issues."
 	@echo "  test              - Run tests with go test."
 	@echo "  ci                - Run all checks, tests, and build."
+	@echo ""
+	@echo "Environment Variables:"
+	@echo "  DISABLE_VSCODE=1  - Skip the VSCode extension build during 'make build' or 'make all'."
+`

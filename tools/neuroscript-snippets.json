@@ -183,6 +183,13 @@
     ],
     "description": "Submits a unipolar (+1/support, 0/abstain) vote for a message."
   },
+  "FDM.GetNeighborhood": {
+    "prefix": "FDM.GetNeighborhood",
+    "body": [
+      "tool.FDM.GetNeighborhood(${1:id})"
+    ],
+    "description": "Retrieves the direct 1-hop neighborhood of a node or entity, formatted for Cytoscape.js."
+  },
   "FDM.GetNode": {
     "prefix": "FDM.GetNode",
     "body": [
@@ -300,7 +307,7 @@
     "body": [
       "tool.FDM.Query(${1:filter}, ${2:limit})"
     ],
-    "description": "Executes a structured query against the FDM Graph. Supports 'filter' map and optional 'limit'."
+    "description": "Executes a structured query against the FDM Graph. Supports 'filter' map (with 'type', 'fields', or 'linked') and optional 'limit'. Use 'linked' to traverse relationships: {'linked': {'node': 'E_123', 'direction': 'outbound', 'link_type': 'link/entity', 'link_kind': 'link/member_of'}}."
   },
   "FDM.RegisterOverlay": {
     "prefix": "FDM.RegisterOverlay",
@@ -523,6 +530,13 @@
     ],
     "description": "Reads a capsule by its full ID ('name@version') or the latest version by name."
   },
+  "capsule.load_from_file": {
+    "prefix": "capsule.load_from_file",
+    "body": [
+      "tool.capsule.load_from_file(${1:filename})"
+    ],
+    "description": "Safely loads, parses, and registers a capsule from the FDM_CAPSULE_DIR."
+  },
   "context.get_payload": {
     "prefix": "context.get_payload",
     "body": [
@@ -638,6 +652,20 @@
       "tool.fdm.admin.sign_agent_artifacts(${1:script_capsule_id}, ${2:charter_capsule_id})"
     ],
     "description": "Fetches latest content for script and charter capsules, signs them (AST hash for script, raw hash for charter), and returns signatures."
+  },
+  "fdm.admin.sync_agent": {
+    "prefix": "fdm.admin.sync_agent",
+    "body": [
+      "tool.fdm.admin.sync_agent(${1:did})"
+    ],
+    "description": "Re-reads the agent's script and charter capsules from the registry, re-signs them, updates the graph node, and reboots the agent. Use this to apply capsule updates."
+  },
+  "fdm.aeiou.parse_payload": {
+    "prefix": "fdm.aeiou.parse_payload",
+    "body": [
+      "tool.fdm.aeiou.parse_payload(${1:raw_text})"
+    ],
+    "description": "Cleans and parses raw JSON or JSONL LLM text output into a structured list."
   },
   "fdm.agent.AssignModel": {
     "prefix": "fdm.agent.AssignModel",
@@ -800,6 +828,29 @@
     ],
     "description": "Lists all currently active agents and their status."
   },
+  "fdm.analysis.book.get_package_context": {
+    "prefix": "fdm.analysis.book.get_package_context",
+    "body": [
+      "tool.fdm.analysis.book.get_package_context(${1:package_id}, ${2:role}, ${3:importance}, ${4:max_api_items}, ${5:is_appendix})"
+    ],
+    "description": "Gathers full NDSA, API, and file context for a package to generate a book section."
+  },
+  "fdm.analysis.book.get_subsystem_context": {
+    "prefix": "fdm.analysis.book.get_subsystem_context",
+    "body": [
+      "tool.fdm.analysis.book.get_subsystem_context(${1:subsystem_id})"
+    ],
+    "description": "Gathers full structural context for a subsystem to generate a book section."
+  },
+  "fdm.analysis.book.submit_section": {
+    "prefix": "fdm.analysis.book.submit_section",
+    "body": [
+      "tool.fdm.analysis.book.submit_section({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Submits a generated markdown section, validates its citations, and persists it to the graph."
+  },
   "fdm.analysis.inspect": {
     "prefix": "fdm.analysis.inspect",
     "body": [
@@ -850,6 +901,13 @@
     ],
     "description": "Forces a router reconciliation cycle to advance stuck pipelines."
   },
+  "fdm.analysis.reindex_overlays": {
+    "prefix": "fdm.analysis.reindex_overlays",
+    "body": [
+      "tool.fdm.analysis.reindex_overlays()"
+    ],
+    "description": "Forces all active Overlays (FSO, FCO, SIO) to immediately re-sync from the Graph truth."
+  },
   "fdm.analysis.run": {
     "prefix": "fdm.analysis.run",
     "body": [
@@ -858,6 +916,34 @@
       "})"
     ],
     "description": "Triggers a specific analysis pipeline on a repository."
+  },
+  "fdm.blob.exists": {
+    "prefix": "fdm.blob.exists",
+    "body": [
+      "tool.fdm.blob.exists(${1:hash})"
+    ],
+    "description": "Checks if a blob exists in the CAS."
+  },
+  "fdm.blob.get": {
+    "prefix": "fdm.blob.get",
+    "body": [
+      "tool.fdm.blob.get(${1:hash})"
+    ],
+    "description": "Retrieves blob content from the CAS using its SHA256 hash."
+  },
+  "fdm.blob.put": {
+    "prefix": "fdm.blob.put",
+    "body": [
+      "tool.fdm.blob.put(${1:data}, ${2:alias})"
+    ],
+    "description": "Writes data to the Content-Addressed Storage (CAS) and returns the hash and size."
+  },
+  "fdm.blob.resolve_alias": {
+    "prefix": "fdm.blob.resolve_alias",
+    "body": [
+      "tool.fdm.blob.resolve_alias(${1:alias})"
+    ],
+    "description": "Finds the SHA256 hash of the blob associated with a given alias."
   },
   "fdm.capsule.CreateCapsule": {
     "prefix": "fdm.capsule.CreateCapsule",
@@ -1013,6 +1099,97 @@
       "})"
     ],
     "description": "Sends a pre-composed event object to the FDM bus."
+  },
+  "fdm.export.add_by_ref": {
+    "prefix": "fdm.export.add_by_ref",
+    "body": [
+      "tool.fdm.export.add_by_ref(${1:session_handle}, ${2:target_type}, ${3:ref_field}, ${4:source_ids}, ${5:strategy})"
+    ],
+    "description": "Adds entities that have a specific field pointing to any of the source IDs."
+  },
+  "fdm.export.add_explicit": {
+    "prefix": "fdm.export.add_explicit",
+    "body": [
+      "tool.fdm.export.add_explicit(${1:session_handle}, ${2:entity_ids}, ${3:strategy})"
+    ],
+    "description": "Adds specific EntityIDs to the export session with a resolution strategy."
+  },
+  "fdm.export.add_field_targets": {
+    "prefix": "fdm.export.add_field_targets",
+    "body": [
+      "tool.fdm.export.add_field_targets(${1:session_handle}, ${2:source_type}, ${3:field_name}, ${4:strategy})"
+    ],
+    "description": "Iterates entities already in the session, extracts a reference field, and adds those targets."
+  },
+  "fdm.export.add_query": {
+    "prefix": "fdm.export.add_query",
+    "body": [
+      "tool.fdm.export.add_query(${1:session_handle}, ${2:node_type}, ${3:query}, ${4:strategy})"
+    ],
+    "description": "Adds entities of a specific type matching a query filter to the session."
+  },
+  "fdm.export.add_traversal": {
+    "prefix": "fdm.export.add_traversal",
+    "body": [
+      "tool.fdm.export.add_traversal(${1:session_handle}, ${2:start_ids}, ${3:edge_kind}, ${4:direction}, ${5:target_type})"
+    ],
+    "description": "Traverses the graph via link nodes and adds the resulting entities to the export session."
+  },
+  "fdm.export.begin": {
+    "prefix": "fdm.export.begin",
+    "body": [
+      "tool.fdm.export.begin(${1:session_handle})"
+    ],
+    "description": "Initializes a new export session."
+  },
+  "fdm.export.import_begin": {
+    "prefix": "fdm.export.import_begin",
+    "body": [
+      "tool.fdm.export.import_begin(${1:session_handle})"
+    ],
+    "description": "Initializes a new import session buffer."
+  },
+  "fdm.export.import_commit": {
+    "prefix": "fdm.export.import_commit",
+    "body": [
+      "tool.fdm.export.import_commit(${1:session_handle}, ${2:policy})"
+    ],
+    "description": "Executes the import against the graph and mints a sys/import_record receipt."
+  },
+  "fdm.export.import_load_blob": {
+    "prefix": "fdm.export.import_load_blob",
+    "body": [
+      "tool.fdm.export.import_load_blob(${1:session_handle}, ${2:blob_hash})"
+    ],
+    "description": "Loads an .fdmx payload from the Blob Service (CAS) into an active import session."
+  },
+  "fdm.export.import_load_file": {
+    "prefix": "fdm.export.import_load_file",
+    "body": [
+      "tool.fdm.export.import_load_file(${1:session_handle}, ${2:file_path})"
+    ],
+    "description": "Loads an .fdmx file from disk into an active import session."
+  },
+  "fdm.export.import_plan": {
+    "prefix": "fdm.export.import_plan",
+    "body": [
+      "tool.fdm.export.import_plan(${1:session_handle}, ${2:policy})"
+    ],
+    "description": "Simulates an import using the active policy and returns a dry-run report."
+  },
+  "fdm.export.pack": {
+    "prefix": "fdm.export.pack",
+    "body": [
+      "tool.fdm.export.pack(${1:session_handle}, ${2:plan_id}, ${3:include_history})"
+    ],
+    "description": "Materializes the session and returns a cryptographically sealed MessagePack blob."
+  },
+  "fdm.export.pack_to_blob": {
+    "prefix": "fdm.export.pack_to_blob",
+    "body": [
+      "tool.fdm.export.pack_to_blob(${1:session_handle}, ${2:plan_id}, ${3:include_history}, ${4:alias})"
+    ],
+    "description": "Materializes the session, seals it, and writes directly to the Blob Service (CAS)."
   },
   "fdm.filesync.apply_pass": {
     "prefix": "fdm.filesync.apply_pass",
@@ -1530,6 +1707,328 @@
     ],
     "description": "Ensures a AnalysisRun entity exists with the given human handle."
   },
+  "fdm.nodes.book.artifact.create": {
+    "prefix": "fdm.nodes.book.artifact.create",
+    "body": [
+      "tool.fdm.nodes.book.artifact.create({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Creates a new BookArtifact. Expects a map of fields.\\nValid keys:\\n- bookbookrunid: The run this artifact belongs to (Required)\\n- bookartifacttype: The file type of the artifact (Required)\\n- bookhash: Cryptographic hash (sha256) of the artifact file (Required)\\n- booksizebytes: File size in bytes (Required)\\n- bookmediatype: MIME type of the artifact (Required)\\n- booksourcehash: Hash of the book/source node used to render this (Required)\\n- booklocator: URI locator pointing to the external blob (Required)\\n- bookrenderedat: When the artifact was rendered (Required)"
+  },
+  "fdm.nodes.book.artifact.find": {
+    "prefix": "fdm.nodes.book.artifact.find",
+    "body": [
+      "tool.fdm.nodes.book.artifact.find({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Finds BookArtifact nodes by exact field match."
+  },
+  "fdm.nodes.book.artifact.get": {
+    "prefix": "fdm.nodes.book.artifact.get",
+    "body": [
+      "tool.fdm.nodes.book.artifact.get(${1:id})"
+    ],
+    "description": "Gets a BookArtifact node by E_ or N_ ID."
+  },
+  "fdm.nodes.book.artifact.list": {
+    "prefix": "fdm.nodes.book.artifact.list",
+    "body": [
+      "tool.fdm.nodes.book.artifact.list()"
+    ],
+    "description": "Lists all active BookArtifact nodes."
+  },
+  "fdm.nodes.book.artifact.mutate": {
+    "prefix": "fdm.nodes.book.artifact.mutate",
+    "body": [
+      "tool.fdm.nodes.book.artifact.mutate(${1:entity}, ${2:updates})"
+    ],
+    "description": "Partial update for BookArtifact. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- bookbookrunid: The run this artifact belongs to (Required)\\n- bookartifacttype: The file type of the artifact (Required)\\n- bookhash: Cryptographic hash (sha256) of the artifact file (Required)\\n- booksizebytes: File size in bytes (Required)\\n- bookmediatype: MIME type of the artifact (Required)\\n- booksourcehash: Hash of the book/source node used to render this (Required)\\n- booklocator: URI locator pointing to the external blob (Required)\\n- bookrenderedat: When the artifact was rendered (Required)"
+  },
+  "fdm.nodes.book.artifact.upsert": {
+    "prefix": "fdm.nodes.book.artifact.upsert",
+    "body": [
+      "tool.fdm.nodes.book.artifact.upsert(${1:handle}, ${2:fields})"
+    ],
+    "description": "Ensures a BookArtifact entity exists with the given human handle."
+  },
+  "fdm.nodes.book.manifest.create": {
+    "prefix": "fdm.nodes.book.manifest.create",
+    "body": [
+      "tool.fdm.nodes.book.manifest.create({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Creates a new BookManifest. Expects a map of fields.\\nValid keys:\\n- bookbookrunid: The run this manifest finalizes (Required)\\n- booksnapshotid: The repo snapshot this book describes (Required)\\n- bookartifactids: The rendered book/artifact NodeIDs (Required)\\n- bookpassrunids: The pipeline pass runs involved (Required)\\n- bookrenderconfig: The configuration used for rendering"
+  },
+  "fdm.nodes.book.manifest.find": {
+    "prefix": "fdm.nodes.book.manifest.find",
+    "body": [
+      "tool.fdm.nodes.book.manifest.find({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Finds BookManifest nodes by exact field match."
+  },
+  "fdm.nodes.book.manifest.get": {
+    "prefix": "fdm.nodes.book.manifest.get",
+    "body": [
+      "tool.fdm.nodes.book.manifest.get(${1:id})"
+    ],
+    "description": "Gets a BookManifest node by E_ or N_ ID."
+  },
+  "fdm.nodes.book.manifest.list": {
+    "prefix": "fdm.nodes.book.manifest.list",
+    "body": [
+      "tool.fdm.nodes.book.manifest.list()"
+    ],
+    "description": "Lists all active BookManifest nodes."
+  },
+  "fdm.nodes.book.manifest.mutate": {
+    "prefix": "fdm.nodes.book.manifest.mutate",
+    "body": [
+      "tool.fdm.nodes.book.manifest.mutate(${1:entity}, ${2:updates})"
+    ],
+    "description": "Partial update for BookManifest. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- bookbookrunid: The run this manifest finalizes (Required)\\n- booksnapshotid: The repo snapshot this book describes (Required)\\n- bookartifactids: The rendered book/artifact NodeIDs (Required)\\n- bookpassrunids: The pipeline pass runs involved (Required)\\n- bookrenderconfig: The configuration used for rendering"
+  },
+  "fdm.nodes.book.manifest.upsert": {
+    "prefix": "fdm.nodes.book.manifest.upsert",
+    "body": [
+      "tool.fdm.nodes.book.manifest.upsert(${1:handle}, ${2:fields})"
+    ],
+    "description": "Ensures a BookManifest entity exists with the given human handle."
+  },
+  "fdm.nodes.book.metric.create": {
+    "prefix": "fdm.nodes.book.metric.create",
+    "body": [
+      "tool.fdm.nodes.book.metric.create({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Creates a new BookMetric. Expects a map of fields.\\nValid keys:\\n- bookbookrunid: The run this metric belongs to (Required)\\n- bookmetrictype: The name/type of the metric (e.g., total_loc, ndsa_coverage_percent) (Required)\\n- bookvalue: The numeric value of the metric\\n- booksourcequery: The query or method used to derive this metric\\n- bookcomputedat: When the metric was computed (Required)"
+  },
+  "fdm.nodes.book.metric.find": {
+    "prefix": "fdm.nodes.book.metric.find",
+    "body": [
+      "tool.fdm.nodes.book.metric.find({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Finds BookMetric nodes by exact field match."
+  },
+  "fdm.nodes.book.metric.get": {
+    "prefix": "fdm.nodes.book.metric.get",
+    "body": [
+      "tool.fdm.nodes.book.metric.get(${1:id})"
+    ],
+    "description": "Gets a BookMetric node by E_ or N_ ID."
+  },
+  "fdm.nodes.book.metric.list": {
+    "prefix": "fdm.nodes.book.metric.list",
+    "body": [
+      "tool.fdm.nodes.book.metric.list()"
+    ],
+    "description": "Lists all active BookMetric nodes."
+  },
+  "fdm.nodes.book.metric.mutate": {
+    "prefix": "fdm.nodes.book.metric.mutate",
+    "body": [
+      "tool.fdm.nodes.book.metric.mutate(${1:entity}, ${2:updates})"
+    ],
+    "description": "Partial update for BookMetric. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- bookbookrunid: The run this metric belongs to (Required)\\n- bookmetrictype: The name/type of the metric (e.g., total_loc, ndsa_coverage_percent) (Required)\\n- bookvalue: The numeric value of the metric\\n- booksourcequery: The query or method used to derive this metric\\n- bookcomputedat: When the metric was computed (Required)"
+  },
+  "fdm.nodes.book.metric.upsert": {
+    "prefix": "fdm.nodes.book.metric.upsert",
+    "body": [
+      "tool.fdm.nodes.book.metric.upsert(${1:handle}, ${2:fields})"
+    ],
+    "description": "Ensures a BookMetric entity exists with the given human handle."
+  },
+  "fdm.nodes.book.outline.create": {
+    "prefix": "fdm.nodes.book.outline.create",
+    "body": [
+      "tool.fdm.nodes.book.outline.create({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Creates a new BookOutline. Expects a map of fields.\\nValid keys:\\n- bookbookrunid: The run this outline belongs to (Required)\\n- bookchapters: Ordered list of subsystem EntityIDs forming the chapters (Required)\\n- bookpackagemap: JSON mapping subsystem EntityIDs to their member package EntityIDs (Required)\\n- bookgeneratedat: When the outline was generated (Required)"
+  },
+  "fdm.nodes.book.outline.find": {
+    "prefix": "fdm.nodes.book.outline.find",
+    "body": [
+      "tool.fdm.nodes.book.outline.find({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Finds BookOutline nodes by exact field match."
+  },
+  "fdm.nodes.book.outline.get": {
+    "prefix": "fdm.nodes.book.outline.get",
+    "body": [
+      "tool.fdm.nodes.book.outline.get(${1:id})"
+    ],
+    "description": "Gets a BookOutline node by E_ or N_ ID."
+  },
+  "fdm.nodes.book.outline.list": {
+    "prefix": "fdm.nodes.book.outline.list",
+    "body": [
+      "tool.fdm.nodes.book.outline.list()"
+    ],
+    "description": "Lists all active BookOutline nodes."
+  },
+  "fdm.nodes.book.outline.mutate": {
+    "prefix": "fdm.nodes.book.outline.mutate",
+    "body": [
+      "tool.fdm.nodes.book.outline.mutate(${1:entity}, ${2:updates})"
+    ],
+    "description": "Partial update for BookOutline. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- bookbookrunid: The run this outline belongs to (Required)\\n- bookchapters: Ordered list of subsystem EntityIDs forming the chapters (Required)\\n- bookpackagemap: JSON mapping subsystem EntityIDs to their member package EntityIDs (Required)\\n- bookgeneratedat: When the outline was generated (Required)"
+  },
+  "fdm.nodes.book.outline.upsert": {
+    "prefix": "fdm.nodes.book.outline.upsert",
+    "body": [
+      "tool.fdm.nodes.book.outline.upsert(${1:handle}, ${2:fields})"
+    ],
+    "description": "Ensures a BookOutline entity exists with the given human handle."
+  },
+  "fdm.nodes.book.run.create": {
+    "prefix": "fdm.nodes.book.run.create",
+    "body": [
+      "tool.fdm.nodes.book.run.create({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Creates a new BookRun. Expects a map of fields.\\nValid keys:\\n- booksnapshotid: The repository snapshot NodeID this book is generated from (Required)\\n- booksourcepassrunids: The upstream pass_run IDs (e.g. partition) that fed this run\\n- bookstartedat: When the book generation run started (Required)\\n- bookconfig: Configuration options for the run\\n- bookstatus: Current state of the book pipeline (Required)"
+  },
+  "fdm.nodes.book.run.find": {
+    "prefix": "fdm.nodes.book.run.find",
+    "body": [
+      "tool.fdm.nodes.book.run.find({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Finds BookRun nodes by exact field match."
+  },
+  "fdm.nodes.book.run.get": {
+    "prefix": "fdm.nodes.book.run.get",
+    "body": [
+      "tool.fdm.nodes.book.run.get(${1:id})"
+    ],
+    "description": "Gets a BookRun node by E_ or N_ ID."
+  },
+  "fdm.nodes.book.run.list": {
+    "prefix": "fdm.nodes.book.run.list",
+    "body": [
+      "tool.fdm.nodes.book.run.list()"
+    ],
+    "description": "Lists all active BookRun nodes."
+  },
+  "fdm.nodes.book.run.mutate": {
+    "prefix": "fdm.nodes.book.run.mutate",
+    "body": [
+      "tool.fdm.nodes.book.run.mutate(${1:entity}, ${2:updates})"
+    ],
+    "description": "Partial update for BookRun. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- booksnapshotid: The repository snapshot NodeID this book is generated from (Required)\\n- booksourcepassrunids: The upstream pass_run IDs (e.g. partition) that fed this run\\n- bookstartedat: When the book generation run started (Required)\\n- bookconfig: Configuration options for the run\\n- bookstatus: Current state of the book pipeline (Required)"
+  },
+  "fdm.nodes.book.run.upsert": {
+    "prefix": "fdm.nodes.book.run.upsert",
+    "body": [
+      "tool.fdm.nodes.book.run.upsert(${1:handle}, ${2:fields})"
+    ],
+    "description": "Ensures a BookRun entity exists with the given human handle."
+  },
+  "fdm.nodes.book.section.create": {
+    "prefix": "fdm.nodes.book.section.create",
+    "body": [
+      "tool.fdm.nodes.book.section.create({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Creates a new BookSection. Expects a map of fields.\\nValid keys:\\n- bookbookrunid: The run this section belongs to (Required)\\n- booksectionid: A stable logical identifier for the section (e.g., subsystem_xyz) (Required)\\n- bookkind: The semantic kind of this section (Required)\\n- booktitle: The display title of the section (Required)\\n- bookbodymd: The markdown prose content (Required)\\n- bookcitations: Explicit NodeIDs (e.g. ndsa/atom) referenced inside the body\\n- bookinputs: NodeIDs that fed the section generation (subsystem, packages, metrics)\\n- bookgeneratedbytaskid: The task/task EntityID that generated this section (Required)\\n- bookgeneratedat: When this section was completed (Required)\\n- bookcontenthash: Hash of the payload used to generate this section for idempotency"
+  },
+  "fdm.nodes.book.section.find": {
+    "prefix": "fdm.nodes.book.section.find",
+    "body": [
+      "tool.fdm.nodes.book.section.find({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Finds BookSection nodes by exact field match."
+  },
+  "fdm.nodes.book.section.get": {
+    "prefix": "fdm.nodes.book.section.get",
+    "body": [
+      "tool.fdm.nodes.book.section.get(${1:id})"
+    ],
+    "description": "Gets a BookSection node by E_ or N_ ID."
+  },
+  "fdm.nodes.book.section.list": {
+    "prefix": "fdm.nodes.book.section.list",
+    "body": [
+      "tool.fdm.nodes.book.section.list()"
+    ],
+    "description": "Lists all active BookSection nodes."
+  },
+  "fdm.nodes.book.section.mutate": {
+    "prefix": "fdm.nodes.book.section.mutate",
+    "body": [
+      "tool.fdm.nodes.book.section.mutate(${1:entity}, ${2:updates})"
+    ],
+    "description": "Partial update for BookSection. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- bookbookrunid: The run this section belongs to (Required)\\n- booksectionid: A stable logical identifier for the section (e.g., subsystem_xyz) (Required)\\n- bookkind: The semantic kind of this section (Required)\\n- booktitle: The display title of the section (Required)\\n- bookbodymd: The markdown prose content (Required)\\n- bookcitations: Explicit NodeIDs (e.g. ndsa/atom) referenced inside the body\\n- bookinputs: NodeIDs that fed the section generation (subsystem, packages, metrics)\\n- bookgeneratedbytaskid: The task/task EntityID that generated this section (Required)\\n- bookgeneratedat: When this section was completed (Required)\\n- bookcontenthash: Hash of the payload used to generate this section for idempotency"
+  },
+  "fdm.nodes.book.section.upsert": {
+    "prefix": "fdm.nodes.book.section.upsert",
+    "body": [
+      "tool.fdm.nodes.book.section.upsert(${1:handle}, ${2:fields})"
+    ],
+    "description": "Ensures a BookSection entity exists with the given human handle."
+  },
+  "fdm.nodes.book.source.create": {
+    "prefix": "fdm.nodes.book.source.create",
+    "body": [
+      "tool.fdm.nodes.book.source.create({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Creates a new BookSource. Expects a map of fields.\\nValid keys:\\n- bookbookrunid: The run this source belongs to (Required)\\n- bookformat: The output format (Required)\\n- bookcontent: The full stitched source content (Required)\\n- booksectionids: The ordered book/section NodeIDs used to build this source (Required)\\n- bookassembledat: When the source was stitched together (Required)"
+  },
+  "fdm.nodes.book.source.find": {
+    "prefix": "fdm.nodes.book.source.find",
+    "body": [
+      "tool.fdm.nodes.book.source.find({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Finds BookSource nodes by exact field match."
+  },
+  "fdm.nodes.book.source.get": {
+    "prefix": "fdm.nodes.book.source.get",
+    "body": [
+      "tool.fdm.nodes.book.source.get(${1:id})"
+    ],
+    "description": "Gets a BookSource node by E_ or N_ ID."
+  },
+  "fdm.nodes.book.source.list": {
+    "prefix": "fdm.nodes.book.source.list",
+    "body": [
+      "tool.fdm.nodes.book.source.list()"
+    ],
+    "description": "Lists all active BookSource nodes."
+  },
+  "fdm.nodes.book.source.mutate": {
+    "prefix": "fdm.nodes.book.source.mutate",
+    "body": [
+      "tool.fdm.nodes.book.source.mutate(${1:entity}, ${2:updates})"
+    ],
+    "description": "Partial update for BookSource. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- bookbookrunid: The run this source belongs to (Required)\\n- bookformat: The output format (Required)\\n- bookcontent: The full stitched source content (Required)\\n- booksectionids: The ordered book/section NodeIDs used to build this source (Required)\\n- bookassembledat: When the source was stitched together (Required)"
+  },
+  "fdm.nodes.book.source.upsert": {
+    "prefix": "fdm.nodes.book.source.upsert",
+    "body": [
+      "tool.fdm.nodes.book.source.upsert(${1:handle}, ${2:fields})"
+    ],
+    "description": "Ensures a BookSource entity exists with the given human handle."
+  },
   "fdm.nodes.capsule.def.create": {
     "prefix": "fdm.nodes.capsule.def.create",
     "body": [
@@ -1721,7 +2220,7 @@
       "    ${1:key}: ${2:value}",
       "})"
     ],
-    "description": "Creates a new CodeContract. Expects a map of fields.\\nValid keys:\\n- contractsubject: Subject of the contract (Required)\\n- contracttype: Type (function, interface)\\n- contractvisibility: Visibility (public, private)\\n- contractsignature: Full signature string\\n- fdmdisplayname: Name (e.g. DoWork) (Required)\\n- contractpkg: Package name\\n- contractcontractistool: Is this a tool?\\n- analysisrunid: Analysis Run ID"
+    "description": "Creates a new CodeContract. Expects a map of fields.\\nValid keys:\\n- contractsubject: Subject of the contract (Required)\\n- contracttype: Type (function, interface)\\n- contractvisibility: Visibility (public, private)\\n- contractsignature: Full signature string\\n- fdmdisplayname: Name (e.g. DoWork) (Required)\\n- contractpkg: Package name\\n- contractcontractistool: Is this a tool?\\n- analysisrunid: Analysis Run ID\\n- contractorigin: Origin of this contract (e.g., ast, llm, manual)\\n- contractmodel: Model used to generate this contract (if origin=llm)\\n- contractsourcehash: Hash of the source file content\\n- contractsourcemodtime: Modification time of the source file"
   },
   "fdm.nodes.code.contract.find": {
     "prefix": "fdm.nodes.code.contract.find",
@@ -1751,7 +2250,7 @@
     "body": [
       "tool.fdm.nodes.code.contract.mutate(${1:entity}, ${2:updates})"
     ],
-    "description": "Partial update for CodeContract. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- contractsubject: Subject of the contract (Required)\\n- contracttype: Type (function, interface)\\n- contractvisibility: Visibility (public, private)\\n- contractsignature: Full signature string\\n- fdmdisplayname: Name (e.g. DoWork) (Required)\\n- contractpkg: Package name\\n- contractcontractistool: Is this a tool?\\n- analysisrunid: Analysis Run ID"
+    "description": "Partial update for CodeContract. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- contractsubject: Subject of the contract (Required)\\n- contracttype: Type (function, interface)\\n- contractvisibility: Visibility (public, private)\\n- contractsignature: Full signature string\\n- fdmdisplayname: Name (e.g. DoWork) (Required)\\n- contractpkg: Package name\\n- contractcontractistool: Is this a tool?\\n- analysisrunid: Analysis Run ID\\n- contractorigin: Origin of this contract (e.g., ast, llm, manual)\\n- contractmodel: Model used to generate this contract (if origin=llm)\\n- contractsourcehash: Hash of the source file content\\n- contractsourcemodtime: Modification time of the source file"
   },
   "fdm.nodes.code.contract.upsert": {
     "prefix": "fdm.nodes.code.contract.upsert",
@@ -1767,7 +2266,7 @@
       "    ${1:key}: ${2:value}",
       "})"
     ],
-    "description": "Creates a new CodeFile. Expects a map of fields.\\nValid keys:\\n- codepath: Relative path of the file (Identity) (Required)\\n- codecontent: The full textual content of the file\\n- codeabspath: Absolute filesystem path (IO)\\n- codelanguage: Detected language (Required)\\n- codesha: Content SHA\\n- codesize: File size in bytes\\n- codemode: File permission mode\\n- codemodtime: Modification time\\n- analysisrunid: Analysis Run ID\\n- verrepoid: Repository EntityID\\n- vercommithash: Commit Hash\\n- vercommitts: Commit Timestamp\\n- verishead: Is Head\\n- verversion: Version\\n- verfolio: Folio reference\\n- verbranch: Branch name\\n- vertag: Tag name\\n- fsiparent: Parent directory or container"
+    "description": "Creates a new CodeFile. Expects a map of fields.\\nValid keys:\\n- codepath: Relative path of the file (Identity) (Required)\\n- codecontent: The full textual content of the file\\n- codeisblob: If true, content is stored in the FDM Blob Service instead of inline\\n- codeabspath: Absolute filesystem path (IO)\\n- codelanguage: Detected language (Required)\\n- codesha: Content SHA\\n- codesize: File size in bytes\\n- codemode: File permission mode\\n- codemodtime: Modification time\\n- analysisrunid: Analysis Run ID\\n- verrepoid: Repository EntityID\\n- vercommithash: Commit Hash\\n- vercommitts: Commit Timestamp\\n- verishead: Is Head\\n- verversion: Version\\n- verfolio: Folio reference\\n- verbranch: Branch name\\n- vertag: Tag name\\n- fsiparent: Parent directory or container"
   },
   "fdm.nodes.code.file.find": {
     "prefix": "fdm.nodes.code.file.find",
@@ -1797,7 +2296,7 @@
     "body": [
       "tool.fdm.nodes.code.file.mutate(${1:entity}, ${2:updates})"
     ],
-    "description": "Partial update for CodeFile. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- codepath: Relative path of the file (Identity) (Required)\\n- codecontent: The full textual content of the file\\n- codeabspath: Absolute filesystem path (IO)\\n- codelanguage: Detected language (Required)\\n- codesha: Content SHA\\n- codesize: File size in bytes\\n- codemode: File permission mode\\n- codemodtime: Modification time\\n- analysisrunid: Analysis Run ID\\n- verrepoid: Repository EntityID\\n- vercommithash: Commit Hash\\n- vercommitts: Commit Timestamp\\n- verishead: Is Head\\n- verversion: Version\\n- verfolio: Folio reference\\n- verbranch: Branch name\\n- vertag: Tag name\\n- fsiparent: Parent directory or container"
+    "description": "Partial update for CodeFile. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- codepath: Relative path of the file (Identity) (Required)\\n- codecontent: The full textual content of the file\\n- codeisblob: If true, content is stored in the FDM Blob Service instead of inline\\n- codeabspath: Absolute filesystem path (IO)\\n- codelanguage: Detected language (Required)\\n- codesha: Content SHA\\n- codesize: File size in bytes\\n- codemode: File permission mode\\n- codemodtime: Modification time\\n- analysisrunid: Analysis Run ID\\n- verrepoid: Repository EntityID\\n- vercommithash: Commit Hash\\n- vercommitts: Commit Timestamp\\n- verishead: Is Head\\n- verversion: Version\\n- verfolio: Folio reference\\n- verbranch: Branch name\\n- vertag: Tag name\\n- fsiparent: Parent directory or container"
   },
   "fdm.nodes.code.file.upsert": {
     "prefix": "fdm.nodes.code.file.upsert",
@@ -3929,7 +4428,7 @@
       "    ${1:key}: ${2:value}",
       "})"
     ],
-    "description": "Creates a new NdsaAtom. Expects a map of fields.\\nValid keys:\\n- ndsasubject: The EntityID this is about (Required)\\n- ndsafamily: Semantic class of speech act (Required)\\n- ndsakey: Specific key (e.g. risk.impact) (Required)\\n- ndsacontentkind: Discriminator for content field (Required)\\n- ndsacontenttext: Text payload\\n- ndsacontentlist: List payload (Native JSON)\\n- ndsacontentmap: Map payload (Native JSON)\\n- ndsascope: Scope of the assertion (Required)\\n- ndsascopeid: Identifier for the scope (e.g. function signature or symbol name)\\n- ndsaconfidence: Confidence 0.0-1.0\\n- ndsamodel: Asserter identity/model\\n- ndsasourcehash: Hash of the source file content\\n- ndsaevidencekind: Source of truth backing this claim\\n- ndsaevidencerefs: List of structured evidence objects (frozen contract)\\n- ndsavector: Embedding vector"
+    "description": "Creates a new NdsaAtom. Expects a map of fields.\\nValid keys:\\n- ndsasubject: The EntityID this is about (Required)\\n- ndsafamily: Semantic class of speech act (Required)\\n- ndsakey: Specific key (e.g. risk.impact) (Required)\\n- ndsacontentkind: Discriminator for content field (Required)\\n- ndsacontenttext: Text payload\\n- ndsacontentlist: List payload (Native JSON)\\n- ndsacontentmap: Map payload (Native JSON)\\n- ndsascope: Scope of the assertion (Required)\\n- ndsascopeid: Identifier for the scope (e.g. function signature or symbol name)\\n- ndsaconfidence: Confidence 0.0-1.0\\n- ndsamodel: Asserter identity/model\\n- ndsasourcehash: Hash of the source file content\\n- ndsasourcemodtime: Modification time of the source file\\n- ndsaevidencekind: Source of truth backing this claim\\n- ndsaevidencerefs: List of structured evidence objects (frozen contract)\\n- ndsavector: Embedding vector"
   },
   "fdm.nodes.ndsa.atom.find": {
     "prefix": "fdm.nodes.ndsa.atom.find",
@@ -3959,7 +4458,7 @@
     "body": [
       "tool.fdm.nodes.ndsa.atom.mutate(${1:entity}, ${2:updates})"
     ],
-    "description": "Partial update for NdsaAtom. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- ndsasubject: The EntityID this is about (Required)\\n- ndsafamily: Semantic class of speech act (Required)\\n- ndsakey: Specific key (e.g. risk.impact) (Required)\\n- ndsacontentkind: Discriminator for content field (Required)\\n- ndsacontenttext: Text payload\\n- ndsacontentlist: List payload (Native JSON)\\n- ndsacontentmap: Map payload (Native JSON)\\n- ndsascope: Scope of the assertion (Required)\\n- ndsascopeid: Identifier for the scope (e.g. function signature or symbol name)\\n- ndsaconfidence: Confidence 0.0-1.0\\n- ndsamodel: Asserter identity/model\\n- ndsasourcehash: Hash of the source file content\\n- ndsaevidencekind: Source of truth backing this claim\\n- ndsaevidencerefs: List of structured evidence objects (frozen contract)\\n- ndsavector: Embedding vector"
+    "description": "Partial update for NdsaAtom. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- ndsasubject: The EntityID this is about (Required)\\n- ndsafamily: Semantic class of speech act (Required)\\n- ndsakey: Specific key (e.g. risk.impact) (Required)\\n- ndsacontentkind: Discriminator for content field (Required)\\n- ndsacontenttext: Text payload\\n- ndsacontentlist: List payload (Native JSON)\\n- ndsacontentmap: Map payload (Native JSON)\\n- ndsascope: Scope of the assertion (Required)\\n- ndsascopeid: Identifier for the scope (e.g. function signature or symbol name)\\n- ndsaconfidence: Confidence 0.0-1.0\\n- ndsamodel: Asserter identity/model\\n- ndsasourcehash: Hash of the source file content\\n- ndsasourcemodtime: Modification time of the source file\\n- ndsaevidencekind: Source of truth backing this claim\\n- ndsaevidencerefs: List of structured evidence objects (frozen contract)\\n- ndsavector: Embedding vector"
   },
   "fdm.nodes.ndsa.atom.upsert": {
     "prefix": "fdm.nodes.ndsa.atom.upsert",
@@ -4152,6 +4651,144 @@
     ],
     "description": "Ensures a NsHandler entity exists with the given human handle."
   },
+  "fdm.nodes.partition.cohesion_vector.create": {
+    "prefix": "fdm.nodes.partition.cohesion_vector.create",
+    "body": [
+      "tool.fdm.nodes.partition.cohesion_vector.create({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Creates a new PartitionCohesionVector. Expects a map of fields.\\nValid keys:\\n- partitionsnapshotid: Repository snapshot NodeID (Required)\\n- partitionpackageid: The go/package NodeID (Required)\\n- partitionrecipeversion: Recipe version used to compute this vector (Required)\\n- partitionfeatures: Murmur3 Hash -\u003e Exact Term Frequency (map[string]int) (Required)\\n- partitionnormsq: Squared L2 norm to avoid floating point square roots (Required)\\n- partitionatomcount: Number of NDSA atoms incorporated (Required)\\n- partitionsourcequery: Deterministic query spec used to select atoms (Required)"
+  },
+  "fdm.nodes.partition.cohesion_vector.find": {
+    "prefix": "fdm.nodes.partition.cohesion_vector.find",
+    "body": [
+      "tool.fdm.nodes.partition.cohesion_vector.find({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Finds PartitionCohesionVector nodes by exact field match."
+  },
+  "fdm.nodes.partition.cohesion_vector.get": {
+    "prefix": "fdm.nodes.partition.cohesion_vector.get",
+    "body": [
+      "tool.fdm.nodes.partition.cohesion_vector.get(${1:id})"
+    ],
+    "description": "Gets a PartitionCohesionVector node by E_ or N_ ID."
+  },
+  "fdm.nodes.partition.cohesion_vector.list": {
+    "prefix": "fdm.nodes.partition.cohesion_vector.list",
+    "body": [
+      "tool.fdm.nodes.partition.cohesion_vector.list()"
+    ],
+    "description": "Lists all active PartitionCohesionVector nodes."
+  },
+  "fdm.nodes.partition.cohesion_vector.mutate": {
+    "prefix": "fdm.nodes.partition.cohesion_vector.mutate",
+    "body": [
+      "tool.fdm.nodes.partition.cohesion_vector.mutate(${1:entity}, ${2:updates})"
+    ],
+    "description": "Partial update for PartitionCohesionVector. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- partitionsnapshotid: Repository snapshot NodeID (Required)\\n- partitionpackageid: The go/package NodeID (Required)\\n- partitionrecipeversion: Recipe version used to compute this vector (Required)\\n- partitionfeatures: Murmur3 Hash -\u003e Exact Term Frequency (map[string]int) (Required)\\n- partitionnormsq: Squared L2 norm to avoid floating point square roots (Required)\\n- partitionatomcount: Number of NDSA atoms incorporated (Required)\\n- partitionsourcequery: Deterministic query spec used to select atoms (Required)"
+  },
+  "fdm.nodes.partition.cohesion_vector.upsert": {
+    "prefix": "fdm.nodes.partition.cohesion_vector.upsert",
+    "body": [
+      "tool.fdm.nodes.partition.cohesion_vector.upsert(${1:handle}, ${2:fields})"
+    ],
+    "description": "Ensures a PartitionCohesionVector entity exists with the given human handle."
+  },
+  "fdm.nodes.partition.config.create": {
+    "prefix": "fdm.nodes.partition.config.create",
+    "body": [
+      "tool.fdm.nodes.partition.config.create({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Creates a new PartitionConfig. Expects a map of fields.\\nValid keys:\\n- partitionsnapshotid: Repository snapshot NodeID (Required)\\n- partitionrecipeversion: e.g., 'v1.0.0' (Required)\\n- partitionvectorschema: e.g., 'ndsa_cohesion_v1' (Required)\\n- partitionweightimportbp: Import weight in basis points (Required)\\n- partitionweightsemanticbp: Semantic weight in basis points (Required)\\n- partitionweightcyclebp: Cycle weight in basis points (Required)\\n- partitionsemanticedgethresholdbp: Minimum semantic similarity to keep edge (Required)\\n- partitiontopkperpackage: Top K semantic neighbors per package (Required)\\n- partitioncomputedat: When the config was computed/applied (Required)"
+  },
+  "fdm.nodes.partition.config.find": {
+    "prefix": "fdm.nodes.partition.config.find",
+    "body": [
+      "tool.fdm.nodes.partition.config.find({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Finds PartitionConfig nodes by exact field match."
+  },
+  "fdm.nodes.partition.config.get": {
+    "prefix": "fdm.nodes.partition.config.get",
+    "body": [
+      "tool.fdm.nodes.partition.config.get(${1:id})"
+    ],
+    "description": "Gets a PartitionConfig node by E_ or N_ ID."
+  },
+  "fdm.nodes.partition.config.list": {
+    "prefix": "fdm.nodes.partition.config.list",
+    "body": [
+      "tool.fdm.nodes.partition.config.list()"
+    ],
+    "description": "Lists all active PartitionConfig nodes."
+  },
+  "fdm.nodes.partition.config.mutate": {
+    "prefix": "fdm.nodes.partition.config.mutate",
+    "body": [
+      "tool.fdm.nodes.partition.config.mutate(${1:entity}, ${2:updates})"
+    ],
+    "description": "Partial update for PartitionConfig. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- partitionsnapshotid: Repository snapshot NodeID (Required)\\n- partitionrecipeversion: e.g., 'v1.0.0' (Required)\\n- partitionvectorschema: e.g., 'ndsa_cohesion_v1' (Required)\\n- partitionweightimportbp: Import weight in basis points (Required)\\n- partitionweightsemanticbp: Semantic weight in basis points (Required)\\n- partitionweightcyclebp: Cycle weight in basis points (Required)\\n- partitionsemanticedgethresholdbp: Minimum semantic similarity to keep edge (Required)\\n- partitiontopkperpackage: Top K semantic neighbors per package (Required)\\n- partitioncomputedat: When the config was computed/applied (Required)"
+  },
+  "fdm.nodes.partition.config.upsert": {
+    "prefix": "fdm.nodes.partition.config.upsert",
+    "body": [
+      "tool.fdm.nodes.partition.config.upsert(${1:handle}, ${2:fields})"
+    ],
+    "description": "Ensures a PartitionConfig entity exists with the given human handle."
+  },
+  "fdm.nodes.partition.semantic_edge.create": {
+    "prefix": "fdm.nodes.partition.semantic_edge.create",
+    "body": [
+      "tool.fdm.nodes.partition.semantic_edge.create({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Creates a new PartitionSemanticEdge. Expects a map of fields.\\nValid keys:\\n- partitionsnapshotid: Repository snapshot NodeID (Required)\\n- partitionpackageaid: First go/package NodeID (Required)\\n- partitionpackagebid: Second go/package NodeID (Required)\\n- partitionsimilaritybp: Cosine similarity scaled 0-10000 (Required)"
+  },
+  "fdm.nodes.partition.semantic_edge.find": {
+    "prefix": "fdm.nodes.partition.semantic_edge.find",
+    "body": [
+      "tool.fdm.nodes.partition.semantic_edge.find({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Finds PartitionSemanticEdge nodes by exact field match."
+  },
+  "fdm.nodes.partition.semantic_edge.get": {
+    "prefix": "fdm.nodes.partition.semantic_edge.get",
+    "body": [
+      "tool.fdm.nodes.partition.semantic_edge.get(${1:id})"
+    ],
+    "description": "Gets a PartitionSemanticEdge node by E_ or N_ ID."
+  },
+  "fdm.nodes.partition.semantic_edge.list": {
+    "prefix": "fdm.nodes.partition.semantic_edge.list",
+    "body": [
+      "tool.fdm.nodes.partition.semantic_edge.list()"
+    ],
+    "description": "Lists all active PartitionSemanticEdge nodes."
+  },
+  "fdm.nodes.partition.semantic_edge.mutate": {
+    "prefix": "fdm.nodes.partition.semantic_edge.mutate",
+    "body": [
+      "tool.fdm.nodes.partition.semantic_edge.mutate(${1:entity}, ${2:updates})"
+    ],
+    "description": "Partial update for PartitionSemanticEdge. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- partitionsnapshotid: Repository snapshot NodeID (Required)\\n- partitionpackageaid: First go/package NodeID (Required)\\n- partitionpackagebid: Second go/package NodeID (Required)\\n- partitionsimilaritybp: Cosine similarity scaled 0-10000 (Required)"
+  },
+  "fdm.nodes.partition.semantic_edge.upsert": {
+    "prefix": "fdm.nodes.partition.semantic_edge.upsert",
+    "body": [
+      "tool.fdm.nodes.partition.semantic_edge.upsert(${1:handle}, ${2:fields})"
+    ],
+    "description": "Ensures a PartitionSemanticEdge entity exists with the given human handle."
+  },
   "fdm.nodes.patch.create": {
     "prefix": "fdm.nodes.patch.create",
     "body": [
@@ -4197,6 +4834,52 @@
       "tool.fdm.nodes.patch.upsert(${1:handle}, ${2:fields})"
     ],
     "description": "Ensures a Patch entity exists with the given human handle."
+  },
+  "fdm.nodes.plan.export.create": {
+    "prefix": "fdm.nodes.plan.export.create",
+    "body": [
+      "tool.fdm.nodes.plan.export.create({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Creates a new PlanExport. Expects a map of fields.\\nValid keys:\\n- fdmdisplayname: Human-readable name of the export run\\n- plancreatedby: Creator EntityID (Required)\\n- planexporttarget: Where the resulting MessagePack blob should be written (e.g., a file path or CAS URI) (Required)\\n- planincludehistory: If true, the exporter walks the Prev pointers and packages the entire historical chain\\n- planexportbuilderfn: The name of the NeuroScript function to invoke to build the export session (Required)\\n- planexportargs: Optional arguments to pass to the NeuroScript builder function"
+  },
+  "fdm.nodes.plan.export.find": {
+    "prefix": "fdm.nodes.plan.export.find",
+    "body": [
+      "tool.fdm.nodes.plan.export.find({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Finds PlanExport nodes by exact field match."
+  },
+  "fdm.nodes.plan.export.get": {
+    "prefix": "fdm.nodes.plan.export.get",
+    "body": [
+      "tool.fdm.nodes.plan.export.get(${1:id})"
+    ],
+    "description": "Gets a PlanExport node by E_ or N_ ID."
+  },
+  "fdm.nodes.plan.export.list": {
+    "prefix": "fdm.nodes.plan.export.list",
+    "body": [
+      "tool.fdm.nodes.plan.export.list()"
+    ],
+    "description": "Lists all active PlanExport nodes."
+  },
+  "fdm.nodes.plan.export.mutate": {
+    "prefix": "fdm.nodes.plan.export.mutate",
+    "body": [
+      "tool.fdm.nodes.plan.export.mutate(${1:entity}, ${2:updates})"
+    ],
+    "description": "Partial update for PlanExport. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- fdmdisplayname: Human-readable name of the export run\\n- plancreatedby: Creator EntityID (Required)\\n- planexporttarget: Where the resulting MessagePack blob should be written (e.g., a file path or CAS URI) (Required)\\n- planincludehistory: If true, the exporter walks the Prev pointers and packages the entire historical chain\\n- planexportbuilderfn: The name of the NeuroScript function to invoke to build the export session (Required)\\n- planexportargs: Optional arguments to pass to the NeuroScript builder function"
+  },
+  "fdm.nodes.plan.export.upsert": {
+    "prefix": "fdm.nodes.plan.export.upsert",
+    "body": [
+      "tool.fdm.nodes.plan.export.upsert(${1:handle}, ${2:fields})"
+    ],
+    "description": "Ensures a PlanExport entity exists with the given human handle."
   },
   "fdm.nodes.plan.ingest.create": {
     "prefix": "fdm.nodes.plan.ingest.create",
@@ -4428,6 +5111,190 @@
     ],
     "description": "Ensures a Role entity exists with the given human handle."
   },
+  "fdm.nodes.stress.config.create": {
+    "prefix": "fdm.nodes.stress.config.create",
+    "body": [
+      "tool.fdm.nodes.stress.config.create({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Creates a new StressConfig. Expects a map of fields.\\nValid keys:\\n- stresssnapshotid: Repository snapshot NodeID (Required)\\n- stressrecipeversion: Recipe version (Required)\\n- stressaggregationmode: Aggregation approach (Required)\\n- stressweightloadbp: Load weight in BP (Required)\\n- stressweightcouplingbp: Coupling weight in BP (Required)\\n- stressweightgrowthbp: Growth weight in BP (Required)\\n- stressweightdeficitbp: Semantic deficit weight in BP (Required)\\n- stressanchormaxfanin: Absolute anchor for max fan-in (Required)\\n- stressanchormaxcrossimports: Absolute anchor for max cross-boundary imports (Required)"
+  },
+  "fdm.nodes.stress.config.find": {
+    "prefix": "fdm.nodes.stress.config.find",
+    "body": [
+      "tool.fdm.nodes.stress.config.find({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Finds StressConfig nodes by exact field match."
+  },
+  "fdm.nodes.stress.config.get": {
+    "prefix": "fdm.nodes.stress.config.get",
+    "body": [
+      "tool.fdm.nodes.stress.config.get(${1:id})"
+    ],
+    "description": "Gets a StressConfig node by E_ or N_ ID."
+  },
+  "fdm.nodes.stress.config.list": {
+    "prefix": "fdm.nodes.stress.config.list",
+    "body": [
+      "tool.fdm.nodes.stress.config.list()"
+    ],
+    "description": "Lists all active StressConfig nodes."
+  },
+  "fdm.nodes.stress.config.mutate": {
+    "prefix": "fdm.nodes.stress.config.mutate",
+    "body": [
+      "tool.fdm.nodes.stress.config.mutate(${1:entity}, ${2:updates})"
+    ],
+    "description": "Partial update for StressConfig. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- stresssnapshotid: Repository snapshot NodeID (Required)\\n- stressrecipeversion: Recipe version (Required)\\n- stressaggregationmode: Aggregation approach (Required)\\n- stressweightloadbp: Load weight in BP (Required)\\n- stressweightcouplingbp: Coupling weight in BP (Required)\\n- stressweightgrowthbp: Growth weight in BP (Required)\\n- stressweightdeficitbp: Semantic deficit weight in BP (Required)\\n- stressanchormaxfanin: Absolute anchor for max fan-in (Required)\\n- stressanchormaxcrossimports: Absolute anchor for max cross-boundary imports (Required)"
+  },
+  "fdm.nodes.stress.config.upsert": {
+    "prefix": "fdm.nodes.stress.config.upsert",
+    "body": [
+      "tool.fdm.nodes.stress.config.upsert(${1:handle}, ${2:fields})"
+    ],
+    "description": "Ensures a StressConfig entity exists with the given human handle."
+  },
+  "fdm.nodes.stress.delta.create": {
+    "prefix": "fdm.nodes.stress.delta.create",
+    "body": [
+      "tool.fdm.nodes.stress.delta.create({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Creates a new StressDelta. Expects a map of fields.\\nValid keys:\\n- stressfromrunid: The baseline stress/run NodeID (Required)\\n- stresstorunid: The current stress/run NodeID (Required)\\n- stressentitypath: Stable cross-snapshot join key (Required)\\n- stressdeltabp: Velocity of stress (can be negative) (Required)"
+  },
+  "fdm.nodes.stress.delta.find": {
+    "prefix": "fdm.nodes.stress.delta.find",
+    "body": [
+      "tool.fdm.nodes.stress.delta.find({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Finds StressDelta nodes by exact field match."
+  },
+  "fdm.nodes.stress.delta.get": {
+    "prefix": "fdm.nodes.stress.delta.get",
+    "body": [
+      "tool.fdm.nodes.stress.delta.get(${1:id})"
+    ],
+    "description": "Gets a StressDelta node by E_ or N_ ID."
+  },
+  "fdm.nodes.stress.delta.list": {
+    "prefix": "fdm.nodes.stress.delta.list",
+    "body": [
+      "tool.fdm.nodes.stress.delta.list()"
+    ],
+    "description": "Lists all active StressDelta nodes."
+  },
+  "fdm.nodes.stress.delta.mutate": {
+    "prefix": "fdm.nodes.stress.delta.mutate",
+    "body": [
+      "tool.fdm.nodes.stress.delta.mutate(${1:entity}, ${2:updates})"
+    ],
+    "description": "Partial update for StressDelta. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- stressfromrunid: The baseline stress/run NodeID (Required)\\n- stresstorunid: The current stress/run NodeID (Required)\\n- stressentitypath: Stable cross-snapshot join key (Required)\\n- stressdeltabp: Velocity of stress (can be negative) (Required)"
+  },
+  "fdm.nodes.stress.delta.upsert": {
+    "prefix": "fdm.nodes.stress.delta.upsert",
+    "body": [
+      "tool.fdm.nodes.stress.delta.upsert(${1:handle}, ${2:fields})"
+    ],
+    "description": "Ensures a StressDelta entity exists with the given human handle."
+  },
+  "fdm.nodes.stress.run.create": {
+    "prefix": "fdm.nodes.stress.run.create",
+    "body": [
+      "tool.fdm.nodes.stress.run.create({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Creates a new StressRun. Expects a map of fields.\\nValid keys:\\n- stresssnapshotid: Repository snapshot NodeID (Required)\\n- stressconfigid: The stress/config NodeID (Required)\\n- stressbaselinesnapshotid: Previous snapshot NodeID for delta calculations\\n- stresscomputedat: When the stress index was computed (Required)"
+  },
+  "fdm.nodes.stress.run.find": {
+    "prefix": "fdm.nodes.stress.run.find",
+    "body": [
+      "tool.fdm.nodes.stress.run.find({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Finds StressRun nodes by exact field match."
+  },
+  "fdm.nodes.stress.run.get": {
+    "prefix": "fdm.nodes.stress.run.get",
+    "body": [
+      "tool.fdm.nodes.stress.run.get(${1:id})"
+    ],
+    "description": "Gets a StressRun node by E_ or N_ ID."
+  },
+  "fdm.nodes.stress.run.list": {
+    "prefix": "fdm.nodes.stress.run.list",
+    "body": [
+      "tool.fdm.nodes.stress.run.list()"
+    ],
+    "description": "Lists all active StressRun nodes."
+  },
+  "fdm.nodes.stress.run.mutate": {
+    "prefix": "fdm.nodes.stress.run.mutate",
+    "body": [
+      "tool.fdm.nodes.stress.run.mutate(${1:entity}, ${2:updates})"
+    ],
+    "description": "Partial update for StressRun. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- stresssnapshotid: Repository snapshot NodeID (Required)\\n- stressconfigid: The stress/config NodeID (Required)\\n- stressbaselinesnapshotid: Previous snapshot NodeID for delta calculations\\n- stresscomputedat: When the stress index was computed (Required)"
+  },
+  "fdm.nodes.stress.run.upsert": {
+    "prefix": "fdm.nodes.stress.run.upsert",
+    "body": [
+      "tool.fdm.nodes.stress.run.upsert(${1:handle}, ${2:fields})"
+    ],
+    "description": "Ensures a StressRun entity exists with the given human handle."
+  },
+  "fdm.nodes.stress.value.create": {
+    "prefix": "fdm.nodes.stress.value.create",
+    "body": [
+      "tool.fdm.nodes.stress.value.create({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Creates a new StressValue. Expects a map of fields.\\nValid keys:\\n- stressstressrunid: The stress/run NodeID (Required)\\n- stressunittype: The architectural level (Required)\\n- stressunitnodeid: The NodeID of the unit being scored (Required)\\n- stressentitypath: Stable cross-snapshot join key (e.g., pkg:github.com/...) (Required)\\n- stresssemanticexempt: If true, semantic deficit is 0 (autogen/mocks)\\n- stressscoreloadbp: Load component score (Required)\\n- stressscorecouplingbp: Coupling component score (Required)\\n- stressscoregrowthbp: Growth component score (Required)\\n- stressscoredeficitbp: Semantic deficit component score (Required)\\n- stressstresstotalbp: Final aggregated stress score (Required)"
+  },
+  "fdm.nodes.stress.value.find": {
+    "prefix": "fdm.nodes.stress.value.find",
+    "body": [
+      "tool.fdm.nodes.stress.value.find({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Finds StressValue nodes by exact field match."
+  },
+  "fdm.nodes.stress.value.get": {
+    "prefix": "fdm.nodes.stress.value.get",
+    "body": [
+      "tool.fdm.nodes.stress.value.get(${1:id})"
+    ],
+    "description": "Gets a StressValue node by E_ or N_ ID."
+  },
+  "fdm.nodes.stress.value.list": {
+    "prefix": "fdm.nodes.stress.value.list",
+    "body": [
+      "tool.fdm.nodes.stress.value.list()"
+    ],
+    "description": "Lists all active StressValue nodes."
+  },
+  "fdm.nodes.stress.value.mutate": {
+    "prefix": "fdm.nodes.stress.value.mutate",
+    "body": [
+      "tool.fdm.nodes.stress.value.mutate(${1:entity}, ${2:updates})"
+    ],
+    "description": "Partial update for StressValue. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- stressstressrunid: The stress/run NodeID (Required)\\n- stressunittype: The architectural level (Required)\\n- stressunitnodeid: The NodeID of the unit being scored (Required)\\n- stressentitypath: Stable cross-snapshot join key (e.g., pkg:github.com/...) (Required)\\n- stresssemanticexempt: If true, semantic deficit is 0 (autogen/mocks)\\n- stressscoreloadbp: Load component score (Required)\\n- stressscorecouplingbp: Coupling component score (Required)\\n- stressscoregrowthbp: Growth component score (Required)\\n- stressscoredeficitbp: Semantic deficit component score (Required)\\n- stressstresstotalbp: Final aggregated stress score (Required)"
+  },
+  "fdm.nodes.stress.value.upsert": {
+    "prefix": "fdm.nodes.stress.value.upsert",
+    "body": [
+      "tool.fdm.nodes.stress.value.upsert(${1:handle}, ${2:fields})"
+    ],
+    "description": "Ensures a StressValue entity exists with the given human handle."
+  },
   "fdm.nodes.structure.subsystem.create": {
     "prefix": "fdm.nodes.structure.subsystem.create",
     "body": [
@@ -4611,6 +5478,52 @@
       "tool.fdm.nodes.sys.finding.upsert(${1:handle}, ${2:fields})"
     ],
     "description": "Ensures a SysFinding entity exists with the given human handle."
+  },
+  "fdm.nodes.sys.import_record.create": {
+    "prefix": "fdm.nodes.sys.import_record.create",
+    "body": [
+      "tool.fdm.nodes.sys.import_record.create({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Creates a new SysImportRecord. Expects a map of fields.\\nValid keys:\\n- sysimporthash: SHA-256 checksum of the imported .fdmx payload (Required)\\n- sysimportsignerdid: DID of the agent that signed the payload\\n- sysimportsignature: The original cryptographic signature attached to the payload\\n- sysimportts: Timestamp when the import was committed (Required)\\n- sysimportnodescount: Number of nodes successfully imported (Required)\\n- sysimportskippedcount: Number of nodes skipped during import (Required)\\n- sysimportentitiesminted: Number of new EntityIDs minted (Required)\\n- sysimportentitiesmatched: Number of existing EntityIDs matched (Required)\\n- sysimportwarnings: List of shape verification and hash match warnings\\n- sysimportdefaultedfields: Record of fields that had default values injected\\n- sysimportdroppedfields: Record of unrecognized fields that were dropped"
+  },
+  "fdm.nodes.sys.import_record.find": {
+    "prefix": "fdm.nodes.sys.import_record.find",
+    "body": [
+      "tool.fdm.nodes.sys.import_record.find({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Finds SysImportRecord nodes by exact field match."
+  },
+  "fdm.nodes.sys.import_record.get": {
+    "prefix": "fdm.nodes.sys.import_record.get",
+    "body": [
+      "tool.fdm.nodes.sys.import_record.get(${1:id})"
+    ],
+    "description": "Gets a SysImportRecord node by E_ or N_ ID."
+  },
+  "fdm.nodes.sys.import_record.list": {
+    "prefix": "fdm.nodes.sys.import_record.list",
+    "body": [
+      "tool.fdm.nodes.sys.import_record.list()"
+    ],
+    "description": "Lists all active SysImportRecord nodes."
+  },
+  "fdm.nodes.sys.import_record.mutate": {
+    "prefix": "fdm.nodes.sys.import_record.mutate",
+    "body": [
+      "tool.fdm.nodes.sys.import_record.mutate(${1:entity}, ${2:updates})"
+    ],
+    "description": "Partial update for SysImportRecord. Uses Optimistic Locking via _version.\\nUpdateable keys:\\n- sysimporthash: SHA-256 checksum of the imported .fdmx payload (Required)\\n- sysimportsignerdid: DID of the agent that signed the payload\\n- sysimportsignature: The original cryptographic signature attached to the payload\\n- sysimportts: Timestamp when the import was committed (Required)\\n- sysimportnodescount: Number of nodes successfully imported (Required)\\n- sysimportskippedcount: Number of nodes skipped during import (Required)\\n- sysimportentitiesminted: Number of new EntityIDs minted (Required)\\n- sysimportentitiesmatched: Number of existing EntityIDs matched (Required)\\n- sysimportwarnings: List of shape verification and hash match warnings\\n- sysimportdefaultedfields: Record of fields that had default values injected\\n- sysimportdroppedfields: Record of unrecognized fields that were dropped"
+  },
+  "fdm.nodes.sys.import_record.upsert": {
+    "prefix": "fdm.nodes.sys.import_record.upsert",
+    "body": [
+      "tool.fdm.nodes.sys.import_record.upsert(${1:handle}, ${2:fields})"
+    ],
+    "description": "Ensures a SysImportRecord entity exists with the given human handle."
   },
   "fdm.nodes.sys.kms_key.create": {
     "prefix": "fdm.nodes.sys.kms_key.create",

@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.8.0
-// File version: 3
-// Purpose: Implements all built-in functions with nil-pointer safety for len().
-// filename: pkg/eval/functions.go
-// nlines: 230
-// risk_rating: HIGH
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 5
+// :: description: Implements built-in functions including char(n) and ord(s) for Unicode handling.
+// :: latestChange: Added char(n) and ord(s) built-in functions.
+// :: filename: pkg/eval/functions.go
+// :: serialization: go
 
 package eval
 
@@ -20,7 +21,7 @@ import (
 
 func isBuiltInFunction(name string) bool {
 	switch strings.ToLower(name) {
-	case "len", "typeof", "is_string", "is_number", "is_bool", "is_list", "is_map", "is_nil",
+	case "len", "typeof", "char", "ord", "is_string", "is_number", "is_bool", "is_list", "is_map", "is_nil",
 		"is_int", "is_float", "is_error", "is_function", "is_tool", "is_event", "is_timedate", "is_fuzzy":
 		return true
 	default:
@@ -65,37 +66,62 @@ func (e *evaluation) evaluateBuiltInFunction(funcName string, args []lang.Value,
 		case *lang.NilValue:
 			length = 0
 		default:
-			// If it's a generic nil interface, it's 0
 			if arg == nil {
 				length = 0
 			} else {
-				length = 1 // All other single values have a length of 1
+				length = 1
 			}
 		}
 		return lang.NumberValue{Value: float64(length)}, nil
+
+	case "char":
+		if err := checkArgCount(1); err != nil {
+			return nil, err
+		}
+		num, ok := lang.ToFloat64(args[0])
+		if !ok {
+			return nil, lang.NewRuntimeError(lang.ErrorCodeType, "char() expects a numeric codepoint", lang.ErrArgumentMismatch).WithPosition(pos)
+		}
+		return lang.StringValue{Value: string(rune(int(num)))}, nil
+
+	case "ord":
+		if err := checkArgCount(1); err != nil {
+			return nil, err
+		}
+		s, ok := lang.ToString(args[0])
+		if !ok || utf8.RuneCountInString(s) == 0 {
+			return nil, lang.NewRuntimeError(lang.ErrorCodeType, "ord() expects a non-empty string", lang.ErrArgumentMismatch).WithPosition(pos)
+		}
+		r, _ := utf8.DecodeRuneInString(s)
+		return lang.NumberValue{Value: float64(r)}, nil
+
 	case "typeof":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
 		return lang.StringValue{Value: string(lang.TypeOf(args[0]))}, nil
+
 	case "is_string":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
 		_, ok := args[0].(lang.StringValue)
 		return lang.BoolValue{Value: ok}, nil
+
 	case "is_number":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
 		_, ok := args[0].(lang.NumberValue)
 		return lang.BoolValue{Value: ok}, nil
+
 	case "is_bool":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
 		_, ok := args[0].(lang.BoolValue)
 		return lang.BoolValue{Value: ok}, nil
+
 	case "is_list":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
@@ -108,6 +134,7 @@ func (e *evaluation) evaluateBuiltInFunction(funcName string, args []lang.Value,
 		default:
 			return lang.BoolValue{Value: false}, nil
 		}
+
 	case "is_map":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
@@ -120,6 +147,7 @@ func (e *evaluation) evaluateBuiltInFunction(funcName string, args []lang.Value,
 		default:
 			return lang.BoolValue{Value: false}, nil
 		}
+
 	case "is_nil":
 		if err := checkArgCount(1); err != nil {
 			return nil, err
@@ -128,11 +156,8 @@ func (e *evaluation) evaluateBuiltInFunction(funcName string, args []lang.Value,
 		case *lang.NilValue:
 			return lang.BoolValue{Value: true}, nil
 		default:
-			// Handle raw nil interface
 			return lang.BoolValue{Value: args[0] == nil}, nil
 		}
-
-	// --- NEWLY IMPLEMENTED FUNCTIONS ---
 
 	case "is_int":
 		if err := checkArgCount(1); err != nil {
@@ -142,7 +167,6 @@ func (e *evaluation) evaluateBuiltInFunction(funcName string, args []lang.Value,
 		if !ok {
 			return lang.BoolValue{Value: false}, nil
 		}
-		// Check if the number has no fractional part
 		isInt := num.Value == math.Trunc(num.Value)
 		return lang.BoolValue{Value: isInt}, nil
 
@@ -154,7 +178,6 @@ func (e *evaluation) evaluateBuiltInFunction(funcName string, args []lang.Value,
 		if !ok {
 			return lang.BoolValue{Value: false}, nil
 		}
-		// A number is a "float" if it has a fractional part
 		isFloat := num.Value != math.Trunc(num.Value)
 		return lang.BoolValue{Value: isFloat}, nil
 
@@ -162,11 +185,9 @@ func (e *evaluation) evaluateBuiltInFunction(funcName string, args []lang.Value,
 		if err := checkArgCount(1); err != nil {
 			return nil, err
 		}
-		// Case 1: It's an actual ErrorValue type
 		if _, ok := args[0].(lang.ErrorValue); ok {
 			return lang.BoolValue{Value: true}, nil
 		}
-		// Case 2: It's a map that *looks* like an error
 		var valMap map[string]lang.Value
 		if mv, ok := args[0].(lang.MapValue); ok {
 			valMap = mv.Value
@@ -179,7 +200,6 @@ func (e *evaluation) evaluateBuiltInFunction(funcName string, args []lang.Value,
 		if valMap != nil {
 			_, hasCode := valMap[lang.ErrorKeyCode]
 			_, hasMsg := valMap[lang.ErrorKeyMessage]
-			// Per the test, it must have both keys to qualify
 			if hasCode && hasMsg {
 				return lang.BoolValue{Value: true}, nil
 			}

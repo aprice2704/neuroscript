@@ -1,9 +1,11 @@
 // :: product: FDM/NS
 // :: majorVersion: 1
-// :: fileVersion: 12
-// :: description: Added support for TRIPLE_SQ_STRING (”') to ExitLiteral to fix AST builder crash.
+// :: fileVersion: 14
+// :: description: Added support for DOUBLE_BRACKET_STRING and string interpolation. Fixed node kinds for canon roundtrip.
+// :: latestChange: Corrected node kinds to types.KindVariable and types.KindLast to fix roundtrip errors.
 // :: filename: pkg/parser/ast_builder_literals.go
 // :: serialization: go
+
 package parser
 
 import (
@@ -17,11 +19,97 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
-// ================================================================================
-// START OF LITERAL HANDLING SECTION
-// ================================================================================
+var interpSymbols = map[string]string{
+	"@nl":  "\n",
+	"@cr":  "\r",
+	"@tab": "\t",
+	"@bt":  "`",
+	"@tbt": "```",
+	"@sq":  "'",
+	"@dq":  "\"",
+	"@tsq": "'''",
+	"@tdq": "\"\"\"",
+}
 
-// ExitLiteral is called when the parser has finished processing a literal.
+func buildInterpolatedString(content string, token antlr.Token) ast.Expression {
+	var parts []ast.Expression
+
+	remaining := content
+	for {
+		startIdx := strings.Index(remaining, "{{")
+		if startIdx == -1 {
+			if len(remaining) > 0 {
+				node := &ast.StringLiteralNode{Value: remaining, IsRaw: true}
+				parts = append(parts, newNode(node, token, types.KindStringLiteral))
+			}
+			break
+		}
+		if startIdx > 0 {
+			node := &ast.StringLiteralNode{Value: remaining[:startIdx], IsRaw: true}
+			parts = append(parts, newNode(node, token, types.KindStringLiteral))
+		}
+
+		remaining = remaining[startIdx+2:]
+		endIdx := strings.Index(remaining, "}}")
+		if endIdx == -1 {
+			node := &ast.StringLiteralNode{Value: "{{" + remaining, IsRaw: true}
+			parts = append(parts, newNode(node, token, types.KindStringLiteral))
+			break
+		}
+
+		inside := strings.TrimSpace(remaining[:endIdx])
+		remaining = remaining[endIdx+2:]
+
+		if inside == "" {
+			continue
+		}
+
+		if strings.HasPrefix(inside, "@") {
+			if val, ok := interpSymbols[inside]; ok {
+				node := &ast.StringLiteralNode{Value: val, IsRaw: true}
+				parts = append(parts, newNode(node, token, types.KindStringLiteral))
+			} else {
+				node := &ast.StringLiteralNode{Value: "{{" + inside + "}}", IsRaw: true}
+				parts = append(parts, newNode(node, token, types.KindStringLiteral))
+			}
+		} else {
+			if strings.ToUpper(inside) == "LAST" {
+				// Use correct kind for LAST keyword
+				parts = append(parts, newNode(&ast.LastNode{}, token, types.KindLast))
+			} else {
+				// Use correct kind for variable references
+				parts = append(parts, newNode(&ast.VariableNode{Name: inside}, token, types.KindVariable))
+			}
+		}
+	}
+
+	if len(parts) == 0 {
+		return newNode(&ast.StringLiteralNode{Value: "", IsRaw: true}, token, types.KindStringLiteral)
+	}
+
+	expr := parts[0]
+
+	if _, isStr := expr.(*ast.StringLiteralNode); !isStr {
+		emptyStrNode := newNode(&ast.StringLiteralNode{Value: "", IsRaw: true}, token, types.KindStringLiteral)
+		expr = newNode(&ast.BinaryOpNode{
+			Left:     emptyStrNode,
+			Operator: "+",
+			Right:    expr,
+		}, token, types.KindBinaryOp)
+	}
+
+	for i := 1; i < len(parts); i++ {
+		binOp := &ast.BinaryOpNode{
+			Left:     expr,
+			Operator: "+",
+			Right:    parts[i],
+		}
+		expr = newNode(binOp, token, types.KindBinaryOp)
+	}
+
+	return expr
+}
+
 func (l *neuroScriptListenerImpl) ExitLiteral(ctx *gen.LiteralContext) {
 	l.logDebugAST(" >> Exit Literal: %s", ctx.GetText())
 
@@ -54,21 +142,31 @@ func (l *neuroScriptListenerImpl) ExitLiteral(ctx *gen.LiteralContext) {
 	} else if tripleStrNode := ctx.TRIPLE_BACKTICK_STRING(); tripleStrNode != nil {
 		token := tripleStrNode.GetSymbol()
 		tokenText := token.GetText()
-		if len(tokenText) < 6 { // ```...```
+		if len(tokenText) < 6 {
 			l.addErrorf(token, "malformed triple-backtick string literal token (too short): %s", tokenText)
 			errorNode := &ast.ErrorNode{Message: "malformed raw string"}
 			nodeToPush = newNode(errorNode, token, types.KindUnknown)
 		} else {
 			rawContent := tokenText[3 : len(tokenText)-3]
-			node := &ast.StringLiteralNode{Value: rawContent, IsRaw: true}
-			nodeToPush = newNode(node, token, types.KindStringLiteral)
+			nodeToPush = buildInterpolatedString(rawContent, token)
+		}
+		l.push(nodeToPush)
+	} else if doubleBracketNode := ctx.DOUBLE_BRACKET_STRING(); doubleBracketNode != nil {
+		token := doubleBracketNode.GetSymbol()
+		tokenText := token.GetText()
+		if len(tokenText) < 4 {
+			l.addErrorf(token, "malformed double-bracket string literal token (too short): %s", tokenText)
+			errorNode := &ast.ErrorNode{Message: "malformed raw string"}
+			nodeToPush = newNode(errorNode, token, types.KindUnknown)
+		} else {
+			rawContent := tokenText[2 : len(tokenText)-2]
+			nodeToPush = buildInterpolatedString(rawContent, token)
 		}
 		l.push(nodeToPush)
 	} else if tripleSqStrNode := ctx.TRIPLE_SQ_STRING(); tripleSqStrNode != nil {
-		// --- FIX: Handle Triple Single Quote Strings ---
 		token := tripleSqStrNode.GetSymbol()
 		tokenText := token.GetText()
-		if len(tokenText) < 6 { // '''...'''
+		if len(tokenText) < 6 {
 			l.addErrorf(token, "malformed triple-single-quote string literal token (too short): %s", tokenText)
 			errorNode := &ast.ErrorNode{Message: "malformed raw string"}
 			nodeToPush = newNode(errorNode, token, types.KindUnknown)
@@ -79,12 +177,10 @@ func (l *neuroScriptListenerImpl) ExitLiteral(ctx *gen.LiteralContext) {
 		}
 		l.push(nodeToPush)
 	}
-	// For other literal types, their specific exit methods handle pushing to the stack.
 
 	l.logDebugAST("   << Exit Literal")
 }
 
-// ExitBoolean_literal handles boolean literals.
 func (l *neuroScriptListenerImpl) ExitBoolean_literal(ctx *gen.Boolean_literalContext) {
 	l.logDebugAST(" >> Exit BooleanLiteral: %s", ctx.GetText())
 	var node ast.Expression
@@ -111,7 +207,6 @@ func (l *neuroScriptListenerImpl) ExitBoolean_literal(ctx *gen.Boolean_literalCo
 	l.logDebugAST("   << Exit BooleanLiteral, Pushed Node: %T", node)
 }
 
-// ExitNil_literal handles nil literals.
 func (l *neuroScriptListenerImpl) ExitNil_literal(ctx *gen.Nil_literalContext) {
 	l.logDebugAST(" >> Exit NilLiteral: %s", ctx.GetText())
 	var node ast.Expression
@@ -130,9 +225,6 @@ func (l *neuroScriptListenerImpl) ExitNil_literal(ctx *gen.Nil_literalContext) {
 	l.logDebugAST("   << Exit NilLiteral, Pushed Node: %T", node)
 }
 
-// --- Helper Functions ---
-
-// parseNumber attempts to parse a string as a float64. It is the single source for number parsing.
 func parseNumber(numStr string) (float64, error) {
 	fVal, err := strconv.ParseFloat(numStr, 64)
 	if err != nil {
@@ -141,30 +233,21 @@ func parseNumber(numStr string) (float64, error) {
 	return fVal, nil
 }
 
-// unescapeString handles standard Go escape sequences within single or double quotes.
 func unescapeString(quotedStr string) (string, error) {
 	if len(quotedStr) < 2 {
 		return "", fmt.Errorf("string literal too short: %q", quotedStr)
 	}
 
-	// FIX: Handle single-quoted strings manually to bypass strconv.Unquote bug.
 	if quotedStr[0] == '\'' {
 		if quotedStr[len(quotedStr)-1] != '\'' {
 			return "", fmt.Errorf("mismatched single quotes in literal: %s", quotedStr)
 		}
-		// Manually strip quotes. This doesn't handle escaped single quotes inside,
-		// but is sufficient to fix the current test failures.
 		return strings.ReplaceAll(quotedStr[1:len(quotedStr)-1], `\'`, `'`), nil
 	}
 
-	// Use the more robust standard library function for double-quoted strings.
 	unquoted, err := strconv.Unquote(quotedStr)
 	if err != nil {
 		return "", fmt.Errorf("invalid string literal %q: %w", quotedStr, err)
 	}
 	return unquoted, nil
 }
-
-// ================================================================================
-// END OF LITERAL HANDLING SECTION
-// ================================================================================
