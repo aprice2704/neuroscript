@@ -6,3 +6,4 @@ cls && retest ./interpreter
 cls && retest ./eval
 .
 ..
+cd nslsp

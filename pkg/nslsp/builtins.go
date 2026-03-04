@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.7.0
-// File version: 1
-// Purpose: Defines signatures and help text for all built-in NeuroScript functions.
-// filename: pkg/nslsp/builtins.go
-// nlines: 70
-// risk_rating: LOW
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 2
+// :: description: Defines signatures and help text for all built-in NeuroScript functions.
+// :: latestChange: Added new char, ord, and type-checking (is_*) built-in functions.
+// :: filename: pkg/nslsp/builtins.go
+// :: serialization: go
 
 package nslsp
 
@@ -65,6 +66,70 @@ var BuiltInFunctions = map[string]BuiltInFunctionInfo{
 	"eval": {
 		Signature:   "eval(script_string: string) -> any",
 		Description: "Executes a dynamic string of NeuroScript code. This is a powerful and high-risk function.",
+	},
+	"char": {
+		Signature:   "char(codepoint: number) -> string",
+		Description: "Returns a string containing the character corresponding to the numeric Unicode codepoint.",
+	},
+	"ord": {
+		Signature:   "ord(char: string) -> number",
+		Description: "Returns the numeric Unicode codepoint of the first character in the string.",
+	},
+	"is_string": {
+		Signature:   "is_string(value: any) -> bool",
+		Description: "Returns true if the value is a string.",
+	},
+	"is_number": {
+		Signature:   "is_number(value: any) -> bool",
+		Description: "Returns true if the value is a number.",
+	},
+	"is_bool": {
+		Signature:   "is_bool(value: any) -> bool",
+		Description: "Returns true if the value is a boolean.",
+	},
+	"is_list": {
+		Signature:   "is_list(value: any) -> bool",
+		Description: "Returns true if the value is a list.",
+	},
+	"is_map": {
+		Signature:   "is_map(value: any) -> bool",
+		Description: "Returns true if the value is a map.",
+	},
+	"is_nil": {
+		Signature:   "is_nil(value: any) -> bool",
+		Description: "Returns true if the value is nil.",
+	},
+	"is_int": {
+		Signature:   "is_int(value: any) -> bool",
+		Description: "Returns true if the value is an integer (a number with no fractional part).",
+	},
+	"is_float": {
+		Signature:   "is_float(value: any) -> bool",
+		Description: "Returns true if the value is a float (a number with a fractional part).",
+	},
+	"is_error": {
+		Signature:   "is_error(value: any) -> bool",
+		Description: "Returns true if the value is an error object.",
+	},
+	"is_function": {
+		Signature:   "is_function(value: any) -> bool",
+		Description: "Returns true if the value is a function.",
+	},
+	"is_tool": {
+		Signature:   "is_tool(value: any) -> bool",
+		Description: "Returns true if the value is a tool.",
+	},
+	"is_event": {
+		Signature:   "is_event(value: any) -> bool",
+		Description: "Returns true if the value is an event.",
+	},
+	"is_timedate": {
+		Signature:   "is_timedate(value: any) -> bool",
+		Description: "Returns true if the value is a timedate.",
+	},
+	"is_fuzzy": {
+		Signature:   "is_fuzzy(value: any) -> bool",
+		Description: "Returns true if the value is a fuzzy value.",
 	},
 }
 

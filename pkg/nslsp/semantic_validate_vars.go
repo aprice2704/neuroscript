@@ -1,8 +1,8 @@
 // :: product: FDM/NS
 // :: majorVersion: 1
-// :: fileVersion: 4
+// :: fileVersion: 5
 // :: description: Refactored: Contains all validation listener logic for variable scope, initialization tracking, and read validation.
-// :: latestChange: Updated EnterPrimary to check ExternalToolManager for constants before flagging UninitializedVar.
+// :: latestChange: Added newly implemented built-in functions to the ignore set to prevent UninitializedVar warnings.
 // :: filename: pkg/nslsp/semantic_validate_vars.go
 // :: serialization: go
 
@@ -17,17 +17,33 @@ import (
 
 // newBuiltInFunctionsSet creates a map of all built-in function names.
 var newBuiltInFunctionsSet = map[string]bool{
-	"ln":     true,
-	"log":    true,
-	"sin":    true,
-	"cos":    true,
-	"tan":    true,
-	"asin":   true,
-	"acos":   true,
-	"atan":   true,
-	"len":    true,
-	"typeof": true,
-	"eval":   true,
+	"ln":          true,
+	"log":         true,
+	"sin":         true,
+	"cos":         true,
+	"tan":         true,
+	"asin":        true,
+	"acos":        true,
+	"atan":        true,
+	"len":         true,
+	"typeof":      true,
+	"eval":        true,
+	"char":        true,
+	"ord":         true,
+	"is_string":   true,
+	"is_number":   true,
+	"is_bool":     true,
+	"is_list":     true,
+	"is_map":      true,
+	"is_nil":      true,
+	"is_int":      true,
+	"is_float":    true,
+	"is_error":    true,
+	"is_function": true,
+	"is_tool":     true,
+	"is_event":    true,
+	"is_timedate": true,
+	"is_fuzzy":    true,
 }
 
 // --- Scope Management ---

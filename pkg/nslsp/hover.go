@@ -1,8 +1,8 @@
 // :: product: FDM/NS
 // :: majorVersion: 1
-// :: fileVersion: 6
-// :: description: FEAT: Added hover support for user-defined workspace procedures.
-// :: latestChange: Updated hover links to display short filenames while linking to full URIs.
+// :: fileVersion: 7
+// :: description: FEAT: Added hover support for user-defined workspace procedures and interpolations.
+// :: latestChange: Added getInterpolationHover.
 // :: filename: pkg/nslsp/hover.go
 // :: serialization: go
 package nslsp
@@ -32,6 +32,18 @@ func (s *Server) handleTextDocumentHover(ctx context.Context, conn *jsonrpc2.Con
 		return nil, nil
 	}
 	uriStr := string(params.TextDocument.URI)
+
+	// --- Step 0: Check for String Interpolation Symbols ---
+	// Since these are inside string literals, they won't parse as standard AST tokens.
+	// We can do a quick text-based check on the current line.
+	lines := strings.Split(content, "\n")
+	if params.Position.Line >= 0 && params.Position.Line < len(lines) {
+		line := lines[params.Position.Line]
+		hover := s.getInterpolationHover(line, params.Position.Character)
+		if hover != nil {
+			return hover, nil
+		}
+	}
 
 	// --- Step 1: Check for a tool name (e.g., tool.FS.Read) ---
 	toolName := s.extractToolNameAtPosition(content, params.Position, uriStr)
@@ -97,6 +109,68 @@ func (s *Server) handleTextDocumentHover(ctx context.Context, conn *jsonrpc2.Con
 
 	// --- Step 5: Nothing found ---
 	return nil, nil
+}
+
+// getInterpolationHover checks if the cursor is resting inside an {{@symbol}} block.
+func (s *Server) getInterpolationHover(line string, charIdx int) *lsp.Hover {
+	if charIdx < 0 || charIdx > len(line) {
+		return nil
+	}
+
+	// Find the nearest {{@ before the cursor
+	startIdx := strings.LastIndex(line[:charIdx], "{{@")
+	if startIdx == -1 {
+		// Maybe the cursor is exactly on the {{ or @, let's widen the search slightly
+		if charIdx+2 <= len(line) {
+			startIdx = strings.LastIndex(line[:charIdx+2], "{{@")
+		}
+	}
+
+	if startIdx != -1 {
+		// Find the closing }} after the start
+		endIdx := strings.Index(line[startIdx:], "}}")
+		if endIdx != -1 {
+			endIdx += startIdx + 2 // include the }}
+			if charIdx >= startIdx && charIdx <= endIdx {
+				// We are inside an interpolation! Extract the symbol.
+				sym := line[startIdx+3 : endIdx-2]
+
+				desc := ""
+				switch sym {
+				case "nl":
+					desc = "Linefeed (`\\n`)"
+				case "cr":
+					desc = "Carriage Return (`\\r`)"
+				case "tab":
+					desc = "Tab (`\\t`)"
+				case "bt":
+					desc = "Single Backtick (`` ` ``)"
+				case "tbt":
+					desc = "Triple Backtick (`` ``` ``)"
+				case "sq":
+					desc = "Single Quote (`'`)"
+				case "dq":
+					desc = "Double Quote (`\"`)"
+				case "tsq":
+					desc = "Triple Single Quote (`'''`)"
+				case "tdq":
+					desc = "Triple Double Quote (`\"\"\"`)"
+				default:
+					return nil // Not a known special symbol
+				}
+
+				return &lsp.Hover{
+					Contents: []lsp.MarkedString{
+						{
+							Language: "markdown",
+							Value:    fmt.Sprintf("**(interpolation)** `{{@%s}}`\n---\n%s", sym, desc),
+						},
+					},
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // formatToolHover builds the hover response for a NeuroScript tool.

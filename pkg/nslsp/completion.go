@@ -1,8 +1,8 @@
 // :: product: FDM/NS
 // :: majorVersion: 1
-// :: fileVersion: 11
+// :: fileVersion: 12
 // :: description: Implements textDocument/completion. FEAT: Merges built-ins, snippets, and now External Constants.
-// :: latestChange: Added getExternalConstantCompletions to completion handler.
+// :: latestChange: Added interpolation symbol completions for {{@...}}
 // :: filename: pkg/nslsp/completion.go
 // :: serialization: go
 
@@ -42,6 +42,12 @@ func (s *Server) handleTextDocumentCompletion(ctx context.Context, conn *jsonrpc
 	// Get the text on the line from the beginning to the cursor.
 	linePrefix := line[:params.Position.Character]
 
+	// --- Interpolation Completion Logic ---
+	lastInterp := strings.LastIndex(linePrefix, "{{@")
+	if lastInterp != -1 && !strings.Contains(linePrefix[lastInterp:], "}}") {
+		return s.getInterpolationCompletions(), nil
+	}
+
 	// --- Tool Completion Logic ---
 	// Isolate the specific `tool.` expression the user is typing.
 	lastToolIndex := strings.LastIndex(linePrefix, "tool.")
@@ -73,6 +79,33 @@ func (s *Server) handleTextDocumentCompletion(ctx context.Context, conn *jsonrpc
 	snippets.Items = append(snippets.Items, builtIns.Items...)
 	snippets.Items = append(snippets.Items, constants.Items...)
 	return snippets, nil
+}
+
+func (s *Server) getInterpolationCompletions() *lsp.CompletionList {
+	symbols := map[string]string{
+		"nl":  "Linefeed (\\n)",
+		"cr":  "Carriage Return (\\r)",
+		"tab": "Tab (\\t)",
+		"bt":  "Single Backtick (`)",
+		"tbt": "Triple Backtick (```)",
+		"sq":  "Single Quote (')",
+		"dq":  "Double Quote (\")",
+		"tsq": "Triple Single Quote (''')",
+		"tdq": "Triple Double Quote (\"\"\")",
+	}
+
+	items := make([]lsp.CompletionItem, 0, len(symbols))
+	for sym, desc := range symbols {
+		items = append(items, lsp.CompletionItem{
+			Label:         sym,
+			Kind:          lsp.CIKConstant,
+			Detail:        desc,
+			Documentation: fmt.Sprintf("Safe interpolation symbol for %s.", desc),
+		})
+	}
+	sort.Slice(items, func(i, j int) bool { return items[i].Label < items[j].Label })
+
+	return &lsp.CompletionList{IsIncomplete: false, Items: items}
 }
 
 func (s *Server) getToolGroupCompletions() *lsp.CompletionList {

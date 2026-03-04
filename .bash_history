@@ -16,3 +16,5 @@ cd pkg/eval
 make
 p parseFunctionNode
 cd pkg/canon/
+make
+x

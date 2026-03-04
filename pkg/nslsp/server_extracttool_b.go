@@ -1,8 +1,10 @@
-// NeuroScript Version: 0.7.0
-// File version: 55
-// Purpose: FEAT: Added extractKeywordAtPosition helper for hover on func, if, ask, etc.
-// filename: pkg/nslsp/server_extracttool_b.go
-// nlines: 268
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 56
+// :: description: FEAT: Added extractKeywordAtPosition helper for hover on func, if, ask, etc.
+// :: latestChange: Support resolving generic IDENTIFIER tokens to BuiltInFunctions (to support is_string, char, etc).
+// :: filename: pkg/nslsp/server_extracttool_b.go
+// :: serialization: go
 
 package nslsp
 
@@ -201,7 +203,7 @@ func (s *Server) extractBuiltInNameAtPosition(content string, position lsp.Posit
 	log("extractBuiltInNameAtPosition: Found token '%s' of type %s.", tokenText, gen.NeuroScriptParserStaticData.SymbolicNames[tokenType])
 
 	// *** THE FIX IS HERE ***
-	// Check the token type against the keywords, not IDENTIFIER.
+	// Check the token type against the keywords, and also check IDENTIFIER tokens.
 	switch tokenType {
 	case gen.NeuroScriptLexerKW_SIN,
 		gen.NeuroScriptLexerKW_COS,
@@ -213,8 +215,9 @@ func (s *Server) extractBuiltInNameAtPosition(content string, position lsp.Posit
 		gen.NeuroScriptLexerKW_LOG,
 		gen.NeuroScriptLexerKW_LEN,
 		gen.NeuroScriptLexerKW_TYPEOF,
-		gen.NeuroScriptLexerKW_EVAL:
-		// The token text (e.g., "sin") is a valid key for our BuiltInFunctions map.
+		gen.NeuroScriptLexerKW_EVAL,
+		gen.NeuroScriptLexerIDENTIFIER: // Allows non-keyword built-ins like char, is_string, etc.
+		// The token text (e.g., "sin" or "char") is a valid key for our BuiltInFunctions map.
 		if _, isBuiltIn := BuiltInFunctions[tokenText]; isBuiltIn {
 			log("extractBuiltInNameAtPosition: Token '%s' is a built-in function.", tokenText)
 			return tokenText
