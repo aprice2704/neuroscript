@@ -9,3 +9,8 @@ cls && retest
 cd pkg/interpreter/
 make
 x
+cd pkg/ast
+cd pkg/interpreter/
+cd pkg/nsfmt/
+cd pkg/eval
+make

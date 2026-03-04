@@ -1,8 +1,8 @@
 // :: product: FDM/NS
 // :: majorVersion: 1
-// :: fileVersion: 14
-// :: description: Added support for DOUBLE_BRACKET_STRING and string interpolation. Fixed node kinds for canon roundtrip.
-// :: latestChange: Corrected node kinds to types.KindVariable and types.KindLast to fix roundtrip errors.
+// :: fileVersion: 15
+// :: description: Constructs InterpolatedStringNode instead of binary op chains, preserving lexical boundaries.
+// :: latestChange: buildInterpolatedString now returns an InterpolatedStringNode and preserves formatting symbols via PlaceholderNode.
 // :: filename: pkg/parser/ast_builder_literals.go
 // :: serialization: go
 
@@ -19,19 +19,7 @@ import (
 	"github.com/aprice2704/neuroscript/pkg/types"
 )
 
-var interpSymbols = map[string]string{
-	"@nl":  "\n",
-	"@cr":  "\r",
-	"@tab": "\t",
-	"@bt":  "`",
-	"@tbt": "```",
-	"@sq":  "'",
-	"@dq":  "\"",
-	"@tsq": "'''",
-	"@tdq": "\"\"\"",
-}
-
-func buildInterpolatedString(content string, token antlr.Token) ast.Expression {
+func buildInterpolatedString(content string, token antlr.Token, delimiter string) ast.Expression {
 	var parts []ast.Expression
 
 	remaining := content
@@ -65,49 +53,22 @@ func buildInterpolatedString(content string, token antlr.Token) ast.Expression {
 		}
 
 		if strings.HasPrefix(inside, "@") {
-			if val, ok := interpSymbols[inside]; ok {
-				node := &ast.StringLiteralNode{Value: val, IsRaw: true}
-				parts = append(parts, newNode(node, token, types.KindStringLiteral))
-			} else {
-				node := &ast.StringLiteralNode{Value: "{{" + inside + "}}", IsRaw: true}
-				parts = append(parts, newNode(node, token, types.KindStringLiteral))
-			}
+			// Use PlaceholderNode for special symbols, preserving exactly what the user typed.
+			parts = append(parts, newNode(&ast.PlaceholderNode{Name: inside}, token, types.KindPlaceholder))
 		} else {
 			if strings.ToUpper(inside) == "LAST" {
-				// Use correct kind for LAST keyword
 				parts = append(parts, newNode(&ast.LastNode{}, token, types.KindLast))
 			} else {
-				// Use correct kind for variable references
 				parts = append(parts, newNode(&ast.VariableNode{Name: inside}, token, types.KindVariable))
 			}
 		}
 	}
 
-	if len(parts) == 0 {
-		return newNode(&ast.StringLiteralNode{Value: "", IsRaw: true}, token, types.KindStringLiteral)
+	node := &ast.InterpolatedStringNode{
+		Delimiter: delimiter,
+		Parts:     parts,
 	}
-
-	expr := parts[0]
-
-	if _, isStr := expr.(*ast.StringLiteralNode); !isStr {
-		emptyStrNode := newNode(&ast.StringLiteralNode{Value: "", IsRaw: true}, token, types.KindStringLiteral)
-		expr = newNode(&ast.BinaryOpNode{
-			Left:     emptyStrNode,
-			Operator: "+",
-			Right:    expr,
-		}, token, types.KindBinaryOp)
-	}
-
-	for i := 1; i < len(parts); i++ {
-		binOp := &ast.BinaryOpNode{
-			Left:     expr,
-			Operator: "+",
-			Right:    parts[i],
-		}
-		expr = newNode(binOp, token, types.KindBinaryOp)
-	}
-
-	return expr
+	return newNode(node, token, types.KindInterpolatedString)
 }
 
 func (l *neuroScriptListenerImpl) ExitLiteral(ctx *gen.LiteralContext) {
@@ -148,7 +109,7 @@ func (l *neuroScriptListenerImpl) ExitLiteral(ctx *gen.LiteralContext) {
 			nodeToPush = newNode(errorNode, token, types.KindUnknown)
 		} else {
 			rawContent := tokenText[3 : len(tokenText)-3]
-			nodeToPush = buildInterpolatedString(rawContent, token)
+			nodeToPush = buildInterpolatedString(rawContent, token, "```")
 		}
 		l.push(nodeToPush)
 	} else if doubleBracketNode := ctx.DOUBLE_BRACKET_STRING(); doubleBracketNode != nil {
@@ -160,7 +121,7 @@ func (l *neuroScriptListenerImpl) ExitLiteral(ctx *gen.LiteralContext) {
 			nodeToPush = newNode(errorNode, token, types.KindUnknown)
 		} else {
 			rawContent := tokenText[2 : len(tokenText)-2]
-			nodeToPush = buildInterpolatedString(rawContent, token)
+			nodeToPush = buildInterpolatedString(rawContent, token, "[[")
 		}
 		l.push(nodeToPush)
 	} else if tripleSqStrNode := ctx.TRIPLE_SQ_STRING(); tripleSqStrNode != nil {

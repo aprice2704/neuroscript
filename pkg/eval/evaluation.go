@@ -1,8 +1,8 @@
 // :: product: FDM/NS
 // :: majorVersion: 1
-// :: fileVersion: 9
-// :: description: Updated Expression switch to handle ast.TypeOfNode.
-// :: latestChange: Added evaluation logic for ast.TypeOfNode.
+// :: fileVersion: 10
+// :: description: Updated Expression switch to handle ast.InterpolatedStringNode and ast.PlaceholderNode.
+// :: latestChange: Added runtime evaluation logic to safely assemble structured templates.
 // :: filename: pkg/eval/evaluation.go
 // :: serialization: go
 
@@ -10,10 +10,23 @@ package eval
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
 	"github.com/aprice2704/neuroscript/pkg/lang"
 )
+
+var interpSymbols = map[string]string{
+	"@nl":  "\n",
+	"@cr":  "\r",
+	"@tab": "\t",
+	"@bt":  "`",
+	"@tbt": "```",
+	"@sq":  "'",
+	"@dq":  "\"",
+	"@tsq": "'''",
+	"@tdq": "\"\"\"",
+}
 
 // evaluation holds the state for an evaluation pass.
 type evaluation struct {
@@ -35,6 +48,10 @@ func (e *evaluation) Expression(node ast.Expression) (lang.Value, error) {
 		return lang.BoolValue{Value: n.Value}, nil
 	case *ast.NilLiteralNode:
 		return &lang.NilValue{}, nil
+	case *ast.InterpolatedStringNode:
+		return e.evaluateInterpolatedString(n)
+	case *ast.PlaceholderNode:
+		return e.evaluatePlaceholder(n)
 	case *ast.ListLiteralNode:
 		return e.evaluateListLiteral(n)
 	case *ast.MapLiteralNode:
@@ -55,11 +72,34 @@ func (e *evaluation) Expression(node ast.Expression) (lang.Value, error) {
 		return e.evaluateCall(n)
 	case *ast.LValueNode:
 		return e.evaluateLValue(n)
-	case *ast.ElementAccessNode: // FIX: Added missing case
+	case *ast.ElementAccessNode:
 		return e.evaluateElementAccess(n)
 	default:
 		return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("unhandled expression node type: %T", n), lang.ErrInternal).WithPosition(n.GetPos())
 	}
+}
+
+// evaluateInterpolatedString handles structured strings like [[ ... ]]
+func (e *evaluation) evaluateInterpolatedString(node *ast.InterpolatedStringNode) (lang.Value, error) {
+	var sb strings.Builder
+	for _, part := range node.Parts {
+		val, err := e.Expression(part)
+		if err != nil {
+			return nil, err
+		}
+		strVal, _ := lang.ToString(val)
+		sb.WriteString(strVal)
+	}
+	return lang.StringValue{Value: sb.String()}, nil
+}
+
+// evaluatePlaceholder resolves constant symbols like {{@nl}}
+func (e *evaluation) evaluatePlaceholder(node *ast.PlaceholderNode) (lang.Value, error) {
+	if val, ok := interpSymbols[node.Name]; ok {
+		return lang.StringValue{Value: val}, nil
+	}
+	// Fallback if not a known constant
+	return lang.StringValue{Value: "{{" + node.Name + "}}"}, nil
 }
 
 // evaluateElementAccess handles expressions like `myList[0]` or `myMap["key"]`.
@@ -84,7 +124,7 @@ func (e *evaluation) evaluateElementAccess(n *ast.ElementAccessNode) (lang.Value
 			return nil, lang.NewRuntimeError(lang.ErrorCodeBounds, "list index out of bounds", lang.ErrListIndexOutOfBounds).WithPosition(n.GetPos())
 		}
 		return coll.Value[int(index)], nil
-	case *lang.ListValue: // ADDED
+	case *lang.ListValue:
 		index, ok := lang.ToInt64(accessorVal)
 		if !ok {
 			return nil, lang.NewRuntimeError(lang.ErrorCodeType, "list index must be an integer", lang.ErrListInvalidIndexType).WithPosition(n.GetPos())
@@ -93,7 +133,7 @@ func (e *evaluation) evaluateElementAccess(n *ast.ElementAccessNode) (lang.Value
 			return nil, lang.NewRuntimeError(lang.ErrorCodeBounds, "list index out of bounds", lang.ErrListIndexOutOfBounds).WithPosition(n.GetPos())
 		}
 		return coll.Value[int(index)], nil
-	case lang.MapValue: // ADDED
+	case lang.MapValue:
 		key, _ := lang.ToString(accessorVal)
 		val, ok := coll.Value[key]
 		if !ok {
@@ -216,7 +256,7 @@ func (e *evaluation) evaluateLValue(lval *ast.LValueNode) (lang.Value, error) {
 	current := baseVar
 	for _, accessor := range lval.Accessors {
 		switch c := current.(type) {
-		case lang.MapValue: // ADDED
+		case lang.MapValue:
 			key, err := e.evaluateAccessorKey(accessor)
 			if err != nil {
 				return nil, err
@@ -239,7 +279,7 @@ func (e *evaluation) evaluateLValue(lval *ast.LValueNode) (lang.Value, error) {
 				return &lang.NilValue{}, nil
 			}
 			current = child
-		case lang.ListValue: // Corrected to handle value type
+		case lang.ListValue:
 			index, err := e.evaluateAccessorIndex(accessor)
 			if err != nil {
 				return nil, err

@@ -1,8 +1,8 @@
 // :: product: FDM/NS
 // :: majorVersion: 1
-// :: fileVersion: 7
-// :: description: Updated MapEntryNode.Key to be generic Expression instead of *StringLiteralNode.
-// :: latestChange: Changed Key type to Expression to support dynamic map keys.
+// :: fileVersion: 8
+// :: description: Updated MapEntryNode.Key to be generic Expression instead of *StringLiteralNode. Added InterpolatedStringNode.
+// :: latestChange: Added InterpolatedStringNode to support structured templates for [[...]] and ```...``` strings.
 // :: filename: pkg/ast/ast_expressions.go
 // :: serialization: go
 
@@ -28,7 +28,6 @@ func (ct *CallTarget) String() string {
 	return ct.Name
 }
 
-// FIX: Add methods to implement ast.Expression
 func (ct *CallTarget) expressionNode()    {}
 func (ct *CallTarget) TestString() string { return ct.String() }
 
@@ -63,10 +62,10 @@ func (n *VariableNode) expressionNode()    {}
 func (n *VariableNode) String() string     { return n.Name }
 func (n *VariableNode) TestString() string { return n.String() }
 
-// PlaceholderNode represents a placeholder like {{variable}} or {{LAST}}.
+// PlaceholderNode represents a placeholder like {{variable}}, {{@nl}}, or {{LAST}}.
 type PlaceholderNode struct {
 	BaseNode
-	Name string // "LAST" or variable name
+	Name string // "@nl", "LAST", or variable name
 }
 
 func (n *PlaceholderNode) expressionNode()    {}
@@ -107,6 +106,39 @@ func (n *StringLiteralNode) String() string {
 	return strconv.Quote(n.Value)
 }
 func (n *StringLiteralNode) TestString() string { return strconv.Quote(n.Value) } // Never show raw in test output
+
+// InterpolatedStringNode represents a double-bracket or triple-backtick string with interpolations.
+type InterpolatedStringNode struct {
+	BaseNode
+	Delimiter string // "```" or "[["
+	Parts     []Expression
+}
+
+func (n *InterpolatedStringNode) expressionNode() {}
+func (n *InterpolatedStringNode) String() string {
+	closeDelim := n.Delimiter
+	if n.Delimiter == "[[" {
+		closeDelim = "]]"
+	}
+	var sb strings.Builder
+	sb.WriteString(n.Delimiter)
+	for _, p := range n.Parts {
+		if sl, ok := p.(*StringLiteralNode); ok && sl.IsRaw {
+			sb.WriteString(sl.Value)
+		} else if ph, ok := p.(*PlaceholderNode); ok {
+			sb.WriteString(fmt.Sprintf("{{%s}}", ph.Name))
+		} else if v, ok := p.(*VariableNode); ok {
+			sb.WriteString(fmt.Sprintf("{{%s}}", v.Name))
+		} else if _, ok := p.(*LastNode); ok {
+			sb.WriteString("{{last}}")
+		} else if p != nil {
+			sb.WriteString(fmt.Sprintf("{{%s}}", p.String()))
+		}
+	}
+	sb.WriteString(closeDelim)
+	return sb.String()
+}
+func (n *InterpolatedStringNode) TestString() string { return n.String() }
 
 // NumberLiteralNode represents a number literal (integer or float).
 type NumberLiteralNode struct {

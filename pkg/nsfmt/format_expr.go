@@ -1,8 +1,8 @@
 // :: product: FDM/NS
 // :: majorVersion: 1
-// :: fileVersion: 16
-// :: description: Updated formatMapLiteral to sort by key.TestString() instead of .Value.
-// :: latestChange: Fix sorting of map entries now that Key is an Expression.
+// :: fileVersion: 17
+// :: description: Formatter correctly renders InterpolatedStringNode by letting String() natively preserve boundaries.
+// :: latestChange: Added handling for ast.InterpolatedStringNode in formatExpression.
 // :: filename: pkg/nsfmt/format_expr.go
 // :: serialization: go
 
@@ -69,6 +69,10 @@ func (f *formatter) formatExpression(expr ast.Expression, prefixLen int) string 
 
 		// Fallback to standard quoted string (escapes newlines if present)
 		return n.TestString()
+
+	case *ast.InterpolatedStringNode:
+		// Reconstruct exactly as String() does, since it's a literal template and preserves lexical boundaries.
+		return n.String()
 
 	// Collections: These are the complex multi-line cases
 	case *ast.ListLiteralNode:

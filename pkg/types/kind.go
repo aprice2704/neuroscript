@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.7.0
-// File version: 5
-// Purpose: Adds KindComment(32) and bumps KindMarker to 33.
-// filename: pkg/types/kind.go
-// nlines: 75
-// risk_rating: LOW
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 6
+// :: description: Adds KindInterpolatedString for the Structured Template approach.
+// :: latestChange: Added KindInterpolatedString.
+// :: filename: pkg/types/kind.go
+// :: serialization: go
 
 package types
 
@@ -52,9 +53,11 @@ const (
 	KindMapEntry
 	KindAskStmt
 	KindPromptUserStmt
-	KindWhisperStmt // Added
+	KindWhisperStmt
 
-	KindComment // <<< ADDED
+	KindInterpolatedString // <<< ADDED
+
+	KindComment
 
 	// ^^^^^^ add new kinds above this ^^^^^^^
 	// KindMarker is not a real kind. It is a sentinel value used in tests to
@@ -128,7 +131,9 @@ func (k Kind) String() string {
 		return "PromptUserStmt"
 	case KindWhisperStmt:
 		return "WhisperStmt"
-	case KindComment: // <<< ADDED
+	case KindInterpolatedString: // <<< ADDED
+		return "InterpolatedString"
+	case KindComment:
 		return "Comment"
 	case KindMarker:
 		return "Marker"

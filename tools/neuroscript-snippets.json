@@ -1385,6 +1385,13 @@
     ],
     "description": "Retrieves all log lines for a specific entity and key."
   },
+  "fdm.logging.get_summary": {
+    "prefix": "fdm.logging.get_summary",
+    "body": [
+      "tool.fdm.logging.get_summary(${1:entity_id})"
+    ],
+    "description": "Retrieves a summary of available log keys and line counts for an entity."
+  },
   "fdm.nodes.agent.descriptor.create": {
     "prefix": "fdm.nodes.agent.descriptor.create",
     "body": [

@@ -1640,7 +1640,8 @@
             "required": false
           }
         ],
-        "returnType": "map"
+        "returnType": "map",
+        "returnHelp": "Returns a map containing pipeline, worker, and events log arrays."
       },
       "requiresTrust": false,
       "isInternal": false,
@@ -4279,6 +4280,27 @@
           }
         ],
         "returnType": "list"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
+        "name": "get_summary",
+        "groupname": "fdm.logging",
+        "fullname": "",
+        "description": "Retrieves a summary of available log keys and line counts for an entity.",
+        "args": [
+          {
+            "name": "entity_id",
+            "type": "string",
+            "description": "The Entity ID",
+            "required": false
+          }
+        ],
+        "returnType": "map",
+        "returnHelp": "Returns a map of log keys to their line counts."
       },
       "requiresTrust": false,
       "isInternal": false,

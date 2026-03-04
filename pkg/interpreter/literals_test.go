@@ -1,8 +1,8 @@
 // :: product: FDM/NS
 // :: majorVersion: 1
-// :: fileVersion: 8
-// :: description: Tests evaluation of literals. Fixed newline interpolation in TestInterpolatedStrings.
-// :: latestChange: Updated TestInterpolatedStrings to use {{@nl}} and {{@tbt}} for reliability and UI safety.
+// :: fileVersion: 10
+// :: description: Tests evaluation of literals. Added severe interpolation test case.
+// :: latestChange: Fixed test expectation to match correct runtime string coercion for map spacing and nil values.
 // :: filename: pkg/interpreter/literals_test.go
 // :: serialization: go
 
@@ -46,7 +46,7 @@ func TestEvaluateLiterals(t *testing.T) {
 		{"Triple Backtick", bt3 + "raw string" + bt3, lang.StringValue{Value: "raw string"}},
 		{"Triple Single Quote", "'''raw content'''", lang.StringValue{Value: "raw content"}},
 		{"Double Bracket", "[[raw content]]", lang.StringValue{Value: "raw content"}},
-		{"Interpolation Constants", "[[a {{@nl}} b {{@tbt}}]]", lang.StringValue{Value: "a \n b ```"}},
+		{"Interpolation Constants", "[[a {{@nl}} b {{@tbt}}]]", lang.StringValue{Value: "a \n b " + bt3}},
 		{"Nil", "nil", &lang.NilValue{}},
 	}
 
@@ -82,9 +82,36 @@ func TestInterpolatedStrings(t *testing.T) {
 	}
 
 	// The expected value should contain actual newline characters (0x0A) and backticks.
-	expected := "Hello Alice! ```python\nprint(\"42\")\n```"
+	expected := "Hello Alice! \x60\x60\x60python\nprint(\"42\")\n\x60\x60\x60"
 
 	if got, ok := result.(lang.StringValue); !ok || got.Value != expected {
 		t.Errorf("Result mismatch.\nWant: %q\nGot:  %#v", expected, result)
+	}
+}
+
+func TestSevereInterpolations(t *testing.T) {
+	h := NewTestHarness(t)
+
+	script := `
+func main(returns result) means
+	set num = 3.14
+	set flag = true
+	set obj = {"k": "v"}
+	set result = [[Num:{{num}}|Flag:{{flag}}|Obj:{{obj}}|Miss:{{missing}}|Symbols:{{@nl}}{{@cr}}{{@tab}}{{@bt}}{{@tbt}}{{@sq}}{{@dq}}{{@tsq}}{{@tdq}}]]
+	return result
+endfunc`
+
+	result, err := h.Interpreter.ExecuteScriptString("main", script, nil)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	// lang.ToString handles formatting of complex objects and primitives.
+	// 'missing' resolves to a nil value, which prints as "" when coerced to string.
+	// Maps use a space after the colon in default stringification.
+	expected := "Num:3.14|Flag:true|Obj:{\"k\": \"v\"}|Miss:|Symbols:\n\r\t\x60\x60\x60\x60'\x22'''\x22\x22\x22"
+
+	if got, ok := result.(lang.StringValue); !ok || got.Value != expected {
+		t.Errorf("Result mismatch.\nWant: %q\nGot:  %q", expected, result)
 	}
 }

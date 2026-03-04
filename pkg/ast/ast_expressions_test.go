@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.5.2
-// File version: 2
-// Purpose: Corrected package declaration and struct literals to resolve build errors.
-// filename: pkg/ast/ast_expressions_test.go
-// nlines: 200
-// risk_rating: LOW
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 3
+// :: description: Corrected package declaration and struct literals to resolve build errors. Added InterpolatedStringNode tests.
+// :: latestChange: Added stringer test for InterpolatedStringNode.
+// :: filename: pkg/ast/ast_expressions_test.go
+// :: serialization: go
 
 package ast
 
@@ -88,6 +89,21 @@ func TestExpressionStringers(t *testing.T) {
 				t.Errorf("Expected '%s', got '%s'", expected, node.String())
 			}
 		})
+	})
+
+	t.Run("InterpolatedStringNode", func(t *testing.T) {
+		node := &InterpolatedStringNode{
+			Delimiter: "[[",
+			Parts: []Expression{
+				&StringLiteralNode{Value: "Hello ", IsRaw: true},
+				&VariableNode{Name: "name"},
+				&StringLiteralNode{Value: "!", IsRaw: true},
+			},
+		}
+		expected := "[[Hello {{name}}!]]"
+		if node.String() != expected {
+			t.Errorf("Expected '%s', got '%s'", expected, node.String())
+		}
 	})
 
 	t.Run("NumberLiteralNode", func(t *testing.T) {

@@ -1,2 +1,4 @@
 cls & retest
 ..
+cls && retest
+..

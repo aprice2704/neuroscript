@@ -1,8 +1,8 @@
 # :: product: FDM/NS
 # :: majorVersion: 1
-# :: fileVersion: 20
-# :: description: Build system configuration for the NeuroScript project. 
-# :: latestChange: Added DISABLE_VSCODE environment variable support to skip VSCode extension build.
+# :: fileVersion: 21
+# :: description: Build system configuration for the NeuroScript project.
+# :: latestChange: Fixed Makefile syntax (tabs vs spaces and missing line continuations).
 # :: filename: Makefile
 # :: serialization: makefile
 
@@ -33,7 +33,6 @@ BUILD_DATE      := $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 # --- Go Build Configuration ---
 GO := go
 # THE FIX IS HERE: A single, consistent set of linker flags for all binaries.
-# Assumes the target main packages (ng, nslsp) have 'version', 'commit', and 'buildDate' variables.
 LDFLAGS := -ldflags="-X 'main.version=$(G4_VERSION)' -X 'main.commit=$(GIT_COMMIT)' -X 'main.buildDate=$(BUILD_DATE)'"
 
 # Find all .go files in the project to use as dependencies
@@ -107,7 +106,6 @@ $(ANTLR_STAMP_FILE): $(G4_FILE) $(ANTLR_JAR)
 		echo "// GrammarVersion is extracted from the ANTLR g4 file."; \
 		echo "const GrammarVersion = \"$(G4_VERSION)\""; \
 	} > $(VERSION_GO_FILE)
-
 	@mkdir -p $(ANTLR_OUTPUT_DIR)
 	@java -jar $(ANTLR_JAR) -Dlanguage=Go -o $(ANTLR_OUTPUT_DIR) \
 		-visitor -listener -package generated $(G4_FILE)
@@ -122,7 +120,8 @@ build-vscode: $(BIN_INSTALL_DIR)/nslsp $(ANTLR_STAMP_FILE)
 	@mkdir -p $(VSCODE_SERVER_DIR)
 	@cp $(BIN_INSTALL_DIR)/nslsp $(VSCODE_SERVER_DIR)/nslsp_executable
 	@echo "    Updating extension version to $(G4_VERSION)..."
-	@if [ -z "$(G4_VERSION)" ]; then \
+	@if [ -z "$(G4_VERSION)" ]; \
+	then \
 		echo "    WARNING: G4_VERSION is empty. Skipping VSCode extension version update."; \
 	else \
 		cd $(VSCODE_EXT_DIR) && npm version $(G4_VERSION) --no-git-tag-version --allow-same-version > /dev/null; \
@@ -130,6 +129,7 @@ build-vscode: $(BIN_INSTALL_DIR)/nslsp $(ANTLR_STAMP_FILE)
 	@echo "    Running npm install and packaging..."
 	@cd $(VSCODE_EXT_DIR) && npm install --silent --no-fund --no-audit && npm run package
 	@echo "    VSCode extension created."
+
 # ------------------------------------------------------------------------------
 # Vim plugin installation
 .PHONY: install-vim
@@ -139,6 +139,7 @@ install-vim: $(BIN_INSTALL_DIR)/nslsp
 	@cp $(BIN_INSTALL_DIR)/nslsp $(VIM_PLUGIN_DIR)/bin/
 	@echo "    nslsp copied to $(VIM_PLUGIN_DIR)/bin/"
 	@echo "    NOTE: Add the plugin directory to your Vim runtimepath and configure your LSP client."
+
 # ------------------------------------------------------------------------------
 # Clean generated artifacts
 .PHONY: clean
@@ -190,4 +191,3 @@ help:
 	@echo ""
 	@echo "Environment Variables:"
 	@echo "  DISABLE_VSCODE=1  - Skip the VSCode extension build during 'make build' or 'make all'."
-`
