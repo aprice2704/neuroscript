@@ -18,3 +18,6 @@ p parseFunctionNode
 cd pkg/canon/
 make
 x
+cd pkg/interpreter/
+p Unwrap
+cd pkg/lang

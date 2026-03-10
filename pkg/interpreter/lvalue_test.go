@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.8.0
-// File version: 3
-// Purpose: Skipped all tests in this file due to a known, complex bug in lvalue assignment logic.
-// filename: pkg/interpreter/lvalue_test.go
-// nlines: 162
-// risk_rating: MEDIUM
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 6
+// :: description: Updated multi-assignment test to check returned values rather than internal sandbox variables.
+// :: latestChange: Multi-assignment test now returns x, y for assertion.
+// :: filename: pkg/interpreter/lvalue_test.go
+// :: serialization: go
 
 package interpreter_test
 
@@ -18,7 +19,6 @@ import (
 
 func TestLValueAssignments(t *testing.T) {
 	t.Run("Vivification of nested maps", func(t *testing.T) {
-		t.Skip("Skipping all lvalue tests due to known underlying bug.")
 		h := NewTestHarness(t)
 		script := `
 			func main() means
@@ -31,13 +31,15 @@ func TestLValueAssignments(t *testing.T) {
 			t.Fatalf("Script execution failed: %v", err)
 		}
 
-		// Expected structure: map[a:map[b:map[c:deeply nested]]]
-		resultMap, ok := result.(*lang.MapValue)
+		// Expected structure: map[b:map[c:deeply nested]]
+		aMap, ok := result.(*lang.MapValue)
 		if !ok {
 			t.Fatalf("Expected a map result, got %T", result)
 		}
-		a, _ := resultMap.Value["a"].(*lang.MapValue)
-		b, _ := a.Value["b"].(*lang.MapValue)
+		b, _ := aMap.Value["b"].(*lang.MapValue)
+		if b == nil {
+			t.Fatalf("Expected key 'b' to be a map, got %T", aMap.Value["b"])
+		}
 		c, _ := b.Value["c"].(lang.StringValue)
 
 		if c.Value != "deeply nested" {
@@ -46,7 +48,6 @@ func TestLValueAssignments(t *testing.T) {
 	})
 
 	t.Run("Vivification of nested lists and maps", func(t *testing.T) {
-		t.Skip("Skipping all lvalue tests due to known underlying bug.")
 		h := NewTestHarness(t)
 		script := `
 			func main() means
@@ -69,6 +70,9 @@ func TestLValueAssignments(t *testing.T) {
 		}
 
 		person0, _ := resultList.Value[0].(*lang.MapValue)
+		if person0 == nil {
+			t.Fatalf("Expected item 0 to be a map, got %T", resultList.Value[0])
+		}
 		name0, _ := person0.Value["name"].(lang.StringValue)
 		if name0.Value != "Alice" {
 			t.Errorf("Expected name 'Alice', got '%s'", name0.Value)
@@ -76,7 +80,6 @@ func TestLValueAssignments(t *testing.T) {
 	})
 
 	t.Run("Vivification with various types", func(t *testing.T) {
-		t.Skip("Skipping all lvalue tests due to known underlying bug.")
 		h := NewTestHarness(t)
 		script := `
             func main() means
@@ -107,6 +110,9 @@ func TestLValueAssignments(t *testing.T) {
 		}
 
 		features, _ := resultMap.Value["features"].(*lang.ListValue)
+		if features == nil {
+			t.Fatalf("Expected 'features' to be a list, got %T", resultMap.Value["features"])
+		}
 		feature0, _ := features.Value[0].(lang.StringValue)
 		if feature0.Value != "login" {
 			t.Errorf("Expected feature 'login', got '%s'", feature0.Value)
@@ -114,7 +120,6 @@ func TestLValueAssignments(t *testing.T) {
 	})
 
 	t.Run("Error on indexing a non-container", func(t *testing.T) {
-		t.Skip("Skipping all lvalue tests due to known underlying bug.")
 		h := NewTestHarness(t)
 		script := `
 			func main() means
@@ -133,7 +138,6 @@ func TestLValueAssignments(t *testing.T) {
 	})
 
 	t.Run("Error on multi-assignment count mismatch", func(t *testing.T) {
-		t.Skip("Skipping all lvalue tests due to known underlying bug.")
 		h := NewTestHarness(t)
 		script := `
 			func get_two() means
@@ -157,7 +161,6 @@ func TestLValueAssignments(t *testing.T) {
 	})
 
 	t.Run("Multi-assignment with correct count", func(t *testing.T) {
-		t.Skip("Skipping all lvalue tests due to known underlying bug.")
 		h := NewTestHarness(t)
 		script := `
 			func get_vals() means
@@ -165,18 +168,26 @@ func TestLValueAssignments(t *testing.T) {
 			endfunc
 			func main() means
 				set x, y = get_vals()
+				return x, y
 			endfunc
 		`
 		tree, _ := h.Parser.Parse(script)
 		program, _, _ := h.ASTBuilder.Build(tree)
 		h.Interpreter.Load(&interfaces.Tree{Root: program})
-		_, err := h.Interpreter.Run("main")
+		result, err := h.Interpreter.Run("main")
 		if err != nil {
 			t.Fatalf("Script execution failed: %v", err)
 		}
 
-		x, _ := h.Interpreter.GetVariable("x")
-		y, _ := h.Interpreter.GetVariable("y")
+		resList, ok := result.(lang.ListValue)
+		if !ok {
+			t.Fatalf("Expected ListValue, got %T", result)
+		}
+		if len(resList.Value) != 2 {
+			t.Fatalf("Expected 2 elements, got %d", len(resList.Value))
+		}
+		x := resList.Value[0]
+		y := resList.Value[1]
 
 		expectedX := lang.StringValue{Value: "a"}
 		expectedY := lang.NumberValue{Value: 10}

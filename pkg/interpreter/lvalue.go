@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.8.0
-// File version: 27
-// Purpose: Re-plumbed all expression evaluation to use the external 'eval' package.
-// filename: pkg/interpreter/lvalue.go
-// nlines: 230
-// risk_rating: HIGH
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 29
+// :: description: Fixed non-container overwrite behavior. Improved isNil checking.
+// :: latestChange: Removed `!isContainer` from vivification condition so invalid indexing properly fails in traverseAndSet.
+// :: filename: pkg/interpreter/lvalue.go
+// :: serialization: go
 
 package interpreter
 
@@ -102,7 +103,7 @@ func (i *Interpreter) setSingleLValue(lvalueExpr ast.Expression, rhsValue lang.V
 	baseVarName := lval.Identifier
 	orig, exists := i.GetVariable(baseVarName)
 
-	if !exists || isNil(orig) || !isContainer(orig) {
+	if !exists || isNil(orig) {
 		newStructure, err := i.buildNestedStructure(lval.Accessors, rhsValue)
 		if err != nil {
 			return err
@@ -119,7 +120,6 @@ func (i *Interpreter) setSingleLValue(lvalueExpr ast.Expression, rhsValue lang.V
 
 // traverseAndSet navigates a pre-existing container structure.
 func (i *Interpreter) traverseAndSet(current lang.Value, accessors []*ast.AccessorNode, valueToPlace lang.Value) error {
-	// ... (implementation remains the same)
 	accessor := accessors[0]
 	remainingAccessors := accessors[1:]
 	isLast := len(remainingAccessors) == 0
@@ -166,12 +166,11 @@ func (i *Interpreter) traverseAndSet(current lang.Value, accessors []*ast.Access
 		}
 		return i.traverseAndSet(child, remainingAccessors, valueToPlace)
 	}
-	return lang.NewRuntimeError(lang.ErrorCodeInternal, "traverseAndSet called on a non-container", nil)
+	return lang.NewRuntimeError(lang.ErrorCodeInternal, fmt.Sprintf("traverseAndSet called on a non-container: %T", current), nil)
 }
 
 // buildNestedStructure recursively creates the necessary maps and lists for vivification.
 func (i *Interpreter) buildNestedStructure(accessors []*ast.AccessorNode, finalValue lang.Value) (lang.Value, error) {
-	// ... (implementation remains the same)
 	if len(accessors) == 0 {
 		return finalValue, nil
 	}
@@ -189,7 +188,7 @@ func (i *Interpreter) buildNestedStructure(accessors []*ast.AccessorNode, finalV
 		if err != nil {
 			return nil, err
 		}
-		return lang.NewMapValue(map[string]lang.Value{key: innerStructure}), nil
+		return &lang.MapValue{Value: map[string]lang.Value{key: innerStructure}}, nil
 	}
 	index, err := i.evaluateAccessorIndex(accessor)
 	if err != nil {
@@ -246,7 +245,6 @@ func (i *Interpreter) evaluateAccessorIndex(accessor *ast.AccessorNode) (int64, 
 	return index, nil
 }
 
-// ... other helpers (padList, deepCloneValue, isNil, isContainer) remain the same ...
 func padList(list []lang.Value, requiredIndex int64) []lang.Value {
 	for int64(len(list)) <= requiredIndex {
 		list = append(list, &lang.NilValue{})
@@ -264,11 +262,23 @@ func deepCloneValue(v lang.Value) lang.Value {
 		for k, val := range t.Value {
 			nm[k] = deepCloneValue(val)
 		}
-		return lang.NewMapValue(nm)
+		return &lang.MapValue{Value: nm}
+	case lang.MapValue:
+		nm := make(map[string]lang.Value, len(t.Value))
+		for k, val := range t.Value {
+			nm[k] = deepCloneValue(val)
+		}
+		return &lang.MapValue{Value: nm}
 	case *lang.ListValue:
 		if t == nil {
 			return nil
 		}
+		nl := make([]lang.Value, len(t.Value))
+		for i, val := range t.Value {
+			nl[i] = deepCloneValue(val)
+		}
+		return &lang.ListValue{Value: nl}
+	case lang.ListValue:
 		nl := make([]lang.Value, len(t.Value))
 		for i, val := range t.Value {
 			nl[i] = deepCloneValue(val)
@@ -280,8 +290,15 @@ func deepCloneValue(v lang.Value) lang.Value {
 }
 
 func isNil(v lang.Value) bool {
-	_, ok := v.(*lang.NilValue)
-	return v == nil || ok
+	if v == nil {
+		return true
+	}
+	switch v.(type) {
+	case *lang.NilValue, lang.NilValue:
+		return true
+	default:
+		return false
+	}
 }
 
 func isContainer(v lang.Value) bool {

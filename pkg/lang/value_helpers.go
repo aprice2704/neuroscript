@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.8.0
-// File version: 10
-// Purpose: Corrects 'core.Wrap' error message to 'lang.Wrap' and adds reflection-based wrapping for numeric slices.
-// filename: pkg/lang/value_helpers.go
-// nlines: 219
-// risk_rating: HIGH
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 11
+// :: description: Corrects 'core.Wrap' error message to 'lang.Wrap' and adds reflection-based wrapping for numeric slices. Added *ListValue unwrapping.
+// :: latestChange: Added explicit *ListValue support in Wrap and Unwrap to handle pointer types from lvalue assignments.
+// :: filename: pkg/lang/value_helpers.go
+// :: serialization: go
 
 package lang
 
@@ -29,6 +30,10 @@ func Wrap(x any) (Value, error) {
 		// Ensure MapValue pointers from incorrect wrapping are dereferenced
 		if mvPtr, ok := v.(*MapValue); ok && mvPtr != nil {
 			return *mvPtr, nil // Return the value, not the pointer
+		}
+		// Ensure ListValue pointers from incorrect wrapping are dereferenced
+		if lvPtr, ok := v.(*ListValue); ok && lvPtr != nil {
+			return *lvPtr, nil // Return the value, not the pointer
 		}
 		// FIX: Ensure NilValue pointers are handled correctly if passed in
 		if _, ok := v.(*NilValue); ok {
@@ -129,10 +134,8 @@ func Unwrap(v Value) any {
 	switch t := v.(type) {
 	case NilValue:
 		return nil
-	// --- ADD THIS CASE ---
 	case *NilValue: // Handle pointer to NilValue explicitly
 		return nil
-	// --- END ADD ---
 	case StringValue:
 		return t.Value
 	case BytesValue:
@@ -151,6 +154,15 @@ func Unwrap(v Value) any {
 		return t.Value // Returns the raw ToolImplementation struct
 
 	case ListValue:
+		out := make([]any, len(t.Value))
+		for i, e := range t.Value {
+			out[i] = Unwrap(e)
+		}
+		return out
+	case *ListValue:
+		if t == nil {
+			return nil
+		}
 		out := make([]any, len(t.Value))
 		for i, e := range t.Value {
 			out[i] = Unwrap(e)

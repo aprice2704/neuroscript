@@ -1,9 +1,10 @@
-// filename: pkg/lang/type_utils.go
-// NeuroScript Version: 0.4.1
-// File version: 14
-// Purpose: Fixes ToString to handle *NilValue pointers correctly.
-// nlines: 300
-// risk_rating: MEDIUM
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 18
+// :: description: Patched IsTruthy and IsZeroValue to unwrap interfaces and recursively check for typed nils and empty collections. Fixed non-nil pointer tests. Added depth limit to recursion.
+// :: latestChange: Added max depth to isDeepTruthy to prevent infinite loops from pathological self-referential pointers/interfaces.
+// :: filename: pkg/lang/type_utils.go
+// :: serialization: go
 
 package lang
 
@@ -134,6 +135,16 @@ func UnwrapValue(v interface{}) interface{} {
 			unwrappedList[i] = UnwrapValue(item)
 		}
 		return unwrappedList
+	case *ListValue:
+		if val == nil {
+			return nil
+		}
+		// Recursively unwrap elements in the list
+		unwrappedList := make([]interface{}, len(val.Value))
+		for i, item := range val.Value {
+			unwrappedList[i] = UnwrapValue(item)
+		}
+		return unwrappedList
 	case *MapValue:
 		// FIX: Add nil check for pointer
 		if val == nil {
@@ -247,63 +258,92 @@ func ToNumeric(val interface{}) (NumberValue, bool) {
 // This function centralizes the logic for how different types are evaluated
 // in boolean contexts like 'if', 'while', and 'must' statements.
 func IsTruthy(v Value) bool {
-	if v == nil {
-		return false
-	}
-	// FIX: Add nil safety check
-	rv := reflect.ValueOf(v)
-	if rv.Kind() == reflect.Ptr || rv.Kind() == reflect.Interface {
-		if rv.IsNil() {
-			return false
-		}
-	}
-	return v.IsTruthy()
+	return isDeepTruthy(v)
 }
 
-// isZeroValue checks if a value is its "zero" or "empty" equivalent.
+// IsZeroValue checks if a value is its "zero" or "empty" equivalent.
 // This is used for the 'no' and 'some' unary operators.
 func IsZeroValue(val interface{}) bool {
-	if val == nil {
+	return !isDeepTruthy(val)
+}
+
+const maxTruthinessDepth = 20
+
+// isDeepTruthy unwraps interfaces and recursively checks for typed nils and empty collections.
+// This aligns with developer intuition and prevents leaky abstractions where
+// a Go tool returns a strongly-typed nil map wrapped in an interface.
+func isDeepTruthy(val interface{}) bool {
+	return isDeepTruthyInternal(val, 0)
+}
+
+func isDeepTruthyInternal(val interface{}, depth int) bool {
+	if depth > maxTruthinessDepth {
+		// Fail-safe against pathological self-referential structures to prevent DoS via infinite loop
 		return true
 	}
 
-	// Handle Value types first
+	if val == nil {
+		return false
+	}
+
+	// 1. Check if it's already a NeuroScript Value
 	if v, ok := val.(Value); ok {
-		if _, isNil := v.(NilValue); isNil {
-			return true
-		}
-		// FIX: Add nil safety check
+		// Safety check for typed nils implementing Value
 		rv := reflect.ValueOf(v)
 		if rv.Kind() == reflect.Ptr || rv.Kind() == reflect.Interface {
 			if rv.IsNil() {
-				return true
+				return false
 			}
 		}
-		// For other value types, their IsTruthy method defines their non-zero state.
-		// isZero is the opposite of IsTruthy for these types.
-		return !v.IsTruthy()
+
+		// ToolValue wraps an 'any'. Unwrap it to check the underlying Go type.
+		if tv, isToolVal := v.(ToolValue); isToolVal {
+			return isDeepTruthyInternal(tv.Value, depth+1)
+		}
+
+		// For other Neuroscript values, trust their IsTruthy implementation
+		return v.IsTruthy()
 	}
 
-	// Fallback for native types
-	v := reflect.ValueOf(val)
-	if !v.IsValid() {
-		return true
+	// 2. Fallback to raw Go types via reflection
+	rv := reflect.ValueOf(val)
+	if !rv.IsValid() {
+		return false
 	}
-	switch v.Kind() {
+
+	// Unwrap pure interfaces (e.g. any)
+	for rv.Kind() == reflect.Interface {
+		if depth > maxTruthinessDepth {
+			return true
+		}
+		if rv.IsNil() {
+			return false
+		}
+		rv = rv.Elem()
+		depth++
+	}
+
+	// After unwrapping interfaces, check again if it's a NeuroScript Value
+	if v, ok := rv.Interface().(Value); ok {
+		return isDeepTruthyInternal(v, depth+1)
+	}
+
+	// 3. Evaluate truthiness of native Go types
+	switch rv.Kind() {
 	case reflect.Slice, reflect.Map, reflect.String, reflect.Array:
-		return v.Len() == 0
+		return rv.Len() > 0
 	case reflect.Bool:
-		return !v.Bool()
+		return rv.Bool()
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return v.Int() == 0
+		return rv.Int() != 0
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		return v.Uint() == 0
+		return rv.Uint() != 0
 	case reflect.Float32, reflect.Float64:
-		return v.Float() == 0
-	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Ptr:
-		return v.IsNil()
+		return rv.Float() != 0
+	case reflect.Chan, reflect.Func, reflect.Ptr, reflect.UnsafePointer:
+		return !rv.IsNil()
 	default:
-		// For other types, check against the type's zero value.
-		return v.IsZero()
+		// For other types like structs, check if it's not the zero value.
+		return !rv.IsZero()
 	}
 }

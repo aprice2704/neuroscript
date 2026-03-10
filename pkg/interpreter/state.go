@@ -1,15 +1,17 @@
-// NeuroScript Version: 0.8.0
-// File version: 15
-// Purpose: Updates GetVariable to search constants and provider in correct order.
-// filename: pkg/interpreter/state.go
-// nlines: 104
-// risk_rating: HIGH
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 17
+// :: description: Updates GetVariable to safely coerce custom primitive types returned by the host.
+// :: latestChange: Added reflection-based coercion for custom string/int types (like nodes.FieldName) when lang.Wrap fails.
+// :: filename: pkg/interpreter/state.go
+// :: serialization: go
 
 package interpreter
 
 import (
 	"errors"
 	"fmt"
+	"reflect"
 
 	"github.com/aprice2704/neuroscript/pkg/interfaces"
 	"github.com/aprice2704/neuroscript/pkg/lang"
@@ -61,42 +63,56 @@ func (i *Interpreter) GetVariable(name string) (lang.Value, bool) {
 	}
 
 	root := i.rootInterpreter()
-	if i == root {
-		// We are the root, so we just need to check our own constants
-		root.state.variablesMu.RLock()
-		defer root.state.variablesMu.RUnlock()
-		// (Global vars already checked above in local scope)
 
-		// 3. Check root's global constants
-		val, exists = root.state.globalConstants[name] // This line is now valid
-		if exists {
-			return val, true
-		}
-	} else {
-		// We are in a fork, check root's globals and constants
-		root.state.variablesMu.RLock()
-		defer root.state.variablesMu.RUnlock()
+	// Lock root to check its globals and constants
+	root.state.variablesMu.RLock()
 
-		// 2. Check root's global variables
+	if i != root {
+		// 2. Check root's global variables (only if we are a fork)
 		if _, isGlobal := root.state.globalVarNames[name]; isGlobal {
 			val, exists = root.state.variables[name]
 			if exists {
+				root.state.variablesMu.RUnlock()
 				return val, true
 			}
 		}
-		// 3. Check root's global constants
-		val, exists = root.state.globalConstants[name] // This line is now valid
-		if exists {
-			return val, true
-		}
+	}
+
+	// 3. Check root's global constants
+	val, exists = root.state.globalConstants[name]
+	root.state.variablesMu.RUnlock() // Release before calling out to provider!
+
+	if exists {
+		return val, true
 	}
 
 	// 4. Check Symbol Provider's constants (only root has provider)
 	if provider := root.symbolProvider(); provider != nil {
 		valAny, exists := provider.GetGlobalConstant(name)
 		if exists {
+			// If it's already a lang.Value, use it
 			if val, ok := valAny.(lang.Value); ok {
 				return val, true
+			}
+			// Try standard wrap
+			if wrapped, err := lang.Wrap(valAny); err == nil {
+				return wrapped, true
+			} else {
+				// THE FIX: Coerce custom primitive types (like nodes.FieldName) if wrap fails
+				rt := reflect.TypeOf(valAny)
+				if rt != nil {
+					switch rt.Kind() {
+					case reflect.String:
+						return lang.StringValue{Value: reflect.ValueOf(valAny).String()}, true
+					case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+						return lang.NumberValue{Value: float64(reflect.ValueOf(valAny).Int())}, true
+					case reflect.Float32, reflect.Float64:
+						return lang.NumberValue{Value: reflect.ValueOf(valAny).Float()}, true
+					case reflect.Bool:
+						return lang.BoolValue{Value: reflect.ValueOf(valAny).Bool()}, true
+					}
+				}
+				root.Logger().Warn("Failed to wrap global constant and could not coerce", "name", name, "type", fmt.Sprintf("%T", valAny), "error", err)
 			}
 		}
 	}
