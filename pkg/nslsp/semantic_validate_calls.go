@@ -1,16 +1,18 @@
 // :: product: FDM/NS
 // :: majorVersion: 1
-// :: fileVersion: 3
+// :: fileVersion: 8
 // :: description: Restored "Procedure defined in another file" Information diagnostic, guarded by isDebug flag, to satisfy tests.
-// :: latestChange: Re-enabled info diagnostic when SemanticAnalyzer.isDebug is true.
+// :: latestChange: Support built-in functions that do not use the call_target grammar rule (e.g. keywords like len, sin).
 // :: filename: pkg/nslsp/semantic_validate_calls.go
 // :: serialization: go
+
 package nslsp
 
 import (
 	"fmt"
 	"strings"
 
+	"github.com/antlr4-go/antlr/v4"
 	gen "github.com/aprice2704/neuroscript/pkg/antlr/generated"
 	"github.com/aprice2704/neuroscript/pkg/tool"
 	"github.com/aprice2704/neuroscript/pkg/types"
@@ -20,16 +22,28 @@ import (
 // EnterCallable_expr is the single entry point for validating all tool and procedure calls.
 func (l *validationListener) EnterCallable_expr(ctx *gen.Callable_exprContext) {
 	callTarget := ctx.Call_target()
-	if callTarget == nil {
-		return
-	}
-	if callTarget.KW_TOOL() != nil {
+
+	if callTarget != nil && callTarget.KW_TOOL() != nil {
 		l.validateToolCall(ctx)
 		return
 	}
-	if callTarget.IDENTIFIER() != nil {
-		l.validateProcedureCall(ctx)
+
+	var procName string
+	if callTarget != nil {
+		procName = callTarget.GetText()
+	} else if ctx.GetChildCount() > 0 {
+		// Built-in functions like len, sin, etc. may be defined as direct children (keywords)
+		// rather than inside a call_target rule.
+		if pt, ok := ctx.GetChild(0).(antlr.ParseTree); ok {
+			procName = pt.GetText()
+		} else {
+			return
+		}
+	} else {
+		return
 	}
+
+	l.validateProcedureCall(ctx, procName)
 }
 
 func (l *validationListener) validateToolCall(ctx *gen.Callable_exprContext) {
@@ -105,19 +119,26 @@ func (l *validationListener) validateToolCall(ctx *gen.Callable_exprContext) {
 	}
 }
 
-func (l *validationListener) validateProcedureCall(ctx *gen.Callable_exprContext) {
-	procName := ctx.Call_target().IDENTIFIER().GetText()
+func (l *validationListener) validateProcedureCall(ctx *gen.Callable_exprContext, procName string) {
 	actualArgCount := 0
 	if ctx.Expression_list_opt() != nil && ctx.Expression_list_opt().Expression_list() != nil {
 		actualArgCount = len(ctx.Expression_list_opt().Expression_list().AllExpression())
 	}
-	token := ctx.Call_target().GetStart()
+
+	token := ctx.GetStart()
+	if ctx.Call_target() != nil {
+		token = ctx.Call_target().GetStart()
+	}
 
 	var symbolInfo SymbolInfo
 	var isDefined bool
 
 	if info, isLocal := l.semanticAnalyzer.localSymbols[procName]; isLocal {
 		symbolInfo = info
+		isDefined = true
+	} else if builtInInfo, isBuiltIn := BuiltInFunctions[procName]; isBuiltIn {
+		// Route built-ins through the same arity checker as standard procedures
+		symbolInfo = SymbolInfo{MinArgs: builtInInfo.MinArgs, MaxArgs: builtInInfo.MaxArgs}
 		isDefined = true
 	} else if l.semanticAnalyzer.symbolManager != nil {
 		info, isGlobal := l.semanticAnalyzer.symbolManager.GetSymbolInfo(procName)
@@ -133,7 +154,6 @@ func (l *validationListener) validateProcedureCall(ctx *gen.Callable_exprContext
 					Severity: lsp.Information,
 					Source:   "nslsp-semantic",
 					Message:  fmt.Sprintf("Procedure '%s' is defined in another file.", procName),
-					// Code: Not strictly checked by test, but useful for filtering
 				})
 			}
 		}

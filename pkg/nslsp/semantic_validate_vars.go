@@ -1,8 +1,8 @@
 // :: product: FDM/NS
 // :: majorVersion: 1
-// :: fileVersion: 5
+// :: fileVersion: 6
 // :: description: Refactored: Contains all validation listener logic for variable scope, initialization tracking, and read validation.
-// :: latestChange: Added newly implemented built-in functions to the ignore set to prevent UninitializedVar warnings.
+// :: latestChange: Injected self and system_error_message into globally initialized scope.
 // :: filename: pkg/nslsp/semantic_validate_vars.go
 // :: serialization: go
 
@@ -54,6 +54,9 @@ func (l *validationListener) initializeScope() {
 	l.initializedVars = make(map[string]bool)
 	l.initializedVars["stdout"] = true
 	l.initializedVars["stderr"] = true
+	l.initializedVars["self"] = true
+	// system_error_message is always implicitly available in scopes that can have errors.
+	l.initializedVars["system_error_message"] = true
 }
 
 func (l *validationListener) EnterProcedure_definition(ctx *gen.Procedure_definitionContext) {

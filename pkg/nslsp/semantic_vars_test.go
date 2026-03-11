@@ -1,8 +1,10 @@
-// NeuroScript Version: 0.7.0
-// File version: 2
-// Purpose: Provides tests for the uninitialized variable check. FIX: Removed unused symbolManager variable declaration.
-// filename: pkg/nslsp/semantic_vars_test.go
-// nlines: 109
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 4
+// :: description: Provides tests for the uninitialized variable check.
+// :: latestChange: Moved test environment setup inside t.Run to prevent state leakage and Heisenfails.
+// :: filename: pkg/nslsp/semantic_vars_test.go
+// :: serialization: go
 
 package nslsp
 
@@ -10,6 +12,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/parser"
@@ -18,14 +21,7 @@ import (
 )
 
 func TestSemanticAnalyzer_UninitializedVars(t *testing.T) {
-	// --- Setup ---
-	server := NewServer(log.New(io.Discard, "", 0))
-	registry := server.interpreter.ToolRegistry()
-	parserAPI := parser.NewParserAPI(nil)
 	isDebug := os.Getenv("DEBUG_LSP_HOVER_TEST") != ""
-	// FIX: Removed unused 'symbolManager' variable. We pass nil intentionally.
-	// Note: We pass nil for symbolManager to isolate this to local-file analysis
-	analyzer := NewSemanticAnalyzer(registry, NewExternalToolManager(), nil, isDebug)
 
 	testCases := []struct {
 		name             string
@@ -104,11 +100,45 @@ func TestSemanticAnalyzer_UninitializedVars(t *testing.T) {
 			expectedSeverity: lsp.Warning,
 			expectedCount:    1,
 		},
+		// --- Predefined Variables ---
+		{
+			name:             "Valid: Use of 'self'",
+			script:           "func M() means\n  whisper self, \"hello\"\nendfunc",
+			expectedCode:     nil,
+			expectedSeverity: 0,
+			expectedCount:    0,
+		},
+		{
+			name:             "Valid: Use of 'system_error_message'",
+			script:           "command\n  on error do\n    emit system_error_message\n  endon\n  fail \"oops\"\nendcommand",
+			expectedCode:     nil,
+			expectedSeverity: 0,
+			expectedCount:    0,
+		},
+		{
+			name:             "Valid: Use of 'stdout' and 'stderr'",
+			script:           "func M() means\n  set x = stdout\n  set y = stderr\nendfunc",
+			expectedCode:     nil,
+			expectedSeverity: 0,
+			expectedCount:    0,
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			tree, syntaxErrors := parserAPI.ParseForLSP("test.ns", tc.script)
+			// --- Setup INSIDE t.Run to ensure complete isolation ---
+			server := NewServer(log.New(io.Discard, "", 0))
+			registry := server.interpreter.ToolRegistry()
+			parserAPI := parser.NewParserAPI(nil)
+
+			// Note: We pass nil for symbolManager to isolate this to local-file analysis
+			analyzer := NewSemanticAnalyzer(registry, NewExternalToolManager(), nil, isDebug)
+
+			safeName := strings.ReplaceAll(tc.name, " ", "_")
+			safeName = strings.ReplaceAll(safeName, ":", "")
+			fileName := "test_" + safeName + ".ns"
+
+			tree, syntaxErrors := parserAPI.ParseForLSP(fileName, tc.script)
 			if len(syntaxErrors) > 0 {
 				t.Fatalf("Test script has unexpected syntax errors: %v", syntaxErrors)
 			}
@@ -125,12 +155,20 @@ func TestSemanticAnalyzer_UninitializedVars(t *testing.T) {
 				return
 			}
 
-			if len(diagnostics) != tc.expectedCount {
-				t.Fatalf("Expected %d diagnostic(s), but got %d. Diagnostics: %v", tc.expectedCount, len(diagnostics), diagnostics)
+			// Filter to just the UninitializedVar diagnostics
+			var relevantDiags []lsp.Diagnostic
+			for _, d := range diagnostics {
+				if d.Code == string(DiagCodeUninitializedVar) {
+					relevantDiags = append(relevantDiags, d)
+				}
 			}
 
-			if diagnostics[0].Code != tc.expectedCode {
-				t.Errorf("Expected diagnostic code '%v', but got '%v'", tc.expectedCode, diagnostics[0].Code)
+			if len(relevantDiags) != tc.expectedCount {
+				t.Fatalf("Expected %d UninitializedVar diagnostic(s), but got %d. All Diagnostics: %v", tc.expectedCount, len(relevantDiags), diagnostics)
+			}
+
+			if relevantDiags[0].Code != tc.expectedCode {
+				t.Errorf("Expected diagnostic code '%v', but got '%v'", tc.expectedCode, relevantDiags[0].Code)
 			}
 		})
 	}

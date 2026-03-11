@@ -904,6 +904,15 @@
     ],
     "description": "Parses raw LLM output, sanitizes it, and persists all Atoms/Contracts to the Graph."
   },
+  "fdm.analysis.ndsa.prepare": {
+    "prefix": "fdm.analysis.ndsa.prepare",
+    "body": [
+      "tool.fdm.analysis.ndsa.prepare({",
+      "    ${1:key}: ${2:value}",
+      "})"
+    ],
+    "description": "Prepares an NDSA task by resolving the order, task, and target file contents."
+  },
   "fdm.analysis.ndsa.sanitize": {
     "prefix": "fdm.analysis.ndsa.sanitize",
     "body": [

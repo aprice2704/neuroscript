@@ -1,8 +1,8 @@
 // :: product: FDM/NS
 // :: majorVersion: 1
-// :: fileVersion: 12
+// :: fileVersion: 13
 // :: description: Implements textDocument/completion. FEAT: Merges built-ins, snippets, and now External Constants.
-// :: latestChange: Added interpolation symbol completions for {{@...}}
+// :: latestChange: Now merges predefined variables (self, system_error_message, etc.) into general completion list.
 // :: filename: pkg/nslsp/completion.go
 // :: serialization: go
 
@@ -70,14 +70,16 @@ func (s *Server) handleTextDocumentCompletion(ctx context.Context, conn *jsonrpc
 	}
 
 	// --- General Completion Logic ---
-	// If we are not in a tool expression, return snippets, built-in functions, AND constants.
+	// If we are not in a tool expression, return snippets, built-in functions, constants, AND predefined vars.
 	snippets := s.getSnippetCompletions()
 	builtIns := s.getBuiltInCompletions()
 	constants := s.getExternalConstantCompletions()
+	predefs := s.getPredefinedVariableCompletions()
 
 	// Merge the lists
 	snippets.Items = append(snippets.Items, builtIns.Items...)
 	snippets.Items = append(snippets.Items, constants.Items...)
+	snippets.Items = append(snippets.Items, predefs.Items...)
 	return snippets, nil
 }
 
@@ -213,9 +215,10 @@ func createCompletionItemFromSpec(spec tool.ToolSpec) lsp.CompletionItem {
 	paramSignature := strings.Join(params, ", ")
 	fullSignatureForDetail := fmt.Sprintf("(%s) -> %s", paramSignature, spec.ReturnType)
 
+	bt3 := "``" + "`"
 	// Build a markdown documentation string to help the client with syntax highlighting.
 	var docBuilder strings.Builder
-	docBuilder.WriteString(fmt.Sprintf("```neuroscript\n(tool) %s%s\n```\n", spec.Name, fullSignatureForDetail))
+	docBuilder.WriteString(fmt.Sprintf("%sneuroscript\n(tool) %s%s\n%s\n", bt3, spec.Name, fullSignatureForDetail, bt3))
 	if spec.Description != "" {
 		docBuilder.WriteString("---\n")
 		docBuilder.WriteString(spec.Description)

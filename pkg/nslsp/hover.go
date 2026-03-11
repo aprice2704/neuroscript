@@ -1,10 +1,11 @@
 // :: product: FDM/NS
 // :: majorVersion: 1
-// :: fileVersion: 7
+// :: fileVersion: 8
 // :: description: FEAT: Added hover support for user-defined workspace procedures and interpolations.
-// :: latestChange: Added getInterpolationHover.
+// :: latestChange: Now checks PredefinedVariables to display hover help for `self`, `system_error_message`, etc.
 // :: filename: pkg/nslsp/hover.go
 // :: serialization: go
+
 package nslsp
 
 import (
@@ -76,12 +77,18 @@ func (s *Server) handleTextDocumentHover(ctx context.Context, conn *jsonrpc2.Con
 		return s.getKeywordHover(keywordTokenType), nil
 	}
 
-	// --- Step 4: Check for a workspace-defined procedure (e.g. MyFunc) ---
-	procName := s.extractProcedureNameAtPosition(content, params.Position, uriStr)
-	if procName != "" {
-		if info, found := s.symbolManager.GetSymbolInfo(procName); found {
+	// --- Step 4: Check for a workspace-defined procedure or predefined variable ---
+	identName := s.extractProcedureNameAtPosition(content, params.Position, uriStr)
+	if identName != "" {
+		// 4a. Is it a predefined variable? (self, system_error_message, etc.)
+		if hover := s.getPredefinedVariableHover(identName); hover != nil {
+			return hover, nil
+		}
+
+		// 4b. Is it a workspace-defined procedure?
+		if info, found := s.symbolManager.GetSymbolInfo(identName); found {
 			var hoverContent strings.Builder
-			hoverContent.WriteString(fmt.Sprintf("```neuroscript\nfunc %s%s\n```\n", procName, info.Signature))
+			hoverContent.WriteString(fmt.Sprintf("```neuroscript\nfunc %s%s\n```\n", identName, info.Signature))
 			hoverContent.WriteString("---\n")
 
 			// Clean up the link

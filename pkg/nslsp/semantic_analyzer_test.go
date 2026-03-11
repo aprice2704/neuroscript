@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.7.0
-// File version: 11
-// Purpose: Updated tests to provide the new SymbolManager dependency when creating a SemanticAnalyzer. FIX: Added tests for new informational diagnostic on missing optional tool arguments.
-// filename: pkg/nslsp/semantic_analyzer_test.go
-// nlines: 201
-// risk_rating: MEDIUM
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 12
+// :: description: Updated tests to provide the new SymbolManager dependency when creating a SemanticAnalyzer.
+// :: latestChange: Moved test environment setup inside t.Run to prevent state leakage and Heisenfails.
+// :: filename: pkg/nslsp/semantic_analyzer_test.go
+// :: serialization: go
 
 package nslsp
 
@@ -13,6 +14,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/aprice2704/neuroscript/pkg/parser"
@@ -22,20 +24,7 @@ import (
 )
 
 func TestSemanticAnalyzer_BuiltInTools(t *testing.T) {
-	// --- Setup: Create a server to get a real tool registry ---
-	server := NewServer(log.New(io.Discard, "", 0))
-	registry := server.interpreter.ToolRegistry()
-	if registry == nil {
-		t.Fatal("Failed to get tool registry from new server instance.")
-	}
-
-	parserAPI := parser.NewParserAPI(nil)
 	isDebug := os.Getenv("DEBUG_LSP_HOVER_TEST") != ""
-	// THE FIX IS HERE
-	symbolManager := NewSymbolManager(log.New(io.Discard, "", 0))
-	analyzer := NewSemanticAnalyzer(registry, NewExternalToolManager(), symbolManager, isDebug)
-
-	t.Logf("[SemanticAnalyzerTest] Tool registry initialized with %d tools for test run.", registry.NTools())
 
 	testCases := []struct {
 		name             string
@@ -83,7 +72,22 @@ func TestSemanticAnalyzer_BuiltInTools(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			tree, syntaxErrors := parserAPI.ParseForLSP("test.ns", tc.script)
+			// --- Setup INSIDE t.Run to ensure complete isolation ---
+			server := NewServer(log.New(io.Discard, "", 0))
+			registry := server.interpreter.ToolRegistry()
+			if registry == nil {
+				t.Fatal("Failed to get tool registry from new server instance.")
+			}
+
+			parserAPI := parser.NewParserAPI(nil)
+			symbolManager := NewSymbolManager(log.New(io.Discard, "", 0))
+			analyzer := NewSemanticAnalyzer(registry, NewExternalToolManager(), symbolManager, isDebug)
+
+			safeName := strings.ReplaceAll(tc.name, " ", "_")
+			safeName = strings.ReplaceAll(safeName, ":", "")
+			fileName := "test_" + safeName + ".ns"
+
+			tree, syntaxErrors := parserAPI.ParseForLSP(fileName, tc.script)
 			if len(syntaxErrors) > 0 {
 				t.Fatalf("Test script has unexpected syntax errors: %v", syntaxErrors)
 			}
@@ -142,15 +146,6 @@ func TestSemanticAnalyzer_WithExternalTools(t *testing.T) {
 		t.Fatalf("Failed to write tools.json: %v", err)
 	}
 
-	// 2. Setup the analyzer with the external tool manager.
-	parserAPI := parser.NewParserAPI(nil)
-	externalManager := NewExternalToolManager()
-	externalManager.LoadFromPaths(log.New(io.Discard, "", 0), tempDir, []string{"external-tools.json"})
-
-	// THE FIX IS HERE
-	symbolManager := NewSymbolManager(log.New(io.Discard, "", 0))
-	analyzer := NewSemanticAnalyzer(nil, externalManager, symbolManager, false)
-
 	// 3. Define test cases
 	testCases := []struct {
 		name             string
@@ -187,7 +182,19 @@ func TestSemanticAnalyzer_WithExternalTools(t *testing.T) {
 	// 4. Run tests
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			tree, _ := parserAPI.ParseForLSP("test.ns", tc.script)
+			// --- Setup INSIDE t.Run to ensure complete isolation ---
+			parserAPI := parser.NewParserAPI(nil)
+			externalManager := NewExternalToolManager()
+			externalManager.LoadFromPaths(log.New(io.Discard, "", 0), tempDir, []string{"external-tools.json"})
+
+			symbolManager := NewSymbolManager(log.New(io.Discard, "", 0))
+			analyzer := NewSemanticAnalyzer(nil, externalManager, symbolManager, false)
+
+			safeName := strings.ReplaceAll(tc.name, " ", "_")
+			safeName = strings.ReplaceAll(safeName, ":", "")
+			fileName := "test_" + safeName + ".ns"
+
+			tree, _ := parserAPI.ParseForLSP(fileName, tc.script)
 			if tree == nil {
 				t.Fatal("Parser returned a nil tree")
 			}

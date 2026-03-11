@@ -1884,6 +1884,26 @@
     },
     {
       "spec": {
+        "name": "prepare",
+        "groupname": "fdm.analysis.ndsa",
+        "fullname": "",
+        "description": "Prepares an NDSA task by resolving the order, task, and target file contents.",
+        "args": [
+          {
+            "name": "params",
+            "type": "map",
+            "description": "Keys: order (map)",
+            "required": false
+          }
+        ],
+        "returnType": "map"
+      },
+      "requiresTrust": false,
+      "isInternal": false,
+      "signatureChecksum": ""
+    },
+    {
+      "spec": {
         "name": "sanitize",
         "groupname": "fdm.analysis.ndsa",
         "fullname": "",
@@ -1912,7 +1932,7 @@
           {
             "name": "params",
             "type": "map",
-            "description": "Keys: raw_json, subject_id, model_name, order_id, work_item_id, worker_id, file_hash, skip_reason",
+            "description": "Keys: raw_json, subject_id, model_name, order_id, file_hash, skip_reason",
             "required": false
           }
         ],
