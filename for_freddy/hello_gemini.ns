@@ -1,0 +1,64 @@
+:: description: A getting started script for Freddy to configure and query Google Gemini via the CLI.
+:: fileVersion: 11
+:: filename: hello_gemini.ns
+:: latestChange: Prefixed the model name with 'models/' as required by the Google API endpoint.
+:: majorVersion: 1
+:: product: FDM/NS
+:: serialization: ns
+
+command
+    emit tool.str.color( \
+        [[ [cyan]=== NeuroScript Gemini LLM Setup === v11[reset] ]] \
+    )
+
+    # Fetch the API key explicitly
+    set api_key = tool.os.Getenv("GOOGLE_API_KEY")
+    if no api_key
+        set api_key = tool.os.Getenv("GEMINI_API_KEY")
+    endif
+    if no api_key
+        fail tool.str.color( \
+            [[ \n\n[red]Please set GEMINI_API_KEY or GOOGLE_API_KEY in your environment![reset]\n\n ]] \
+        )
+    endif
+
+    # 1. Register Account using correct 'api_key' field
+    set account_config = { \
+        "api_key": api_key, \
+        "kind": "llm", \
+        "provider": "google" \
+    }
+    emit tool.str.color([[ [yellow]Registering Gemini account...[reset] ]])
+    must tool.account.Register("google_account", account_config)
+
+    # 2. Register Agent Model using correct 'account_name' field
+    # FIX: Google API requires the "models/" prefix!
+    set gemini_config = { \
+        "account_name": "google_account", \
+        "model": "models/gemini-2.5-flash", \
+        "provider": "google" \
+    }
+    emit tool.str.color( \
+        [[ [yellow]Registering Gemini agent model configuration...[reset] ]] \
+    )
+    must tool.agentmodel.Register("gemini_assistant", gemini_config)
+    emit tool.str.color([[ [green]Setup complete. Ready for input.[reset] ]])
+
+    # 3. Get input from Freddy directly from the CLI
+    promptuser tool.str.color( \
+        [[ [magenta]Freddy, what would you like to ask Gemini? [reset] ]] \
+    ) into user_question
+
+    # 4. Query the LLM
+    emit tool.str.color( \
+        [[ [yellow]Sending prompt to Gemini. Please wait...[reset] ]] \
+    )
+    ask "gemini_assistant", user_question into answer
+
+    # 5. Output the result
+    emit tool.str.color([[ [cyan]=== Gemini Response ===[reset] ]])
+    emit tool.str.color("[green]" + answer + "[reset]")
+    emit tool.str.color( \
+        [[ [green]Script execution finished successfully.[reset] ]] \
+    )
+endcommand

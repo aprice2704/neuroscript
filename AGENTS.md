@@ -1,128 +1,226 @@
-# NeuroScript Go Development: Agent & AI Rules
-**Revision:** 2025-Aug-24  
-**Audience:** All LLMs and human agents contributing to the NeuroScript project.  
+# Rules for You (the assistant)
 
-This document codifies the **CORE RULES** for AI-assisted Go development in NeuroScript.  
-These rules MUST be followed consistently unless explicitly overruled by AJP.  
-We use **Go 1.24+**. These rules emphasize correctness, minimalism, and context awareness.
+- If the user says "NOCODE" that means do not emit any go or neuroscript code until further notice from the user: "YESCODE". md and derivatives are allowed.
 
----
-## 🔴 TOP CRITICAL RULES — ALWAYS OBEY
+### Code Emission Gate (HARD)
+- The assistant must **ALWAYS** provide complete code files, NEVER abbreviated or elided. 
+- NEVER provide unchanged files, unless specifically requested
 
-### 0. COMMANDS
+## 1) Non-Negotiables (apply in all modes) 🧱
+1) **No guessing.** If a symbol/definition isn’t in context: request file(s) or ask user to run **Piranha**.
+2) **No hacks.** No shims/mocks/bypasses to “make it compile”.
+6) **Do-not-edit files.** Never edit a file that says “DO NOT EDIT”.
+7) **Terminology.** Avoid loaded terms: use `allowlist/blocklist`, `main`, `primary/replica`, etc.
+8) **Never ignore returned errors, EVER**. Fix any ignored error instances ON SIGHT to fail fast and return a helpful message (or do something else useful).
+9) **NO silent fails** always produce at least a WARN log, possibly ERROR, if something that **should** be true is not.
+10) Similarly: we have consistently run into silent failures and deviations; whenever there is a deviation from the "straight and happy path" we must flag it to logs.
+
+## 2) Turn Closure (NO-CRICKETS LAW) 🪨
+**Every assistant turn must **end** with a `NEXT:` block. No exceptions.**
+
+### 2.0 Placement rule (anti-scroll) ✅
+- The `NEXT:` block must be the **last thing in the response**, sent as **normal chat text** (not inside a code fence).
+- If emitting long code/files/logs: put them **before** `NEXT:`.
+- **Nothing** may appear after `NEXT:` (no extra commentary, no “also…”, no trailing notes).
+
+A valid `NEXT:` block answers, explicitly:
+- **Do you (the user) run tests now?** If yes: exact command(s).
+- **What output should be pasted back?** (and how much)
+## 3) Response Envelope (what to include)
+**CRITICAL:** The Response Envelope (Goal, Facts, Plan, NEXT) must be sent as **normal chat text**. Only the source code or document artifact goes inside the code block.
 
 
-- include only one file (unless I say otherwise) per turn, always end with a list of files you are yet to provide
-- include the starting comment block of golang files **within** code fences
-- we use goimports to correct import lines, you do not need to worry about them, just get package names (e.g. fmt. etc) correct in the code
-- do not use "github.com.com" or "github.comcom" *ever*, they do not exist
+- **ALWAYS** provide complete code files, NEVER abbreviate or elide. 
 
 
-- If I end a prompt with code- or -code, DO **NOT** GIVE ME FILES that turn
-- If I end a prompt with code+ or +code, do provide files
+### Content emission rule (Visual-first) 📦
 
+- Wrap the entire file or document in **one** Markdown code fence.
+- **Backtick Rule:** Use 4 (FOUR) backticks (` ```` `) or tildes `~~~~` to fence code
+- `.md` or `.ns` file, you MUST use 4 backticks (` ```` `) or tildes `~~~~` for the outer fence to ensure the UI renders correctly for the transfer to final file
+- Do **not** use start/end tags or per-line prefixes.
+- Avoid extra prose inside the fence.
 
-### 1. Understand Context First
-- Always review `.md` docs and relevant Go code **before** making changes.  
-- Fix compiler/test failures with **minimal, targeted edits**. Do not “tidy up” unrelated code.
-- When working on test failures -- focus on **ONE FILE** (or one test) AT MOST until it is fixed. This is more efficient than trying to fix several at once.
+## 4) File Headers (only for modified source files)
+### 4.1 NeuroScript `.ns` header (MANDATORY on modified `.ns`)
+- Must be **native** metadata (NOT commented) at file start, then **one blank line**.
+```text
+:: product: FDM/NS
+:: majorVersion: 1
+:: fileVersion: X
+:: description: <stable high-level purpose>
+:: latestChange: <specific functional change>
+:: filename: path/to/file.ns
+:: serialization: ns
 
-### 1b. DEBUG OUTPUT
-- when debugging test fails ADD DEBUG OUTPUT using PRINTF to stderr **EVERY** TURN until **I** say the test PASSES.
-- I repeat: **IMMEDIATELY** add debug output and keep adding it, NEVER REMOVE IT EXCEPT BY DIRECT REQUEST. Given enough debug output, all bugs are shallow.
+<first code line...>
+```
 
-### 2. Import Hygiene
-- Never output `github.comcom` or `.com.com` It must always be `github.com`.  
-- In `.md` files, do **not** wrap Go import paths in markdown links.
-
-### 3. Full & Functional Files
-- Always deliver **complete files** in inline code boxes please. 
-- **NEVER** leave bodies stubbed with `// ... implementation ...`. That has cost hours of wasted debugging in the past.  
-
-### 4. No File Carpet-Bombing
-- Send only the **files that changed**.  
-- Prefer one or two files at a time.  
-- If multiple files are needed, explain why and stage them clearly.  
-
-### 5. Split Large Files
-- If a Go file grows beyond ~200 LOC, split it logically into multiple files.  
-- Do this automatically when generating new code.  
-
-### 6. File Headers & Versioning
-At the top of **every modified file**, include:
+### 4.2 `.go` header (MANDATORY on modified `.go`)
 ```go
-// NeuroScript Version: 0.3.0   // or current project version
-// File version: X              // bump integer (0.1.7 → 8)
-// Purpose: one-line description
-// filename: path/to/file.go
-// nlines: YYY   // actual line count
-// risk_rating: LOW|MEDIUM|HIGH
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: X
+// :: description: <stable high-level purpose>
+// :: latestChange: <specific functional change>
+// :: filename: path/to/file.go
+// :: serialization: go
+```
+- Use `// ::` primarily for `.go` (and `.sh` only if repo policy or user requests).
+
+### 4.3 `.html` header (MANDATORY on modified `.html`)
+To avoid aggressive markdown rendering in your UI, alwys use this format for HTML file headers.
+```html
+<style>
+/* :: product: FDM/NS */
+/* :: majorVersion: 1 */
+/* :: fileVersion: 1 */
+/* :: description: Services view HTML fragment */
+/* :: filename: sugeno/static/pages/page-services.html */
+/* :: serialization: html */
+</style>
 ```
 
-### 7. Error Handling
-- Never string-compare error messages.  
-- Use `errors.Is` for sentinel errors.  
-- Use `errors.As` for typed errors.  
-- Return sentinel errors (`ErrNotFound`) or wrap with `fmt.Errorf("... %w", err)`.  
-- Avoid using panic for control flow, try to use proper errors everywhere.
 
-### 8. Testing
-- Use the **standard library `testing` package only**.  
-- No `testify` or external assertion libs.  
+## 5) Resend Policy (no “just in case”)
+Do **not** resend unchanged files unless:
+- User explicitly asks (resend/show again), OR
+- The file changed since last emission, OR
+- Prior emission was corrupted/incomplete (e.g., "gibbled") and you state what was wrong.
 
-### 9. No Limping
-- FAIL FAST
-- Always check for nil before use.  
-- If nil means unsafe state, **return an error immediately** (or panic if unrecoverable).  
-- Don’t “limp along” on nil or unexpected formats; ns is designed to be simple and obvious, not forgiving of garbage.
+## 6) Context Gate (ask early, ask precisely) 🔎
+If required context is missing:
+- Request **specific files** (definition + call site), OR ask for **Piranha**:
+  - `piranha <Query>` (example: `piranha LoadFromUnit ExecWithInterpreter`)
 
-### 10. Ask for Missing Info
-- If you need a `.g4` grammar, a fixture, or a file that isn’t present, **ask immediately**.  
-- Don’t hallucinate file contents.  
+Common requests:
+- failing test output + exact command used
+- file containing referenced symbol(s)
+- `go.mod` if boundaries/deps matter
+- relevant `interfaces/` constants and/or generated `nodes/` builders
 
-### 11. No Stubbing
-- Avoid stubbing code. The Go compiler is your ally — it prevents half-programs.  
+## 7) Architectural Laws (do not violate) 🚫
+### 7.1 Canonical Creation Law
+- **Go:** never hand-construct field maps for known node types. Use:
+  - `nodes.Build<Type>(nodes.Build<Type>Params{...})`
+- **NeuroScript:** use `fdm.nodes.<owner>.<name>.create` tools for instantiation.
+- If you touch legacy map construction where a builder exists: refactor to builder.
 
-### 12. Strong Typing
-- Do not use raw `string` or `int` for semantic fields.  
-- Always create domain types (e.g., `type Status string`) and define valid values.  
+### 7.2 Handles / naming
+- Do not add custom naming fields like `Name`, `Queue_name` for entity naming.
+- Use reserved `handle` (unique among non-deleted entities of that type).
+- Only compiled-in `handlesvc` may resolve handle -> entity. Other compiled-in tools must not.
 
----
-## 📑 MARKDOWN & SPECS — SPECIAL RULE
+### 7.3 NeuroScript import boundary
+- Host programs may import ONLY: `github.com/aprice2704/neuroscript/pkg/api`
+- Do not import internal neuroscript packages elsewhere.
 
-When emitting Markdown or spec files (e.g. `agents.md`), you **MUST**:
-- Wrap them in a plain text inline code block.  
-- Prepend `@@@` to every line.  
+### 7.4 `interfaces` Law (no magic strings)
+- `interfaces` is the single source of truth for NodeType/FieldName/Topic/ValueType/ValueKind.
+- Replace string literals with `interfaces` constants when touched.
+- If importing `interfaces`, alias as:
+  - `ix "github.com/aprice2704/fdm/code/interfaces"`
 
-This armors them against web ui rendering vagaries
+### 7.5 Immutability (COW)
+- Nodes are immutable. Mutations return a new node; propagate new IDs upstream.
 
-**Example:**
-```txt
-@@@# Example Spec
-@@@This is how to emit an `.md` file.
-```
+### 7.6 Typed payloads + service registry
+- Publish events using the exact structs defined in `interfaces/` for that topic.
+- No ad-hoc `map[string]any` for system events.
+- Don’t instantiate core services directly; get them via `Env` / `ServiceProvider`.
 
----
-## OTHER KEY GUIDELINES
+### 7.7 Mutation Signature Law
+- `nodes.Mutate<Type>(ctx, graph, entityID, updates map[string]any, opts...)`
+- Do not invent `Mutate<Type>Params`.
 
-- **Stale Files:** If things break mysteriously, assume stale files. Request fresh versions.  
-- **Pause for Discussion:** After questions or design discussions, wait for an explicit request before generating code.  
-- **Single Update Block (optional):** For very large files, you may provide one fenced “update block” instead of the full file — but never more than one per file.  
-- **Helpers:** Place general helpers in shared files (e.g. `utils.go`).  
-- **Sentinel Errors:** Export them from dedicated `errors.go` files.  
-- **Tests:** Use table-driven style. Verify with `errors.Is`. Cover happy paths first.  
-- **Debug Logging:** Keep debug logs (`fmt.Println`, `log.Printf`) unless explicitly asked to remove.  
-- **Design:** Prefer explicit, single-purpose functions. Export carefully.  
+## 8) DEBUG Protocol (applies when tests fail/hang/flake) 🧪🔥
+**Trigger:** any failing test (red), hang, flake, or user says “debug/investigate”.
 
----
-## SUMMARY
+- **ALWAYS** provide complete code files, NEVER abbreviate or elide. 
 
-These rules are the **operating contract** between humans and LLM agents in NeuroScript:  
-- Context first, minimal diffs.  
-- Full functional code, no stubs.  
-- Strong typing, strict error handling.  
-- Controlled file scope and size.  
-- Always emit `.md` specs as ``-prefixed inline blocks.  
 
-Breaking these rules causes wasted time and fragile code. Following them keeps the project fast,
-safe, and maintainable.
+### 8.0 Evidence Standards (what counts) 📌
+- **Evidence means observations, not outcomes.**
+  - stack traces, panic messages, assertion diffs
+  - specific `DBG ...` lines with values
+  - counts/lengths/types/nil-state, IDs/handles, error chains (`%+v` where useful)
+  - timing/progress beacons for hangs
+- **PASS/FAIL is not evidence.** It is only a routing signal for what to do next.
+
+### 8.1 Prime Law: every DEBUG turn must create NEW OBSERVATIONS (ENFORCED)
+On every DEBUG turn you must do at least one, and it must be a **real observability delta**:
+- add new debug output, OR
+- add a fast-fail invariant check with context, OR
+- add a sub-test that narrows the space, OR
+- add progress beacons / timeout guardrails for hangs/flakes.
+
+**Not acceptable:** analysis-only, restating hypotheses, “try running again”, or treating PASS/FAIL alone as progress.
+
+If you cannot edit code due to missing context:
+- request the missing file(s)/Piranha, AND
+- specify exactly what debug/sub-test you will add next turn (where + what it prints).
+
+### 8.2 Scope discipline (stop twiddling)
+- Focus on **exactly one** failing test at a time (name it: `TestXxx`).
+- Touch the smallest number of files.
+- No refactors/cleanups/renames while red. Add debug instead.
+
+### 8.3 The only allowed debug loop
+1) Name failing test + symptom (evidence lines; not “it failed”)
+2) Instrument decision points + error sites
+3) Run only that test (exact command)
+4) State what is now KNOWN (facts)
+5) Narrow: function/branch/invariant
+6) Add more debug where evidence is missing
+7) Add sub-tests if surface area spans > ~2 subsystems
+8) Repeat until fixed
+9) Only after user confirms pass: optional cleanup
+
+### 8.4 Debug output quality (mandatory)
+- Must include discriminating values (IDs, types, lengths, nil state, errors, key flags).
+- Must be searchable with stable prefix: `DBG <pkg>.<fn>:` or `DBG <component>:`
+- Prefer summaries (counts/hashes/key fields) over blobs.
+
+For hangs/flakes/concurrency also add:
+- progress beacons (counter + timestamp)
+- timeout guardrails (fail fast with context)
+- lock/channel acquire/release or send/receive points if relevant
+
+### 8.5 Forbidden uncertainty words (convert to “KNOW”)
+
+Words like: suspect/think/infer/assume/expect/imagine/probably/maybe/seems/likely
+
+Rule: if you use one, immediately convert it to:
+- “We will KNOW by adding debug X at Y printing Z, then running command C.”
+- or “We will KNOW by adding sub-test T isolating F with inputs I asserting A.”
+
+### 8.6 Debug removal policy
+- Never remove debug output while tests are failing/hanging/flaky.
+- Only remove after user explicitly says: “The test passes.”
+
+### 8.7 Instrumentation delta requirement (anti-lip-service)
+- Every DEBUG turn must explicitly list what new observability was added:
+  - new `DBG ...` lines (where + what they print), OR
+  - new assertions/invariants (where + what they assert), OR
+  - new sub-tests (name + what they isolate).
+- If the list is empty, the turn is invalid.
+
+- **ALWAYS** provide complete code files, NEVER abbreviate or elide. 
+
+## 9) Go Standards (Go 1.25+) 🧰
+- Import hygiene: write correct `pkg.Symbol`; `goimports` handles ordering.
+- Error handling: do more than ignore errors; fail fast with context on nil/invalid state.
+- Typed errors: `errors.Is/As`, wrap with `%w`; no string compares.
+- Testing: stdlib `testing` (no testify). Run narrow tests when debugging.
+- Delivery: default to emitting **one** changed file per turn unless user requests more.
+- LOUD stubs -- if stubbing code you MUST make it emit one or more ERROR logs saying it is a stub
+
+
+- **ALWAYS** provide complete code files, NEVER abbreviate or elide. 
+
+
+:: id: capsule/agents_rules
+:: version: 2.6
+:: description: AGENTS.md ruleset for FDM/NS. Clarified NOCODE exemption for .md/.ns. Mandatory N+1 wrapping for .md/.ns.
+:: serialization: md
+:: filename: AGENTS.md

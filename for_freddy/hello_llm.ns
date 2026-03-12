@@ -1,0 +1,57 @@
+:: description: A getting started script for Freddy to configure and query a local LLM via generic HTTP.
+:: fileVersion: 11
+:: filename: hello_local_llm.ns
+:: latestChange: Coordinated with FDM schema using account_name, api_key, and httpprovider params.
+:: majorVersion: 1
+:: product: FDM/NS
+:: serialization: ns
+
+command
+    emit tool.str.color( \
+        [[ [cyan]=== NeuroScript Local LLM Setup === v11[reset] ]] \
+    )
+
+    # 1. Register Account using correct 'api_key' field
+    set account_config = { \
+        "api_key": "local-dummy-key", \
+        "kind": "llm", \
+        "provider": "httpprovider" \
+    }
+    emit tool.str.color([[ [yellow]Registering local account...[reset] ]])
+    must tool.account.Register("local_account", account_config)
+
+    # 2. Define the generic HTTP configuration for an OpenAI-compatible endpoint (e.g. Ollama, LM Studio)
+    # The HTTP provider parses these and interpolates the {MODEL}, {APIKEY}, and {PROMPT} tags.
+    set http_params = { \
+        "api_body_template": {"messages": [{"content": "{PROMPT}", "role": "user"}], "model": "{MODEL}"}, \
+        "api_error_path": "error.message", \
+        "api_headers": {"Authorization": "Bearer {APIKEY}", "Content-Type": "application/json"}, \
+        "api_response_path": "choices[0].message.content", \
+        "api_url": "http://localhost:11434/v1/chat/completions" \
+    }
+
+    # 3. Register Agent Model pointing to the 'httpprovider' and nesting our params
+    set local_config = { \
+        "account_name": "local_account", \
+        "model": "llama3", \
+        "params": {"generic_http": http_params}, \
+        "provider": "httpprovider" \
+    }
+    emit tool.str.color( \
+        [[ [yellow]Registering local agent model configuration...[reset] ]] \
+    )
+    must tool.agentmodel.Register("freddy_assistant", local_config)
+    emit tool.str.color([[ [green]Setup complete. Ready for input.[reset] ]])
+    promptuser tool.str.color( \
+        [[ [magenta]Freddy, what would you like to ask your local LLM? [reset] ]] \
+    ) into user_question
+    emit tool.str.color( \
+        [[ [yellow]Sending prompt to local LLM. Please wait...[reset] ]] \
+    )
+    ask "freddy_assistant", user_question into answer
+    emit tool.str.color([[ [cyan]=== LLM Response ===[reset] ]])
+    emit tool.str.color("[green]" + answer + "[reset]")
+    emit tool.str.color( \
+        [[ [green]Script execution finished successfully.[reset] ]] \
+    )
+endcommand

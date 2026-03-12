@@ -1,0 +1,3 @@
+command
+    emit tool.meta.listToolNames()
+endcommand

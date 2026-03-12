@@ -1,8 +1,10 @@
-// NeuroScript Version: 0.3.0
-// File version: 10
-// Purpose: A simple CLI tool to run NeuroScript files with slog-based logging.
-// filename: cmd/ng/main.go
-// nlines: 181
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 14
+// :: description: A simple CLI tool to run NeuroScript files with slog-based logging.
+// :: latestChange: Fixed LLM provider registration to use ProviderRegistry and interpreter options.
+// :: filename: cmd/ng/main.go
+// :: serialization: go
 
 package main
 
@@ -15,6 +17,9 @@ import (
 	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/api"
+	"github.com/aprice2704/neuroscript/pkg/provider/google"
+	"github.com/aprice2704/neuroscript/pkg/provider/httpprovider"
+	"github.com/aprice2704/neuroscript/pkg/provider/test"
 
 	// This blank import is crucial. It registers all standard NeuroScript tool
 	// bundles so they are available to the interpreter.
@@ -100,7 +105,7 @@ func main() {
 	logger := &slogAdapter{Logger: slogger}
 
 	// 3. Configure the HostContext for the interpreter.
-	hostCtx, err := api.NewHostContextBuilder().
+	hostCtxBuilder := api.NewHostContextBuilder().
 		WithStdout(os.Stdout).
 		WithStderr(os.Stderr).
 		WithStdin(os.Stdin).
@@ -118,25 +123,33 @@ func main() {
 					fmt.Fprintf(os.Stdout, "%v\n", unwrapped)
 				}
 			}
-		}).
-		Build()
+		})
+
+	hostCtx, err := hostCtxBuilder.Build()
 	if err != nil {
 		slogger.Error("Failed to build host context", "error", err)
 		os.Exit(1)
 	}
 
-	// 4. Create a wildcard capability to grant all permissions.
-	allCaps := api.NewCapability("*", "*")
+	// 4. Create and populate the Provider Registry so `ask` can resolve LLMs.
+	provReg := api.NewProviderRegistry()
+	provReg.Register("google", google.New())
+	provReg.Register("httpprovider", httpprovider.New())
+	provReg.Register("test", test.New())
 
-	// 5. Create a new NeuroScript interpreter instance.
+	// 5. Create a wildcard capability to grant all permissions.
+	allCaps := api.NewCapability("*", "*", "*")
+
+	// 6. Create a new NeuroScript interpreter instance, injecting the ProviderRegistry.
 	interp := api.NewConfigInterpreter(
 		[]string{"*"}, // Allow all tools
 		[]api.Capability{allCaps},
 		api.WithHostContext(hostCtx),
+		api.WithProviderRegistry(provReg), // Connect the providers!
 	)
 	interp.SetTurnContext(context.Background())
 
-	// 6. Read, parse, and load each script file in append mode.
+	// 7. Read, parse, and load each script file in append mode.
 	for _, filename := range scriptFiles {
 		src, err := os.ReadFile(filename)
 		if err != nil {
@@ -157,7 +170,7 @@ func main() {
 		logger.Infof("Successfully loaded script: %s", filename)
 	}
 
-	// 7. Execute the 'command' blocks from the loaded scripts.
+	// 8. Execute the 'command' blocks from the loaded scripts.
 	logger.Info("Executing command blocks...")
 	result, err := interp.ExecuteCommands()
 	if err != nil {
@@ -165,7 +178,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// 8. Print the final result if it's not nil.
+	// 9. Print the final result if it's not nil.
 	if result != nil {
 		unwrapped, err := api.Unwrap(result)
 		if err != nil {

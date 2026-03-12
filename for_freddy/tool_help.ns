@@ -1,0 +1,3 @@
+command
+    emit tool.meta.toolsHelp("str.color")
+endcommand
