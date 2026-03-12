@@ -1,9 +1,11 @@
-// NeuroScript Version: 0.8.0
-// File version: 79
-// Purpose: Re-exports all types for the facade, correcting store interfaces AND concrete store names. Removed HandleValue and HandleRegistry to resolve duplicate declaration errors with reexport_handles.go.
-// Latest change: Removed re-exports for HandleValue and HandleRegistry types.
-// filename: pkg/api/reexport.go
-// nlines: 179
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 80
+// :: description: Re-exports all types for the facade, correcting store interfaces AND concrete store names.
+// :: latestChange: Removed deprecated aeiou V3 types (Decision, LoopController).
+// :: filename: pkg/api/reexport.go
+// :: serialization: go
+
 package api
 
 import (
@@ -110,8 +112,6 @@ type (
 	LLMCallStartInfo   = interfaces.LLMCallStartInfo
 	LLMCallSuccessInfo = interfaces.LLMCallSuccessInfo
 	LLMCallFailureInfo = interfaces.LLMCallFailureInfo
-	Decision           = aeiou.Decision
-	LoopController     = aeiou.LoopController
 )
 
 // Re-exported constants
@@ -151,15 +151,13 @@ const (
 // Re-exported functions and constructors
 var (
 	// Configuration
-	NewHostContextBuilder = interpreter.NewHostContextBuilder
-	WithGlobals           = interpreter.WithGlobals
-	WithExecPolicy        = interpreter.WithExecPolicy
-	WithSandboxDir        = interpreter.WithSandboxDir
-	WithoutStandardTools  = interpreter.WithoutStandardTools
-	// --- FIXED TYPO ---
-	WithAITranscriptWriter = interpreter.WithAITranscriptWriter //
-	// ------------------
-	WithCapsuleStore = interpreter.WithCapsuleStore
+	NewHostContextBuilder  = interpreter.NewHostContextBuilder
+	WithGlobals            = interpreter.WithGlobals
+	WithExecPolicy         = interpreter.WithExecPolicy
+	WithSandboxDir         = interpreter.WithSandboxDir
+	WithoutStandardTools   = interpreter.WithoutStandardTools
+	WithAITranscriptWriter = interpreter.WithAITranscriptWriter
+	WithCapsuleStore       = interpreter.WithCapsuleStore
 
 	// Loggers
 	NewNoOpLogger = logging.NewNoOpLogger
@@ -176,11 +174,9 @@ var (
 	NewProviderRegistry       = provider.NewRegistry
 	NewProviderRegistryReader = provider.NewReader
 	NewProviderAdmin          = provider.NewAdmin
-	// --- THE FIX: Export correct store building blocks ---
-	NewCapsuleRegistry     = capsule.NewRegistry
-	BuiltInCapsuleRegistry = capsule.BuiltInRegistry
-	// --- END FIX ---
-	MakeToolFullName = types.MakeFullName
+	NewCapsuleRegistry        = capsule.NewRegistry
+	BuiltInCapsuleRegistry    = capsule.BuiltInRegistry
+	MakeToolFullName          = types.MakeFullName
 
 	// --- STORE CONSTRUCTORS & OPTIONS ---
 	// Concrete store constructors

@@ -1,10 +1,11 @@
 // :: product: FDM/NS
-// :: majorVersion: 0
-// :: fileVersion: 2
-// :: description: Updated tests to verify V4 <<<LOOP:DONE>>> marker stripping.
-// :: latestChange: Added test case for V4 marker.
+// :: majorVersion: 1
+// :: fileVersion: 3
+// :: description: Removed dependency on legacy magic.go constants.
+// :: latestChange: Hardcoded V3 string for the controlToken in test.
 // :: filename: pkg/aeiou/progress_test.go
 // :: serialization: go
+
 package aeiou
 
 import (
@@ -15,11 +16,11 @@ import (
 func TestComputeHostDigest(t *testing.T) {
 	// A sample V3 control token to be stripped
 	controlToken := fmt.Sprintf("%s:%s:%s.%s%s",
-		TokenMarkerPrefix,
-		KindLoop,
+		"<<<NSMAG:V3",
+		"LOOP",
 		"payload_b64",
 		"tag_b64",
-		TokenMarkerSuffix,
+		">>>",
 	)
 
 	testCases := []struct {

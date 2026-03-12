@@ -1,9 +1,11 @@
-// NeuroScript Version: 0.7.2
-// File version: 13
-// Purpose: Corrects the file reading logic to satisfy the io.ReadSeeker interface required by the metadata parser.
-// Latest change: Updated to use BuiltInRegistry() instead of DefaultRegistry() to resolve split-brain issue.
-// filename: pkg/capsule/loader.go
-// nlines: 75
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 14
+// :: description: Corrects the file reading logic to satisfy the io.ReadSeeker interface required by the metadata parser. Adds filtering for valid extensions.
+// :: latestChange: Added file extension and hidden file filtering to prevent noisy logs from .bash_history etc.
+// :: filename: pkg/capsule/loader.go
+// :: serialization: go
+
 package capsule
 
 import (
@@ -13,6 +15,8 @@ import (
 	"io"
 	"io/fs"
 	"log"
+	"path/filepath"
+	"strings"
 
 	"github.com/aprice2704/neuroscript/pkg/metadata"
 )
@@ -30,6 +34,16 @@ func init() {
 			return err
 		}
 		if d.IsDir() {
+			return nil
+		}
+
+		// SKIP hidden files (like .bash_history) and non-capsule file types
+		name := d.Name()
+		if strings.HasPrefix(name, ".") {
+			return nil
+		}
+		ext := filepath.Ext(name)
+		if ext != ".md" && ext != ".ns" {
 			return nil
 		}
 
@@ -62,9 +76,8 @@ func init() {
 		priority, _ := extractor.GetIntOr("priority", 100)
 
 		reg.MustRegister(Capsule{
-			Name:    extractor.MustGet("id"),
-			Version: extractor.MustGet("version"),
-			// This relies on the Description field being added to registry.go
+			Name:        extractor.MustGet("id"),
+			Version:     extractor.MustGet("version"),
 			Description: extractor.MustGet("description"),
 			MIME:        extractor.GetOr("mime", "text/plain; charset=utf-8"),
 			Content:     string(bytes.TrimSpace(contentBody)),

@@ -1,8 +1,10 @@
-// NeuroScript Version: 0.8.0
-// File version: 2
-// Purpose: Re-exports internal types for the AEIOU v2 "LLM Orchestration SDK". Corrects emitter and loop controller.
-// filename: pkg/api/reexport_sdk.go
-// nlines: 56
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 3
+// :: description: Re-exports internal types for the AEIOU v2+ "LLM Orchestration SDK". Corrects emitter and loop controller.
+// :: latestChange: Removed deprecated aeiou.NewLoopController export.
+// :: filename: pkg/api/reexport_sdk.go
+// :: serialization: go
 
 package api
 
@@ -45,8 +47,6 @@ var (
 	ParseAeiouEnvelope = aeiou.Parse
 	ComputeHostDigest  = aeiou.ComputeHostDigest
 	NewProgressTracker = aeiou.NewProgressTracker
-	// FIX: Export NewLoopController, not the non-existent ParseLoopController
-	NewLoopController = aeiou.NewLoopController
 
 	// LLM Connection Constructor
 	// This wraps the internal llmconn.New, adapting it for the public API.

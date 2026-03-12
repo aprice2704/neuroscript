@@ -1,9 +1,10 @@
-// NeuroScript Version: 0.8.0
-// File version: 6.0.0
-// Purpose: Enables all tests for built-in type-checking functions.
-// filename: pkg/interpreter/functions_types_test.go
-// nlines: 161
-// risk_rating: LOW
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 7
+// :: description: Enables all tests for built-in type-checking functions.
+// :: latestChange: Fixed unkeyed fields linter warning for lang.StringValue.
+// :: filename: pkg/interpreter/functions_types_test.go
+// :: serialization: go
 
 package interpreter_test
 
@@ -52,7 +53,7 @@ func TestBuiltinTypeCheckFunctions(t *testing.T) {
 		{"is_bool", "v_str", lang.StringValue{Value: "true"}, false},
 		{"is_list", "v_map", lang.NewMapValue(nil), false},
 		{"is_map", "v_list", lang.NewListValue(nil), false},
-		{"is_error", "v_map", lang.NewMapValue(map[string]lang.Value{"key": lang.StringValue{"val"}}), false},
+		{"is_error", "v_map", lang.NewMapValue(map[string]lang.Value{"key": lang.StringValue{Value: "val"}}), false},
 		{"is_function", "v_tool", lang.ToolValue{Value: dummyTool{}}, false},
 		{"is_tool", "v_func", lang.FunctionValue{Value: dummyProc}, false},
 		{"is_event", "v_err", lang.NewErrorValue("code", "msg", nil), false},

@@ -1,10 +1,11 @@
 // :: product: FDM/NS
 // :: majorVersion: 1
-// :: fileVersion: 30
-// :: description: Updated loop done detection to handle result suffixes (e.g., <<<LOOP:DONE>>> result).
-// :: latestChange: Changed loopDoneSignal check from equality to HasPrefix and capture suffix.
+// :: fileVersion: 31
+// :: description: Backported V4 features: Self-correction loop, explosive output tripwire, and split-emit fallback.
+// :: latestChange: Integrated CleanLLMPayload, maxTurnBytes tripwire, and error feedback injection.
 // :: filename: pkg/interpreter/steps_ask_hostloop.go
 // :: serialization: go
+
 package interpreter
 
 import (
@@ -14,32 +15,25 @@ import (
 
 	"github.com/aprice2704/neuroscript/pkg/aeiou"
 	"github.com/aprice2704/neuroscript/pkg/lang"
-	"github.com/aprice2704/neuroscript/pkg/llmconn" // Restored dependency
-
-	// "github.com/aprice2704/neuroscript/pkg/provider" // No longer needed here
+	"github.com/aprice2704/neuroscript/pkg/llmconn"
 	"github.com/aprice2704/neuroscript/pkg/types"
 	"github.com/google/uuid"
 )
 
 const (
-	// maxTurnsCap is a hard safety limit on the number of turns in an ask loop.
-	maxTurnsCap = 25
-	// progressGuardDefaultN is the number of consecutive identical digests that trigger a HALT.
+	maxTurnsCap           = 25
 	progressGuardDefaultN = 3
-	// loopDoneSignal is the simple string an AI can emit to signal task completion.
-	loopDoneSignal = "<<<LOOP:DONE>>>"
+	loopDoneSignal        = "<<<LOOP:DONE>>>"
+	maxTurnBytes          = 524288 // 512KB limit to prevent context explosion
 )
 
 // runAskHostLoop orchestrates the turn-by-turn execution of an AEIOU v4 conversation.
-// It now accepts the llmconn.Connector again.
 func (i *Interpreter) runAskHostLoop(pos *types.Position, agentModel *types.AgentModel, conn llmconn.Connector, initialEnvelope *aeiou.Envelope) (lang.Value, error) {
-	// --- DEBUG: ADDED HIGH-VISIBILITY LOG ---
 	i.Logger().Info("--- Running V4 Native ask host loop (steps_ask_hostloop.go) ---")
-	// --- END DEBUG ---
 
 	maxTurns := agentModel.MaxTurns
 	if maxTurns <= 0 {
-		maxTurns = 1 // Default to one-shot if not specified or invalid
+		maxTurns = 1
 	}
 	if maxTurns > maxTurnsCap {
 		i.Logger().Warn("AgentModel max_turns exceeds cap", "agent", agentModel.Name, "requested", agentModel.MaxTurns, "capped_at", maxTurnsCap)
@@ -48,24 +42,18 @@ func (i *Interpreter) runAskHostLoop(pos *types.Position, agentModel *types.Agen
 
 	sessionID := uuid.NewString()
 	progressTracker := aeiou.NewProgressTracker(progressGuardDefaultN)
-	var finalResult lang.Value = &lang.NilValue{} // Initialize final result
+	var finalResult lang.Value = &lang.NilValue{}
 	turnEnvelope := initialEnvelope
 
 	for turn := 1; turn <= maxTurns; turn++ {
 		i.Logger().Debug("--- Starting ask loop turn ---", "sid", sessionID, "turn", turn)
-
 		turnNonce := uuid.NewString()
 
-		// --- Context Propagation ---
-		baseCtx := i.GetTurnContext() // Get context possibly set by caller (e.g., api.RunProcedure)
-		// Add session/turn info for this specific loop iteration
+		baseCtx := i.GetTurnContext()
 		turnCtxForLLM := context.WithValue(baseCtx, AeiouSessionIDKey, sessionID)
 		turnCtxForLLM = context.WithValue(turnCtxForLLM, AeiouTurnIndexKey, turn)
 		turnCtxForLLM = context.WithValue(turnCtxForLLM, AeiouTurnNonceKey, turnNonce)
-		// We use turnCtxForLLM for the Converse call.
-		// fmt.Printf("[DEBUG] runAskHostLoop: Turn %d. Context for LLM call %p (derived from base %p).\n", turn, turnCtxForLLM, baseCtx)
 
-		// --- Transcript Logging ---
 		if i.hostContext.AITranscript != nil {
 			if composedPrompt, err := turnEnvelope.Compose(); err == nil {
 				transcriptHeader := fmt.Sprintf("--- PROMPT (SID: %s, Turn: %d) ---\n", sessionID, turn)
@@ -76,113 +64,150 @@ func (i *Interpreter) runAskHostLoop(pos *types.Position, agentModel *types.Agen
 			}
 		}
 
-		// --- Call AI Provider via Connector ---
-		// The conn.Converse method handles interaction with the underlying provider.Chat
 		aiResp, err := conn.Converse(turnCtxForLLM, turnEnvelope)
 		if err != nil {
-			// --- FIX: Wrap the error to ensure it's a RuntimeError ---
-			// This prevents the generic "internal error during ask"
 			if _, ok := err.(*lang.RuntimeError); !ok {
 				return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "AI provider conversation failed", err).WithPosition(pos)
 			}
-			// --- End Fix ---
-			return nil, err // Return error from Converse (could be provider error, context canceled, etc.)
+			return nil, err
 		}
 
-		// --- Parse AI Response ---
+		// --- Explosive Output Tripwire ---
+		if len(aiResp.TextContent) > maxTurnBytes {
+			i.Logger().Warn("Ask loop: Response size limit exceeded", "sid", sessionID, "turn", turn, "size", len(aiResp.TextContent))
+			errorFeedback := fmt.Sprintf("SYSTEM_ERROR: Response size (%d bytes) exceeded the %d byte turn limit. Do not echo the USERDATA payload. Use tools (e.g., fs.Write) or split your emit statements across multiple turns to handle large data safely.", len(aiResp.TextContent), maxTurnBytes)
+
+			turnEnvelope = &aeiou.Envelope{
+				UserData:   turnEnvelope.UserData,
+				Scratchpad: turnEnvelope.Scratchpad,
+				Output:     errorFeedback,
+				Actions:    "command\n  # Recover from size limit\nendcommand",
+			}
+			continue
+		}
+
+		// --- Parse AI Response with Defensive Self-Correction ---
 		responseEnvelope, _, err := aeiou.Parse(strings.NewReader(aiResp.TextContent))
 		if err != nil {
-			// Handle parse failure - potentially log and try to continue if robust handling is needed,
-			// or fail the loop. For now, we fail.
-			i.Logger().Error("Failed to parse AI response envelope", "sid", sessionID, "turn", turn, "error", err, "raw_response", aiResp.TextContent)
-			// THE FIX: Changed lang.ErrorCodeFormat (which doesn't exist) to lang.ErrorCodeSyntax.
-			return nil, lang.NewRuntimeError(lang.ErrorCodeSyntax, "failed to parse AI response envelope", err).WithPosition(pos)
+			i.Logger().Warn("Ask loop: Failed to parse AI response envelope, triggering self-correction", "sid", sessionID, "turn", turn, "error", err)
+			errorFeedback := fmt.Sprintf("SYSTEM_ERROR: The previous ACTIONS block failed to parse or validate.\nError: %v\n\nEnsure you are using valid NeuroScript syntax.", err)
+
+			turnEnvelope = &aeiou.Envelope{
+				UserData:   turnEnvelope.UserData,
+				Scratchpad: turnEnvelope.Scratchpad,
+				Output:     errorFeedback,
+				Actions:    "command\n  # Fix syntax error\nendcommand",
+			}
+			continue
 		}
 
-		// --- Execute ACTIONS Block ---
 		execInterp := i.fork()
-		// CRITICAL: The forked interpreter needs the correct context for THIS turn
-		// so that tools called within the ACTIONS block get the right context.
-		execInterp.SetTurnContext(turnCtxForLLM) // Pass the turn-specific context
-		// fmt.Printf("[DEBUG] runAskHostLoop: Turn %d. Set context on EXEC interpreter %s. Ctx %p.\n", turn, execInterp.id, turnCtxForLLM)
+		execInterp.SetTurnContext(turnCtxForLLM)
 
-		var actionEmits []string // Capture emits as strings
+		var actionEmits []string
 		var actionWhispers = make(map[string]lang.Value)
 
 		actionsTrimmed := strings.TrimSpace(responseEnvelope.Actions)
-		// Allow empty ACTIONS block
 		if actionsTrimmed != "" && (!strings.HasPrefix(actionsTrimmed, "command") || !strings.HasSuffix(actionsTrimmed, "endcommand")) {
-			return nil, lang.NewRuntimeError(lang.ErrorCodeSyntax, "ACTIONS block must contain exactly one 'command...endcommand' block or be empty", nil).WithPosition(pos)
+			// Instead of returning error, feed back to AI
+			errorFeedback := "SYSTEM_ERROR: ACTIONS block must contain exactly one 'command...endcommand' block or be empty."
+			turnEnvelope = &aeiou.Envelope{
+				UserData:   turnEnvelope.UserData,
+				Scratchpad: turnEnvelope.Scratchpad,
+				Output:     errorFeedback,
+				Actions:    "command\n  # Fix syntax error\nendcommand",
+			}
+			continue
 		}
 
-		// Execute the AI' commands in the sandboxed interpreter
+		// --- Execute ACTIONS Block with Defensive Self-Correction ---
 		if err := executeAeiouTurn(execInterp, responseEnvelope, &actionEmits, &actionWhispers); err != nil {
-			// Propagate errors from executing the ACTIONS block (e.g., tool errors, syntax errors)
-			return nil, err
+			i.Logger().Warn("Ask loop: ACTIONS execution failed, triggering self-correction", "sid", sessionID, "turn", turn, "error", err)
+			hint := ""
+			if strings.Contains(err.Error(), "mismatched input 'tool'") {
+				hint = " (Hint: Did you forget the 'call' keyword before a tool invocation?)"
+			} else if strings.Contains(err.Error(), "mismatched input '='") {
+				hint = " (Hint: Tool arguments MUST be passed as a JSON object, not Python kwargs. Use `call tool.name({\"key\":\"val\"})`)"
+			}
+
+			errorFeedback := fmt.Sprintf("SYSTEM_ERROR: The previous ACTIONS block failed during execution.\nError: %v%s\n\nEnsure you are using valid NeuroScript syntax.", err, hint)
+
+			turnEnvelope = &aeiou.Envelope{
+				UserData:   turnEnvelope.UserData,
+				Scratchpad: turnEnvelope.Scratchpad,
+				Output:     errorFeedback,
+				Actions:    "command\n  # Fix execution error\nendcommand",
+			}
+			continue
 		}
 
 		// --- Process Emits for Loop Control and Result ---
 		var cleanEmits []string
 		var loopDone bool
+		var markerExtracted string
+
 		for _, emit := range actionEmits {
 			trimmedEmit := strings.TrimSpace(emit)
-			// THE FIX: Check for prefix, not exact match, to handle payload suffix.
-			if strings.HasPrefix(trimmedEmit, loopDoneSignal) {
+			if strings.Contains(trimmedEmit, loopDoneSignal) {
 				loopDone = true
 				i.Logger().Debug("<<<LOOP:DONE>>> signal detected", "sid", sessionID, "turn", turn)
 
-				// Extract any payload following the marker (e.g., "<<<LOOP:DONE>>> Success")
-				suffix := strings.TrimPrefix(trimmedEmit, loopDoneSignal)
-				suffix = strings.TrimSpace(suffix)
-				if suffix != "" {
-					cleanEmits = append(cleanEmits, suffix)
+				cleaned := aeiou.CleanLLMPayload(trimmedEmit)
+				if cleaned != "" {
+					markerExtracted = cleaned
 				}
-				continue // Don't include the signal itself in the final output
+				continue
 			}
-			// Filter out any vestigial AEIOU v3 tokens just in case
-			if !strings.HasPrefix(trimmedEmit, aeiou.TokenMarkerPrefix) {
-				cleanEmits = append(cleanEmits, emit) // Keep the original emit, not trimmed
+			// Filter out vestigial V3 tokens if they somehow appear
+			if !strings.HasPrefix(trimmedEmit, "<<<NSMAG:V3") {
+				cleanEmits = append(cleanEmits, emit)
 			}
 		}
+
 		outputBody := strings.Join(cleanEmits, "\n")
-		// The final result of the 'ask' statement is the *last* non-empty outputBody produced.
-		// Update finalResult only if there's actual content emitted this turn.
-		// Allow empty string as a valid final result if the AI emits nothing then DONE.
-		if len(actionEmits) > 0 || loopDone { // Consider turn valid if anything happened (emit or DONE)
+
+		// If Loop Done, set result based on precedence (inline marker payload vs split-emit)
+		if loopDone {
+			if markerExtracted != "" {
+				finalResult = lang.StringValue{Value: markerExtracted}
+			} else if outputBody != "" {
+				finalResult = lang.StringValue{Value: outputBody}
+			} else {
+				finalResult = &lang.NilValue{}
+			}
+			i.Logger().Debug("Ask loop terminating: AI emitted DONE signal.", "sid", sessionID, "turn", turn)
+			break
+		}
+
+		// Turn considered valid if anything happened (emit) or loop continued
+		if len(actionEmits) > 0 {
 			finalResult = lang.StringValue{Value: outputBody}
 		}
 
 		// --- Progress Guard ---
-		fullOutputBody := strings.Join(actionEmits, "\n") // Use all emits for digest
+		fullOutputBody := strings.Join(actionEmits, "\n")
 		scratchpadBody, _ := lang.ToString(lang.NewMapValue(actionWhispers))
 		digest := aeiou.ComputeHostDigest(fullOutputBody, scratchpadBody)
 		if progressTracker.CheckAndRecord(digest) {
 			i.Logger().Warn("Ask loop terminating: no progress detected.", "sid", sessionID, "turn", turn, "last_digest", digest)
-			break // Terminate due to lack of progress
+			return nil, lang.NewRuntimeError(lang.ErrorCodeInternal, "ask loop stuck in repetitive state", nil).WithPosition(pos)
 		}
 
 		// --- Termination Checks ---
-		if loopDone {
-			i.Logger().Debug("Ask loop terminating: AI emitted DONE signal.", "sid", sessionID, "turn", turn)
-			break // Terminate because AI signaled completion
-		}
-
 		if turn == maxTurns {
 			i.Logger().Debug("Ask loop terminating: max turns reached.", "sid", sessionID, "max_turns", maxTurns)
-			break // Terminate due to reaching turn limit
+			break
 		}
 
 		// --- Prepare for Next Turn ---
-		// UserData for the next turn is the clean output from this turn.
 		turnEnvelope = &aeiou.Envelope{
-			UserData:   outputBody,
+			UserData:   turnEnvelope.UserData,
 			Scratchpad: scratchpadBody,
-			Output:     outputBody,           // Output section mirrors UserData for next prompt
-			Actions:    "command endcommand", // Default empty actions for next turn
+			Output:     outputBody,
+			Actions:    "command\n  # Execute next step\nendcommand",
 		}
-	} // End of turn loop
+	}
 
 	i.Logger().Debug("--- EXITING ask host loop ---", "sid", sessionID)
-	// Return the result accumulated from the last valid turn.
 	return finalResult, nil
 }

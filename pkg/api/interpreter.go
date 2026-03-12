@@ -1,15 +1,15 @@
-// NeuroScript Version: 0.8.0
-// File version: 73
-// Purpose: Removes redundant init() and public stub functions.
-// Latest change: Commented out CapsuleProvider facade method to align with internal interpreter.
-// filename: pkg/api/interpreter.go
-// nlines: 281
+// :: product: FDM/NS
+// :: majorVersion: 1
+// :: fileVersion: 74
+// :: description: Removes redundant init() and public stub functions.
+// :: latestChange: Removed deprecated ParseLoopControl function which referenced deleted V3 types.
+// :: filename: pkg/api/interpreter.go
+// :: serialization: go
 
 package api
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/aprice2704/neuroscript/pkg/ast"
@@ -82,11 +82,6 @@ func Unwrap(v Value) (any, error) {
 		return lang.Unwrap(val), nil
 	}
 	return v, nil
-}
-
-// ParseLoopControl is deprecated and will be removed.
-func ParseLoopControl(output string) (*LoopController, error) {
-	return nil, errors.New("ParseLoopControl is deprecated; use the AEIOU v3 LoopController")
 }
 
 // CapsuleProvider returns the host-provided capsule service, if one was injected.
