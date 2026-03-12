@@ -21,3 +21,4 @@ x
 cd pkg/interpreter/
 p Unwrap
 cd pkg/lang
+find . -name ".bash_history" -exec git rm --cached {} +
